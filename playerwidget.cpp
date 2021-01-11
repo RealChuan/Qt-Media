@@ -2,8 +2,21 @@
 
 #include <QtWidgets>
 
+class PlayerWidgetPrivate{
+public:
+    PlayerWidgetPrivate(QWidget *parent)
+        : owner(parent){
+        menu = new QMenu(owner);
+    }
+    QWidget *owner;
+
+    QMenu *menu;
+    QPixmap pixmap;
+};
+
 PlayerWidget::PlayerWidget(QWidget *parent)
     : QWidget(parent)
+    , d_ptr(new PlayerWidgetPrivate(this))
 {
     QPalette p = palette();
     p.setColor(QPalette::Window, QColor(13,14,17));
@@ -11,6 +24,12 @@ PlayerWidget::PlayerWidget(QWidget *parent)
     setAttribute(Qt::WA_OpaquePaintEvent);
     setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     setAcceptDrops(true);
+    setupUI();
+}
+
+PlayerWidget::~PlayerWidget()
+{
+
 }
 
 void PlayerWidget::dragEnterEvent(QDragEnterEvent *event)
@@ -42,11 +61,16 @@ void PlayerWidget::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
 
-    if(m_pixmap.width() > width() || m_pixmap.height() > height())
-        m_pixmap = m_pixmap.scaled(width(), height(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    int x = (width() - m_pixmap.width()) / 2;
-    int y = (height() - m_pixmap.height()) / 2;
-    painter.drawPixmap(QRect(x, y, m_pixmap.width(), m_pixmap.height()), m_pixmap);
+    if(d_ptr->pixmap.width() > width() || d_ptr->pixmap.height() > height())
+        d_ptr->pixmap = d_ptr->pixmap.scaled(width(), height(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    int x = (width() - d_ptr->pixmap.width()) / 2;
+    int y = (height() - d_ptr->pixmap.height()) / 2;
+    painter.drawPixmap(QRect(x, y, d_ptr->pixmap.width(), d_ptr->pixmap.height()), d_ptr->pixmap);
+}
+
+void PlayerWidget::setupUI()
+{
+    d_ptr->menu->addAction(tr("Open Video"), this, &PlayerWidget::onOpenVideo);
 }
 
 void PlayerWidget::onReadyRead(const QPixmap &pixmap)
@@ -55,6 +79,20 @@ void PlayerWidget::onReadyRead(const QPixmap &pixmap)
         qWarning() << "pixmap is NUll";
         return;
     }
-    m_pixmap = pixmap;
+    d_ptr->pixmap = pixmap;
     update();
+}
+
+void PlayerWidget::onOpenVideo()
+{
+    QString path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).value(0, QDir::homePath());
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),path,
+                                                    tr("Video (*.mp4 *.mkv *.rmnb)"));
+    emit openFile(fileName);
+}
+
+void PlayerWidget::contextMenuEvent(QContextMenuEvent *event)
+{
+    QWidget::contextMenuEvent(event);
+    d_ptr->menu->exec(event->globalPos());
 }

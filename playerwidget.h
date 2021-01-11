@@ -3,11 +3,13 @@
 
 #include <QWidget>
 
+class PlayerWidgetPrivate;
 class PlayerWidget : public QWidget
 {
     Q_OBJECT
 public:
     explicit PlayerWidget(QWidget *parent = nullptr);
+    ~PlayerWidget();
 
 public slots:
     void onReadyRead(const QPixmap& pixmap);
@@ -15,7 +17,12 @@ public slots:
 signals:
     void openFile(const QString &filepath);
 
+private slots:
+    void onOpenVideo();
+
 protected:
+    void contextMenuEvent(QContextMenuEvent *) override;
+
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
     void dropEvent(QDropEvent *event) override;
@@ -23,7 +30,9 @@ protected:
     void paintEvent(QPaintEvent *event) override;
 
 private:
-    QPixmap m_pixmap;
+    void setupUI();
+
+    QScopedPointer<PlayerWidgetPrivate> d_ptr;
 };
 
 #endif // PLAYERWIDGET_H

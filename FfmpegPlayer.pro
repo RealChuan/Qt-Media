@@ -9,15 +9,27 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    avcontextinfo.cpp \
+    avimage.cpp \
+    codeccontext.cpp \
+    formatcontext.cpp \
     main.cpp \
     mainwindow.cpp \
+    packet.cpp \
     player.cpp \
-    playerwidget.cpp
+    playerwidget.cpp \
+    playframe.cpp
 
 HEADERS += \
+    avcontextinfo.h \
+    avimage.h \
+    codeccontext.h \
+    formatcontext.h \
     mainwindow.h \
+    packet.h \
     player.h \
-    playerwidget.h
+    playerwidget.h \
+    playframe.h
 
 contains(QT_ARCH, i386) {
     BIN = bin-32
@@ -38,3 +50,6 @@ LIBS += -lavutil -lavformat -lavcodec -lavdevice -lavfilter -lpostproc -lswresam
 DESTDIR = $$APP_OUTPUT_PATH
 
 INCLUDEPATH += D:/Mine/CODE/vcpkg/packages/ffmpeg_x64-windows/include
+
+DISTFILES += \
+    FfmpegPlayer.pro.user
