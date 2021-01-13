@@ -1,6 +1,8 @@
 #ifndef CODECCONTEXT_H
 #define CODECCONTEXT_H
 
+#include <QObject>
+
 extern "C"{
 #include <libavcodec/avcodec.h>
 #include <libavutil/imgutils.h>
@@ -8,10 +10,11 @@ extern "C"{
 
 class Packet;
 class PlayFrame;
-class CodecContext
+class CodecContext : public QObject
 {
+    Q_OBJECT
 public:
-    explicit CodecContext(const AVCodec *codec);
+    explicit CodecContext(const AVCodec *codec, QObject *parent = nullptr);
     ~CodecContext();
 
     AVCodecContext *avCodecCtx();

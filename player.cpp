@@ -4,6 +4,7 @@
 #include "packet.h"
 #include "avimage.h"
 #include "codeccontext.h"
+#include "avaudio.h"
 
 #include <QDebug>
 #include <QImage>
@@ -13,12 +14,14 @@
 #include <QWaitCondition>
 #include <QDateTime>
 #include <playframe.h>
+#include <QAudioOutput>
 
 extern "C"{
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
+#include <libswresample/swresample.h>
 }
 
 class PlayerPrivate{
@@ -28,12 +31,32 @@ public:
         formatCtx = new FormatContext(owner);
         audioInfo = new AVContextInfo(owner);
         videoInfo = new AVContextInfo(owner);
+
+        QAudioFormat format;
+        format.setSampleRate(44100);
+        format.setChannelCount(2);
+        format.setSampleSize(16);
+        format.setCodec("audio/pcm");
+        format.setByteOrder(QAudioFormat::LittleEndian);
+        format.setSampleType(QAudioFormat::SignedInt);
+        audioOutput = new QAudioOutput(format, owner);
+        audioOutput->setVolume(0.5);
+        audioDevice = audioOutput->start();
+
+        QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
+        qDebug() << info.supportedCodecs();
+        if (!info.isFormatSupported(format)) {
+            qDebug() << "Raw audio format not supported by backend, cannot play audio.";
+        }
     }
     QThread *owner;
 
     FormatContext *formatCtx;
     AVContextInfo *audioInfo;
     AVContextInfo *videoInfo;
+
+    QAudioOutput *audioOutput;
+    QIODevice *audioDevice;
 
     QString filepath;
     bool isopen = true;
@@ -49,7 +72,8 @@ Player::Player(QObject *parent)
     : QThread(parent)
     , d_ptr(new PlayerPrivate(this))
 {
-
+    qDebug() <<avcodec_configuration();
+    qDebug() << avcodec_version();
 }
 
 Player::~Player()
@@ -104,7 +128,7 @@ bool Player::initAvCode()
         return false;
     }
 
-    //qDebug() << audioIndex << videoIndex;
+    qDebug() << audioIndex << videoIndex;
 
     d_ptr->audioInfo->setIndex(audioIndex);
     d_ptr->audioInfo->setStream(d_ptr->formatCtx->stream(audioIndex));
@@ -120,6 +144,8 @@ bool Player::initAvCode()
     return true;
 }
 
+#define MAX_AUDIO_FRAME_SIZE 192000
+
 void Player::playVideo()
 {
     if(!d_ptr->isopen)
@@ -128,41 +154,47 @@ void Player::playVideo()
     d_ptr->formatCtx->dumpFormat();
 
     PlayFrame frame;
-    PlayFrame frameRGB;
 
+    PlayFrame frameRGB;
     d_ptr->videoInfo->imageBuffer(frameRGB);
 
     Packet packet;
     AVImage avImage(d_ptr->videoInfo->codecCtx());
-    while (d_ptr->formatCtx->readFrame(&packet) && d_ptr->runing){
-        // 如果是音频数据
-        //if(packet.avPacket()->stream_index == d_ptr->audioInfo->index()){
-        //    if(!d_ptr->audioInfo->sendPacket(&packet)){
-        //        continue;
-        //    }
-        //    if(!d_ptr->audioInfo->receiveFrame(&pFrame)){
-        //        continue;
-        //    }
-        //
-        //    avImage.scale(&pFrame, &pFrameRGB, d_ptr->audioInfo->codecCtx()->height());
-        //
-        //    emit readyRead(QPixmap::fromImage(pFrameRGB.toImage(d_ptr->audioInfo->codecCtx()->width(),
-        //                                                        d_ptr->audioInfo->codecCtx()->height())));
-        //}
 
-        // 如果是视频数据
-        if(packet.avPacket()->stream_index == d_ptr->videoInfo->index()){
+    QByteArray audioBuf;  
+    AVAudio avAudio(d_ptr->audioInfo->codecCtx());
+
+    while (d_ptr->formatCtx->readFrame(&packet) && d_ptr->runing){
+        if(packet.avPacket()->stream_index == d_ptr->audioInfo->index()){ // 如果是音频数据
+            if(!d_ptr->audioInfo->sendPacket(&packet)){
+                continue;
+            }
+            if(!d_ptr->audioInfo->receiveFrame(&frame)){
+                continue;
+            }
+
+            audioBuf = avAudio.convert(&frame, d_ptr->audioInfo->codecCtx());
+
+            while(d_ptr->audioOutput->bytesFree() < audioBuf.size()){
+                d_ptr->audioDevice->write(audioBuf.data(), d_ptr->audioOutput->bytesFree());
+                audioBuf = audioBuf.mid(d_ptr->audioOutput->bytesFree());
+                QThread::msleep(10);
+            }
+            d_ptr->audioDevice->write(audioBuf);
+
+            packet.clear();
+        }else if(packet.avPacket()->stream_index == d_ptr->videoInfo->index()){ // 如果是视频数据
             if(!d_ptr->videoInfo->sendPacket(&packet)){
                 continue;
             }
             if(!d_ptr->videoInfo->receiveFrame(&frame)){
                 continue;
             }
-
             avImage.scale(&frame, &frameRGB, d_ptr->videoInfo->codecCtx()->height());
 
             emit readyRead(QPixmap::fromImage(frameRGB.toImage(d_ptr->videoInfo->codecCtx()->width(),
                                                                d_ptr->videoInfo->codecCtx()->height())));
+            packet.clear();
         }
 
         while(d_ptr->pause){
@@ -170,7 +202,7 @@ void Player::playVideo()
             d_ptr->waitCondition.wait(&d_ptr->mutex);
         }
 
-        QThread::msleep(1);
+        QThread::msleep(10);
     }
 }
 

@@ -15,7 +15,7 @@ public:
 };
 
 PlayerWidget::PlayerWidget(QWidget *parent)
-    : QWidget(parent)
+    : QOpenGLWidget(parent)
     , d_ptr(new PlayerWidgetPrivate(this))
 {
     QPalette p = palette();

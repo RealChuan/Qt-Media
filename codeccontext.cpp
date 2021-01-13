@@ -2,15 +2,17 @@
 #include "packet.h"
 #include "playframe.h"
 
+#include <QDebug>
+
 extern "C"{
 #include <libswscale/swscale.h>
 }
 
-CodecContext::CodecContext(const AVCodec *codec)
+CodecContext::CodecContext(const AVCodec *codec, QObject *parent)
+    : QObject(parent)
 {
     m_codecCtx = avcodec_alloc_context3(codec);
-    m_ok = m_codecCtx == nullptr ? false : true;
-}
+    m_ok = m_codecCtx == nullptr ? false : true;}
 
 CodecContext::~CodecContext()
 {
@@ -34,6 +36,11 @@ bool CodecContext::setParameters(const AVCodecParameters *par)
     if(avcodec_parameters_to_context(m_codecCtx, par) < 0){
         return false;
     }
+    qDebug() << m_codecCtx->framerate.num;
+    qInfo() << tr("Width: ") << m_codecCtx->width << tr(" Height: ") << m_codecCtx->height;
+    qInfo() << tr("Channels: ") << m_codecCtx->channels;
+    qInfo() << tr("sample_fmt: ") << m_codecCtx->sample_fmt;
+    qInfo() << tr("sample_rate: ") << m_codecCtx->sample_rate;
     return true;
 }
 
@@ -61,10 +68,26 @@ bool CodecContext::sendPacket(Packet *packet)
 
 bool CodecContext::receiveFrame(PlayFrame *frame)
 {
-    if(avcodec_receive_frame(m_codecCtx, frame->avFrame()) < 0){
-        return false;
+    int ret = avcodec_receive_frame(m_codecCtx, frame->avFrame());
+
+    QString error;
+    switch (ret) {
+    case 0: return true;
+    case AVERROR_EOF:
+        error = tr("avcodec_receive_frame(): the decoder has been fully flushed");
+        break;
+    case AVERROR(EAGAIN):
+        error = tr("avcodec_receive_frame(): output is not available in this state - user must try to send new input");
+        break;
+    case AVERROR(EINVAL):
+        error = tr("avcodec_receive_frame(): codec not opened, or it is an encoder");
+        break;
+    default:
+        error = tr("avcodec_receive_frame(): legitimate decoding errors");
+        break;
     }
-    return true;
+    qWarning() << error;
+    return false;
 }
 
 unsigned char *CodecContext::imageBuffer(PlayFrame &frame)

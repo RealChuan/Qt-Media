@@ -15,6 +15,11 @@ Packet::Packet()
 Packet::~Packet()
 {
     Q_ASSERT(nullptr != m_packet);
+    av_packet_free(&m_packet);
+}
+
+void Packet::clear()
+{
     av_packet_unref(m_packet);
 }
 

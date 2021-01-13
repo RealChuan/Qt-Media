@@ -8,6 +8,8 @@ public:
     explicit Packet();
     ~Packet();
 
+    void clear();
+
     AVPacket *avPacket();
 
 private:

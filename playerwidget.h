@@ -1,10 +1,10 @@
 #ifndef PLAYERWIDGET_H
 #define PLAYERWIDGET_H
 
-#include <QWidget>
+#include <QOpenGLWidget>
 
 class PlayerWidgetPrivate;
-class PlayerWidget : public QWidget
+class PlayerWidget : public QOpenGLWidget
 {
     Q_OBJECT
 public:

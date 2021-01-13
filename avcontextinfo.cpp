@@ -78,6 +78,8 @@ bool AVContextInfo::findDecoder()
         return false;
     }
 
+    qInfo() << tr("Decoder name: ") << codec->name;
+
     return true;
 }
 

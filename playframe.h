@@ -13,6 +13,8 @@ public:
     explicit PlayFrame(QObject *parent = nullptr);
     ~PlayFrame();
 
+    void clear();
+
     AVFrame* avFrame();
 
     QImage toImage(int width, int height);

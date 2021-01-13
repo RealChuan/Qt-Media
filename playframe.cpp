@@ -12,6 +12,11 @@ PlayFrame::PlayFrame(QObject *parent)
 PlayFrame::~PlayFrame()
 {
     Q_ASSERT(m_frame != nullptr);
+    av_frame_free(&m_frame);
+}
+
+void PlayFrame::clear()
+{
     av_frame_unref(m_frame);
 }
 

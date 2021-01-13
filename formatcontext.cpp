@@ -1,6 +1,9 @@
 #include "formatcontext.h"
 #include "packet.h"
 
+#include <QDebug>
+#include <QTime>
+
 extern "C"{
 #include <libavformat/avformat.h>
 }
@@ -47,6 +50,9 @@ bool FormatContext::openFilePath(const QString &filepath)
         d_ptr->error = tr("Couldn't open input stream.");
         return false;
     }
+    qInfo() << tr("AV Format Name: ") << d_ptr->formatCtx->iformat->name;
+    QTime time(QTime::fromMSecsSinceStartOfDay(d_ptr->formatCtx->duration / 1000));
+    qInfo() << tr("Duration:") << time.toString("hh:mm:ss.zzz");
     return true;
 }
 
