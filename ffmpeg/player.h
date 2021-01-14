@@ -3,8 +3,12 @@
 
 #include <QThread>
 
+#include "ffmepg_global.h"
+
+namespace Ffmpeg {
+
 class PlayerPrivate;
-class Player : public QThread
+class FFMPEG_EXPORT Player : public QThread
 {
     Q_OBJECT
 public:
@@ -34,5 +38,7 @@ private:
 
     QScopedPointer<PlayerPrivate> d_ptr;
 };
+
+}
 
 #endif // PLAYER_H

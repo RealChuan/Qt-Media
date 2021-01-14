@@ -3,10 +3,12 @@
 
 #include <QObject>
 
-extern "C"{
-#include <libavcodec/avcodec.h>
-#include <libavutil/imgutils.h>
-}
+struct AVCodecContext;
+struct AVCodecParameters;
+struct AVRational;
+struct AVCodec;
+
+namespace Ffmpeg {
 
 class Packet;
 class PlayFrame;
@@ -37,5 +39,7 @@ private:
     bool m_ok = false;
     AVCodecContext *m_codecCtx; //解码器上下文
 };
+
+}
 
 #endif // CODECCONTEXT_H

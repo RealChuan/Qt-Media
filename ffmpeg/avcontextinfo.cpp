@@ -5,7 +5,10 @@
 
 extern "C"{
 #include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 }
+
+namespace Ffmpeg {
 
 struct AVContextInfoPrivate{
     QScopedPointer<CodecContext> codecCtx; //解码器上下文
@@ -96,4 +99,6 @@ bool AVContextInfo::receiveFrame(PlayFrame *frame)
 unsigned char *AVContextInfo::imageBuffer(PlayFrame &frame)
 {
     return d_ptr->codecCtx->imageBuffer(frame);
+}
+
 }

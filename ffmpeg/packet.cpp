@@ -6,6 +6,8 @@ extern "C"{
 #include <libavcodec/avcodec.h>
 }
 
+namespace Ffmpeg {
+
 Packet::Packet()
 {
     m_packet = av_packet_alloc();
@@ -27,4 +29,6 @@ AVPacket *Packet::avPacket()
 {
     Q_ASSERT(nullptr != m_packet);
     return m_packet;
+}
+
 }

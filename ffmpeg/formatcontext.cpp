@@ -8,6 +8,8 @@ extern "C"{
 #include <libavformat/avformat.h>
 }
 
+namespace Ffmpeg {
+
 class FormatContextPrivate{
 public:
     FormatContextPrivate(QObject *parent)
@@ -99,4 +101,6 @@ bool FormatContext::readFrame(Packet *packet)
 void FormatContext::dumpFormat()
 {
     av_dump_format(d_ptr->formatCtx, 0, d_ptr->filepath.toLocal8Bit().constData(), 0);
+}
+
 }

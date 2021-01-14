@@ -1,6 +1,10 @@
 #ifndef AVIMAGE_H
 #define AVIMAGE_H
 
+struct SwsContext;
+
+namespace Ffmpeg {
+
 class PlayFrame;
 class CodecContext;
 class AVImage
@@ -16,5 +20,7 @@ public:
 private:
     struct SwsContext *m_swsContext;
 };
+
+}
 
 #endif // AVIMAGE_H

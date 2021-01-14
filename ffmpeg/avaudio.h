@@ -4,6 +4,9 @@
 #include <QtCore>
 
 struct SwrContext;
+
+namespace Ffmpeg {
+
 class CodecContext;
 class PlayFrame;
 class AVAudio
@@ -17,5 +20,7 @@ public:
 private:
     SwrContext *m_swrContext;
 };
+
+}
 
 #endif // AVAUDIO_H

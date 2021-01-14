@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "playerwidget.h"
-#include "player.h"
+
+#include <ffmpeg/player.h>
 
 #include <QtWidgets>
 
@@ -8,10 +9,10 @@ class MainWindowPrivate{
 public:
     MainWindowPrivate(QWidget *parent)
         : owner(parent){
-        player = new Player(owner);
+        player = new Ffmpeg::Player(owner);
     }
     QWidget *owner;
-    Player *player;
+    Ffmpeg::Player *player;
 };
 
 MainWindow::MainWindow(QWidget *parent)
@@ -36,10 +37,10 @@ void MainWindow::setupUI()
 {
     PlayerWidget *playWidget = new PlayerWidget(this);
     QPushButton *playButton = new QPushButton(tr("play"), this);
-    connect(d_ptr->player, &Player::error, this, &MainWindow::onError);
-    connect(d_ptr->player, &Player::readyRead, playWidget, &PlayerWidget::onReadyRead);
-    connect(playWidget, &PlayerWidget::openFile, d_ptr->player, &Player::onSetFilePath);
-    connect(playButton, &QPushButton::clicked, d_ptr->player, &Player::onPlay);
+    connect(d_ptr->player, &Ffmpeg::Player::error, this, &MainWindow::onError);
+    connect(d_ptr->player, &Ffmpeg::Player::readyRead, playWidget, &PlayerWidget::onReadyRead);
+    connect(playWidget, &PlayerWidget::openFile, d_ptr->player, &Ffmpeg::Player::onSetFilePath);
+    connect(playButton, &QPushButton::clicked, d_ptr->player, &Ffmpeg::Player::onPlay);
 
     QWidget *widget = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(widget);

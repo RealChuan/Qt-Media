@@ -3,8 +3,11 @@
 #include "playframe.h"
 
 extern "C"{
+#include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 }
+
+namespace Ffmpeg {
 
 AVImage::AVImage(CodecContext *codecCtx)
 {
@@ -32,6 +35,7 @@ void AVImage::scale(PlayFrame *in, PlayFrame *out, int height)
     AVFrame *outFrame = out->avFrame();
     sws_scale(m_swsContext,
               (const unsigned char* const*)inFrame->data, inFrame->linesize,
-              0, height,
-              outFrame->data, outFrame->linesize);
+              0, height, outFrame->data, outFrame->linesize);
+}
+
 }

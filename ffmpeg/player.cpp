@@ -5,6 +5,7 @@
 #include "avimage.h"
 #include "codeccontext.h"
 #include "avaudio.h"
+#include "playframe.h"
 
 #include <QDebug>
 #include <QImage>
@@ -13,16 +14,13 @@
 #include <QThread>
 #include <QWaitCondition>
 #include <QDateTime>
-#include <playframe.h>
 #include <QAudioOutput>
 
 extern "C"{
 #include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
-#include <libavutil/imgutils.h>
-#include <libswresample/swresample.h>
 }
+
+namespace Ffmpeg {
 
 class PlayerPrivate{
 public:
@@ -72,7 +70,7 @@ Player::Player(QObject *parent)
     : QThread(parent)
     , d_ptr(new PlayerPrivate(this))
 {
-    qDebug() <<avcodec_configuration();
+    qDebug() << avcodec_configuration();
     qDebug() << avcodec_version();
 }
 
@@ -232,4 +230,6 @@ void Player::run()
         return;
     }
     playVideo();
+}
+
 }

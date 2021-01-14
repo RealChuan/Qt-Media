@@ -3,9 +3,9 @@
 
 #include <QObject>
 
-extern "C"{
-#include <libavformat/avformat.h>
-}
+struct AVStream;
+
+namespace Ffmpeg {
 
 class Packet;
 class PlayFrame;
@@ -34,5 +34,7 @@ public:
 private:
     QScopedPointer<AVContextInfoPrivate> d_ptr;
 };
+
+}
 
 #endif // AVCONTEXTINFO_H

@@ -2,6 +2,9 @@
 #define PACKET_H
 
 struct AVPacket;
+
+namespace Ffmpeg {
+
 class Packet
 {
 public:
@@ -15,5 +18,7 @@ public:
 private:
     AVPacket *m_packet;
 };
+
+}
 
 #endif // PACKET_H

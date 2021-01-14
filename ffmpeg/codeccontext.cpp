@@ -5,8 +5,11 @@
 #include <QDebug>
 
 extern "C"{
-#include <libswscale/swscale.h>
+#include <libavcodec/avcodec.h>
+#include <libavutil/imgutils.h>
 }
+
+namespace Ffmpeg {
 
 CodecContext::CodecContext(const AVCodec *codec, QObject *parent)
     : QObject(parent)
@@ -107,4 +110,6 @@ int CodecContext::width()
 int CodecContext::height()
 {
     return m_codecCtx->height;
+}
+
 }

@@ -3,10 +3,11 @@
 #include "playframe.h"
 
 extern "C"{
+#include <libavcodec/avcodec.h>
 #include <libswresample/swresample.h>
 }
 
-#define MAX_AUDIO_FRAME_SIZE 192000
+namespace Ffmpeg {
 
 AVAudio::AVAudio(CodecContext *codecCtx)
 {
@@ -36,4 +37,6 @@ QByteArray AVAudio::convert(PlayFrame *frame, CodecContext *codecCtx)
 
     av_free(audio_out_buffer);
     return buf;
+}
+
 }

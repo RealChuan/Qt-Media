@@ -3,9 +3,9 @@
 
 #include <QObject>
 
-extern "C"{
-#include <libavformat/avformat.h>
-}
+struct AVFrame;
+
+namespace Ffmpeg {
 
 class PlayFrame : public QObject
 {
@@ -22,5 +22,7 @@ public:
 private:
     AVFrame *m_frame;
 };
+
+}
 
 #endif // PLAYFRAME_H
