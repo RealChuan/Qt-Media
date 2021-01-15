@@ -9,6 +9,7 @@ class Packet
 {
 public:
     explicit Packet();
+    Packet(const Packet& other);
     ~Packet();
 
     void clear();

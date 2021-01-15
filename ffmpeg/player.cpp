@@ -6,6 +6,7 @@
 #include "codeccontext.h"
 #include "avaudio.h"
 #include "playframe.h"
+#include "audiodecoder.h"
 
 #include <QDebug>
 #include <QImage>
@@ -14,7 +15,6 @@
 #include <QThread>
 #include <QWaitCondition>
 #include <QDateTime>
-#include <QAudioOutput>
 
 extern "C"{
 #include <libavcodec/avcodec.h>
@@ -30,22 +30,7 @@ public:
         audioInfo = new AVContextInfo(owner);
         videoInfo = new AVContextInfo(owner);
 
-        QAudioFormat format;
-        format.setSampleRate(44100);
-        format.setChannelCount(2);
-        format.setSampleSize(16);
-        format.setCodec("audio/pcm");
-        format.setByteOrder(QAudioFormat::LittleEndian);
-        format.setSampleType(QAudioFormat::SignedInt);
-        audioOutput = new QAudioOutput(format, owner);
-        audioOutput->setVolume(0.5);
-        audioDevice = audioOutput->start();
-
-        QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
-        qDebug() << info.supportedCodecs();
-        if (!info.isFormatSupported(format)) {
-            qDebug() << "Raw audio format not supported by backend, cannot play audio.";
-        }
+        audioDecoder = new AudioDecoder(owner);
     }
     QThread *owner;
 
@@ -53,8 +38,7 @@ public:
     AVContextInfo *audioInfo;
     AVContextInfo *videoInfo;
 
-    QAudioOutput *audioOutput;
-    QIODevice *audioDevice;
+    AudioDecoder *audioDecoder;
 
     QString filepath;
     bool isopen = true;
@@ -159,27 +143,11 @@ void Player::playVideo()
     Packet packet;
     AVImage avImage(d_ptr->videoInfo->codecCtx());
 
-    QByteArray audioBuf;  
-    AVAudio avAudio(d_ptr->audioInfo->codecCtx());
+    d_ptr->audioDecoder->startDecoder(d_ptr->audioInfo);
 
     while (d_ptr->formatCtx->readFrame(&packet) && d_ptr->runing){
         if(packet.avPacket()->stream_index == d_ptr->audioInfo->index()){ // 如果是音频数据
-            if(!d_ptr->audioInfo->sendPacket(&packet)){
-                continue;
-            }
-            if(!d_ptr->audioInfo->receiveFrame(&frame)){
-                continue;
-            }
-
-            audioBuf = avAudio.convert(&frame, d_ptr->audioInfo->codecCtx());
-
-            while(d_ptr->audioOutput->bytesFree() < audioBuf.size()){
-                d_ptr->audioDevice->write(audioBuf.data(), d_ptr->audioOutput->bytesFree());
-                audioBuf = audioBuf.mid(d_ptr->audioOutput->bytesFree());
-                QThread::msleep(10);
-            }
-            d_ptr->audioDevice->write(audioBuf);
-
+            d_ptr->audioDecoder->append(packet);
             packet.clear();
         }else if(packet.avPacket()->stream_index == d_ptr->videoInfo->index()){ // 如果是视频数据
             if(!d_ptr->videoInfo->sendPacket(&packet)){

@@ -7,6 +7,7 @@ DEFINES += FFMPEG_LIBRARY
 TARGET = $$replaceLibName(ffmpeg)
 
 SOURCES += \
+    audiodecoder.cpp \
     avaudio.cpp \
     avcontextinfo.cpp \
     avimage.cpp \
@@ -17,6 +18,7 @@ SOURCES += \
     playframe.cpp
 
 HEADERS += \
+    audiodecoder.h \
     avaudio.h \
     avcontextinfo.h \
     avimage.h \
