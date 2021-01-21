@@ -50,10 +50,9 @@ void Utils::windowCenter(QWidget *window)
 
 void Utils::msleep(int msec)
 {
-    QTime dieTime = QTime::currentTime().addMSecs(msec);
-
-    while (QTime::currentTime() < dieTime)
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+    QEventLoop loop;
+    QTimer::singleShot(msec, &loop, &QEventLoop::quit);
+    loop.exec();
 }
 
 QString compilerString()

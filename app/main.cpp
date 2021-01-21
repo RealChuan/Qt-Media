@@ -27,8 +27,10 @@ int main(int argc, char *argv[])
     //Utils::setQSS();
 
     a.setApplicationVersion(QObject::tr("0.0.1"));
-    a.setApplicationDisplayName(QObject::tr("FfmpegPlayer"));
-    a.setApplicationName(QObject::tr("FfmpegPlayer"));
+    a.setApplicationDisplayName(QObject::tr("Ffmpeg Player"));
+    a.setApplicationName(QObject::tr("Ffmpeg Player"));
+    a.setDesktopFileName(QObject::tr("Ffmpeg Player"));
+    a.setOrganizationDomain(QObject::tr("Youth"));
     a.setOrganizationName(QObject::tr("Youth"));
 
     const int threadCount = QThreadPool::globalInstance()->maxThreadCount();

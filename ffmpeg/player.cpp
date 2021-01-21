@@ -7,6 +7,7 @@
 #include "avaudio.h"
 #include "playframe.h"
 #include "audiodecoder.h"
+#include "videodecoder.h"
 
 #include <QDebug>
 #include <QImage>
@@ -31,6 +32,7 @@ public:
         videoInfo = new AVContextInfo(owner);
 
         audioDecoder = new AudioDecoder(owner);
+        videoDecoder = new VideoDecoder(owner);
     }
     QThread *owner;
 
@@ -39,6 +41,7 @@ public:
     AVContextInfo *videoInfo;
 
     AudioDecoder *audioDecoder;
+    VideoDecoder *videoDecoder;
 
     QString filepath;
     bool isopen = true;
@@ -56,6 +59,7 @@ Player::Player(QObject *parent)
 {
     qDebug() << avcodec_configuration();
     qDebug() << avcodec_version();
+    buildConnect();
 }
 
 Player::~Player()
@@ -126,8 +130,6 @@ bool Player::initAvCode()
     return true;
 }
 
-#define MAX_AUDIO_FRAME_SIZE 192000
-
 void Player::playVideo()
 {
     if(!d_ptr->isopen)
@@ -135,41 +137,29 @@ void Player::playVideo()
 
     d_ptr->formatCtx->dumpFormat();
 
-    PlayFrame frame;
-
-    PlayFrame frameRGB;
-    d_ptr->videoInfo->imageBuffer(frameRGB);
-
     Packet packet;
-    AVImage avImage(d_ptr->videoInfo->codecCtx());
-
     d_ptr->audioDecoder->startDecoder(d_ptr->audioInfo);
+    d_ptr->videoDecoder->startDecoder(d_ptr->videoInfo);
 
     while (d_ptr->formatCtx->readFrame(&packet) && d_ptr->runing){
         if(packet.avPacket()->stream_index == d_ptr->audioInfo->index()){ // 如果是音频数据
             d_ptr->audioDecoder->append(packet);
-            packet.clear();
         }else if(packet.avPacket()->stream_index == d_ptr->videoInfo->index()){ // 如果是视频数据
-            if(!d_ptr->videoInfo->sendPacket(&packet)){
-                continue;
-            }
-            if(!d_ptr->videoInfo->receiveFrame(&frame)){
-                continue;
-            }
-            avImage.scale(&frame, &frameRGB, d_ptr->videoInfo->codecCtx()->height());
-
-            emit readyRead(QPixmap::fromImage(frameRGB.toImage(d_ptr->videoInfo->codecCtx()->width(),
-                                                               d_ptr->videoInfo->codecCtx()->height())));
-            packet.clear();
+            d_ptr->videoDecoder->append(packet);
         }
+        packet.clear();
 
         while(d_ptr->pause){
             QMutexLocker locker(&d_ptr->mutex);
             d_ptr->waitCondition.wait(&d_ptr->mutex);
         }
 
-        QThread::msleep(10);
+        while(d_ptr->videoDecoder->size() > 5)
+            msleep(10);
     }
+
+    d_ptr->audioDecoder->stopDecoder();
+    d_ptr->videoDecoder->stopDecoder();
 }
 
 void Player::stop()
@@ -198,6 +188,11 @@ void Player::run()
         return;
     }
     playVideo();
+}
+
+void Player::buildConnect()
+{
+    connect(d_ptr->videoDecoder, &VideoDecoder::readyRead, this, &Player::readyRead);
 }
 
 }

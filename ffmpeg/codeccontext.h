@@ -31,6 +31,7 @@ public:
     bool receiveFrame(PlayFrame *frame);
 
     unsigned char *imageBuffer(PlayFrame &frame);
+    void clearImageBuffer();
 
     int width();
     int height();
@@ -38,6 +39,7 @@ public:
 private:
     bool m_ok = false;
     AVCodecContext *m_codecCtx; //解码器上下文
+    unsigned char *m_out_buffer;
 };
 
 }

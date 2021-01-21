@@ -101,4 +101,9 @@ unsigned char *AVContextInfo::imageBuffer(PlayFrame &frame)
     return d_ptr->codecCtx->imageBuffer(frame);
 }
 
+void AVContextInfo::clearImageBuffer()
+{
+    d_ptr->codecCtx->clearImageBuffer();
+}
+
 }

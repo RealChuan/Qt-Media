@@ -15,7 +15,8 @@ SOURCES += \
     formatcontext.cpp \
     packet.cpp \
     player.cpp \
-    playframe.cpp
+    playframe.cpp \
+    videodecoder.cpp
 
 HEADERS += \
     audiodecoder.h \
@@ -27,4 +28,5 @@ HEADERS += \
     formatcontext.h \
     packet.h \
     player.h \
-    playframe.h
+    playframe.h \
+    videodecoder.h

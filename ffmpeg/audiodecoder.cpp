@@ -104,7 +104,7 @@ void AudioDecoder::run()
         while(d_ptr->audioOutput->bytesFree() < audioBuf.size()){
             d_ptr->audioDevice->write(audioBuf.data(), d_ptr->audioOutput->bytesFree());
             audioBuf = audioBuf.mid(d_ptr->audioOutput->bytesFree());
-            QThread::msleep(10);
+            msleep(10);
         }
         d_ptr->audioDevice->write(audioBuf);
     }

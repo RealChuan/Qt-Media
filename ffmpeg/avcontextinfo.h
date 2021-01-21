@@ -30,6 +30,7 @@ public:
     bool receiveFrame(PlayFrame *frame);
 
     unsigned char *imageBuffer(PlayFrame &frame);
+    void clearImageBuffer();
 
 private:
     QScopedPointer<AVContextInfoPrivate> d_ptr;

@@ -95,11 +95,17 @@ bool CodecContext::receiveFrame(PlayFrame *frame)
 
 unsigned char *CodecContext::imageBuffer(PlayFrame &frame)
 {
-    unsigned char *out_buffer = (unsigned char *)av_malloc(av_image_get_buffer_size(AV_PIX_FMT_RGB32, width(), height(), 1));
-    av_image_fill_arrays(frame.avFrame()->data, frame.avFrame()->linesize, out_buffer,
+    m_out_buffer = (unsigned char *)av_malloc(av_image_get_buffer_size(AV_PIX_FMT_RGB32, width(), height(), 1));
+    av_image_fill_arrays(frame.avFrame()->data, frame.avFrame()->linesize, m_out_buffer,
                          AV_PIX_FMT_RGB32, width(), height(), 1);
 
-    return out_buffer;
+    return m_out_buffer;
+}
+
+void CodecContext::clearImageBuffer()
+{
+    Q_ASSERT(m_out_buffer != nullptr);
+    av_free(m_out_buffer);
 }
 
 int CodecContext::width()

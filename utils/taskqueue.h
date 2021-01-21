@@ -1,7 +1,10 @@
 #ifndef TASKQUEUE_H
 #define TASKQUEUE_H
 
+#include "utils_global.h"
+
 #include <QMutex>
+#include <QQueue>
 
 namespace Utils {
 

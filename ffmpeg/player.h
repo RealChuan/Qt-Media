@@ -33,6 +33,7 @@ protected:
     void run() override;
 
 private:
+    void buildConnect();
     bool initAvCode();
     void playVideo();
 
