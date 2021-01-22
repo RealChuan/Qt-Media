@@ -1,29 +1,24 @@
 #ifndef AUDIODECODER_H
 #define AUDIODECODER_H
 
-#include <QThread>
+#include "decoder.h"
 
 namespace Ffmpeg {
 
-class Packet;
-class AVContextInfo;
 class AudioDecoderPrivate;
-class AudioDecoder : public QThread
+class AudioDecoder : public Decoder
 {
     Q_OBJECT
 public:
     explicit AudioDecoder(QObject *parent = nullptr);
     ~AudioDecoder() override;
 
-    void startDecoder(AVContextInfo *audioInfo);
-    void stopDecoder();
-
-    void append(const Packet& packet);
-
 protected:
-    void run() override;
+    void runDecoder() override;
 
 private:
+    void calculateTime(PlayFrame &frame, double &duration, double &pts, int64_t &pos);
+
     QScopedPointer<AudioDecoderPrivate> d_ptr;
 };
 

@@ -12,10 +12,12 @@ SOURCES += \
     avcontextinfo.cpp \
     avimage.cpp \
     codeccontext.cpp \
+    decoder.cpp \
     formatcontext.cpp \
     packet.cpp \
     player.cpp \
     playframe.cpp \
+    subtitledecoder.cpp \
     videodecoder.cpp
 
 HEADERS += \
@@ -24,9 +26,11 @@ HEADERS += \
     avcontextinfo.h \
     avimage.h \
     codeccontext.h \
+    decoder.h \
     ffmepg_global.h \
     formatcontext.h \
     packet.h \
     player.h \
     playframe.h \
+    subtitledecoder.h \
     videodecoder.h

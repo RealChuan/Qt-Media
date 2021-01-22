@@ -19,6 +19,7 @@
 
 extern "C"{
 #include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 }
 
 namespace Ffmpeg {
@@ -107,7 +108,7 @@ bool Player::initAvCode()
 
     int audioIndex = -1;
     int videoIndex = -1;
-    d_ptr->formatCtx->findStreamIndex(audioIndex, videoIndex);
+    QVector<int> subTitleIndexs = d_ptr->formatCtx->findStreamIndex(audioIndex, videoIndex);
     if (audioIndex == -1 || videoIndex == -1){
         d_ptr->error = tr("Didn't find a video or audio stream.");
         emit error(d_ptr->error);
@@ -138,13 +139,18 @@ void Player::playVideo()
     d_ptr->formatCtx->dumpFormat();
 
     Packet packet;
+    d_ptr->audioDecoder->setFormatContext(d_ptr->formatCtx);
     d_ptr->audioDecoder->startDecoder(d_ptr->audioInfo);
+    d_ptr->videoDecoder->setFormatContext(d_ptr->formatCtx);
     d_ptr->videoDecoder->startDecoder(d_ptr->videoInfo);
 
     while (d_ptr->formatCtx->readFrame(&packet) && d_ptr->runing){
-        if(packet.avPacket()->stream_index == d_ptr->audioInfo->index()){ // 如果是音频数据
+        if(d_ptr->formatCtx->checkPktPlayRange(&packet) <= 0){
+
+        }else if(packet.avPacket()->stream_index == d_ptr->audioInfo->index()){ // 如果是音频数据
             d_ptr->audioDecoder->append(packet);
-        }else if(packet.avPacket()->stream_index == d_ptr->videoInfo->index()){ // 如果是视频数据
+        }else if(packet.avPacket()->stream_index == d_ptr->videoInfo->index()
+                   && !(d_ptr->videoInfo->stream()->disposition &AV_DISPOSITION_ATTACHED_PIC)){ // 如果是视频数据
             d_ptr->videoDecoder->append(packet);
         }
         packet.clear();
@@ -154,7 +160,7 @@ void Player::playVideo()
             d_ptr->waitCondition.wait(&d_ptr->mutex);
         }
 
-        while(d_ptr->videoDecoder->size() > 5)
+        while(d_ptr->videoDecoder->size() > 3)
             msleep(10);
     }
 

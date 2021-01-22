@@ -4,6 +4,7 @@
 #include <QObject>
 
 struct AVStream;
+struct AVFormatContext;
 
 namespace Ffmpeg {
 
@@ -19,13 +20,17 @@ public:
 
     bool openFilePath(const QString &filepath);
     bool findStream();
-    void findStreamIndex(int &audioIndex, int &videoIndex);
+    QVector<int> findStreamIndex(int &audioIndex, int &videoIndex);
 
     AVStream *stream(int index);   //音频流
 
     bool readFrame(Packet *packet);
 
+    int checkPktPlayRange(Packet *packet);
+
     void dumpFormat();
+
+    AVFormatContext *avFormatContext();
 
 private:
     QScopedPointer<FormatContextPrivate> d_ptr;

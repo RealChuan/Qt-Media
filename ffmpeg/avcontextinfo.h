@@ -24,6 +24,8 @@ public:
     int index();
 
     void setStream(AVStream *stream);
+    AVStream *stream();
+
     bool findDecoder();
 
     bool sendPacket(Packet *packet);

@@ -2,6 +2,7 @@
 #include "codeccontext.h"
 
 #include <QDebug>
+#include <QTime>
 
 extern "C"{
 #include <libavcodec/avcodec.h>
@@ -53,6 +54,11 @@ int AVContextInfo::index()
 void AVContextInfo::setStream(AVStream *stream)
 {
     d_ptr->stream = stream;
+}
+
+AVStream *AVContextInfo::stream()
+{
+    return d_ptr->stream;
 }
 
 bool AVContextInfo::findDecoder()

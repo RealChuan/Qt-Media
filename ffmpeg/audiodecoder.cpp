@@ -1,13 +1,16 @@
 #include "audiodecoder.h"
 #include "avaudio.h"
 #include "avcontextinfo.h"
-#include "packet.h"
 #include "playframe.h"
+#include "codeccontext.h"
 
-#include <utils/taskqueue.h>
 #include <utils/utils.h>
 
 #include <QAudioOutput>
+
+extern "C"{
+#include <libavformat/avformat.h>
+}
 
 namespace Ffmpeg {
 
@@ -34,17 +37,12 @@ public:
     }
     QObject *owner;
 
-    Utils::Queue<Packet> packetQueue;
-    AVContextInfo *audioInfo;
-
     QAudioOutput *audioOutput;
     QIODevice *audioDevice;
-
-    bool runing = true;
 };
 
 AudioDecoder::AudioDecoder(QObject *parent)
-    : QThread(parent)
+    : Decoder(parent)
     , d_ptr(new AudioDecoderPrivate(this))
 {
 
@@ -55,59 +53,49 @@ AudioDecoder::~AudioDecoder()
     stopDecoder();
 }
 
-void AudioDecoder::startDecoder(AVContextInfo *audioInfo)
+void AudioDecoder::runDecoder()
 {
-    stopDecoder();
-    d_ptr->audioInfo = audioInfo;
-    d_ptr->runing = true;
-    start();
-}
-
-void AudioDecoder::stopDecoder()
-{
-    d_ptr->runing = false;
-    if(isRunning()){
-        quit();
-        wait();
-    }
-}
-
-void AudioDecoder::append(const Packet &packet)
-{
-    d_ptr->packetQueue.append(packet);
-}
-
-void AudioDecoder::run()
-{
-    Q_ASSERT(d_ptr->audioInfo != nullptr);
-
     PlayFrame frame;
-    AVAudio avAudio(d_ptr->audioInfo->codecCtx());
+    AVAudio avAudio(m_contextInfo->codecCtx());
 
-    while(d_ptr->runing){
+    while(m_runing){
         msleep(10);
 
-        if(d_ptr->packetQueue.isEmpty())
+        if(m_packetQueue.isEmpty())
             continue;
 
-        Packet packet = d_ptr->packetQueue.takeFirst();
+        Packet packet = m_packetQueue.takeFirst();
 
-        if(!d_ptr->audioInfo->sendPacket(&packet)){
-            continue;
-        }
-        if(!d_ptr->audioInfo->receiveFrame(&frame)){
+        if(!m_contextInfo->sendPacket(&packet)){
             continue;
         }
+        if(!m_contextInfo->receiveFrame(&frame)){
+            continue;
+        }
 
-        QByteArray audioBuf = avAudio.convert(&frame, d_ptr->audioInfo->codecCtx());
+        double duration = 0;
+        double pts = 0;
+        int64_t pos = 0;
+        calculateTime(frame, duration, pts, pos);
+
+        QByteArray audioBuf = avAudio.convert(&frame, m_contextInfo->codecCtx());
 
         while(d_ptr->audioOutput->bytesFree() < audioBuf.size()){
             d_ptr->audioDevice->write(audioBuf.data(), d_ptr->audioOutput->bytesFree());
             audioBuf = audioBuf.mid(d_ptr->audioOutput->bytesFree());
-            msleep(10);
+            //msleep(10);
         }
         d_ptr->audioDevice->write(audioBuf);
     }
+}
+
+void AudioDecoder::calculateTime(PlayFrame &frame, double &duration, double &pts, int64_t &pos)
+{
+    AVRational tb{1, frame.avFrame()->sample_rate};
+    pts = (frame.avFrame()->pts == AV_NOPTS_VALUE) ? NAN : frame.avFrame()->pts * av_q2d(tb);
+    pos = frame.avFrame()->pkt_pos;
+    duration = av_q2d(AVRational{frame.avFrame()->nb_samples, frame.avFrame()->sample_rate});
+    qDebug() << "audio: " << duration << pts << pos;
 }
 
 }

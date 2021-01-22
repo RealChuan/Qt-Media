@@ -3,100 +3,68 @@
 #include "avcontextinfo.h"
 #include "codeccontext.h"
 #include "avimage.h"
-#include "packet.h"
+#include "formatcontext.h"
 
-#include <utils/taskqueue.h>
-
+#include <QDebug>
 #include <QPixmap>
+
+extern "C"{
+#include <libavformat/avformat.h>
+}
 
 namespace Ffmpeg {
 
-class VideoDecoderPrivate{
-public:
-    VideoDecoderPrivate(QObject *parent)
-        : owner(parent){
-
-    }
-    QObject *owner;
-
-    Utils::Queue<Packet> packetQueue;
-    AVContextInfo *videoInfo;
-
-    bool runing = true;
-};
-
 VideoDecoder::VideoDecoder(QObject *parent)
-    : QThread(parent)
-    , d_ptr(new VideoDecoderPrivate(this))
+    : Decoder(parent)
 {
 
 }
 
-VideoDecoder::~VideoDecoder()
+void VideoDecoder::runDecoder()
 {
-    stopDecoder();
-}
-
-void VideoDecoder::startDecoder(AVContextInfo *audioInfo)
-{
-    stopDecoder();
-    d_ptr->videoInfo = audioInfo;
-    d_ptr->runing = true;
-    start();
-}
-
-void VideoDecoder::stopDecoder()
-{
-    d_ptr->runing = false;
-    if(isRunning()){
-        quit();
-        wait();
-    }
-}
-
-void VideoDecoder::append(const Packet &packet)
-{
-    d_ptr->packetQueue.append(packet);
-}
-
-int VideoDecoder::size()
-{
-    return d_ptr->packetQueue.size();
-}
-
-void VideoDecoder::run()
-{
-    Q_ASSERT(d_ptr->videoInfo != nullptr);
-
     PlayFrame frame;
     PlayFrame frameRGB;
 
-    d_ptr->videoInfo->imageBuffer(frameRGB);
-    AVImage avImage(d_ptr->videoInfo->codecCtx());
+    m_contextInfo->imageBuffer(frameRGB);
+    AVImage avImage(m_contextInfo->codecCtx());
 
-    while(d_ptr->runing){
-        msleep(20);
+    while(m_runing){
+        msleep(100);
 
-        if(d_ptr->packetQueue.isEmpty())
+        if(m_packetQueue.isEmpty())
             continue;
 
-        Packet packet = d_ptr->packetQueue.takeFirst();
+        Packet packet = m_packetQueue.takeFirst();
 
-        if(!d_ptr->videoInfo->sendPacket(&packet)){
-            continue;
-        }
-        if(!d_ptr->videoInfo->receiveFrame(&frame)){
+        if(!m_contextInfo->sendPacket(&packet)){
             continue;
         }
+        if(!m_contextInfo->receiveFrame(&frame)){
+            continue;
+        }
 
-        avImage.scale(&frame, &frameRGB, d_ptr->videoInfo->codecCtx()->height());
+        double duration = 0;
+        double pts = 0;
+        calculateTime(frame, duration, pts);
 
-        emit readyRead(QPixmap::fromImage(frameRGB.toImage(d_ptr->videoInfo->codecCtx()->width(),
-                                                           d_ptr->videoInfo->codecCtx()->height())));
+        avImage.scale(&frame, &frameRGB, m_contextInfo->codecCtx()->height());
+
+        emit readyRead(QPixmap::fromImage(frameRGB.toImage(m_contextInfo->codecCtx()->width(),
+                                                           m_contextInfo->codecCtx()->height())));
         packet.clear();
     }
-    d_ptr->videoInfo->clearImageBuffer();
+    m_contextInfo->clearImageBuffer();
 }
 
+void VideoDecoder::calculateTime(PlayFrame &frame, double &duration, double &pts)
+{
+    AVRational tb = m_contextInfo->stream()->time_base;
+    AVRational frame_rate = av_guess_frame_rate(m_formatContext->avFormatContext(), m_contextInfo->stream(), NULL);
+    // 当前帧播放时长
+    duration = (frame_rate.num && frame_rate.den ? av_q2d(AVRational{frame_rate.den, frame_rate.num}) : 0);
+    // 当前帧显示时间戳
+    pts = (frame.avFrame()->pts == AV_NOPTS_VALUE) ? NAN : frame.avFrame()->pts * av_q2d(tb);
+    qDebug() << "video: " << duration << pts;
+}
 
 }
