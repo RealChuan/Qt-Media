@@ -160,8 +160,8 @@ void Player::playVideo()
             d_ptr->waitCondition.wait(&d_ptr->mutex);
         }
 
-        while(d_ptr->videoDecoder->size() > 3)
-            msleep(10);
+        while(d_ptr->videoDecoder->size() > 10)
+            msleep(40);
     }
 
     d_ptr->audioDecoder->stopDecoder();

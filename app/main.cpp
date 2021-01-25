@@ -8,7 +8,7 @@
 
 int main(int argc, char *argv[])
 {
-    Utils::setHighDpiEnvironmentVariable();
+    //Utils::setHighDpiEnvironmentVariable();
 
     QApplication a(argc, argv);
 

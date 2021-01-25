@@ -7,6 +7,7 @@ struct AVFrame;
 
 namespace Ffmpeg {
 
+class CodecContext;
 class PlayFrame : public QObject
 {
 public:
@@ -17,7 +18,7 @@ public:
 
     AVFrame* avFrame();
 
-    QImage toImage(int width, int height);
+    QImage toImage(CodecContext *codecContext);
 
 private:
     AVFrame *m_frame;

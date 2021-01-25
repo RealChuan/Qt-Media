@@ -3,6 +3,8 @@
 
 #include "decoder.h"
 
+struct AVFrame;
+
 namespace Ffmpeg {
 
 class VideoDecoder : public Decoder
@@ -18,7 +20,7 @@ protected:
     void runDecoder() override;
 
 private:
-    void calculateTime(PlayFrame &frame, double &duration, double &pts);
+    void calculateTime(AVFrame *frame, double &duration, double &pts);
 };
 
 }

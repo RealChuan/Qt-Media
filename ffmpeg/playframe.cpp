@@ -1,4 +1,5 @@
 #include "playframe.h"
+#include "codeccontext.h"
 
 #include <QImage>
 
@@ -32,10 +33,10 @@ AVFrame *PlayFrame::avFrame()
     return m_frame;
 }
 
-QImage PlayFrame::toImage(int width, int height)
+QImage PlayFrame::toImage(CodecContext *codecContext)
 {
     Q_ASSERT(m_frame != nullptr);
-    return QImage((uchar*)m_frame->data[0], width, height, QImage::Format_RGB32);
+    return QImage((uchar*)m_frame->data[0], codecContext->width(), codecContext->height(), QImage::Format_RGB32);
 }
 
 }

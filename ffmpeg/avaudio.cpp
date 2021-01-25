@@ -12,7 +12,7 @@ namespace Ffmpeg {
 AVAudio::AVAudio(CodecContext *codecCtx)
 {
     AVCodecContext *ctx = codecCtx->avCodecCtx();
-    m_swrContext = swr_alloc_set_opts(NULL, av_get_default_channel_layout(2), AV_SAMPLE_FMT_S16, 44100,
+    m_swrContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, SAMPLE_RATE/*ctx->sample_rate*/,
                                       ctx->channel_layout, ctx->sample_fmt, ctx->sample_rate, NULL, NULL);
     swr_init(m_swrContext);
     Q_ASSERT(m_swrContext != nullptr);
@@ -27,8 +27,11 @@ AVAudio::~AVAudio()
 QByteArray AVAudio::convert(PlayFrame *frame, CodecContext *codecCtx)
 {
     QByteArray buf;
-    uint8_t *audio_out_buffer = (uint8_t *)av_malloc(frame->avFrame()->nb_samples * 2 * 2);
-    int len = swr_convert(m_swrContext, &audio_out_buffer, frame->avFrame()->nb_samples,
+    AVCodecContext *ctx = codecCtx->avCodecCtx();
+    int size  = av_samples_get_buffer_size(0, ctx->channels, ctx->sample_rate, ctx->sample_fmt, 0);
+    uint8_t *audio_out_buffer = (uint8_t *)av_malloc(size);
+    Q_ASSERT(audio_out_buffer != nullptr);
+    int len = swr_convert(m_swrContext, &audio_out_buffer, size,
                           (const uint8_t **)frame->avFrame()->data, frame->avFrame()->nb_samples);
     if(len > 0){
         int dst_bufsize = av_samples_get_buffer_size(0,  codecCtx->avCodecCtx()->channels, len, AV_SAMPLE_FMT_S16, 1);

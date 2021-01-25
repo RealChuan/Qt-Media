@@ -3,6 +3,8 @@
 
 #include <QtCore>
 
+#define SAMPLE_RATE 48000
+
 struct SwrContext;
 
 namespace Ffmpeg {

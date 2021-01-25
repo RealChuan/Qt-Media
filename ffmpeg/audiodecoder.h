@@ -13,10 +13,13 @@ public:
     explicit AudioDecoder(QObject *parent = nullptr);
     ~AudioDecoder() override;
 
+    static double audioClock();
+
 protected:
     void runDecoder() override;
 
 private:
+    void initAudio();
     void calculateTime(PlayFrame &frame, double &duration, double &pts, int64_t &pos);
 
     QScopedPointer<AudioDecoderPrivate> d_ptr;

@@ -44,6 +44,7 @@ bool CodecContext::setParameters(const AVCodecParameters *par)
     qInfo() << tr("Channels: ") << m_codecCtx->channels;
     qInfo() << tr("sample_fmt: ") << m_codecCtx->sample_fmt;
     qInfo() << tr("sample_rate: ") << m_codecCtx->sample_rate;
+    qInfo() << tr("channel_layout: ") << m_codecCtx->channel_layout;
     return true;
 }
 
@@ -89,7 +90,7 @@ bool CodecContext::receiveFrame(PlayFrame *frame)
         error = tr("avcodec_receive_frame(): legitimate decoding errors");
         break;
     }
-    qWarning() << error;
+    //qWarning() << error;
     return false;
 }
 
