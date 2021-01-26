@@ -2,25 +2,23 @@
 #define AUDIODECODER_H
 
 #include "decoder.h"
+#include "packet.h"
 
 namespace Ffmpeg {
 
 class AudioDecoderPrivate;
-class AudioDecoder : public Decoder
+class AudioDecoder : public Decoder<Packet>
 {
     Q_OBJECT
 public:
     explicit AudioDecoder(QObject *parent = nullptr);
     ~AudioDecoder() override;
 
-    static double audioClock();
-
 protected:
     void runDecoder() override;
 
 private:
     void initAudio();
-    void calculateTime(PlayFrame &frame, double &duration, double &pts, int64_t &pos);
 
     QScopedPointer<AudioDecoderPrivate> d_ptr;
 };

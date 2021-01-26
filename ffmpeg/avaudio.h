@@ -4,6 +4,7 @@
 #include <QtCore>
 
 #define SAMPLE_RATE 48000
+#define CHANNELS 2
 
 struct SwrContext;
 

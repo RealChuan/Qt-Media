@@ -61,11 +61,29 @@ void PlayerWidget::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
 
-    if(d_ptr->pixmap.width() > width() || d_ptr->pixmap.height() > height())
-        d_ptr->pixmap = d_ptr->pixmap.scaled(width(), height(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    int x = (width() - d_ptr->pixmap.width()) / 2;
-    int y = (height() - d_ptr->pixmap.height()) / 2;
-    painter.drawPixmap(QRect(x, y, d_ptr->pixmap.width(), d_ptr->pixmap.height()), d_ptr->pixmap);
+    //if(d_ptr->pixmap.width() > width() || d_ptr->pixmap.height() > height()){
+    //    d_ptr->pixmap = d_ptr->pixmap.scaled(width(), height(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    //}
+    //int x = (width() - d_ptr->pixmap.width()) / 2;
+    //int y = (height() - d_ptr->pixmap.height()) / 2;
+    //painter.drawPixmap(QRect(x, y, d_ptr->pixmap.width(), d_ptr->pixmap.height()), d_ptr->pixmap);
+
+
+    if(d_ptr->pixmap.width() > width() || d_ptr->pixmap.height() > height()){
+        double wScale = d_ptr->pixmap.width() * 1.0 / width();
+        double hScale = d_ptr->pixmap.height() * 1.0 / height();
+        double maxScale = qMax(wScale, hScale);
+
+        int w = d_ptr->pixmap.width() / maxScale;
+        int h = d_ptr->pixmap.height() / maxScale;
+        int x = (width() - w) / 2;
+        int y = (height() - h) / 2;
+        painter.drawPixmap(QRect(x, y, w, h), d_ptr->pixmap);
+    }else{
+        int x = (width() - d_ptr->pixmap.width()) / 2;
+        int y = (height() - d_ptr->pixmap.height()) / 2;
+        painter.drawPixmap(QRect(x, y, d_ptr->pixmap.width(), d_ptr->pixmap.height()), d_ptr->pixmap);
+    }
 }
 
 void PlayerWidget::setupUI()

@@ -2,12 +2,14 @@
 #define VIDEODECODER_H
 
 #include "decoder.h"
+#include "packet.h"
 
 struct AVFrame;
 
 namespace Ffmpeg {
 
-class VideoDecoder : public Decoder
+class VideoDecoderPrivate;
+class VideoDecoder : public Decoder<Packet>
 {
     Q_OBJECT
 public:
@@ -20,7 +22,7 @@ protected:
     void runDecoder() override;
 
 private:
-    void calculateTime(AVFrame *frame, double &duration, double &pts);
+    QScopedPointer<VideoDecoderPrivate> d_ptr;
 };
 
 }

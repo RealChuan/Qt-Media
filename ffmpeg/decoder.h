@@ -5,37 +5,51 @@
 
 #include <utils/taskqueue.h>
 
-#include "packet.h"
-
 namespace Ffmpeg {
 
-class PlayFrame;
 class FormatContext;
 class AVContextInfo;
-class DecoderPrivate;
+
+template<typename T>
 class Decoder : public QThread
 {
-    Q_OBJECT
 public:
-    Decoder(QObject *parent = nullptr);
-    ~Decoder() override;
+    Decoder(QObject *parent = nullptr) : QThread(parent) {}
+    ~Decoder() override { stopDecoder(); }
 
-    void setFormatContext(FormatContext *formatContext) { m_formatContext = formatContext; }
-    FormatContext *formatContext() { return m_formatContext; }
+    void startDecoder(FormatContext *formatContext, AVContextInfo *contextInfo)
+    {
+        stopDecoder();
+        m_formatContext = formatContext;
+        m_contextInfo = contextInfo;
+        m_runing = true;
+        start();
+    }
 
-    void startDecoder(AVContextInfo *contextInfo);
-    void stopDecoder();
+    void stopDecoder()
+    {
+        m_runing = false;
+        if(isRunning()){
+            quit();
+            wait();
+        }
+    }
 
-    void append(const Packet& packet) { m_packetQueue.append(packet); }
+    void append(const T& t) { m_queue.append(t); }
 
-    int size() { return m_packetQueue.size(); };
+    int size() { return m_queue.size(); };
 
 protected:
     virtual void runDecoder() = 0;
-    void run() override;
 
-protected:
-    Utils::Queue<Packet> m_packetQueue;
+    void run() override
+    {
+        Q_ASSERT(m_formatContext != nullptr);
+        Q_ASSERT(m_contextInfo != nullptr);
+        runDecoder();
+    }
+
+    Utils::Queue<T> m_queue;
     AVContextInfo *m_contextInfo;
     FormatContext *m_formatContext;
     bool m_runing = true;

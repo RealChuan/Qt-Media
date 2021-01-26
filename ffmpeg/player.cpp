@@ -139,12 +139,10 @@ void Player::playVideo()
     d_ptr->formatCtx->dumpFormat();
 
     Packet packet;
-    d_ptr->audioDecoder->setFormatContext(d_ptr->formatCtx);
-    d_ptr->audioDecoder->startDecoder(d_ptr->audioInfo);
-    d_ptr->videoDecoder->setFormatContext(d_ptr->formatCtx);
-    d_ptr->videoDecoder->startDecoder(d_ptr->videoInfo);
+    d_ptr->audioDecoder->startDecoder(d_ptr->formatCtx, d_ptr->audioInfo);
+    d_ptr->videoDecoder->startDecoder(d_ptr->formatCtx, d_ptr->videoInfo);
 
-    while (d_ptr->formatCtx->readFrame(&packet) && d_ptr->runing){
+    while (d_ptr->runing && d_ptr->formatCtx->readFrame(&packet)){
         if(d_ptr->formatCtx->checkPktPlayRange(&packet) <= 0){
 
         }else if(packet.avPacket()->stream_index == d_ptr->audioInfo->index()){ // 如果是音频数据
@@ -163,6 +161,9 @@ void Player::playVideo()
         while(d_ptr->videoDecoder->size() > 10)
             msleep(40);
     }
+
+    while(d_ptr->runing && d_ptr->videoDecoder->size() != 0)
+        msleep(40);
 
     d_ptr->audioDecoder->stopDecoder();
     d_ptr->videoDecoder->stopDecoder();

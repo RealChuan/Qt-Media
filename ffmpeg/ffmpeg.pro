@@ -12,7 +12,8 @@ SOURCES += \
     avcontextinfo.cpp \
     avimage.cpp \
     codeccontext.cpp \
-    decoder.cpp \
+    decoderaudioframe.cpp \
+    decodervideoframe.cpp \
     formatcontext.cpp \
     packet.cpp \
     player.cpp \
@@ -27,6 +28,8 @@ HEADERS += \
     avimage.h \
     codeccontext.h \
     decoder.h \
+    decoderaudioframe.h \
+    decodervideoframe.h \
     ffmepg_global.h \
     formatcontext.h \
     packet.h \

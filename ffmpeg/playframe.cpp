@@ -9,11 +9,15 @@ extern "C"{
 
 namespace Ffmpeg {
 
-PlayFrame::PlayFrame(QObject *parent)
-    : QObject(parent)
+PlayFrame::PlayFrame()
 {
     m_frame = av_frame_alloc();
     Q_ASSERT(m_frame != nullptr);
+}
+
+PlayFrame::PlayFrame(const PlayFrame &other)
+{
+    m_frame = av_frame_clone(other.m_frame);
 }
 
 PlayFrame::~PlayFrame()
