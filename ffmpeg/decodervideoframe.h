@@ -19,9 +19,6 @@ signals:
 
 protected:
     void runDecoder() override;
-
-private:
-    void calculateTime(AVFrame *frame, double &duration, double &pts);
 };
 
 }

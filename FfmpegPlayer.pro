@@ -3,6 +3,7 @@ CONFIG += ordered
 
 SUBDIRS += \
     utils \
+    crashhandler\
     ffmpeg \
     mainwindow \
     app

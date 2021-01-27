@@ -97,11 +97,13 @@ QVector<int> FormatContext::findStreamIndex(int &audioIndex, int &videoIndex)
 
 AVStream *FormatContext::stream(int index)
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     return d_ptr->formatCtx->streams[index];
 }
 
 bool FormatContext::readFrame(Packet *packet)
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     if(av_read_frame(d_ptr->formatCtx, packet->avPacket()) < 0)
         return false;
     return true;
@@ -109,6 +111,7 @@ bool FormatContext::readFrame(Packet *packet)
 
 int FormatContext::checkPktPlayRange(Packet *packet)
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     /* check if packet is in play range specified by user, then queue, otherwise discard */
     int64_t start_time = AV_NOPTS_VALUE;
     int64_t duration = AV_NOPTS_VALUE;
@@ -122,8 +125,24 @@ int FormatContext::checkPktPlayRange(Packet *packet)
     return pkt_in_play_range;
 }
 
+bool FormatContext::seek(int index, int64_t timestamp)
+{
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
+    if(av_seek_frame(d_ptr->formatCtx, index, timestamp, AVSEEK_FLAG_BACKWARD) < 0){
+        qWarning() << "seek Failed";
+        return false;
+    }
+    return true;
+}
+
+void FormatContext::flush()
+{
+
+}
+
 void FormatContext::dumpFormat()
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     av_dump_format(d_ptr->formatCtx, 0, d_ptr->filepath.toLocal8Bit().constData(), 0);
 }
 
@@ -131,6 +150,11 @@ AVFormatContext *FormatContext::avFormatContext()
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     return d_ptr->formatCtx;
+}
+
+qint64 FormatContext::duration()
+{
+    return d_ptr->formatCtx->duration / 1000;
 }
 
 }

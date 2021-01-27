@@ -21,7 +21,7 @@ AudioDecoder::AudioDecoder(QObject *parent)
     : Decoder(parent)
     , d_ptr(new AudioDecoderPrivate(this))
 {
-
+    connect(d_ptr->decoderAudioFrame, &DecoderAudioFrame::positionChanged, this, &AudioDecoder::positionChanged);
 }
 
 AudioDecoder::~AudioDecoder()

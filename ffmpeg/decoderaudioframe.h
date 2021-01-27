@@ -9,18 +9,20 @@ namespace Ffmpeg {
 class DecoderAudioFramePrivate;
 class DecoderAudioFrame : public Decoder<PlayFrame>
 {
+    Q_OBJECT
 public:
     DecoderAudioFrame(QObject *parent = nullptr);
     ~DecoderAudioFrame();
 
     static double audioClock();
 
+signals:
+    void positionChanged(qint64 position); // ms
+
 protected:
     void runDecoder() override;
 
 private:
-    void calculateTime(PlayFrame &frame, double &duration, double &pts, int64_t &pos);
-
     QScopedPointer<DecoderAudioFramePrivate> d_ptr;
 };
 

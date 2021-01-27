@@ -24,10 +24,13 @@ public:
 public slots:
     void onSetFilePath(const QString &filepath);
     void onPlay();
+    void onSeek(int timestamp); // s
 
 signals:
     void readyRead(const QPixmap& pixmap);
     void error(const QString& e);
+    void durationChanged(qint64 duration); //s
+    void positionChanged(qint64 position); // ms
 
 protected:
     void run() override;

@@ -1,7 +1,5 @@
 #include "decoderaudioframe.h"
 #include "avaudio.h"
-#include "avcontextinfo.h"
-#include "formatcontext.h"
 
 #include <QAudioOutput>
 
@@ -77,8 +75,7 @@ void DecoderAudioFrame::runDecoder()
 
         double duration = 0;
         double pts = 0;
-        int64_t pos = 0;
-        calculateTime(frame, duration, pts, pos);
+        calculateTime(frame.avFrame(), duration, pts);
 
         {
             QMutexLocker locker(&g_Mutex);
@@ -91,6 +88,8 @@ void DecoderAudioFrame::runDecoder()
         if(diff > 0.0)
             msleep(diff);
 
+        emit positionChanged(pts * 1000);
+
         while(d_ptr->audioOutput->bytesFree() < audioBuf.size()){
             int byteFree = d_ptr->audioOutput->bytesFree();
             if(byteFree > 0){
@@ -102,23 +101,5 @@ void DecoderAudioFrame::runDecoder()
         d_ptr->audioDevice->write(audioBuf);
     }
 }
-
-void DecoderAudioFrame::calculateTime(PlayFrame &frame, double &duration, double &pts, int64_t &pos)
-{
-    AVRational tb{1, frame.avFrame()->sample_rate};
-    //pts = (frame.avFrame()->pts == AV_NOPTS_VALUE) ? NAN : frame.avFrame()->pts * av_q2d(tb);
-    pos = frame.avFrame()->pkt_pos;
-    //duration = av_q2d(AVRational{frame.avFrame()->nb_samples, frame.avFrame()->sample_rate});
-    //qDebug() << "audio: " << duration << pts << pos << frame.avFrame()->nb_samples << frame.avFrame()->sample_rate;
-
-    tb = m_contextInfo->stream()->time_base;
-    AVRational frame_rate = av_guess_frame_rate(m_formatContext->avFormatContext(), m_contextInfo->stream(), NULL);
-    // 当前帧播放时长
-    duration = (frame_rate.num && frame_rate.den ? av_q2d(AVRational{frame_rate.den, frame_rate.num}) : 0);
-    // 当前帧显示时间戳
-    pts = (frame.avFrame()->pts == AV_NOPTS_VALUE) ? NAN : frame.avFrame()->pts * av_q2d(tb);
-    //qDebug() << "audio: " << duration << pts;
-}
-
 
 }

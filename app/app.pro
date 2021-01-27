@@ -18,6 +18,7 @@ LIBS += -L$$APP_OUTPUT_PATH
 
 LIBS += \
     -l$$replaceLibName(utils) \
+    -l$$replaceLibName(crashhandler) \
     -l$$replaceLibName(ffmpeg) \
     -l$$replaceLibName(mainwindow) \
 

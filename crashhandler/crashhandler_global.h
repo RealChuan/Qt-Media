@@ -1,0 +1,12 @@
+#ifndef CRASHHANDLER_GLOBAL_H
+#define CRASHHANDLER_GLOBAL_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(CRASHHANDLER_LIBRARY)
+#  define CRASHHANDLER_EXPORT Q_DECL_EXPORT
+#else
+#  define CRASHHANDLER_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // CRASHHANDLER_GLOBAL_H

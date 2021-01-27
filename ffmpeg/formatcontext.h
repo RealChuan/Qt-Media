@@ -28,9 +28,15 @@ public:
 
     int checkPktPlayRange(Packet *packet);
 
+    bool seek(int index, int64_t timestamp); // s
+
+    void flush();
+
     void dumpFormat();
 
     AVFormatContext *avFormatContext();
+
+    qint64 duration(); // ms
 
 private:
     QScopedPointer<FormatContextPrivate> d_ptr;

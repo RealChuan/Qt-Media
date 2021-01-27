@@ -45,9 +45,10 @@ public:
     VideoDecoder *videoDecoder;
 
     QString filepath;
-    bool isopen = true;
-    bool runing = true;
-    bool pause = false;
+    volatile bool isopen = true;
+    volatile bool runing = true;
+    volatile bool pause = false;
+    volatile bool seek = false;
     QMutex mutex;
     QWaitCondition waitCondition;
 
@@ -71,6 +72,11 @@ Player::~Player()
 void Player::onSetFilePath(const QString &filepath)
 {
     d_ptr->filepath = filepath;
+    d_ptr->isopen = initAvCode();
+    if(!d_ptr->isopen){
+        qWarning() << "initAvCode Error";
+        return;
+    }
 }
 
 void Player::onPlay()
@@ -78,6 +84,14 @@ void Player::onPlay()
     stop();
     d_ptr->runing = true;
     start();
+}
+
+void Player::onSeek(int timestamp)
+{
+    //qDebug() << "Seek: " << timestamp;
+    //
+    //d_ptr->formatCtx->seek(d_ptr->audioInfo->index(), (timestamp - 1) / av_q2d(d_ptr->audioInfo->stream()->time_base));
+    //d_ptr->formatCtx->seek(d_ptr->videoInfo->index(), timestamp / av_q2d(d_ptr->videoInfo->stream()->time_base));
 }
 
 bool Player::isOpen()
@@ -99,6 +113,8 @@ bool Player::initAvCode()
         qWarning() << d_ptr->formatCtx->error();
         return false;
     }
+
+    emit durationChanged(d_ptr->formatCtx->duration());
 
     //获取音视频流数据信息
     if(!d_ptr->formatCtx->findStream()){
@@ -128,6 +144,9 @@ bool Player::initAvCode()
         return false;
 
     d_ptr->isopen = true;
+
+    d_ptr->formatCtx->dumpFormat();
+
     return true;
 }
 
@@ -135,8 +154,6 @@ void Player::playVideo()
 {
     if(!d_ptr->isopen)
         return;
-
-    d_ptr->formatCtx->dumpFormat();
 
     Packet packet;
     d_ptr->audioDecoder->startDecoder(d_ptr->formatCtx, d_ptr->audioInfo);
@@ -158,13 +175,12 @@ void Player::playVideo()
             d_ptr->waitCondition.wait(&d_ptr->mutex);
         }
 
-        while(d_ptr->videoDecoder->size() > 10)
+        while(d_ptr->videoDecoder->size() > 20)
             msleep(40);
     }
 
     while(d_ptr->runing && d_ptr->videoDecoder->size() != 0)
         msleep(40);
-
     d_ptr->audioDecoder->stopDecoder();
     d_ptr->videoDecoder->stopDecoder();
 }
@@ -190,16 +206,13 @@ void Player::pause(bool status)
 
 void Player::run()
 {
-    if(!initAvCode()){
-        qWarning() << "initAvCode Error";
-        return;
-    }
     playVideo();
 }
 
 void Player::buildConnect()
 {
     connect(d_ptr->videoDecoder, &VideoDecoder::readyRead, this, &Player::readyRead);
+    connect(d_ptr->audioDecoder, &AudioDecoder::positionChanged, this, &Player::positionChanged);
 }
 
 }

@@ -15,9 +15,12 @@ public:
 
 private slots:
     void onError(const QString &error);
+    void onDurationChanged(qint64 duration);
+    void onPositionChanged(qint64 position);
 
 private:
     void setupUI();
+    void buildConnect();
 
     QScopedPointer<MainWindowPrivate> d_ptr;
 };

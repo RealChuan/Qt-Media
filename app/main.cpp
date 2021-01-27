@@ -1,5 +1,6 @@
 #include <utils/logasync.h>
 #include <utils/utils.h>
+#include <crashhandler/crashhandler.h>
 #include <mainwindow/mainwindow.h>
 
 #include <QApplication>
@@ -11,6 +12,8 @@ int main(int argc, char *argv[])
     //Utils::setHighDpiEnvironmentVariable();
 
     QApplication a(argc, argv);
+
+    Utils::setCrashHandler();
 
     QDir::setCurrent(a.applicationDirPath());
     Utils::loadLanguage();
