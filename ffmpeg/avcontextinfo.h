@@ -34,6 +34,8 @@ public:
     unsigned char *imageBuffer(PlayFrame &frame);
     void clearImageBuffer();
 
+    void flush();
+
 private:
     QScopedPointer<AVContextInfoPrivate> d_ptr;
 };

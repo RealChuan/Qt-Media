@@ -119,4 +119,9 @@ int CodecContext::height()
     return m_codecCtx->height;
 }
 
+void CodecContext::flush()
+{
+    avcodec_flush_buffers(m_codecCtx);
+}
+
 }

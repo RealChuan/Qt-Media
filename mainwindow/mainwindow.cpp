@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "playerwidget.h"
+#include "slider.h"
 
 #include <ffmpeg/player.h>
 
@@ -11,14 +12,14 @@ public:
         : owner(parent){
         player = new Ffmpeg::Player(owner);
 
-        slider = new QSlider(Qt::Horizontal, owner);
+        slider = new Slider(owner);
         positionLabel = new QLabel("00:00:00", owner);
         durationLabel = new QLabel("/00:00:00", owner);
     }
     QWidget *owner;
     Ffmpeg::Player *player;
 
-    QSlider *slider;
+    Slider *slider;
     QLabel *positionLabel;
     QLabel *durationLabel;
 };

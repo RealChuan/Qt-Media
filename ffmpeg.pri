@@ -7,7 +7,7 @@ contains(QT_ARCH, i386) {
 CONFIG(debug, debug|release) {
     LIBS += -LD:/Mine/CODE/vcpkg/packages/$$ffmpeg_arch/debug/lib
 }else{
-    LIBS += -LD:/Mine/CODE/vcpkg/packages/ffmpeg_arch/lib
+    LIBS += -LD:/Mine/CODE/vcpkg/packages/$$ffmpeg_arch/lib
 }
 
 LIBS += -lavutil -lavformat -lavcodec -lavdevice -lavfilter -lpostproc -lswresample -lswscale

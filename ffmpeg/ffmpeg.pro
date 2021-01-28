@@ -6,6 +6,8 @@ QT += widgets multimedia
 DEFINES += FFMPEG_LIBRARY
 TARGET = $$replaceLibName(ffmpeg)
 
+LIBS += -l$$replaceLibName(utils)
+
 SOURCES += \
     audiodecoder.cpp \
     avaudio.cpp \

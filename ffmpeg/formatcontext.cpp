@@ -128,7 +128,7 @@ int FormatContext::checkPktPlayRange(Packet *packet)
 bool FormatContext::seek(int index, int64_t timestamp)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
-    if(av_seek_frame(d_ptr->formatCtx, index, timestamp, AVSEEK_FLAG_BACKWARD) < 0){
+    if(av_seek_frame(d_ptr->formatCtx, index, timestamp, AVSEEK_FLAG_BACKWARD | AVSEEK_FLAG_ANY | AVSEEK_FLAG_FRAME) < 0){
         qWarning() << "seek Failed";
         return false;
     }

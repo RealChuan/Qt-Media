@@ -14,6 +14,9 @@ class VideoDecoder : public Decoder<Packet>
     Q_OBJECT
 public:
     VideoDecoder(QObject *parent = nullptr);
+    ~VideoDecoder();
+
+    void clear() override;
 
 signals:
     void readyRead(const QPixmap &pixmap);

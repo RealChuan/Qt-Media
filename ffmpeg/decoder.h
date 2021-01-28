@@ -46,7 +46,7 @@ public:
 
     int size() { return m_queue.size(); };
 
-    void clear() { m_queue.clear(); }
+    virtual void clear() { m_queue.clear(); }
 
 protected:
     virtual void runDecoder() = 0;

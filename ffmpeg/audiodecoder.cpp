@@ -29,6 +29,17 @@ AudioDecoder::~AudioDecoder()
     stopDecoder();
 }
 
+void AudioDecoder::clear()
+{
+    m_queue.clear();
+    d_ptr->decoderAudioFrame->clear();
+}
+
+void AudioDecoder::setSeek(qint64 seek)
+{
+    d_ptr->decoderAudioFrame->setSeek(seek);
+}
+
 void AudioDecoder::runDecoder()
 {    
     PlayFrame frame;

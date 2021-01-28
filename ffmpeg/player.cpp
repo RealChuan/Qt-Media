@@ -9,6 +9,8 @@
 #include "audiodecoder.h"
 #include "videodecoder.h"
 
+#include <utils/utils.h>
+
 #include <QDebug>
 #include <QImage>
 #include <QMutex>
@@ -48,6 +50,7 @@ public:
     volatile bool isopen = true;
     volatile bool runing = true;
     volatile bool pause = false;
+    bool inPause = false;
     volatile bool seek = false;
     QMutex mutex;
     QWaitCondition waitCondition;
@@ -89,9 +92,17 @@ void Player::onPlay()
 void Player::onSeek(int timestamp)
 {
     //qDebug() << "Seek: " << timestamp;
-    //
-    //d_ptr->formatCtx->seek(d_ptr->audioInfo->index(), (timestamp - 1) / av_q2d(d_ptr->audioInfo->stream()->time_base));
-    //d_ptr->formatCtx->seek(d_ptr->videoInfo->index(), timestamp / av_q2d(d_ptr->videoInfo->stream()->time_base));
+
+    pause(true);
+    d_ptr->audioDecoder->clear();
+    d_ptr->videoDecoder->clear();
+
+    d_ptr->formatCtx->seek(d_ptr->audioInfo->index(), timestamp / av_q2d(d_ptr->audioInfo->stream()->time_base));
+    d_ptr->formatCtx->seek(d_ptr->videoInfo->index(), timestamp / av_q2d(d_ptr->videoInfo->stream()->time_base));
+    d_ptr->audioInfo->flush();
+    d_ptr->videoInfo->flush();
+    d_ptr->audioDecoder->setSeek(timestamp * 1000);
+    pause(false);
 }
 
 bool Player::isOpen()
@@ -171,11 +182,13 @@ void Player::playVideo()
         packet.clear();
 
         while(d_ptr->pause){
+            d_ptr->inPause = true;
             QMutexLocker locker(&d_ptr->mutex);
             d_ptr->waitCondition.wait(&d_ptr->mutex);
+            d_ptr->inPause = false;
         }
 
-        while(d_ptr->videoDecoder->size() > 20)
+        while(d_ptr->videoDecoder->size() > 10)
             msleep(40);
     }
 
@@ -206,6 +219,7 @@ void Player::pause(bool status)
 
 void Player::run()
 {
+    onSeek(1000);
     playVideo();
 }
 

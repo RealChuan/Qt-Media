@@ -39,6 +39,7 @@ public:
 
     QAudioOutput *audioOutput;
     QIODevice *audioDevice;
+    QAtomicInteger<qint64> seek = 0; // ms
 };
 
 DecoderAudioFrame::DecoderAudioFrame(QObject *parent)
@@ -51,6 +52,11 @@ DecoderAudioFrame::DecoderAudioFrame(QObject *parent)
 DecoderAudioFrame::~DecoderAudioFrame()
 {
     stopDecoder();
+}
+
+void DecoderAudioFrame::setSeek(qint64 seek)
+{
+    d_ptr->seek = seek;
 }
 
 double DecoderAudioFrame::audioClock()
@@ -84,7 +90,7 @@ void DecoderAudioFrame::runDecoder()
 
         QByteArray audioBuf = avAudio.convert(&frame, m_contextInfo->codecCtx());
 
-        double diff = pts * 1000 - timer.elapsed();
+        double diff = pts * 1000 - timer.elapsed() - d_ptr->seek;
         if(diff > 0.0)
             msleep(diff);
 

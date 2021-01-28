@@ -55,6 +55,7 @@ void DecoderVideoFrame::runDecoder()
         }
         emit readyRead(pixmap); // 略慢于音频
     }
+    QThread::sleep(1); // 最后一帧
     m_contextInfo->clearImageBuffer();
 }
 

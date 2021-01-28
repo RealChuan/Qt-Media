@@ -36,6 +36,8 @@ public:
     int width();
     int height();
 
+    void flush();
+
 private:
     bool m_ok = false;
     AVCodecContext *m_codecCtx; //解码器上下文

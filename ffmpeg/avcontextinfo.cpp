@@ -54,6 +54,9 @@ int AVContextInfo::index()
 void AVContextInfo::setStream(AVStream *stream)
 {
     d_ptr->stream = stream;
+
+    double frameRate = av_q2d(stream->avg_frame_rate);
+    qDebug() << frameRate;
 }
 
 AVStream *AVContextInfo::stream()
@@ -110,6 +113,11 @@ unsigned char *AVContextInfo::imageBuffer(PlayFrame &frame)
 void AVContextInfo::clearImageBuffer()
 {
     d_ptr->codecCtx->clearImageBuffer();
+}
+
+void AVContextInfo::flush()
+{
+    d_ptr->codecCtx->flush();
 }
 
 }

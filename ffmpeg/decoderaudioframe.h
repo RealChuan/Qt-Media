@@ -14,6 +14,8 @@ public:
     DecoderAudioFrame(QObject *parent = nullptr);
     ~DecoderAudioFrame();
 
+    void setSeek(qint64 seek);
+
     static double audioClock();
 
 signals:

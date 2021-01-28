@@ -31,6 +31,17 @@ VideoDecoder::VideoDecoder(QObject *parent)
     connect(d_ptr->decoderVideoFrame, &DecoderVideoFrame::readyRead, this, &VideoDecoder::readyRead);
 }
 
+VideoDecoder::~VideoDecoder()
+{
+    stopDecoder();
+}
+
+void VideoDecoder::clear()
+{
+    m_queue.clear();
+    d_ptr->decoderVideoFrame->clear();
+}
+
 void VideoDecoder::runDecoder()
 {
     PlayFrame frame;
