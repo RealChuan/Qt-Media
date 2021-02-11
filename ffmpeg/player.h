@@ -29,7 +29,7 @@ public slots:
 signals:
     void readyRead(const QImage &image);
     void error(const QString& e);
-    void durationChanged(qint64 duration); //s
+    void durationChanged(qint64 duration); // s
     void positionChanged(qint64 position); // ms
 
 protected:
@@ -39,6 +39,7 @@ private:
     void buildConnect();
     bool initAvCode();
     void playVideo();
+    void checkSeek();
 
     QScopedPointer<PlayerPrivate> d_ptr;
 };

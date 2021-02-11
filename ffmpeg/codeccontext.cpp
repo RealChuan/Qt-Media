@@ -15,10 +15,12 @@ CodecContext::CodecContext(const AVCodec *codec, QObject *parent)
     : QObject(parent)
 {
     m_codecCtx = avcodec_alloc_context3(codec);
-    m_ok = m_codecCtx == nullptr ? false : true;}
+    Q_ASSERT(m_codecCtx != nullptr);
+}
 
 CodecContext::~CodecContext()
 {
+    Q_ASSERT(m_codecCtx != nullptr);
     avcodec_free_context(&m_codecCtx);
 }
 
@@ -26,11 +28,6 @@ AVCodecContext *CodecContext::avCodecCtx()
 {
     Q_ASSERT(m_codecCtx != nullptr);
     return m_codecCtx;
-}
-
-bool CodecContext::isOk()
-{
-    return m_ok;
 }
 
 bool CodecContext::setParameters(const AVCodecParameters *par)
@@ -105,8 +102,8 @@ unsigned char *CodecContext::imageBuffer(PlayFrame &frame)
 
 void CodecContext::clearImageBuffer()
 {
-    Q_ASSERT(m_out_buffer != nullptr);
-    av_free(m_out_buffer);
+    if(m_out_buffer != nullptr)
+        av_free(m_out_buffer);
 }
 
 int CodecContext::width()

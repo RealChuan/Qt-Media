@@ -16,8 +16,6 @@ public:
 
     void pause(bool state);
 
-    void clear() override;
-
     void setSeek(qint64 seek);
 
 signals:

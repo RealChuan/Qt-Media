@@ -27,6 +27,9 @@ protected:
     void runDecoder() override;
 
 private:
+    void checkPause();
+    void checkSeek();
+
     QScopedPointer<DecoderVideoFramePrivate> d_ptr;
 };
 

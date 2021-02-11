@@ -21,8 +21,6 @@ public:
 
     AVCodecContext *avCodecCtx();
 
-    bool isOk();
-
     bool setParameters(const AVCodecParameters *par);
     void setTimebase(const AVRational &timebase);
     bool open(AVCodec *codec);
@@ -39,7 +37,6 @@ public:
     void flush();
 
 private:
-    bool m_ok = false;
     AVCodecContext *m_codecCtx; //解码器上下文
     unsigned char *m_out_buffer;
 };

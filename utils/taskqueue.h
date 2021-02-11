@@ -25,7 +25,7 @@ public:
 
     bool append(const T& t)
     {
-        QMutexLocker lock(&m_mutex);
+        QMutexLocker locker(&m_mutex);
         if(m_T.size() >= m_maxSize)
             return false;
         m_T.append(std::move(t));
@@ -34,7 +34,7 @@ public:
 
     bool append(T&& t)
     {
-        QMutexLocker lock(&m_mutex);
+        QMutexLocker locker(&m_mutex);
         if(m_T.size() >= m_maxSize)
             return false;
         m_T.append(std::move(t));
@@ -43,7 +43,7 @@ public:
 
     T takeFirst()
     {
-        QMutexLocker lock(&m_mutex);
+        QMutexLocker locker(&m_mutex);
         if(!m_T.isEmpty())
             return m_T.takeFirst();
         return T();
@@ -51,7 +51,7 @@ public:
 
     bool isEmpty()
     {
-        QMutexLocker lock(&m_mutex);
+        QMutexLocker locker(&m_mutex);
         if(m_T.isEmpty())
             return true;
         return false;
@@ -59,19 +59,19 @@ public:
 
     void clear()
     {
-        QMutexLocker lock(&m_mutex);
+        QMutexLocker locker(&m_mutex);
         m_T.clear();
     }
 
     int size() const
     {
-        QMutexLocker lock(&m_mutex);
+        QMutexLocker locker(&m_mutex);
         return m_T.size();
     }
 
     void setMaxSize(const int maxSize)
     {
-        QMutexLocker lock(&m_mutex);
+        QMutexLocker locker(&m_mutex);
         m_maxSize = maxSize;
     }
 

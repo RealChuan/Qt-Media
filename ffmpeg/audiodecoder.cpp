@@ -34,17 +34,6 @@ void AudioDecoder::pause(bool state)
     d_ptr->decoderAudioFrame->pause(state);
 }
 
-void AudioDecoder::clear()
-{
-    m_queue.clear();
-    d_ptr->decoderAudioFrame->clear();
-}
-
-void AudioDecoder::setSeek(qint64 seek)
-{
-    d_ptr->decoderAudioFrame->setSeek(seek);
-}
-
 void AudioDecoder::runDecoder()
 {    
     PlayFrame frame;
@@ -52,6 +41,11 @@ void AudioDecoder::runDecoder()
     d_ptr->decoderAudioFrame->startDecoder(m_formatContext, m_contextInfo);
 
     while(m_runing){
+        if(m_seek){
+            d_ptr->decoderAudioFrame->seek(m_seekTime);
+            seekFinish();
+        }
+
         if(m_queue.isEmpty()){
             msleep(1);
             continue;
@@ -67,8 +61,8 @@ void AudioDecoder::runDecoder()
             d_ptr->decoderAudioFrame->append(frame);
         }
 
-        while(d_ptr->decoderAudioFrame->size() > 10)
-            msleep(40);
+        while(d_ptr->decoderAudioFrame->size() > 10 && !m_seek)
+            msleep(1);
     }
 
     while(m_runing && d_ptr->decoderAudioFrame->size() != 0)

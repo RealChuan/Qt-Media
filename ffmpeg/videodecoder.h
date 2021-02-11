@@ -18,8 +18,6 @@ public:
 
     void pause(bool state);
 
-    void clear() override;
-
 signals:
     void readyRead(const QImage &image);
 

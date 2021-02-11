@@ -75,10 +75,6 @@ bool AVContextInfo::findDecoder()
     }
 
     d_ptr->codecCtx.reset(new CodecContext(codec));
-    if(!d_ptr->codecCtx->isOk()){
-        d_ptr->error = tr("Could not open audio codec.");
-        return false;
-    }
 
     if(!d_ptr->codecCtx->setParameters(d_ptr->stream->codecpar))
         return false;
@@ -118,6 +114,11 @@ void AVContextInfo::clearImageBuffer()
 void AVContextInfo::flush()
 {
     d_ptr->codecCtx->flush();
+}
+
+double AVContextInfo::timebase()
+{
+    return av_q2d(d_ptr->stream->time_base);
 }
 
 }

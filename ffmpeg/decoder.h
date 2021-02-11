@@ -3,6 +3,7 @@
 
 #include <QThread>
 #include <QDebug>
+#include <QWaitCondition>
 
 #include <utils/taskqueue.h>
 
@@ -13,6 +14,8 @@ extern "C"{
 #include <libavutil/time.h>
 #include <libavformat/avformat.h>
 }
+
+#define Seek_Error_Time 0.99
 
 namespace Ffmpeg {
 
@@ -35,18 +38,31 @@ public:
     virtual void stopDecoder()
     {
         m_runing = false;
-        clear();
         if(isRunning()){
             quit();
             wait();
         }
+        clear();
     }
 
     void append(const T& t) { m_queue.append(t); }
 
     int size() { return m_queue.size(); };
 
-    virtual void clear() { m_queue.clear(); }
+    void clear() { m_queue.clear(); }
+
+    void seek(qint64 seekTime)
+    {
+        m_seek = true;
+        m_seekTime = seekTime;
+        clear();
+        while (m_seek) {
+            QMutexLocker locker(&m_mutex);
+            m_waitCondition.wait(&m_mutex);
+        }
+    }
+
+    bool isSeek() { return m_seek; }
 
 protected:
     virtual void runDecoder() = 0;
@@ -69,10 +85,26 @@ protected:
         //qDebug() << duration << pts;
     }
 
+    void seekCodec(qint64 seekTime)
+    {
+        m_formatContext->seek(m_contextInfo->index(), seekTime / m_contextInfo->timebase());
+        m_contextInfo->flush();
+    }
+
+    void seekFinish()
+    {
+        m_seek = false;
+        m_waitCondition.wakeOne();
+    }
+
     Utils::Queue<T> m_queue;
     AVContextInfo *m_contextInfo;
     FormatContext *m_formatContext;
     bool m_runing = true;
+    bool m_seek = false;
+    qint64 m_seekTime = 0; // seconds
+    QMutex m_mutex;
+    QWaitCondition m_waitCondition;
 };
 
 }

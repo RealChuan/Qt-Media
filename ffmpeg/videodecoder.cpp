@@ -41,12 +41,6 @@ void VideoDecoder::pause(bool state)
     d_ptr->decoderVideoFrame->pause(state);
 }
 
-void VideoDecoder::clear()
-{
-    m_queue.clear();
-    d_ptr->decoderVideoFrame->clear();
-}
-
 void VideoDecoder::runDecoder()
 {
     PlayFrame frame;
@@ -54,6 +48,11 @@ void VideoDecoder::runDecoder()
     d_ptr->decoderVideoFrame->startDecoder(m_formatContext, m_contextInfo);
 
     while(m_runing){
+        if(m_seek){
+            d_ptr->decoderVideoFrame->seek(m_seekTime);
+            seekFinish();
+        }
+
         if(m_queue.isEmpty()){
             msleep(1);
             continue;
@@ -70,8 +69,8 @@ void VideoDecoder::runDecoder()
 
         d_ptr->decoderVideoFrame->append(frame);
 
-        while(d_ptr->decoderVideoFrame->size() > 10)
-            msleep(40);
+        while(d_ptr->decoderVideoFrame->size() > 10 && !m_seek)
+            msleep(1);
     }
 
     while(m_runing && d_ptr->decoderVideoFrame->size() != 0)

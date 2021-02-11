@@ -106,6 +106,8 @@ void PlayerWidget::onOpenVideo()
     QString path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).value(0, QDir::homePath());
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),path,
                                                     tr("Video (*.mp4 *.mkv *.rmvb)"));
+    if(fileName.isEmpty())
+        return;
     emit openFile(fileName);
 }
 

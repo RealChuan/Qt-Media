@@ -36,6 +36,8 @@ public:
 
     void flush();
 
+    double timebase();
+
 private:
     QScopedPointer<AVContextInfoPrivate> d_ptr;
 };

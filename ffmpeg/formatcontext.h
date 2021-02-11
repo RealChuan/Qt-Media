@@ -30,8 +30,6 @@ public:
 
     bool seek(int index, int64_t timestamp); // s
 
-    void flush();
-
     void dumpFormat();
 
     AVFormatContext *avFormatContext();

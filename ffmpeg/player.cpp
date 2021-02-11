@@ -50,6 +50,7 @@ public:
     volatile bool isopen = true;
     volatile bool runing = true;
     volatile bool seek = false;
+    qint64 seekTime = 0; // seconds
 
     QString error;
 };
@@ -87,18 +88,13 @@ void Player::onPlay()
 
 void Player::onSeek(int timestamp)
 {
-    //qDebug() << "Seek: " << timestamp;
+    qDebug() << "Seek: " << timestamp;
 
-    pause(true);
-    d_ptr->audioDecoder->clear();
-    d_ptr->videoDecoder->clear();
-
-    d_ptr->formatCtx->seek(d_ptr->audioInfo->index(), timestamp / av_q2d(d_ptr->audioInfo->stream()->time_base));
-    d_ptr->formatCtx->seek(d_ptr->videoInfo->index(), timestamp / av_q2d(d_ptr->videoInfo->stream()->time_base));
-    d_ptr->audioInfo->flush();
-    d_ptr->videoInfo->flush();
-    d_ptr->audioDecoder->setSeek(timestamp * 1000);
-    pause(false);
+    if(d_ptr->seek)
+        return;
+    blockSignals(true);
+    d_ptr->seek = true;
+    d_ptr->seekTime = timestamp;
 }
 
 bool Player::isOpen()
@@ -177,14 +173,29 @@ void Player::playVideo()
         }
         packet.clear();
 
-        while(d_ptr->videoDecoder->size() > 10)
-            msleep(40);
+        checkSeek();
+
+        while(d_ptr->videoDecoder->size() > 10 && !d_ptr->seek)
+            msleep(1);
     }
 
     while(d_ptr->runing && d_ptr->videoDecoder->size() != 0)
-        msleep(40);
+        msleep(1);
     d_ptr->audioDecoder->stopDecoder();
     d_ptr->videoDecoder->stopDecoder();
+}
+
+void Player::checkSeek()
+{
+    if(!d_ptr->seek)
+        return;
+    QElapsedTimer timer;
+    timer.start();
+    d_ptr->videoDecoder->seek(d_ptr->seekTime);
+    d_ptr->audioDecoder->seek(d_ptr->seekTime);
+    d_ptr->seek = false;
+    blockSignals(false);
+    qDebug() << "Seek ElapsedTimer: " << timer.elapsed();
 }
 
 void Player::stop()

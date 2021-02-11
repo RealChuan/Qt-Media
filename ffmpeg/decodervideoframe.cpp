@@ -64,6 +64,9 @@ void DecoderVideoFrame::runDecoder()
 
     //int drop = 0;
     while(m_runing){
+        checkPause();
+        checkSeek();
+
         if(m_queue.isEmpty()){
             msleep(1);
             continue;
@@ -71,31 +74,43 @@ void DecoderVideoFrame::runDecoder()
 
         PlayFrame frame = m_queue.takeFirst();
 
-        avImage.scale(&frame, &frameRGB, m_contextInfo->codecCtx()->height());
-        QImage image(frameRGB.toImage(m_contextInfo->codecCtx()));
-
         double duration = 0;
         double pts = 0;
         calculateTime(frame.avFrame(), duration, pts);
 
+        if(m_seekTime - Seek_Error_Time > pts)
+            continue;
+
+        avImage.scale(&frame, &frameRGB, m_contextInfo->codecCtx()->height());
+        QImage image(frameRGB.toImage(m_contextInfo->codecCtx()));
+
         double diff = (pts - DecoderAudioFrame::audioClock()) * 1000;
-        if(diff <= 0.0){
-            // 暂时不丢帧，快速显示
-            //qWarning() << "Drop frame: " << ++drop << diff;
-            //continue;
+        if(diff <= 0.0){ // 暂时不丢帧，快速显示
+            // drop++
         }else{
-            //qInfo() << "Show frame: " << diff;
             msleep(diff);
         }
         emit readyRead(image); // 略慢于音频
-
-        while(d_ptr->pause){
-            QMutexLocker locker(&d_ptr->mutex);
-            d_ptr->waitCondition.wait(&d_ptr->mutex);
-        }
     }
     QThread::sleep(1); // 最后一帧
     m_contextInfo->clearImageBuffer();
+}
+
+void DecoderVideoFrame::checkPause()
+{
+    while(d_ptr->pause){
+        QMutexLocker locker(&d_ptr->mutex);
+        d_ptr->waitCondition.wait(&d_ptr->mutex);
+    }
+}
+
+void DecoderVideoFrame::checkSeek()
+{
+    if(!m_seek)
+        return;
+
+    seekCodec(m_seekTime);
+    seekFinish();
 }
 
 }
