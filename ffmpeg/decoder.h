@@ -32,7 +32,7 @@ public:
         start();
     }
 
-    void stopDecoder()
+    virtual void stopDecoder()
     {
         m_runing = false;
         clear();

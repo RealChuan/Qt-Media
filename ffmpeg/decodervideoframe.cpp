@@ -7,6 +7,7 @@
 
 #include <QPixmap>
 #include <QDebug>
+#include <QWaitCondition>
 
 extern "C"{
 #include <libavutil/time.h>
@@ -15,10 +16,43 @@ extern "C"{
 
 namespace Ffmpeg {
 
+class DecoderVideoFramePrivate{
+public:
+    DecoderVideoFramePrivate(QObject *parent)
+        : owner(parent){
+
+    }
+
+    QObject *owner;
+    bool pause = false;
+    QMutex mutex;
+    QWaitCondition waitCondition;
+};
+
 DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
-    : Decoder(parent)
+    : Decoder<PlayFrame>(parent)
+    , d_ptr(new DecoderVideoFramePrivate(this))
 {
 
+}
+
+DecoderVideoFrame::~DecoderVideoFrame()
+{
+    stopDecoder();
+}
+
+void DecoderVideoFrame::stopDecoder()
+{
+    pause(false);
+    Decoder<PlayFrame>::stopDecoder();
+}
+
+void DecoderVideoFrame::pause(bool state)
+{
+    d_ptr->pause = state;
+    if(state)
+        return;
+    d_ptr->waitCondition.wakeOne();
 }
 
 void DecoderVideoFrame::runDecoder()
@@ -38,7 +72,7 @@ void DecoderVideoFrame::runDecoder()
         PlayFrame frame = m_queue.takeFirst();
 
         avImage.scale(&frame, &frameRGB, m_contextInfo->codecCtx()->height());
-        QPixmap pixmap(QPixmap::fromImage(frameRGB.toImage(m_contextInfo->codecCtx())));
+        QImage image(frameRGB.toImage(m_contextInfo->codecCtx()));
 
         double duration = 0;
         double pts = 0;
@@ -53,7 +87,12 @@ void DecoderVideoFrame::runDecoder()
             //qInfo() << "Show frame: " << diff;
             msleep(diff);
         }
-        emit readyRead(pixmap); // 略慢于音频
+        emit readyRead(image); // 略慢于音频
+
+        while(d_ptr->pause){
+            QMutexLocker locker(&d_ptr->mutex);
+            d_ptr->waitCondition.wait(&d_ptr->mutex);
+        }
     }
     QThread::sleep(1); // 最后一帧
     m_contextInfo->clearImageBuffer();

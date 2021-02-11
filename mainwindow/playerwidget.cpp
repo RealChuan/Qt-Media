@@ -11,7 +11,7 @@ public:
     QWidget *owner;
 
     QMenu *menu;
-    QPixmap pixmap;
+    QImage image;
 };
 
 PlayerWidget::PlayerWidget(QWidget *parent)
@@ -69,20 +69,20 @@ void PlayerWidget::paintEvent(QPaintEvent *event)
     //painter.drawPixmap(QRect(x, y, d_ptr->pixmap.width(), d_ptr->pixmap.height()), d_ptr->pixmap);
 
 
-    if(d_ptr->pixmap.width() > width() || d_ptr->pixmap.height() > height()){
-        double wScale = d_ptr->pixmap.width() * 1.0 / width();
-        double hScale = d_ptr->pixmap.height() * 1.0 / height();
+    if(d_ptr->image.width() > width() || d_ptr->image.height() > height()){
+        double wScale = d_ptr->image.width() * 1.0 / width();
+        double hScale = d_ptr->image.height() * 1.0 / height();
         double maxScale = qMax(wScale, hScale);
 
-        int w = d_ptr->pixmap.width() / maxScale;
-        int h = d_ptr->pixmap.height() / maxScale;
-        int x = (width() - w) / 2;
-        int y = (height() - h) / 2;
-        painter.drawPixmap(QRect(x, y, w, h), d_ptr->pixmap);
+        double w = d_ptr->image.width() / maxScale;
+        double h = d_ptr->image.height() / maxScale;
+        double x = (width() - w) / 2;
+        double y = (height() - h) / 2;
+        painter.drawImage(QRect(x, y, w, h), d_ptr->image);
     }else{
-        int x = (width() - d_ptr->pixmap.width()) / 2;
-        int y = (height() - d_ptr->pixmap.height()) / 2;
-        painter.drawPixmap(QRect(x, y, d_ptr->pixmap.width(), d_ptr->pixmap.height()), d_ptr->pixmap);
+        double x = (width() - d_ptr->image.width()) / 2;
+        double y = (height() - d_ptr->image.height()) / 2;
+        painter.drawImage(QRect(x, y, d_ptr->image.width(), d_ptr->image.height()), d_ptr->image);
     }
 }
 
@@ -91,13 +91,13 @@ void PlayerWidget::setupUI()
     d_ptr->menu->addAction(tr("Open Video"), this, &PlayerWidget::onOpenVideo);
 }
 
-void PlayerWidget::onReadyRead(const QPixmap &pixmap)
+void PlayerWidget::onReadyRead(const QImage &image)
 {
-    if(pixmap.isNull()){
-        qWarning() << "pixmap is NUll";
+    if(image.isNull()){
+        qWarning() << "image is null!";
         return;
     }
-    d_ptr->pixmap = pixmap;
+    d_ptr->image = image;
     update();
 }
 

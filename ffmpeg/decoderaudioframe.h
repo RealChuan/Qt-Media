@@ -14,6 +14,11 @@ public:
     DecoderAudioFrame(QObject *parent = nullptr);
     ~DecoderAudioFrame();
 
+    void stopDecoder() override;
+
+    void pause(bool state);
+    bool isPause();
+
     void setSeek(qint64 seek);
 
     static double audioClock();

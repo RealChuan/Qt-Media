@@ -49,11 +49,7 @@ public:
     QString filepath;
     volatile bool isopen = true;
     volatile bool runing = true;
-    volatile bool pause = false;
-    bool inPause = false;
     volatile bool seek = false;
-    QMutex mutex;
-    QWaitCondition waitCondition;
 
     QString error;
 };
@@ -181,13 +177,6 @@ void Player::playVideo()
         }
         packet.clear();
 
-        while(d_ptr->pause){
-            d_ptr->inPause = true;
-            QMutexLocker locker(&d_ptr->mutex);
-            d_ptr->waitCondition.wait(&d_ptr->mutex);
-            d_ptr->inPause = false;
-        }
-
         while(d_ptr->videoDecoder->size() > 10)
             msleep(40);
     }
@@ -200,9 +189,8 @@ void Player::playVideo()
 
 void Player::stop()
 {
-    d_ptr->pause = false;
     d_ptr->runing = false;
-    d_ptr->waitCondition.wakeOne();
+    pause(false);
     if(isRunning()){
         quit();
         wait();
@@ -211,15 +199,12 @@ void Player::stop()
 
 void Player::pause(bool status)
 {
-    d_ptr->pause = status;
-    if(status)
-        return;
-    d_ptr->waitCondition.wakeOne();
+    d_ptr->audioDecoder->pause(status);
+    d_ptr->videoDecoder->pause(status);
 }
 
 void Player::run()
 {
-    onSeek(1000);
     playVideo();
 }
 

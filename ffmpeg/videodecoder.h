@@ -16,10 +16,12 @@ public:
     VideoDecoder(QObject *parent = nullptr);
     ~VideoDecoder();
 
+    void pause(bool state);
+
     void clear() override;
 
 signals:
-    void readyRead(const QPixmap &pixmap);
+    void readyRead(const QImage &image);
 
 protected:
     void runDecoder() override;

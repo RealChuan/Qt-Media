@@ -40,10 +40,14 @@ public:
     QAudioOutput *audioOutput;
     QIODevice *audioDevice;
     QAtomicInteger<qint64> seek = 0; // ms
+
+    bool pause = false;
+    QMutex mutex;
+    QWaitCondition waitCondition;
 };
 
 DecoderAudioFrame::DecoderAudioFrame(QObject *parent)
-    : Decoder(parent)
+    : Decoder<PlayFrame>(parent)
     , d_ptr(new DecoderAudioFramePrivate(this))
 {
 
@@ -52,6 +56,25 @@ DecoderAudioFrame::DecoderAudioFrame(QObject *parent)
 DecoderAudioFrame::~DecoderAudioFrame()
 {
     stopDecoder();
+}
+
+void DecoderAudioFrame::stopDecoder()
+{
+    pause(false);
+    Decoder<PlayFrame>::stopDecoder();
+}
+
+void DecoderAudioFrame::pause(bool state)
+{
+    d_ptr->pause = state;
+    if(state)
+        return;
+    d_ptr->waitCondition.wakeOne();
+}
+
+bool DecoderAudioFrame::isPause()
+{
+    return d_ptr->pause;
 }
 
 void DecoderAudioFrame::setSeek(qint64 seek)
@@ -68,7 +91,7 @@ double DecoderAudioFrame::audioClock()
 void DecoderAudioFrame::runDecoder()
 {
     AVAudio avAudio(m_contextInfo->codecCtx());
-
+    qint64 pauseTime = 0;
     QElapsedTimer timer;
     timer.start();
     while(m_runing){
@@ -90,7 +113,7 @@ void DecoderAudioFrame::runDecoder()
 
         QByteArray audioBuf = avAudio.convert(&frame, m_contextInfo->codecCtx());
 
-        double diff = pts * 1000 - timer.elapsed() - d_ptr->seek;
+        double diff = pts * 1000 - (timer.elapsed() - pauseTime) - d_ptr->seek;
         if(diff > 0.0)
             msleep(diff);
 
@@ -105,6 +128,17 @@ void DecoderAudioFrame::runDecoder()
             msleep(1);
         }
         d_ptr->audioDevice->write(audioBuf);
+
+        QElapsedTimer timerPause;
+        timerPause.start();
+        while(d_ptr->pause){
+            msleep(100);
+            QMutexLocker locker(&d_ptr->mutex);
+            d_ptr->waitCondition.wait(&d_ptr->mutex);
+        }
+        if(timerPause.elapsed() > 100){
+            pauseTime += timerPause.elapsed();
+        }
     }
 }
 

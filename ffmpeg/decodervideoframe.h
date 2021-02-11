@@ -8,17 +8,26 @@ struct AVFrame;
 
 namespace Ffmpeg {
 
+class DecoderVideoFramePrivate;
 class DecoderVideoFrame : public Decoder<PlayFrame>
 {
     Q_OBJECT
 public:
     DecoderVideoFrame(QObject *parent = nullptr);
+    ~DecoderVideoFrame();
+
+    void stopDecoder() override;
+
+    void pause(bool state);
 
 signals:
-    void readyRead(const QPixmap &pixmap);
+    void readyRead(const QImage &image);
 
 protected:
     void runDecoder() override;
+
+private:
+    QScopedPointer<DecoderVideoFramePrivate> d_ptr;
 };
 
 }

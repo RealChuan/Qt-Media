@@ -18,7 +18,7 @@ public:
 };
 
 AudioDecoder::AudioDecoder(QObject *parent)
-    : Decoder(parent)
+    : Decoder<Packet>(parent)
     , d_ptr(new AudioDecoderPrivate(this))
 {
     connect(d_ptr->decoderAudioFrame, &DecoderAudioFrame::positionChanged, this, &AudioDecoder::positionChanged);
@@ -27,6 +27,11 @@ AudioDecoder::AudioDecoder(QObject *parent)
 AudioDecoder::~AudioDecoder()
 {
     stopDecoder();
+}
+
+void AudioDecoder::pause(bool state)
+{
+    d_ptr->decoderAudioFrame->pause(state);
 }
 
 void AudioDecoder::clear()

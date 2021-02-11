@@ -25,7 +25,7 @@ public:
 };
 
 VideoDecoder::VideoDecoder(QObject *parent)
-    : Decoder(parent)
+    : Decoder<Packet>(parent)
     , d_ptr(new VideoDecoderPrivate(this))
 {
     connect(d_ptr->decoderVideoFrame, &DecoderVideoFrame::readyRead, this, &VideoDecoder::readyRead);
@@ -34,6 +34,11 @@ VideoDecoder::VideoDecoder(QObject *parent)
 VideoDecoder::~VideoDecoder()
 {
     stopDecoder();
+}
+
+void VideoDecoder::pause(bool state)
+{
+    d_ptr->decoderVideoFrame->pause(state);
 }
 
 void VideoDecoder::clear()

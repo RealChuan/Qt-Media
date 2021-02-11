@@ -12,7 +12,7 @@ public:
     ~PlayerWidget();
 
 public slots:
-    void onReadyRead(const QPixmap& pixmap);
+    void onReadyRead(const QImage &image);
 
 signals:
     void openFile(const QString &filepath);
