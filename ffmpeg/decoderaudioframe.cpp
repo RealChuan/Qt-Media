@@ -109,7 +109,7 @@ void DecoderAudioFrame::runDecoder()
         double duration = 0;
         double pts = 0;
         calculateTime(frame.avFrame(), duration, pts);
-        if(m_seekTime - Seek_Error_Time > pts)
+        if(m_seekTime > pts)
             continue;
         setAudioClock(pts);
 
@@ -144,7 +144,7 @@ void DecoderAudioFrame::checkSeek(QElapsedTimer &timer, qint64 &pauseTime)
     seekCodec(m_seekTime);
     pauseTime = 0;
     d_ptr->seekTime = m_seekTime * 1000;
-    setAudioClock(m_seekTime - Seek_Error_Time);
+    setAudioClock(m_seekTime);
     seekFinish();
     timer.restart();
 }

@@ -15,8 +15,6 @@ extern "C"{
 #include <libavformat/avformat.h>
 }
 
-#define Seek_Error_Time 0.99
-
 namespace Ffmpeg {
 
 template<typename T>
@@ -53,6 +51,9 @@ public:
 
     void seek(qint64 seekTime)
     {
+        assertVaild();
+        if(!m_contextInfo->isIndexVaild())
+            return;
         m_seek = true;
         m_seekTime = seekTime;
         clear();
@@ -67,10 +68,11 @@ public:
 protected:
     virtual void runDecoder() = 0;
 
-    void run() override
+    void run() override final
     {
-        Q_ASSERT(m_formatContext != nullptr);
-        Q_ASSERT(m_contextInfo != nullptr);
+        assertVaild();
+        if(!m_contextInfo->isIndexVaild())
+            return;
         runDecoder();
     }
 
@@ -97,9 +99,15 @@ protected:
         m_waitCondition.wakeOne();
     }
 
+    void assertVaild()
+    {
+        Q_ASSERT(m_formatContext != nullptr);
+        Q_ASSERT(m_contextInfo != nullptr);
+    }
+
     Utils::Queue<T> m_queue;
-    AVContextInfo *m_contextInfo;
-    FormatContext *m_formatContext;
+    AVContextInfo *m_contextInfo = nullptr;
+    FormatContext *m_formatContext = nullptr;
     bool m_runing = true;
     bool m_seek = false;
     qint64 m_seekTime = 0; // seconds

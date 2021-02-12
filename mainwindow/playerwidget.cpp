@@ -1,5 +1,7 @@
 #include "playerwidget.h"
 
+#include <utils/utils.h>
+
 #include <QtWidgets>
 
 class PlayerWidgetPrivate{
@@ -12,10 +14,12 @@ public:
 
     QMenu *menu;
     QImage image;
+
+    volatile bool isChangedFile = false;
 };
 
 PlayerWidget::PlayerWidget(QWidget *parent)
-    : QOpenGLWidget(parent)
+    : QWidget(parent)
     , d_ptr(new PlayerWidgetPrivate(this))
 {
     QPalette p = palette();
@@ -58,6 +62,11 @@ void PlayerWidget::paintEvent(QPaintEvent *event)
 {
     QWidget::paintEvent(event);
 
+    QElapsedTimer timer;
+    timer.start();
+    if(d_ptr->image.isNull() || d_ptr->isChangedFile)
+        return;
+
     QPainter painter(this);
     painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
 
@@ -67,7 +76,6 @@ void PlayerWidget::paintEvent(QPaintEvent *event)
     //int x = (width() - d_ptr->pixmap.width()) / 2;
     //int y = (height() - d_ptr->pixmap.height()) / 2;
     //painter.drawPixmap(QRect(x, y, d_ptr->pixmap.width(), d_ptr->pixmap.height()), d_ptr->pixmap);
-
 
     if(d_ptr->image.width() > width() || d_ptr->image.height() > height()){
         double wScale = d_ptr->image.width() * 1.0 / width();
@@ -84,6 +92,8 @@ void PlayerWidget::paintEvent(QPaintEvent *event)
         double y = (height() - d_ptr->image.height()) / 2;
         painter.drawImage(QRect(x, y, d_ptr->image.width(), d_ptr->image.height()), d_ptr->image);
     }
+
+    qDebug() << timer.elapsed();
 }
 
 void PlayerWidget::setupUI()
@@ -105,10 +115,19 @@ void PlayerWidget::onOpenVideo()
 {
     QString path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).value(0, QDir::homePath());
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),path,
-                                                    tr("Video (*.mp4 *.mkv *.rmvb)"));
+                                                    tr("Audio Video (*.mp3 *.mp4 *.mkv *.rmvb)"));
     if(fileName.isEmpty())
         return;
+
+    d_ptr->isChangedFile = true;
+    emit closeFile();
+    if(!d_ptr->image.isNull()){
+        //Utils::msleep(5000);
+        d_ptr->image = QImage();
+        update();
+    }
     emit openFile(fileName);
+    d_ptr->isChangedFile = false;
 }
 
 void PlayerWidget::contextMenuEvent(QContextMenuEvent *event)

@@ -1,10 +1,10 @@
 #ifndef PLAYERWIDGET_H
 #define PLAYERWIDGET_H
 
-#include <QOpenGLWidget>
+#include <QWidget>
 
 class PlayerWidgetPrivate;
-class PlayerWidget : public QOpenGLWidget
+class PlayerWidget : public QWidget
 {
     Q_OBJECT
 public:
@@ -16,6 +16,7 @@ public slots:
 
 signals:
     void openFile(const QString &filepath);
+    void closeFile();
 
 private slots:
     void onOpenVideo();

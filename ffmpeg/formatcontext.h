@@ -18,9 +18,16 @@ public:
 
     QString error() const;
 
+    bool isOpen();
+
     bool openFilePath(const QString &filepath);
+    void close();
+
     bool findStream();
-    QVector<int> findStreamIndex(int &audioIndex, int &videoIndex);
+
+    QVector<int> audioIndexs() const;
+    QVector<int> videoIndexs() const;
+    QVector<int> subtitleIndexs() const;
 
     AVStream *stream(int index);   //音频流
 
@@ -36,7 +43,12 @@ public:
 
     qint64 duration(); // ms
 
+    QImage coverImage() const;
+
 private:
+    void findStreamIndex();
+    void initMetaData();
+
     QScopedPointer<FormatContextPrivate> d_ptr;
 };
 

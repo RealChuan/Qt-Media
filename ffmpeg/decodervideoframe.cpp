@@ -78,7 +78,7 @@ void DecoderVideoFrame::runDecoder()
         double pts = 0;
         calculateTime(frame.avFrame(), duration, pts);
 
-        if(m_seekTime - Seek_Error_Time > pts)
+        if(m_seekTime > pts)
             continue;
 
         avImage.scale(&frame, &frameRGB, m_contextInfo->codecCtx()->height());

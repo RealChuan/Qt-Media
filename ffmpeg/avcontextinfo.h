@@ -20,8 +20,11 @@ public:
     QString error() const;
     CodecContext *codecCtx();
 
+    void resetIndex();
     void setIndex(int index);
     int index();
+
+    bool isIndexVaild();
 
     void setStream(AVStream *stream);
     AVStream *stream();

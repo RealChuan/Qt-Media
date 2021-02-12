@@ -18,12 +18,12 @@ public:
     bool isOpen();
     QString lastError() const;
 
-    void stop();
     void pause(bool status = true);
 
 public slots:
     void onSetFilePath(const QString &filepath);
     void onPlay();
+    void onStop();
     void onSeek(int timestamp); // s
 
 signals:

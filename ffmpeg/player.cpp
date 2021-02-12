@@ -66,11 +66,12 @@ Player::Player(QObject *parent)
 
 Player::~Player()
 {
-    stop();
+    onStop();
 }
 
 void Player::onSetFilePath(const QString &filepath)
 {
+    onStop();
     d_ptr->filepath = filepath;
     d_ptr->isopen = initAvCode();
     if(!d_ptr->isopen){
@@ -81,7 +82,6 @@ void Player::onSetFilePath(const QString &filepath)
 
 void Player::onPlay()
 {
-    stop();
     d_ptr->runing = true;
     start();
 }
@@ -125,26 +125,34 @@ bool Player::initAvCode()
         return false;
     }
 
-    int audioIndex = -1;
-    int videoIndex = -1;
-    QVector<int> subTitleIndexs = d_ptr->formatCtx->findStreamIndex(audioIndex, videoIndex);
-    if (audioIndex == -1 || videoIndex == -1){
-        d_ptr->error = tr("Didn't find a video or audio stream.");
+    if(d_ptr->formatCtx->audioIndexs().isEmpty()
+        || d_ptr->formatCtx->videoIndexs().isEmpty()){
+        d_ptr->error = tr("Didn't find a video and audio stream.");
         emit error(d_ptr->error);
         return false;
     }
 
-    qDebug() << audioIndex << videoIndex;
+    d_ptr->audioInfo->resetIndex();
+    if(!d_ptr->formatCtx->audioIndexs().isEmpty()){
+        int audioIndex = d_ptr->formatCtx->audioIndexs().first();
+        d_ptr->audioInfo->setIndex(audioIndex);
+        d_ptr->audioInfo->setStream(d_ptr->formatCtx->stream(audioIndex));
+        if(!d_ptr->audioInfo->findDecoder()){
+            return false;
+        }
+    }
 
-    d_ptr->audioInfo->setIndex(audioIndex);
-    d_ptr->audioInfo->setStream(d_ptr->formatCtx->stream(audioIndex));
-    if(!d_ptr->audioInfo->findDecoder())
-        return false;
+    d_ptr->videoInfo->resetIndex();
+    if(!d_ptr->formatCtx->videoIndexs().isEmpty()){
+        int videoIndex = d_ptr->formatCtx->videoIndexs().first();
+        d_ptr->videoInfo->setIndex(videoIndex);
+        d_ptr->videoInfo->setStream(d_ptr->formatCtx->stream(videoIndex));
+        if(!d_ptr->videoInfo->findDecoder()){
+            return false;
+        }
+    }
 
-    d_ptr->videoInfo->setIndex(videoIndex);
-    d_ptr->videoInfo->setStream(d_ptr->formatCtx->stream(videoIndex));
-    if(!d_ptr->videoInfo->findDecoder())
-        return false;
+    qDebug() << d_ptr->audioInfo->index() << d_ptr->videoInfo->index();
 
     d_ptr->isopen = true;
 
@@ -155,19 +163,18 @@ bool Player::initAvCode()
 
 void Player::playVideo()
 {
-    if(!d_ptr->isopen)
-        return;
-
     Packet packet;
     d_ptr->audioDecoder->startDecoder(d_ptr->formatCtx, d_ptr->audioInfo);
     d_ptr->videoDecoder->startDecoder(d_ptr->formatCtx, d_ptr->videoInfo);
 
+    checkSeek();
+
     while (d_ptr->runing && d_ptr->formatCtx->readFrame(&packet)){
         if(d_ptr->formatCtx->checkPktPlayRange(&packet) <= 0){
 
-        }else if(packet.avPacket()->stream_index == d_ptr->audioInfo->index()){ // 如果是音频数据
+        }else if(d_ptr->audioInfo->isIndexVaild() && packet.avPacket()->stream_index == d_ptr->audioInfo->index()){ // 如果是音频数据
             d_ptr->audioDecoder->append(packet);
-        }else if(packet.avPacket()->stream_index == d_ptr->videoInfo->index()
+        }else if(d_ptr->videoInfo->isIndexVaild() && packet.avPacket()->stream_index == d_ptr->videoInfo->index()
                    && !(d_ptr->videoInfo->stream()->disposition &AV_DISPOSITION_ATTACHED_PIC)){ // 如果是视频数据
             d_ptr->videoDecoder->append(packet);
         }
@@ -175,7 +182,7 @@ void Player::playVideo()
 
         checkSeek();
 
-        while(d_ptr->videoDecoder->size() > 10 && !d_ptr->seek)
+        while(d_ptr->videoDecoder->size() > 20 && !d_ptr->seek)
             msleep(1);
     }
 
@@ -183,6 +190,8 @@ void Player::playVideo()
         msleep(1);
     d_ptr->audioDecoder->stopDecoder();
     d_ptr->videoDecoder->stopDecoder();
+
+    qDebug() << "play finish";
 }
 
 void Player::checkSeek()
@@ -198,14 +207,16 @@ void Player::checkSeek()
     qDebug() << "Seek ElapsedTimer: " << timer.elapsed();
 }
 
-void Player::stop()
+void Player::onStop()
 {
+    blockSignals(true);
     d_ptr->runing = false;
-    pause(false);
     if(isRunning()){
         quit();
         wait();
     }
+    d_ptr->formatCtx->close();
+    blockSignals(false);
 }
 
 void Player::pause(bool status)
@@ -216,6 +227,10 @@ void Player::pause(bool status)
 
 void Player::run()
 {
+    if(!d_ptr->isopen)
+        return;
+    // test code
+    //onSeek(1000);
     playVideo();
 }
 

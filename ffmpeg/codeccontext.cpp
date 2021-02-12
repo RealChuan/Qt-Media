@@ -34,6 +34,7 @@ bool CodecContext::setParameters(const AVCodecParameters *par)
 {
     Q_ASSERT(m_codecCtx != nullptr);
     if(avcodec_parameters_to_context(m_codecCtx, par) < 0){
+        qWarning() << "avcodec_parameters_to_context";
         return false;
     }
     qDebug() << m_codecCtx->framerate.num;

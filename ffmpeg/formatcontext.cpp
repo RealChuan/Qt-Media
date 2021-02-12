@@ -2,6 +2,7 @@
 #include "packet.h"
 
 #include <QDebug>
+#include <QImage>
 #include <QTime>
 
 extern "C"{
@@ -19,7 +20,7 @@ public:
     }
 
     ~FormatContextPrivate(){
-        Q_ASSERT(formatCtx != nullptr);
+        //Q_ASSERT(formatCtx != nullptr);
         avformat_free_context(formatCtx);
     }
 
@@ -27,6 +28,13 @@ public:
     AVFormatContext *formatCtx;
     QString filepath;
     QString error;
+    bool isOpen = false;
+
+    QVector<int> videoIndexs;
+    QVector<int> audioIndexs;
+    QVector<int> subtitleIndexs;
+    QMap<QString, QString> metaDataMap;
+    QImage coverImage;
 };
 
 FormatContext::FormatContext(QObject *parent)
@@ -46,18 +54,35 @@ QString FormatContext::error() const
     return d_ptr->error;
 }
 
+bool FormatContext::isOpen()
+{
+    return d_ptr->isOpen;
+}
+
 bool FormatContext::openFilePath(const QString &filepath)
 {
+    close();
     d_ptr->filepath = filepath;
     //初始化pFormatCtx结构
     if (avformat_open_input(&d_ptr->formatCtx, d_ptr->filepath.toLocal8Bit().constData(), nullptr, nullptr) != 0){
         d_ptr->error = tr("Couldn't open input stream.");
         return false;
     }
+    d_ptr->isOpen = true;
     qInfo() << tr("AV Format Name: ") << d_ptr->formatCtx->iformat->name;
     QTime time(QTime::fromMSecsSinceStartOfDay(d_ptr->formatCtx->duration / 1000));
     qInfo() << tr("Duration:") << time.toString("hh:mm:ss.zzz");
     return true;
+}
+
+void FormatContext::close()
+{
+    if(!d_ptr->isOpen)
+        return;
+    avformat_close_input(&d_ptr->formatCtx);
+    //d_ptr->formatCtx = avformat_alloc_context();
+    //Q_ASSERT(d_ptr->formatCtx != nullptr);
+    d_ptr->isOpen = false;
 }
 
 bool FormatContext::findStream()
@@ -67,32 +92,59 @@ bool FormatContext::findStream()
         d_ptr->error = tr("Couldn't find stream information");
         return false;
     }
+    initMetaData();
+    findStreamIndex();
     return true;
 }
 
-QVector<int> FormatContext::findStreamIndex(int &audioIndex, int &videoIndex)
+QVector<int> FormatContext::audioIndexs() const
 {
+    return d_ptr->audioIndexs;
+}
+
+QVector<int> FormatContext::videoIndexs() const
+{
+    return d_ptr->videoIndexs;
+}
+
+QVector<int> FormatContext::subtitleIndexs() const
+{
+    return d_ptr->subtitleIndexs;
+}
+
+void FormatContext::findStreamIndex()
+{
+    d_ptr->videoIndexs.clear();
+    d_ptr->audioIndexs.clear();
+    d_ptr->subtitleIndexs.clear();
+
     //av_find_best_stream
 
-    QVector<int> subtitleIndex;
     //nb_streams视音频流的个数
     for (uint i = 0; i < d_ptr->formatCtx->nb_streams; i++){
         switch (d_ptr->formatCtx->streams[i]->codecpar->codec_type) {
-        case AVMEDIA_TYPE_VIDEO:
-            if(videoIndex < 0)
-                videoIndex = i;
-            break;
-        case AVMEDIA_TYPE_AUDIO:
-            if(audioIndex < 0)
-                audioIndex = i;
-            break;
-        case AVMEDIA_TYPE_SUBTITLE:
-            subtitleIndex.append(i);
-            break;
+        case AVMEDIA_TYPE_VIDEO: d_ptr->videoIndexs.append(i); break;
+        case AVMEDIA_TYPE_AUDIO: d_ptr->audioIndexs.append(i); break;
+        case AVMEDIA_TYPE_SUBTITLE:d_ptr->subtitleIndexs.append(i); break;
         default: break;
         }
+        if (d_ptr->formatCtx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC){
+            AVPacket pkt = d_ptr->formatCtx->streams[i]->attached_pic;
+            d_ptr->coverImage = QImage::fromData((uchar*)pkt.data, pkt.size);
+        }
     }
-    return subtitleIndex;
+}
+
+void FormatContext::initMetaData()
+{
+    d_ptr->metaDataMap.clear();
+    AVDictionaryEntry *tag = nullptr;
+    while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))){
+        QString keyString = tag->key;
+        QString valueString = QString::fromUtf8(tag->value);
+        d_ptr->metaDataMap.insert(keyString, valueString);
+    }
+    qDebug() << d_ptr->metaDataMap;
 }
 
 AVStream *FormatContext::stream(int index)
@@ -104,8 +156,11 @@ AVStream *FormatContext::stream(int index)
 bool FormatContext::readFrame(Packet *packet)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
-    if(av_read_frame(d_ptr->formatCtx, packet->avPacket()) < 0)
+    int ret = av_read_frame(d_ptr->formatCtx, packet->avPacket());
+    if(ret < 0){
+        qWarning() << "av_read_frame" << ret;
         return false;
+    }
     return true;
 }
 
@@ -150,6 +205,11 @@ AVFormatContext *FormatContext::avFormatContext()
 qint64 FormatContext::duration()
 {
     return d_ptr->formatCtx->duration / 1000;
+}
+
+QImage FormatContext::coverImage() const
+{
+    return d_ptr->coverImage;
 }
 
 }

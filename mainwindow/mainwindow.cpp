@@ -35,7 +35,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    d_ptr->player->stop();
+    d_ptr->player->onStop();
 }
 
 void MainWindow::onError(const QString &error)
@@ -64,6 +64,10 @@ void MainWindow::setupUI()
     playButton->setCheckable(true);
     connect(d_ptr->player, &Ffmpeg::Player::readyRead, playWidget, &PlayerWidget::onReadyRead);
     connect(playWidget, &PlayerWidget::openFile, d_ptr->player, &Ffmpeg::Player::onSetFilePath);
+    connect(playWidget, &PlayerWidget::closeFile, [this, playButton]{
+        d_ptr->player->onStop();
+        playButton->setChecked(false);
+    });
     connect(playButton, &QPushButton::clicked, [this](bool checked){
         if(checked && !d_ptr->player->isRunning())
             d_ptr->player->onPlay();

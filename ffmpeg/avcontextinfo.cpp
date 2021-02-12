@@ -9,12 +9,14 @@ extern "C"{
 #include <libavformat/avformat.h>
 }
 
+#define Error_Index -1
+
 namespace Ffmpeg {
 
 struct AVContextInfoPrivate{
     QScopedPointer<CodecContext> codecCtx; //解码器上下文
     AVStream *stream;   //流
-    int streamIndex = -1; // 索引
+    int streamIndex = Error_Index; // 索引
 
     QString error;
 };
@@ -41,6 +43,11 @@ CodecContext *AVContextInfo::codecCtx()
     return d_ptr->codecCtx.data();
 }
 
+void AVContextInfo::resetIndex()
+{
+    d_ptr->streamIndex = Error_Index;
+}
+
 void AVContextInfo::setIndex(int index)
 {
     d_ptr->streamIndex = index;
@@ -49,6 +56,13 @@ void AVContextInfo::setIndex(int index)
 int AVContextInfo::index()
 {
     return d_ptr->streamIndex;
+}
+
+bool AVContextInfo::isIndexVaild()
+{
+    if(d_ptr->streamIndex == Error_Index)
+        return false;
+    return true;
 }
 
 void AVContextInfo::setStream(AVStream *stream)
@@ -70,7 +84,8 @@ bool AVContextInfo::findDecoder()
 
     AVCodec *codec = avcodec_find_decoder(d_ptr->stream->codecpar->codec_id);
     if (!codec){
-        d_ptr->error =  tr("Audio Codec not found.");
+        d_ptr->error =  tr("Audio or Video Codec not found.");
+        qWarning() << d_ptr->error;
         return false;
     }
 
@@ -83,6 +98,7 @@ bool AVContextInfo::findDecoder()
     //用于初始化pCodecCtx结构
     if(!d_ptr->codecCtx->open(codec)){
         d_ptr->error = tr("Could not open audio codec.");
+        qWarning() << d_ptr->error;
         return false;
     }
 
