@@ -8,6 +8,7 @@
 #include "playframe.h"
 #include "audiodecoder.h"
 #include "videodecoder.h"
+#include "videooutputwidget.h"
 
 #include <utils/utils.h>
 
@@ -47,10 +48,13 @@ public:
     VideoDecoder *videoDecoder;
 
     QString filepath;
+    volatile bool show = false;
     volatile bool isopen = true;
     volatile bool runing = true;
     volatile bool seek = false;
     qint64 seekTime = 0; // seconds
+
+    volatile Player::MediaState mediaState = Player::MediaState::StoppedState;
 
     QString error;
 };
@@ -82,8 +86,24 @@ void Player::onSetFilePath(const QString &filepath)
 
 void Player::onPlay()
 {
+    buildConnect(true);
+    setMediaState(MediaState::PlayingState);
+    d_ptr->show = true;
     d_ptr->runing = true;
     start();
+}
+
+void Player::onStop()
+{
+    buildConnect(false);
+    d_ptr->show = false;
+    d_ptr->runing = false;
+    if(isRunning()){
+        quit();
+        wait();
+    }
+    d_ptr->formatCtx->close();
+    setMediaState(MediaState::StoppedState);
 }
 
 void Player::onSeek(int timestamp)
@@ -95,6 +115,16 @@ void Player::onSeek(int timestamp)
     blockSignals(true);
     d_ptr->seek = true;
     d_ptr->seekTime = timestamp;
+}
+
+void Player::onReadyRead(const QImage &image)
+{
+    if(image.isNull() || !d_ptr->show){
+        static qint64 count = 0;
+        qDebug() << "onReadyRead" << ++count;;
+        return;
+    }
+    emit readyRead(image);
 }
 
 bool Player::isOpen()
@@ -118,6 +148,7 @@ bool Player::initAvCode()
     }
 
     emit durationChanged(d_ptr->formatCtx->duration());
+    emit positionChanged(0);
 
     //获取音视频流数据信息
     if(!d_ptr->formatCtx->findStream()){
@@ -188,8 +219,8 @@ void Player::playVideo()
 
     while(d_ptr->runing && d_ptr->videoDecoder->size() != 0)
         msleep(1);
-    d_ptr->audioDecoder->stopDecoder();
     d_ptr->videoDecoder->stopDecoder();
+    d_ptr->audioDecoder->stopDecoder();
 
     qDebug() << "play finish";
 }
@@ -207,22 +238,34 @@ void Player::checkSeek()
     qDebug() << "Seek ElapsedTimer: " << timer.elapsed();
 }
 
-void Player::onStop()
+void Player::setMediaState(Player::MediaState mediaState)
 {
-    blockSignals(true);
-    d_ptr->runing = false;
-    if(isRunning()){
-        quit();
-        wait();
-    }
-    d_ptr->formatCtx->close();
-    blockSignals(false);
+    d_ptr->mediaState = mediaState;
+    emit stateChanged(d_ptr->mediaState);
 }
 
 void Player::pause(bool status)
 {
     d_ptr->audioDecoder->pause(status);
     d_ptr->videoDecoder->pause(status);
+    if(status){
+        setMediaState(MediaState::PausedState);
+    }else if(isRunning()){
+        setMediaState(MediaState::PlayingState);
+    }else{
+        setMediaState(MediaState::StoppedState);
+    }
+}
+
+Player::MediaState Player::mediaState()
+{
+    return d_ptr->mediaState;
+}
+
+void Player::setVideoOutputWidget(VideoOutputWidget *widget)
+{
+    connect(this, &Player::readyRead, widget, &VideoOutputWidget::onReadyRead, Qt::UniqueConnection);
+    connect(this, &Player::finished, widget, &VideoOutputWidget::onFinish, Qt::UniqueConnection);
 }
 
 void Player::run()
@@ -234,10 +277,15 @@ void Player::run()
     playVideo();
 }
 
-void Player::buildConnect()
+void Player::buildConnect(bool state)
 {
-    connect(d_ptr->videoDecoder, &VideoDecoder::readyRead, this, &Player::readyRead);
-    connect(d_ptr->audioDecoder, &AudioDecoder::positionChanged, this, &Player::positionChanged);
+    if(state){
+        connect(d_ptr->videoDecoder, &VideoDecoder::readyRead, this, &Player::onReadyRead, Qt::UniqueConnection);
+        connect(d_ptr->audioDecoder, &AudioDecoder::positionChanged, this, &Player::positionChanged, Qt::UniqueConnection);
+    }else{
+        disconnect(d_ptr->videoDecoder, &VideoDecoder::readyRead, this, &Player::onReadyRead);
+        disconnect(d_ptr->audioDecoder, &AudioDecoder::positionChanged, this, &Player::positionChanged);
+    }
 }
 
 }

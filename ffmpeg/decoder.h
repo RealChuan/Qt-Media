@@ -35,12 +35,13 @@ public:
 
     virtual void stopDecoder()
     {
+        clear();
         m_runing = false;
         if(isRunning()){
             quit();
             wait();
         }
-        clear();
+        m_seekTime = 0;
     }
 
     void append(const T& t) { m_queue.append(t); }

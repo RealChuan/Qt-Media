@@ -1,22 +1,20 @@
 #ifndef PLAYERWIDGET_H
 #define PLAYERWIDGET_H
 
-#include <QWidget>
+#include <ffmpeg/videooutputwidget.h>
+
+using namespace Ffmpeg;
 
 class PlayerWidgetPrivate;
-class PlayerWidget : public QWidget
+class PlayerWidget : public VideoOutputWidget
 {
     Q_OBJECT
 public:
     explicit PlayerWidget(QWidget *parent = nullptr);
     ~PlayerWidget();
 
-public slots:
-    void onReadyRead(const QImage &image);
-
 signals:
     void openFile(const QString &filepath);
-    void closeFile();
 
 private slots:
     void onOpenVideo();
@@ -27,8 +25,6 @@ protected:
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
     void dropEvent(QDropEvent *event) override;
-
-    void paintEvent(QPaintEvent *event) override;
 
 private:
     void setupUI();

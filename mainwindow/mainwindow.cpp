@@ -11,7 +11,6 @@ public:
     MainWindowPrivate(QWidget *parent)
         : owner(parent){
         player = new Ffmpeg::Player(owner);
-
         slider = new Slider(owner);
         positionLabel = new QLabel("00:00:00", owner);
         durationLabel = new QLabel("/00:00:00", owner);
@@ -60,19 +59,27 @@ void MainWindow::onPositionChanged(qint64 position)
 void MainWindow::setupUI()
 {
     PlayerWidget *playWidget = new PlayerWidget(this);
+    d_ptr->player->setVideoOutputWidget(playWidget);
     QPushButton *playButton = new QPushButton(tr("play"), this);
     playButton->setCheckable(true);
-    connect(d_ptr->player, &Ffmpeg::Player::readyRead, playWidget, &PlayerWidget::onReadyRead);
     connect(playWidget, &PlayerWidget::openFile, d_ptr->player, &Ffmpeg::Player::onSetFilePath);
-    connect(playWidget, &PlayerWidget::closeFile, [this, playButton]{
-        d_ptr->player->onStop();
-        playButton->setChecked(false);
-    });
     connect(playButton, &QPushButton::clicked, [this](bool checked){
         if(checked && !d_ptr->player->isRunning())
             d_ptr->player->onPlay();
         else{
             d_ptr->player->pause(!checked);
+        }
+    });
+    connect(d_ptr->player, &Ffmpeg::Player::stateChanged, [playButton](Ffmpeg::Player::MediaState state){
+        switch (state) {
+        case Ffmpeg::Player::MediaState::StoppedState:
+        case Ffmpeg::Player::MediaState::PausedState:
+            playButton->setChecked(false);
+            break;
+        case Ffmpeg::Player::MediaState::PlayingState:
+            playButton->setChecked(true);
+            break;
+        default: break;
         }
     });
 

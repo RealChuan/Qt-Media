@@ -3,11 +3,6 @@
 
 #include <QAudioOutput>
 
-extern "C"{
-#include <libavutil/time.h>
-#include <libavformat/avformat.h>
-}
-
 namespace Ffmpeg {
 
 static QMutex g_Mutex;

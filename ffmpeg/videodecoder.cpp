@@ -5,11 +5,6 @@
 #include <QDebug>
 #include <QPixmap>
 
-extern "C"{
-#include <libavutil/time.h>
-#include <libavdevice/avdevice.h>
-}
-
 namespace Ffmpeg {
 
 class VideoDecoderPrivate{

@@ -11,22 +11,13 @@ public:
         menu = new QMenu(owner);
     }
     QWidget *owner;
-
     QMenu *menu;
-    QImage image;
-
-    volatile bool isChangedFile = false;
 };
 
 PlayerWidget::PlayerWidget(QWidget *parent)
-    : QWidget(parent)
+    : VideoOutputWidget(parent)
     , d_ptr(new PlayerWidgetPrivate(this))
 {
-    QPalette p = palette();
-    p.setColor(QPalette::Window, QColor(13,14,17));
-    setPalette(p);
-    setAttribute(Qt::WA_OpaquePaintEvent);
-    setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     setAcceptDrops(true);
     setupUI();
 }
@@ -58,57 +49,9 @@ void PlayerWidget::dropEvent(QDropEvent *event)
     emit openFile(urls.first().toLocalFile());
 }
 
-void PlayerWidget::paintEvent(QPaintEvent *event)
-{
-    QWidget::paintEvent(event);
-
-    QElapsedTimer timer;
-    timer.start();
-    if(d_ptr->image.isNull() || d_ptr->isChangedFile)
-        return;
-
-    QPainter painter(this);
-    painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-
-    //if(d_ptr->pixmap.width() > width() || d_ptr->pixmap.height() > height()){
-    //    d_ptr->pixmap = d_ptr->pixmap.scaled(width(), height(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    //}
-    //int x = (width() - d_ptr->pixmap.width()) / 2;
-    //int y = (height() - d_ptr->pixmap.height()) / 2;
-    //painter.drawPixmap(QRect(x, y, d_ptr->pixmap.width(), d_ptr->pixmap.height()), d_ptr->pixmap);
-
-    if(d_ptr->image.width() > width() || d_ptr->image.height() > height()){
-        double wScale = d_ptr->image.width() * 1.0 / width();
-        double hScale = d_ptr->image.height() * 1.0 / height();
-        double maxScale = qMax(wScale, hScale);
-
-        double w = d_ptr->image.width() / maxScale;
-        double h = d_ptr->image.height() / maxScale;
-        double x = (width() - w) / 2;
-        double y = (height() - h) / 2;
-        painter.drawImage(QRect(x, y, w, h), d_ptr->image);
-    }else{
-        double x = (width() - d_ptr->image.width()) / 2;
-        double y = (height() - d_ptr->image.height()) / 2;
-        painter.drawImage(QRect(x, y, d_ptr->image.width(), d_ptr->image.height()), d_ptr->image);
-    }
-
-    qDebug() << timer.elapsed();
-}
-
 void PlayerWidget::setupUI()
 {
     d_ptr->menu->addAction(tr("Open Video"), this, &PlayerWidget::onOpenVideo);
-}
-
-void PlayerWidget::onReadyRead(const QImage &image)
-{
-    if(image.isNull()){
-        qWarning() << "image is null!";
-        return;
-    }
-    d_ptr->image = image;
-    update();
 }
 
 void PlayerWidget::onOpenVideo()
@@ -119,15 +62,7 @@ void PlayerWidget::onOpenVideo()
     if(fileName.isEmpty())
         return;
 
-    d_ptr->isChangedFile = true;
-    emit closeFile();
-    if(!d_ptr->image.isNull()){
-        //Utils::msleep(5000);
-        d_ptr->image = QImage();
-        update();
-    }
     emit openFile(fileName);
-    d_ptr->isChangedFile = false;
 }
 
 void PlayerWidget::contextMenuEvent(QContextMenuEvent *event)

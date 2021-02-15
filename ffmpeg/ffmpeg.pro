@@ -21,7 +21,8 @@ SOURCES += \
     player.cpp \
     playframe.cpp \
     subtitledecoder.cpp \
-    videodecoder.cpp
+    videodecoder.cpp \
+    videooutputwidget.cpp
 
 HEADERS += \
     audiodecoder.h \
@@ -38,4 +39,5 @@ HEADERS += \
     player.h \
     playframe.h \
     subtitledecoder.h \
-    videodecoder.h
+    videodecoder.h \
+    videooutputwidget.h

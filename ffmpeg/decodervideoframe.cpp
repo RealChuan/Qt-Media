@@ -9,11 +9,6 @@
 #include <QDebug>
 #include <QWaitCondition>
 
-extern "C"{
-#include <libavutil/time.h>
-#include <libavdevice/avdevice.h>
-}
-
 namespace Ffmpeg {
 
 class DecoderVideoFramePrivate{
@@ -90,6 +85,7 @@ void DecoderVideoFrame::runDecoder()
         }else{
             msleep(diff);
         }
+        //基于信号槽的队列不可控，会产生堆积，不如自己建生成消费队列？
         emit readyRead(image); // 略慢于音频
     }
     QThread::sleep(1); // 最后一帧
