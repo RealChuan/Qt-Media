@@ -16,6 +16,8 @@ public:
 
     void pause(bool state) override;
 
+    void setVolume(qreal volume);
+
     void setSeek(qint64 seek);
 
     void setSpeed(double speed) override;

@@ -25,6 +25,8 @@ public:
     bool isOpen();
     QString lastError() const;
 
+    void setVolume(qreal volume);
+
     void setSpeed(double speed);
     double speed();
 

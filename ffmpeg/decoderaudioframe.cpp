@@ -74,6 +74,11 @@ bool DecoderAudioFrame::isPause()
     return d_ptr->pause;
 }
 
+void DecoderAudioFrame::setVolume(qreal volume)
+{
+    d_ptr->audioOutput->setVolume(volume);
+}
+
 void DecoderAudioFrame::setSpeed(double speed)
 {
     Decoder<PlayFrame>::setSpeed(speed);

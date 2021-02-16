@@ -19,6 +19,8 @@ public:
     void pause(bool state) override;
     bool isPause();
 
+    void setVolume(qreal volume);
+
     void setSpeed(double speed) override;
 
     static double audioClock();

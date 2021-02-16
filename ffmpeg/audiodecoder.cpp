@@ -34,6 +34,11 @@ void AudioDecoder::pause(bool state)
     d_ptr->decoderAudioFrame->pause(state);
 }
 
+void AudioDecoder::setVolume(qreal volume)
+{
+    d_ptr->decoderAudioFrame->setVolume(volume);
+}
+
 void AudioDecoder::setSpeed(double speed)
 {
     Decoder<Packet>::setSpeed(speed);

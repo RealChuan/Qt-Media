@@ -83,6 +83,13 @@ void MainWindow::setupUI()
         }
     });
 
+    Slider *volumeSlider = new Slider(this);
+    connect(volumeSlider, &QSlider::sliderMoved, [this](int value){
+        d_ptr->player->setVolume(value / 100.0);
+    });
+    volumeSlider->setRange(0, 100);
+    volumeSlider->setValue(50);
+
     QComboBox *speedComboBox = new QComboBox(this);
     connect(speedComboBox,  QOverload<int>::of(&QComboBox::currentIndexChanged), [this, speedComboBox](int index){
         d_ptr->player->setSpeed(speedComboBox->itemData(index).toDouble());
@@ -98,6 +105,8 @@ void MainWindow::setupUI()
     processLayout->addWidget(d_ptr->slider);
     processLayout->addWidget(d_ptr->positionLabel);
     processLayout->addWidget(d_ptr->durationLabel);
+    processLayout->addWidget(new QLabel(tr("Volume: "), this));
+    processLayout->addWidget(volumeSlider);
     processLayout->addWidget(new QLabel(tr("Speed: "), this));
     processLayout->addWidget(speedComboBox);
 

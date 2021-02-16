@@ -137,6 +137,13 @@ QString Player::lastError() const
     return d_ptr->error;
 }
 
+void Player::setVolume(qreal volume)
+{
+    if(volume < 0 || volume > 1)
+        return;
+    d_ptr->audioDecoder->setVolume(volume);
+}
+
 void Player::setSpeed(double speed)
 {
     if(speed <= 0){
