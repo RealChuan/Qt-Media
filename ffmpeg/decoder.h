@@ -50,6 +50,8 @@ public:
 
     void clear() { m_queue.clear(); }
 
+    virtual void pause(bool state) = 0;
+
     void seek(qint64 seekTime)
     {
         assertVaild();
@@ -58,6 +60,7 @@ public:
         m_seek = true;
         m_seekTime = seekTime;
         clear();
+        pause(false);
         while (m_seek) {
             QMutexLocker locker(&m_mutex);
             m_waitCondition.wait(&m_mutex);
@@ -65,6 +68,19 @@ public:
     }
 
     bool isSeek() { return m_seek; }
+
+    virtual void setSpeed(double speed)
+    {
+        Q_ASSERT(speed > 0);
+        QMutexLocker locker(&m_mutex);
+        m_speed = speed;
+    }
+
+    double speed()
+    {
+        QMutexLocker locker(&m_mutex);
+        return m_speed;
+    }
 
 protected:
     virtual void runDecoder() = 0;
@@ -109,9 +125,10 @@ protected:
     Utils::Queue<T> m_queue;
     AVContextInfo *m_contextInfo = nullptr;
     FormatContext *m_formatContext = nullptr;
-    bool m_runing = true;
-    bool m_seek = false;
+    volatile bool m_runing = true;
+    volatile bool m_seek = false;
     qint64 m_seekTime = 0; // seconds
+    double m_speed = 1.0;
     QMutex m_mutex;
     QWaitCondition m_waitCondition;
 };

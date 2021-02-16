@@ -16,7 +16,9 @@ public:
     VideoDecoder(QObject *parent = nullptr);
     ~VideoDecoder();
 
-    void pause(bool state);
+    void pause(bool state) override;
+
+    void setSpeed(double speed) override;
 
 signals:
     void readyRead(const QImage &image);

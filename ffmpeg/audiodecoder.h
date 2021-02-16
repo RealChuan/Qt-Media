@@ -14,9 +14,11 @@ public:
     explicit AudioDecoder(QObject *parent = nullptr);
     ~AudioDecoder() override;
 
-    void pause(bool state);
+    void pause(bool state) override;
 
     void setSeek(qint64 seek);
+
+    void setSpeed(double speed) override;
 
 signals:
     void positionChanged(qint64 position); // ms

@@ -16,8 +16,10 @@ public:
 
     void stopDecoder() override;
 
-    void pause(bool state);
+    void pause(bool state) override;
     bool isPause();
+
+    void setSpeed(double speed) override;
 
     static double audioClock();
 
@@ -30,6 +32,7 @@ protected:
 private:
     void checkPause(qint64 &pauseTime);
     void checkSeek(QElapsedTimer &timer, qint64 &pauseTime);
+    void checkSpeed(QElapsedTimer &timer, qint64 &pauseTime);
     void writeToDevice(QByteArray &audioBuf);
 
     QScopedPointer<DecoderAudioFramePrivate> d_ptr;

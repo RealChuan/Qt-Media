@@ -25,6 +25,9 @@ public:
     bool isOpen();
     QString lastError() const;
 
+    void setSpeed(double speed);
+    double speed();
+
     void pause(bool status = true);
 
     MediaState mediaState();

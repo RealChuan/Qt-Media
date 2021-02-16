@@ -83,12 +83,23 @@ void MainWindow::setupUI()
         }
     });
 
+    QComboBox *speedComboBox = new QComboBox(this);
+    connect(speedComboBox,  QOverload<int>::of(&QComboBox::currentIndexChanged), [this, speedComboBox](int index){
+        d_ptr->player->setSpeed(speedComboBox->itemData(index).toDouble());
+    });
+    for(double i = 0.5; i < 5.5; i += 0.5){
+        speedComboBox->addItem(QString::number(i), i);
+    }
+    speedComboBox->setCurrentIndex(1);
+
     QWidget *processWidget = new QWidget(this);
     processWidget->setMaximumHeight(100);
     QHBoxLayout *processLayout = new QHBoxLayout(processWidget);
     processLayout->addWidget(d_ptr->slider);
     processLayout->addWidget(d_ptr->positionLabel);
     processLayout->addWidget(d_ptr->durationLabel);
+    processLayout->addWidget(new QLabel(tr("Speed: "), this));
+    processLayout->addWidget(speedComboBox);
 
     QWidget *widget = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(widget);

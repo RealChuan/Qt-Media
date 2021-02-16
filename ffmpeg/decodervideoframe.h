@@ -18,7 +18,7 @@ public:
 
     void stopDecoder() override;
 
-    void pause(bool state);
+    void pause(bool state) override;
 
 signals:
     void readyRead(const QImage &image);

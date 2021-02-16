@@ -137,6 +137,21 @@ QString Player::lastError() const
     return d_ptr->error;
 }
 
+void Player::setSpeed(double speed)
+{
+    if(speed <= 0){
+        qWarning() << tr("Speed cannot be less than or equal to 0!");
+        return;
+    }
+    d_ptr->audioDecoder->setSpeed(speed);
+    d_ptr->videoDecoder->setSpeed(speed);
+}
+
+double Player::speed()
+{
+    return d_ptr->audioDecoder->speed();
+}
+
 bool Player::initAvCode()
 {
     d_ptr->isopen = false;
@@ -235,6 +250,7 @@ void Player::checkSeek()
     d_ptr->audioDecoder->seek(d_ptr->seekTime);
     d_ptr->seek = false;
     blockSignals(false);
+    setMediaState(MediaState::PlayingState);
     qDebug() << "Seek ElapsedTimer: " << timer.elapsed();
 }
 

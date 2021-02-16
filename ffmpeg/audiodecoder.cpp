@@ -34,6 +34,12 @@ void AudioDecoder::pause(bool state)
     d_ptr->decoderAudioFrame->pause(state);
 }
 
+void AudioDecoder::setSpeed(double speed)
+{
+    Decoder<Packet>::setSpeed(speed);
+    d_ptr->decoderAudioFrame->setSpeed(speed);
+}
+
 void AudioDecoder::runDecoder()
 {    
     PlayFrame frame;

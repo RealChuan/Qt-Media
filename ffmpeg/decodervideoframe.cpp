@@ -80,10 +80,10 @@ void DecoderVideoFrame::runDecoder()
         QImage image(frameRGB.toImage(m_contextInfo->codecCtx()));
 
         double diff = (pts - DecoderAudioFrame::audioClock()) * 1000;
-        if(diff <= 0.0){ // 暂时不丢帧，快速显示
-            // drop++
-        }else{
+        if(diff > 0){
             msleep(diff);
+        }else if(speed() > 1.0){
+            continue; // speed > 1.0 drop
         }
         //基于信号槽的队列不可控，会产生堆积，不如自己建生成消费队列？
         emit readyRead(image); // 略慢于音频
