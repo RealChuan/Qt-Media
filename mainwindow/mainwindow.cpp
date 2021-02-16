@@ -99,22 +99,41 @@ void MainWindow::setupUI()
     }
     speedComboBox->setCurrentIndex(1);
 
+    QComboBox *audioTracksComboBox = new QComboBox(this);
+    connect(d_ptr->player, &Ffmpeg::Player::audioTracksChanged, [audioTracksComboBox](const QStringList &tracks){
+        audioTracksComboBox->blockSignals(true);
+        audioTracksComboBox->clear();
+        audioTracksComboBox->addItems(tracks);
+        audioTracksComboBox->blockSignals(false);
+    });
+    connect(d_ptr->player, &Ffmpeg::Player::audioTrackChanged, [audioTracksComboBox](const QString &track){
+        audioTracksComboBox->blockSignals(true);
+        audioTracksComboBox->setCurrentText(track);
+        audioTracksComboBox->blockSignals(false);
+    });
+    connect(audioTracksComboBox, &QComboBox::currentTextChanged, d_ptr->player, &Ffmpeg::Player::onSetAudioTracks);
+
     QWidget *processWidget = new QWidget(this);
     processWidget->setMaximumHeight(100);
     QHBoxLayout *processLayout = new QHBoxLayout(processWidget);
     processLayout->addWidget(d_ptr->slider);
     processLayout->addWidget(d_ptr->positionLabel);
     processLayout->addWidget(d_ptr->durationLabel);
-    processLayout->addWidget(new QLabel(tr("Volume: "), this));
-    processLayout->addWidget(volumeSlider);
-    processLayout->addWidget(new QLabel(tr("Speed: "), this));
-    processLayout->addWidget(speedComboBox);
+
+    QHBoxLayout *controlLayout = new QHBoxLayout;
+    controlLayout->addWidget(playButton);
+    controlLayout->addWidget(new QLabel(tr("Volume: "), this));
+    controlLayout->addWidget(volumeSlider);
+    controlLayout->addWidget(new QLabel(tr("Speed: "), this));
+    controlLayout->addWidget(speedComboBox);
+    controlLayout->addWidget(new QLabel(tr("Audio Tracks: "), this));
+    controlLayout->addWidget(audioTracksComboBox);
 
     QWidget *widget = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(widget);
     layout->addWidget(playWidget);
     layout->addWidget(processWidget);
-    layout->addWidget(playButton);
+    layout->addLayout(controlLayout);
     setCentralWidget(widget);
 }
 

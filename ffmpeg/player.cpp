@@ -77,11 +77,12 @@ void Player::onSetFilePath(const QString &filepath)
 {
     onStop();
     d_ptr->filepath = filepath;
-    d_ptr->isopen = initAvCode();
+    initAvCode();
     if(!d_ptr->isopen){
         qWarning() << "initAvCode Error";
         return;
     }
+    onPlay();
 }
 
 void Player::onPlay()
@@ -117,11 +118,28 @@ void Player::onSeek(int timestamp)
     d_ptr->seekTime = timestamp;
 }
 
+void Player::onSetAudioTracks(const QString &text)
+{
+    QMap<int, QString> audioTracks = d_ptr->formatCtx->audioMap();
+
+    if(!audioTracks.values().contains(text))
+        return;
+    int index = audioTracks.key(text);
+
+    onStop();
+    initAvCode();
+    if(!setAudioIndex(index))
+        return;
+    emit audioTrackChanged(text);
+    onSeek(d_ptr->audioDecoder->audioClock());
+    onPlay();
+}
+
 void Player::onReadyRead(const QImage &image)
 {
     if(image.isNull() || !d_ptr->show){
         static qint64 count = 0;
-        qDebug() << "onReadyRead" << ++count;;
+        qDebug() << "onReadyRead" << ++count;
         return;
     }
     emit readyRead(image);
@@ -178,7 +196,7 @@ bool Player::initAvCode()
         return false;
     }
 
-    if(d_ptr->formatCtx->audioIndexs().isEmpty()
+    if(d_ptr->formatCtx->audioMap().isEmpty()
         || d_ptr->formatCtx->videoIndexs().isEmpty()){
         d_ptr->error = tr("Didn't find a video and audio stream.");
         emit error(d_ptr->error);
@@ -186,23 +204,20 @@ bool Player::initAvCode()
     }
 
     d_ptr->audioInfo->resetIndex();
-    if(!d_ptr->formatCtx->audioIndexs().isEmpty()){
-        int audioIndex = d_ptr->formatCtx->audioIndexs().first();
-        d_ptr->audioInfo->setIndex(audioIndex);
-        d_ptr->audioInfo->setStream(d_ptr->formatCtx->stream(audioIndex));
-        if(!d_ptr->audioInfo->findDecoder()){
+    QMap<int, QString> audioTracks = d_ptr->formatCtx->audioMap();
+    if(!audioTracks.isEmpty()){
+        int audioIndex = audioTracks.firstKey();
+        if(!setAudioIndex(audioIndex))
             return false;
-        }
+        emit audioTracksChanged(audioTracks.values());
+        emit audioTrackChanged(audioTracks.value(audioIndex));
     }
 
     d_ptr->videoInfo->resetIndex();
     if(!d_ptr->formatCtx->videoIndexs().isEmpty()){
         int videoIndex = d_ptr->formatCtx->videoIndexs().first();
-        d_ptr->videoInfo->setIndex(videoIndex);
-        d_ptr->videoInfo->setStream(d_ptr->formatCtx->stream(videoIndex));
-        if(!d_ptr->videoInfo->findDecoder()){
+        if(!setVideoIndex(videoIndex))
             return false;
-        }
     }
 
     qDebug() << d_ptr->audioInfo->index() << d_ptr->videoInfo->index();
@@ -265,6 +280,26 @@ void Player::setMediaState(Player::MediaState mediaState)
 {
     d_ptr->mediaState = mediaState;
     emit stateChanged(d_ptr->mediaState);
+}
+
+bool Player::setAudioIndex(int index)
+{
+    d_ptr->audioInfo->setIndex(index);
+    d_ptr->audioInfo->setStream(d_ptr->formatCtx->stream(index));
+    if(!d_ptr->audioInfo->findDecoder()){
+        return false;
+    }
+    return true;
+}
+
+bool Player::setVideoIndex(int index)
+{
+    d_ptr->videoInfo->setIndex(index);
+    d_ptr->videoInfo->setStream(d_ptr->formatCtx->stream(index));
+    if(!d_ptr->videoInfo->findDecoder()){
+        return false;
+    }
+    return true;
 }
 
 void Player::pause(bool status)

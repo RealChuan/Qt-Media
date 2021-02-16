@@ -22,6 +22,8 @@ public:
 
     void setSpeed(double speed) override;
 
+    double audioClock();
+
 signals:
     void positionChanged(qint64 position); // ms
 

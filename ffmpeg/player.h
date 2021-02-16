@@ -41,6 +41,7 @@ public slots:
     void onPlay();
     void onStop();
     void onSeek(int timestamp); // s
+    void onSetAudioTracks(const QString &text);
 
 signals:
     void readyRead(const QImage &image);
@@ -48,6 +49,8 @@ signals:
     void durationChanged(qint64 duration); // s
     void positionChanged(qint64 position); // ms
     void stateChanged(MediaState);
+    void audioTracksChanged(const QStringList &tracks);
+    void audioTrackChanged(const QString &track);
 
 private slots:
     void onReadyRead(const QImage &image);
@@ -61,6 +64,8 @@ private:
     void playVideo();
     void checkSeek();
     void setMediaState(MediaState mediaState);
+    bool setAudioIndex(int index);
+    bool setVideoIndex(int index);
 
     QScopedPointer<PlayerPrivate> d_ptr;
 };

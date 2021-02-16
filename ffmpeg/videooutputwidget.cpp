@@ -57,7 +57,7 @@ void VideoOutputWidget::paintEvent(QPaintEvent *event)
     drawBackGround(painter);
     drawVideoImage(painter);
 
-    qDebug() << timer.elapsed();
+    //qDebug() << timer.elapsed();
 }
 
 void VideoOutputWidget::drawBackGround(QPainter &painter)

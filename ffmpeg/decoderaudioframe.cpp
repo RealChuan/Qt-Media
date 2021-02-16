@@ -99,6 +99,7 @@ void setAudioClock(double time)
 
 void DecoderAudioFrame::runDecoder()
 {
+    setAudioClock(0);
     AVAudio avAudio(m_contextInfo->codecCtx());
     qint64 pauseTime = 0;
     QElapsedTimer timer;
@@ -122,10 +123,11 @@ void DecoderAudioFrame::runDecoder()
         setAudioClock(pts);
 
         QByteArray audioBuf = avAudio.convert(&frame, m_contextInfo->codecCtx());
-        double diff = pts * 1000 - d_ptr->seekTime - (timer.elapsed() - pauseTime) * speed();
+        double speed_ = speed();
+        double diff = pts * 1000 - d_ptr->seekTime - (timer.elapsed() - pauseTime) * speed_;
         if(diff > 0){
             msleep(diff);
-        }else if(speed() > 1.0){
+        }else if(speed_ > 1.0){
             continue; // speed > 1.0 drop
         }
 

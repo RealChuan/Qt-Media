@@ -25,9 +25,9 @@ public:
 
     bool findStream();
 
-    QVector<int> audioIndexs() const;
+    QMap<int, QString> audioMap() const;
     QVector<int> videoIndexs() const;
-    QVector<int> subtitleIndexs() const;
+    QMap<int, QString> subtitleMap() const;
 
     AVStream *stream(int index);   //音频流
 

@@ -31,9 +31,8 @@ public:
     bool isOpen = false;
 
     QVector<int> videoIndexs;
-    QVector<int> audioIndexs;
-    QVector<int> subtitleIndexs;
-    QMap<QString, QString> metaDataMap;
+    QMap<int, QString> audioMap;
+    QMap<int, QString> subtitleMap;
     QImage coverImage;
 };
 
@@ -97,9 +96,9 @@ bool FormatContext::findStream()
     return true;
 }
 
-QVector<int> FormatContext::audioIndexs() const
+QMap<int, QString> FormatContext::audioMap() const
 {
-    return d_ptr->audioIndexs;
+    return d_ptr->audioMap;
 }
 
 QVector<int> FormatContext::videoIndexs() const
@@ -107,16 +106,16 @@ QVector<int> FormatContext::videoIndexs() const
     return d_ptr->videoIndexs;
 }
 
-QVector<int> FormatContext::subtitleIndexs() const
+QMap<int, QString> FormatContext::subtitleMap() const
 {
-    return d_ptr->subtitleIndexs;
+    return d_ptr->subtitleMap;
 }
 
 void FormatContext::findStreamIndex()
 {
     d_ptr->videoIndexs.clear();
-    d_ptr->audioIndexs.clear();
-    d_ptr->subtitleIndexs.clear();
+    d_ptr->audioMap.clear();
+    d_ptr->subtitleMap.clear();
 
     //av_find_best_stream
 
@@ -124,10 +123,26 @@ void FormatContext::findStreamIndex()
     for (uint i = 0; i < d_ptr->formatCtx->nb_streams; i++){
         switch (d_ptr->formatCtx->streams[i]->codecpar->codec_type) {
         case AVMEDIA_TYPE_VIDEO: d_ptr->videoIndexs.append(i); break;
-        case AVMEDIA_TYPE_AUDIO: d_ptr->audioIndexs.append(i); break;
-        case AVMEDIA_TYPE_SUBTITLE:d_ptr->subtitleIndexs.append(i); break;
+        case AVMEDIA_TYPE_AUDIO: {
+            AVDictionaryEntry *tag = nullptr;
+            while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata, "handler_name", tag, AV_DICT_IGNORE_SUFFIX))){
+                d_ptr->audioMap.insert(i, QString::fromUtf8(tag->value));
+            }
+        }
+        break;
+        case AVMEDIA_TYPE_SUBTITLE:{
+            AVDictionaryEntry *tag = nullptr;
+            while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata, "handler_name", tag, AV_DICT_IGNORE_SUFFIX))){
+                d_ptr->subtitleMap.insert(i, QString::fromUtf8(tag->value));
+            }
+        } break;
         default: break;
         }
+        //AVDictionaryEntry *tag = nullptr;
+        //while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))){
+        //    qDebug() << tag->key << QString::fromUtf8(tag->value);
+        //}
+
         if (d_ptr->formatCtx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC){
             AVPacket pkt = d_ptr->formatCtx->streams[i]->attached_pic;
             d_ptr->coverImage = QImage::fromData((uchar*)pkt.data, pkt.size);
@@ -137,14 +152,10 @@ void FormatContext::findStreamIndex()
 
 void FormatContext::initMetaData()
 {
-    d_ptr->metaDataMap.clear();
     AVDictionaryEntry *tag = nullptr;
     while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))){
-        QString keyString = tag->key;
-        QString valueString = QString::fromUtf8(tag->value);
-        d_ptr->metaDataMap.insert(keyString, valueString);
+        qDebug() << tag->key << QString::fromUtf8(tag->value);
     }
-    qDebug() << d_ptr->metaDataMap;
 }
 
 AVStream *FormatContext::stream(int index)

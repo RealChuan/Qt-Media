@@ -37,12 +37,12 @@ bool CodecContext::setParameters(const AVCodecParameters *par)
         qWarning() << "avcodec_parameters_to_context";
         return false;
     }
-    qDebug() << m_codecCtx->framerate.num;
-    qInfo() << tr("Width: ") << m_codecCtx->width << tr(" Height: ") << m_codecCtx->height;
-    qInfo() << tr("Channels: ") << m_codecCtx->channels;
-    qInfo() << tr("sample_fmt: ") << m_codecCtx->sample_fmt;
-    qInfo() << tr("sample_rate: ") << m_codecCtx->sample_rate;
-    qInfo() << tr("channel_layout: ") << m_codecCtx->channel_layout;
+    //qDebug() << m_codecCtx->framerate.num;
+    //qInfo() << tr("Width: ") << m_codecCtx->width << tr(" Height: ") << m_codecCtx->height;
+    //qInfo() << tr("Channels: ") << m_codecCtx->channels;
+    //qInfo() << tr("sample_fmt: ") << m_codecCtx->sample_fmt;
+    //qInfo() << tr("sample_rate: ") << m_codecCtx->sample_rate;
+    //qInfo() << tr("channel_layout: ") << m_codecCtx->channel_layout;
     return true;
 }
 

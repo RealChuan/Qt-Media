@@ -45,6 +45,11 @@ void AudioDecoder::setSpeed(double speed)
     d_ptr->decoderAudioFrame->setSpeed(speed);
 }
 
+double AudioDecoder::audioClock()
+{
+    return d_ptr->decoderAudioFrame->audioClock();
+}
+
 void AudioDecoder::runDecoder()
 {    
     PlayFrame frame;
