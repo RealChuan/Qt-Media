@@ -20,6 +20,7 @@ SOURCES += \
     packet.cpp \
     player.cpp \
     playframe.cpp \
+    subtitle.cpp \
     subtitledecoder.cpp \
     videodecoder.cpp \
     videooutputwidget.cpp
@@ -38,6 +39,7 @@ HEADERS += \
     packet.h \
     player.h \
     playframe.h \
+    subtitle.h \
     subtitledecoder.h \
     videodecoder.h \
     videooutputwidget.h

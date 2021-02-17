@@ -7,6 +7,7 @@ struct AVStream;
 
 namespace Ffmpeg {
 
+class Subtitle;
 class Packet;
 class PlayFrame;
 class CodecContext;
@@ -33,6 +34,7 @@ public:
 
     bool sendPacket(Packet *packet);
     bool receiveFrame(PlayFrame *frame);
+    bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
 
     unsigned char *imageBuffer(PlayFrame &frame);
     void clearImageBuffer();

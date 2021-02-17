@@ -1,3 +1,4 @@
+#include "decoderaudioframe.h"
 #include "videooutputwidget.h"
 
 #include <QtWidgets>
@@ -11,6 +12,7 @@ public:
 
     QWidget *owner;
     QImage image;
+    QVector<SubtitleImage> subtitleImages;
 };
 
 VideoOutputWidget::VideoOutputWidget(QWidget *parent)
@@ -36,6 +38,14 @@ void VideoOutputWidget::onReadyRead(const QImage &image)
         return;
     }
     d_ptr->image = image;
+    checkSubtitle();
+    update();
+}
+
+void VideoOutputWidget::onSubtitleImages(const QVector<SubtitleImage> &subtitleImages)
+{
+    d_ptr->subtitleImages = subtitleImages;
+    checkSubtitle();
     update();
 }
 
@@ -95,6 +105,38 @@ void VideoOutputWidget::drawVideoImage(QPainter &painter)
         double y = (height() - d_ptr->image.height()) / 2;
         painter.drawImage(QRect(x, y, d_ptr->image.width(), d_ptr->image.height()), d_ptr->image);
     }
+}
+
+void VideoOutputWidget::checkSubtitle()
+{
+    if(d_ptr->subtitleImages.isEmpty())
+        return;
+    if(d_ptr->image.isNull())
+        return;
+
+    double pts = DecoderAudioFrame::audioClock() * 1000;
+    if(pts < d_ptr->subtitleImages.at(0).startDisplayTime
+        || pts > d_ptr->subtitleImages.at(0).endDisplayTime){
+        return;
+    }
+
+    QPainter painter(&d_ptr->image);
+    for(const SubtitleImage& subtitleimage: d_ptr->subtitleImages){
+        QRectF rectF = subtitleimage.rectF;
+        if(!rectF.isValid()){
+            rectF = QRectF(0, d_ptr->image.height() / 9.0 * 8, d_ptr->image.width(), d_ptr->image.height() / 9.0);
+        }
+        if(subtitleimage.image.isNull()){
+            QFont font = painter.font();
+            font.setPixelSize(d_ptr->image.height() / 10.0);
+            painter.setFont(font);
+            painter.setPen(Qt::white);
+            painter.drawText(rectF, Qt::AlignCenter, subtitleimage.text);
+        }else{
+            painter.drawImage(rectF, subtitleimage.image);
+        }
+    }
+
 }
 
 }

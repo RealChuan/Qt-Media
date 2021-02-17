@@ -1,6 +1,7 @@
 #include "codeccontext.h"
 #include "packet.h"
 #include "playframe.h"
+#include "subtitle.h"
 
 #include <QDebug>
 
@@ -90,6 +91,15 @@ bool CodecContext::receiveFrame(PlayFrame *frame)
     }
     //qWarning() << error;
     return false;
+}
+
+bool CodecContext::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
+{
+    int got_sub_ptr = 0;
+    int ret = avcodec_decode_subtitle2(m_codecCtx, subtitle->avSubtitle(), &got_sub_ptr, packet->avPacket());
+    if(ret < 0 || got_sub_ptr <= 0)
+        return false;
+    return true;
 }
 
 unsigned char *CodecContext::imageBuffer(PlayFrame &frame)

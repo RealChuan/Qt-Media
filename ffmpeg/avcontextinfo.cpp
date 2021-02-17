@@ -117,6 +117,11 @@ bool AVContextInfo::receiveFrame(PlayFrame *frame)
     return d_ptr->codecCtx->receiveFrame(frame);
 }
 
+bool AVContextInfo::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
+{
+    return d_ptr->codecCtx->decodeSubtitle2(subtitle, packet);
+}
+
 unsigned char *AVContextInfo::imageBuffer(PlayFrame &frame)
 {
     return d_ptr->codecCtx->imageBuffer(frame);

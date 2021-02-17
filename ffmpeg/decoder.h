@@ -104,6 +104,18 @@ protected:
         //qDebug() << duration << pts;
     }
 
+    void calculateTime(AVPacket *packet, double &duration, double &pts)
+    {
+        AVRational tb = m_contextInfo->stream()->time_base;
+        //AVRational frame_rate = av_guess_frame_rate(m_formatContext->avFormatContext(), m_contextInfo->stream(), NULL);
+        // 当前帧播放时长
+        //duration = (frame_rate.num && frame_rate.den ? av_q2d(AVRational{frame_rate.den, frame_rate.num}) : 0);
+        duration = packet->duration * av_q2d(tb);
+        // 当前帧显示时间戳
+        pts = (packet->pts == AV_NOPTS_VALUE) ? NAN : packet->pts * av_q2d(tb);
+        //qDebug() << duration << pts;
+    }
+
     void seekCodec(qint64 seekTime)
     {
         m_formatContext->seek(m_contextInfo->index(), seekTime / m_contextInfo->timebase());

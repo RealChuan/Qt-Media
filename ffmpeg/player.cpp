@@ -9,6 +9,7 @@
 #include "audiodecoder.h"
 #include "videodecoder.h"
 #include "videooutputwidget.h"
+#include "subtitledecoder.h"
 
 #include <utils/utils.h>
 
@@ -20,11 +21,6 @@
 #include <QWaitCondition>
 #include <QDateTime>
 
-extern "C"{
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-}
-
 namespace Ffmpeg {
 
 class PlayerPrivate{
@@ -32,23 +28,27 @@ public:
     PlayerPrivate(QThread *parent)
         : owner(parent){
         formatCtx = new FormatContext(owner);
+
         audioInfo = new AVContextInfo(owner);
         videoInfo = new AVContextInfo(owner);
+        subtitleInfo = new AVContextInfo(owner);
 
         audioDecoder = new AudioDecoder(owner);
         videoDecoder = new VideoDecoder(owner);
+        subtitleDecoder = new SubtitleDecoder(owner);
     }
     QThread *owner;
 
     FormatContext *formatCtx;
     AVContextInfo *audioInfo;
     AVContextInfo *videoInfo;
+    AVContextInfo *subtitleInfo;
 
     AudioDecoder *audioDecoder;
     VideoDecoder *videoDecoder;
+    SubtitleDecoder *subtitleDecoder;
 
     QString filepath;
-    volatile bool show = false;
     volatile bool isopen = true;
     volatile bool runing = true;
     volatile bool seek = false;
@@ -89,7 +89,6 @@ void Player::onPlay()
 {
     buildConnect(true);
     setMediaState(MediaState::PlayingState);
-    d_ptr->show = true;
     d_ptr->runing = true;
     start();
 }
@@ -97,7 +96,6 @@ void Player::onPlay()
 void Player::onStop()
 {
     buildConnect(false);
-    d_ptr->show = false;
     d_ptr->runing = false;
     if(isRunning()){
         quit();
@@ -128,21 +126,11 @@ void Player::onSetAudioTracks(const QString &text)
 
     onStop();
     initAvCode();
-    if(!setAudioIndex(index))
+    if(!setMediaIndex(d_ptr->audioInfo, index))
         return;
     emit audioTrackChanged(text);
     onSeek(d_ptr->audioDecoder->audioClock());
     onPlay();
-}
-
-void Player::onReadyRead(const QImage &image)
-{
-    if(image.isNull() || !d_ptr->show){
-        static qint64 count = 0;
-        qDebug() << "onReadyRead" << ++count;
-        return;
-    }
-    emit readyRead(image);
 }
 
 bool Player::isOpen()
@@ -197,7 +185,7 @@ bool Player::initAvCode()
     }
 
     if(d_ptr->formatCtx->audioMap().isEmpty()
-        || d_ptr->formatCtx->videoIndexs().isEmpty()){
+        && d_ptr->formatCtx->videoIndexs().isEmpty()){
         d_ptr->error = tr("Didn't find a video and audio stream.");
         emit error(d_ptr->error);
         return false;
@@ -207,7 +195,7 @@ bool Player::initAvCode()
     QMap<int, QString> audioTracks = d_ptr->formatCtx->audioMap();
     if(!audioTracks.isEmpty()){
         int audioIndex = audioTracks.firstKey();
-        if(!setAudioIndex(audioIndex))
+        if(!setMediaIndex(d_ptr->audioInfo, audioIndex))
             return false;
         emit audioTracksChanged(audioTracks.values());
         emit audioTrackChanged(audioTracks.value(audioIndex));
@@ -216,11 +204,19 @@ bool Player::initAvCode()
     d_ptr->videoInfo->resetIndex();
     if(!d_ptr->formatCtx->videoIndexs().isEmpty()){
         int videoIndex = d_ptr->formatCtx->videoIndexs().first();
-        if(!setVideoIndex(videoIndex))
+        if(!setMediaIndex(d_ptr->videoInfo, videoIndex))
             return false;
     }
 
-    qDebug() << d_ptr->audioInfo->index() << d_ptr->videoInfo->index();
+    d_ptr->subtitleInfo->resetIndex();
+    QMap<int, QString> subtitleTracks = d_ptr->formatCtx->subtitleMap();
+    if(!subtitleTracks.isEmpty()){
+        int subtitleIndex = subtitleTracks.firstKey();
+        if(!setMediaIndex(d_ptr->subtitleInfo, subtitleIndex))
+            return false;
+    }
+
+    qDebug() << d_ptr->audioInfo->index() << d_ptr->videoInfo->index() << d_ptr->subtitleInfo->index();
 
     d_ptr->isopen = true;
 
@@ -234,6 +230,7 @@ void Player::playVideo()
     Packet packet;
     d_ptr->audioDecoder->startDecoder(d_ptr->formatCtx, d_ptr->audioInfo);
     d_ptr->videoDecoder->startDecoder(d_ptr->formatCtx, d_ptr->videoInfo);
+    d_ptr->subtitleDecoder->startDecoder(d_ptr->formatCtx, d_ptr->subtitleInfo);
 
     checkSeek();
 
@@ -245,6 +242,8 @@ void Player::playVideo()
         }else if(d_ptr->videoInfo->isIndexVaild() && packet.avPacket()->stream_index == d_ptr->videoInfo->index()
                    && !(d_ptr->videoInfo->stream()->disposition &AV_DISPOSITION_ATTACHED_PIC)){ // 如果是视频数据
             d_ptr->videoDecoder->append(packet);
+        }else if(d_ptr->subtitleInfo->isIndexVaild() && packet.avPacket()->stream_index == d_ptr->subtitleInfo->index()){
+            d_ptr->subtitleDecoder->append(packet);
         }
         packet.clear();
 
@@ -256,6 +255,7 @@ void Player::playVideo()
 
     while(d_ptr->runing && d_ptr->videoDecoder->size() != 0)
         msleep(1);
+    d_ptr->subtitleDecoder->stopDecoder();
     d_ptr->videoDecoder->stopDecoder();
     d_ptr->audioDecoder->stopDecoder();
 
@@ -270,6 +270,7 @@ void Player::checkSeek()
     timer.start();
     d_ptr->videoDecoder->seek(d_ptr->seekTime);
     d_ptr->audioDecoder->seek(d_ptr->seekTime);
+    d_ptr->subtitleDecoder->seek(d_ptr->seekTime);
     d_ptr->seek = false;
     blockSignals(false);
     setMediaState(MediaState::PlayingState);
@@ -282,21 +283,11 @@ void Player::setMediaState(Player::MediaState mediaState)
     emit stateChanged(d_ptr->mediaState);
 }
 
-bool Player::setAudioIndex(int index)
+bool Player::setMediaIndex(AVContextInfo * contextInfo, int index)
 {
-    d_ptr->audioInfo->setIndex(index);
-    d_ptr->audioInfo->setStream(d_ptr->formatCtx->stream(index));
-    if(!d_ptr->audioInfo->findDecoder()){
-        return false;
-    }
-    return true;
-}
-
-bool Player::setVideoIndex(int index)
-{
-    d_ptr->videoInfo->setIndex(index);
-    d_ptr->videoInfo->setStream(d_ptr->formatCtx->stream(index));
-    if(!d_ptr->videoInfo->findDecoder()){
+    contextInfo->setIndex(index);
+    contextInfo->setStream(d_ptr->formatCtx->stream(index));
+    if(!contextInfo->findDecoder()){
         return false;
     }
     return true;
@@ -306,6 +297,7 @@ void Player::pause(bool status)
 {
     d_ptr->audioDecoder->pause(status);
     d_ptr->videoDecoder->pause(status);
+    d_ptr->subtitleDecoder->pause(status);
     if(status){
         setMediaState(MediaState::PausedState);
     }else if(isRunning()){
@@ -324,6 +316,7 @@ void Player::setVideoOutputWidget(VideoOutputWidget *widget)
 {
     connect(this, &Player::readyRead, widget, &VideoOutputWidget::onReadyRead, Qt::UniqueConnection);
     connect(this, &Player::finished, widget, &VideoOutputWidget::onFinish, Qt::UniqueConnection);
+    connect(this, &Player::subtitleImages, widget, &VideoOutputWidget::onSubtitleImages, Qt::UniqueConnection);
 }
 
 void Player::run()
@@ -338,11 +331,13 @@ void Player::run()
 void Player::buildConnect(bool state)
 {
     if(state){
-        connect(d_ptr->videoDecoder, &VideoDecoder::readyRead, this, &Player::onReadyRead, Qt::UniqueConnection);
+        connect(d_ptr->videoDecoder, &VideoDecoder::readyRead, this, &Player::readyRead, Qt::UniqueConnection);
         connect(d_ptr->audioDecoder, &AudioDecoder::positionChanged, this, &Player::positionChanged, Qt::UniqueConnection);
+        connect(d_ptr->subtitleDecoder, &SubtitleDecoder::subtitleImages, this, &Player::subtitleImages, Qt::UniqueConnection);
     }else{
-        disconnect(d_ptr->videoDecoder, &VideoDecoder::readyRead, this, &Player::onReadyRead);
+        disconnect(d_ptr->videoDecoder, &VideoDecoder::readyRead, this, &Player::readyRead);
         disconnect(d_ptr->audioDecoder, &AudioDecoder::positionChanged, this, &Player::positionChanged);
+        disconnect(d_ptr->subtitleDecoder, &SubtitleDecoder::subtitleImages, this, &Player::subtitleImages);
     }
 }
 

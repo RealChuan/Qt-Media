@@ -4,6 +4,7 @@
 #include <QWidget>
 
 #include "ffmepg_global.h"
+#include "subtitle.h"
 
 namespace Ffmpeg {
 
@@ -17,6 +18,7 @@ public:
 
 public slots:
     void onReadyRead(const QImage &image);
+    void onSubtitleImages(const QVector<SubtitleImage>&);
     void onFinish();
 
 protected:
@@ -25,6 +27,7 @@ protected:
 private:
     void drawBackGround(QPainter &painter);
     void drawVideoImage(QPainter &painter);
+    void checkSubtitle();
 
     QScopedPointer<VideoOutputWidgetPrivate> d_ptr;
 };

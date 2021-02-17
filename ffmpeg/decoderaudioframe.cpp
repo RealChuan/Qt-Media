@@ -63,6 +63,9 @@ void DecoderAudioFrame::stopDecoder()
 
 void DecoderAudioFrame::pause(bool state)
 {
+    if(!isRunning())
+        return;
+
     d_ptr->pause = state;
     if(state)
         return;

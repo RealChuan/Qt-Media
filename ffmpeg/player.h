@@ -4,9 +4,11 @@
 #include <QThread>
 
 #include "ffmepg_global.h"
+#include "subtitle.h"
 
 namespace Ffmpeg {
 
+class AVContextInfo;
 class VideoOutputWidget;
 class PlayerPrivate;
 class FFMPEG_EXPORT Player : public QThread
@@ -51,9 +53,7 @@ signals:
     void stateChanged(MediaState);
     void audioTracksChanged(const QStringList &tracks);
     void audioTrackChanged(const QString &track);
-
-private slots:
-    void onReadyRead(const QImage &image);
+    void subtitleImages(const QVector<SubtitleImage>&);
 
 protected:
     void run() override;
@@ -64,8 +64,7 @@ private:
     void playVideo();
     void checkSeek();
     void setMediaState(MediaState mediaState);
-    bool setAudioIndex(int index);
-    bool setVideoIndex(int index);
+    bool setMediaIndex(AVContextInfo * contextInfo, int index);
 
     QScopedPointer<PlayerPrivate> d_ptr;
 };
