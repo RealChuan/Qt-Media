@@ -26,7 +26,7 @@ AudioDecoder::AudioDecoder(QObject *parent)
 
 AudioDecoder::~AudioDecoder()
 {
-    stopDecoder();
+
 }
 
 void AudioDecoder::pause(bool state)
@@ -77,7 +77,7 @@ void AudioDecoder::runDecoder()
             d_ptr->decoderAudioFrame->append(frame);
         }
 
-        while(d_ptr->decoderAudioFrame->size() > 10 && !m_seek)
+        while(m_runing && d_ptr->decoderAudioFrame->size() > 10 && !m_seek)
             msleep(1);
     }
 

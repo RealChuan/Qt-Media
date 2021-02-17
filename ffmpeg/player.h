@@ -44,6 +44,7 @@ public slots:
     void onStop();
     void onSeek(int timestamp); // s
     void onSetAudioTracks(const QString &text);
+    void onSetSubtitleStream(const QString &text);
 
 signals:
     void readyRead(const QImage &image);
@@ -53,6 +54,8 @@ signals:
     void stateChanged(MediaState);
     void audioTracksChanged(const QStringList &tracks);
     void audioTrackChanged(const QString &track);
+    void subtitleStreamsChanged(const QStringList &streams);
+    void subtitleStreamChanged(const QString &stream);
     void subtitleImages(const QVector<SubtitleImage>&);
 
 protected:

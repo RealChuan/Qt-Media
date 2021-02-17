@@ -26,7 +26,7 @@ SubtitleDecoder::SubtitleDecoder(QObject *parent)
 
 SubtitleDecoder::~SubtitleDecoder()
 {
-    stopDecoder();
+
 }
 
 void SubtitleDecoder::stopDecoder()

@@ -83,10 +83,10 @@ void Utils::setHighDpiEnvironmentVariable()
     if (Utils::HostOsInfo().isMacHost())
         return;
 
-#ifdef Q_OS_WIN
-    if (!qEnvironmentVariableIsSet("QT_OPENGL"))
-        QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);
-#endif
+    //#ifdef Q_OS_WIN
+    //if (!qEnvironmentVariableIsSet("QT_OPENGL"))
+    //    QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);
+    //#endif
 
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)

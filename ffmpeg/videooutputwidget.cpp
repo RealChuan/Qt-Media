@@ -16,7 +16,7 @@ public:
 };
 
 VideoOutputWidget::VideoOutputWidget(QWidget *parent)
-    : QWidget(parent)
+    : QOpenGLWidget(parent)
     , d_ptr(new VideoOutputWidgetPrivate(this))
 {
     //QPalette p = palette();
@@ -121,14 +121,15 @@ void VideoOutputWidget::checkSubtitle()
     }
 
     QPainter painter(&d_ptr->image);
+    painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
     for(const SubtitleImage& subtitleimage: d_ptr->subtitleImages){
         QRectF rectF = subtitleimage.rectF;
         if(!rectF.isValid()){
-            rectF = QRectF(0, d_ptr->image.height() / 9.0 * 8, d_ptr->image.width(), d_ptr->image.height() / 9.0);
+            rectF = QRectF(0, d_ptr->image.height() / 12.0 * 11, d_ptr->image.width(), d_ptr->image.height() / 12.0);
         }
         if(subtitleimage.image.isNull()){
             QFont font = painter.font();
-            font.setPixelSize(d_ptr->image.height() / 10.0);
+            font.setPixelSize(d_ptr->image.height() / 13.0);
             painter.setFont(font);
             painter.setPen(Qt::white);
             painter.drawText(rectF, Qt::AlignCenter, subtitleimage.text);

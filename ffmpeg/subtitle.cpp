@@ -14,11 +14,9 @@ class SubtitlePrivate{
 public:
     SubtitlePrivate(QObject *parent)
         : owner(parent){
-
     }
 
     ~SubtitlePrivate(){
-        freeSubtitle();
     }
 
     void freeSubtitle(){

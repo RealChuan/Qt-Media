@@ -28,7 +28,7 @@ VideoDecoder::VideoDecoder(QObject *parent)
 
 VideoDecoder::~VideoDecoder()
 {
-    stopDecoder();
+
 }
 
 void VideoDecoder::pause(bool state)
@@ -70,7 +70,7 @@ void VideoDecoder::runDecoder()
 
         d_ptr->decoderVideoFrame->append(frame);
 
-        while(d_ptr->decoderVideoFrame->size() > 10 && !m_seek)
+        while(m_runing && d_ptr->decoderVideoFrame->size() > 10 && !m_seek)
             msleep(1);
     }
 

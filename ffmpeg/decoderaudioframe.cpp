@@ -52,7 +52,7 @@ DecoderAudioFrame::DecoderAudioFrame(QObject *parent)
 
 DecoderAudioFrame::~DecoderAudioFrame()
 {
-    stopDecoder();
+
 }
 
 void DecoderAudioFrame::stopDecoder()

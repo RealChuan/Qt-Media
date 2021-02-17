@@ -1,7 +1,7 @@
 #ifndef VIDEOOUTPUTWIDGET_H
 #define VIDEOOUTPUTWIDGET_H
 
-#include <QWidget>
+#include <QOpenGLWidget>
 
 #include "ffmepg_global.h"
 #include "subtitle.h"
@@ -9,7 +9,7 @@
 namespace Ffmpeg {
 
 class VideoOutputWidgetPrivate;
-class FFMPEG_EXPORT VideoOutputWidget : public QWidget
+class FFMPEG_EXPORT VideoOutputWidget : public QOpenGLWidget
 {
     Q_OBJECT
 public:

@@ -124,26 +124,26 @@ void FormatContext::findStreamIndex()
         switch (d_ptr->formatCtx->streams[i]->codecpar->codec_type) {
         case AVMEDIA_TYPE_VIDEO: d_ptr->videoIndexs.append(i); break;
         case AVMEDIA_TYPE_AUDIO: {
-            d_ptr->audioMap.insert(i, "");
             AVDictionaryEntry *tag = nullptr;
-            while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata, "handler_name", tag, AV_DICT_IGNORE_SUFFIX))){
-                d_ptr->audioMap.insert(i, QString::fromUtf8(tag->value));
+            QString str;
+            while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))){
+                str = str + tag->key + ":"+ QString::fromUtf8(tag->value) + " ";
             }
+            str.chop(1);
+            d_ptr->audioMap.insert(i, str);
         }
         break;
         case AVMEDIA_TYPE_SUBTITLE:{
-            d_ptr->subtitleMap.insert(i, "");
+            QString str;
             AVDictionaryEntry *tag = nullptr;
-            while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata, "handler_name", tag, AV_DICT_IGNORE_SUFFIX))){
-                d_ptr->subtitleMap.insert(i, QString::fromUtf8(tag->value));
+            while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))){
+                str = str + tag->key + ":"+ QString::fromUtf8(tag->value) + " ";
             }
+            str.chop(1);
+            d_ptr->subtitleMap.insert(i, str);
         } break;
         default: break;
         }
-        //AVDictionaryEntry *tag = nullptr;
-        //while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))){
-        //    qDebug() << tag->key << QString::fromUtf8(tag->value);
-        //}
 
         if (d_ptr->formatCtx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC){
             AVPacket pkt = d_ptr->formatCtx->streams[i]->attached_pic;

@@ -116,19 +116,48 @@ void Player::onSeek(int timestamp)
     d_ptr->seekTime = timestamp;
 }
 
-void Player::onSetAudioTracks(const QString &text)
+void Player::onSetAudioTracks(const QString &text) // 停止再播放最简单 之后在优化
 {
     QMap<int, QString> audioTracks = d_ptr->formatCtx->audioMap();
 
     if(!audioTracks.values().contains(text))
         return;
     int index = audioTracks.key(text);
+    int subtitleIndex = d_ptr->subtitleInfo->index();
 
     onStop();
     initAvCode();
+    if(subtitleIndex >= 0){
+        if(!setMediaIndex(d_ptr->subtitleInfo, subtitleIndex))
+            return;
+        emit subtitleStreamChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
+    }
+
     if(!setMediaIndex(d_ptr->audioInfo, index))
         return;
     emit audioTrackChanged(text);
+    onSeek(d_ptr->audioDecoder->audioClock());
+    onPlay();
+}
+
+void Player::onSetSubtitleStream(const QString &text)
+{
+    QMap<int, QString> subtitleTracks = d_ptr->formatCtx->subtitleMap();
+    if(!subtitleTracks.values().contains(text))
+        return;
+    int index = subtitleTracks.key(text);
+    int audioIndex = d_ptr->audioInfo->index();
+
+    onStop();
+    initAvCode();
+    if(audioIndex >= 0){
+        if(!setMediaIndex(d_ptr->audioInfo, audioIndex))
+            return;
+        emit audioTrackChanged(d_ptr->formatCtx->audioMap().value(audioIndex));
+    }
+    if(!setMediaIndex(d_ptr->subtitleInfo, index))
+        return;
+    emit subtitleStreamChanged(text);
     onSeek(d_ptr->audioDecoder->audioClock());
     onPlay();
 }
@@ -158,6 +187,7 @@ void Player::setSpeed(double speed)
     }
     d_ptr->audioDecoder->setSpeed(speed);
     d_ptr->videoDecoder->setSpeed(speed);
+    d_ptr->subtitleDecoder->setSpeed(speed);
 }
 
 double Player::speed()
@@ -214,6 +244,8 @@ bool Player::initAvCode()
         int subtitleIndex = subtitleTracks.firstKey();
         if(!setMediaIndex(d_ptr->subtitleInfo, subtitleIndex))
             return false;
+        emit subtitleStreamsChanged(subtitleTracks.values());
+        emit subtitleStreamChanged(subtitleTracks.value(subtitleIndex));
     }
 
     qDebug() << d_ptr->audioInfo->index() << d_ptr->videoInfo->index() << d_ptr->subtitleInfo->index();
@@ -249,7 +281,7 @@ void Player::playVideo()
 
         checkSeek();
 
-        while(d_ptr->videoDecoder->size() > 20 && !d_ptr->seek)
+        while(d_ptr->runing && d_ptr->videoDecoder->size() > 20 && !d_ptr->seek)
             msleep(1);
     }
 

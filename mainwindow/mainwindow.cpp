@@ -100,6 +100,7 @@ void MainWindow::setupUI()
     speedComboBox->setCurrentIndex(1);
 
     QComboBox *audioTracksComboBox = new QComboBox(this);
+    audioTracksComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     connect(d_ptr->player, &Ffmpeg::Player::audioTracksChanged, [audioTracksComboBox](const QStringList &tracks){
         audioTracksComboBox->blockSignals(true);
         audioTracksComboBox->clear();
@@ -112,6 +113,21 @@ void MainWindow::setupUI()
         audioTracksComboBox->blockSignals(false);
     });
     connect(audioTracksComboBox, &QComboBox::currentTextChanged, d_ptr->player, &Ffmpeg::Player::onSetAudioTracks);
+
+    QComboBox *subtitleStreamsComboBox = new QComboBox(this);
+    subtitleStreamsComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);;
+    connect(d_ptr->player, &Ffmpeg::Player::subtitleStreamsChanged, [subtitleStreamsComboBox](const QStringList &streams){
+        subtitleStreamsComboBox->blockSignals(true);
+        subtitleStreamsComboBox->clear();
+        subtitleStreamsComboBox->addItems(streams);
+        subtitleStreamsComboBox->blockSignals(false);
+    });
+    connect(d_ptr->player, &Ffmpeg::Player::subtitleStreamChanged, [subtitleStreamsComboBox](const QString &stream){
+        subtitleStreamsComboBox->blockSignals(true);
+        subtitleStreamsComboBox->setCurrentText(stream);
+        subtitleStreamsComboBox->blockSignals(false);
+    });
+    connect(subtitleStreamsComboBox, &QComboBox::currentTextChanged, d_ptr->player, &Ffmpeg::Player::onSetSubtitleStream);
 
     QWidget *processWidget = new QWidget(this);
     processWidget->setMaximumHeight(100);
@@ -128,6 +144,8 @@ void MainWindow::setupUI()
     controlLayout->addWidget(speedComboBox);
     controlLayout->addWidget(new QLabel(tr("Audio Tracks: "), this));
     controlLayout->addWidget(audioTracksComboBox);
+    controlLayout->addWidget(new QLabel(tr("Subtitle: "), this));
+    controlLayout->addWidget(subtitleStreamsComboBox);
 
     QWidget *widget = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(widget);

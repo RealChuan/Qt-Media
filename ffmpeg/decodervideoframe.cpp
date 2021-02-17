@@ -33,7 +33,7 @@ DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
 
 DecoderVideoFrame::~DecoderVideoFrame()
 {
-    stopDecoder();
+
 }
 
 void DecoderVideoFrame::stopDecoder()

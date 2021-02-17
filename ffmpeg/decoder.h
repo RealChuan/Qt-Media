@@ -22,7 +22,7 @@ class Decoder : public QThread
 {
 public:
     Decoder(QObject *parent = nullptr) : QThread(parent) {}
-    ~Decoder() override { stopDecoder(); }
+    virtual ~Decoder() override { stopDecoder(); }
 
     void startDecoder(FormatContext *formatContext, AVContextInfo *contextInfo)
     {
