@@ -26,9 +26,9 @@ struct FileUtilPrivate{
 
 FileUtil::FileUtil(qint64 days, QObject *parent)
     : QObject(parent)
-    , d(new FileUtilPrivate)
+    , d_ptr(new FileUtilPrivate)
 {
-    d->autoDelFileDays = days;
+    d_ptr->autoDelFileDays = days;
     newDir("log");
     rollFile(0);
     setTimer();
@@ -41,25 +41,25 @@ FileUtil::~FileUtil()
 
 void FileUtil::onWrite(const QString &msg)
 {
-    if(d->file.size() > ROLLSIZE){
-        rollFile(++d->count);
+    if(d_ptr->file.size() > ROLLSIZE){
+        rollFile(++d_ptr->count);
     }else{
         qint64 now = QDateTime::currentSecsSinceEpoch();
         qint64 thisPeriod = now / kRollPerSeconds_ * kRollPerSeconds_;
-        if(thisPeriod != d->startTime){
-            d->count = 0;
+        if(thisPeriod != d_ptr->startTime){
+            d_ptr->count = 0;
             rollFile(0);
             autoDelFile();
         }
     }
 
-    d->stream << msg;
+    d_ptr->stream << msg;
     //d->file.write(msg.toUtf8().constData());
 }
 
 void FileUtil::onFlush()
 {
-    d->stream.flush();
+    d_ptr->stream.flush();
 }
 
 void FileUtil::newDir(const QString &path)
@@ -73,8 +73,9 @@ QString FileUtil::getFileName(qint64* now) const
 {
     *now = QDateTime::currentSecsSinceEpoch();
     QString data = QDateTime::fromSecsSinceEpoch(*now).toString("yyyy-MM-dd-hh-mm-ss");
-    QString filename = QString("./log/%1.%2.%3.%4.log").arg(qAppName()).
-                       arg(data).arg(QSysInfo::machineHostName()).arg(qApp->applicationPid());
+    QString filename = QString("./log/%1.%2.%3.%4.log")
+                           .arg(qAppName(), data, QSysInfo::machineHostName(),
+                                QString::number(qApp->applicationPid()));
     return filename;
 }
 
@@ -86,16 +87,16 @@ bool FileUtil::rollFile(int count)
         filename += QString(".%1").arg(count);
     }
     qint64 start = now / kRollPerSeconds_ * kRollPerSeconds_;
-    if (now > d->lastRoll){
-        d->startTime = start;
-        d->lastRoll = now;
-        if(d->file.isOpen()){
-            d->file.flush();
-            d->file.close();
+    if (now > d_ptr->lastRoll){
+        d_ptr->startTime = start;
+        d_ptr->lastRoll = now;
+        if(d_ptr->file.isOpen()){
+            d_ptr->file.flush();
+            d_ptr->file.close();
         }
-        d->file.setFileName(filename);
-        d->file.open(QIODevice::WriteOnly| QIODevice::Append| QIODevice::Unbuffered);
-        d->stream.setDevice(&d->file);
+        d_ptr->file.setFileName(filename);
+        d_ptr->file.open(QIODevice::WriteOnly| QIODevice::Append| QIODevice::Unbuffered);
+        d_ptr->stream.setDevice(&d_ptr->file);
         fprintf(stderr, "%s\n", filename.toUtf8().constData());
         return true;
     }
@@ -109,9 +110,9 @@ void FileUtil::autoDelFile()
 
     QFileInfoList list = dir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot, QDir::Time);
     QDateTime cur = QDateTime::currentDateTime();
-    QDateTime pre = cur.addDays(-d->autoDelFileDays);
+    QDateTime pre = cur.addDays(-d_ptr->autoDelFileDays);
 
-    for(QFileInfo info : list){
+    for(const QFileInfo &info : qAsConst(list)){
         QDateTime birthTime = info.lastModified();
         if(birthTime <= pre)
             dir.remove(info.fileName());
@@ -125,14 +126,10 @@ void FileUtil::setTimer()
     timer->start(5000); // 5秒刷新一次
 }
 
-static QtMsgType g_msgType = QtWarningMsg;
-static QMutex g_mutex;
-static LogAsync::Orientation g_orientation = LogAsync::Orientation::Std;
-
 // 消息处理函数
 void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
-    if(type < g_msgType)
+    if(type < LogAsync::instance()->logLevel())
         return;
 
     QString level;
@@ -154,16 +151,16 @@ void messageHandler(QtMsgType type, const QMessageLogContext &context, const QSt
     const QString message = QString("%1 %2 [%3] %4 - %5\n")
                                 .arg(dataTimeString, threadId, level, msg, contexInfo);
 
-    switch (g_orientation) {
+    switch (LogAsync::instance()->orientation()) {
     case LogAsync::Orientation::Std:
         fprintf(stderr, "%s", message.toLocal8Bit().constData());
         break;
     case LogAsync::Orientation::File:
-        LogAsync::instance()->appendBuf(message);
+        emit LogAsync::instance()->appendBuf(message);
         break;
     case LogAsync::Orientation::StdAndFile:
         fprintf(stderr, "%s", message.toLocal8Bit().constData());
-        LogAsync::instance()->appendBuf(message);
+        emit LogAsync::instance()->appendBuf(message);
         break;
     default:
         fprintf(stderr, "%s", message.toLocal8Bit().constData());
@@ -172,9 +169,13 @@ void messageHandler(QtMsgType type, const QMessageLogContext &context, const QSt
 }
 
 struct LogAsyncPrivate{
+    QtMsgType msgType = QtWarningMsg;
+    LogAsync::Orientation orientation = LogAsync::Orientation::Std;
     QWaitCondition waitCondition;
     QMutex mutex;
 };
+
+static QMutex g_mutex;
 
 LogAsync *LogAsync::instance()
 {
@@ -185,25 +186,35 @@ LogAsync *LogAsync::instance()
 
 void LogAsync::setOrientation(LogAsync::Orientation orientation)
 {
-    g_orientation = orientation;
+    d_ptr->orientation = orientation;
+}
+
+LogAsync::Orientation LogAsync::orientation()
+{
+    return d_ptr->orientation;
 }
 
 void LogAsync::setLogLevel(QtMsgType type)
 {
-    g_msgType = type;
+    d_ptr->msgType = type;
+}
+
+QtMsgType LogAsync::logLevel()
+{
+    return d_ptr->msgType;
 }
 
 void LogAsync::startWork()
 {
     start();
-    QMutexLocker lock(&d->mutex);
-    d->waitCondition.wait(&d->mutex);
+    QMutexLocker lock(&d_ptr->mutex);
+    d_ptr->waitCondition.wait(&d_ptr->mutex);
 }
 
 void LogAsync::stop()
 {
     if(isRunning()){
-        QThread::sleep(1);   // 最后一条日志格式化可能来不及进入信号槽
+        //QThread::sleep(1);   // 最后一条日志格式化可能来不及进入信号槽
         quit();
         wait();
     }
@@ -213,13 +224,13 @@ void LogAsync::run()
 {
     FileUtil fileUtil;
     connect(this, &LogAsync::appendBuf, &fileUtil, &FileUtil::onWrite);
-    d->waitCondition.wakeOne();
+    d_ptr->waitCondition.wakeOne();
     exec();
 }
 
 LogAsync::LogAsync(QObject *parent)
     : QThread(parent)
-    , d(new LogAsyncPrivate)
+    , d_ptr(new LogAsyncPrivate)
 {
     qInstallMessageHandler(messageHandler);
 }

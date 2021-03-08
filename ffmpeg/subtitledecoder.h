@@ -20,7 +20,7 @@ public:
     void pause(bool state) override;
 
 signals:
-    void subtitleImages(const QVector<SubtitleImage>&);
+    void subtitleImages(const QVector<Ffmpeg::SubtitleImage>&);
 
 protected:
     void runDecoder() override;

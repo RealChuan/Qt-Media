@@ -28,7 +28,7 @@ private:
     void autoDelFile();
     void setTimer();
 
-    QScopedPointer<FileUtilPrivate> d;
+    QScopedPointer<FileUtilPrivate> d_ptr;
 };
 
 struct LogAsyncPrivate;
@@ -41,7 +41,11 @@ public:
     static LogAsync* instance();
 
     void setOrientation(Orientation);
-    void setLogLevel(QtMsgType);    //日志级别
+    Orientation orientation();
+
+    void setLogLevel(QtMsgType);
+    QtMsgType logLevel();
+
     void startWork();
     void stop();
 
@@ -55,7 +59,7 @@ private:
     LogAsync(QObject *parent = nullptr);
     ~LogAsync() override;
 
-    QScopedPointer<LogAsyncPrivate> d;
+    QScopedPointer<LogAsyncPrivate> d_ptr;
 };
 
 }
