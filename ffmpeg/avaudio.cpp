@@ -1,6 +1,7 @@
 #include "avaudio.h"
 #include "codeccontext.h"
 #include "playframe.h"
+#include "averror.h"
 
 extern "C"{
 #include <libavcodec/avcodec.h>
@@ -15,7 +16,10 @@ AVAudio::AVAudio(CodecContext *codecCtx)
     //qDebug() << AV_CH_LAYOUT_5POINT1 << AV_CH_LAYOUT_STEREO;
     m_swrContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, SAMPLE_RATE/*ctx->sample_rate*/,
                                       ctx->channel_layout, ctx->sample_fmt, ctx->sample_rate, NULL, NULL);
-    swr_init(m_swrContext);
+    int ret = swr_init(m_swrContext);
+    if(ret < 0){
+        qWarning() << AVError::avErrorString(ret);
+    }
     Q_ASSERT(m_swrContext != nullptr);
 }
 
@@ -30,7 +34,7 @@ QByteArray AVAudio::convert(PlayFrame *frame, CodecContext *codecCtx)
     QByteArray buf;
     AVCodecContext *ctx = codecCtx->avCodecCtx();
     // 解码器数据流参数
-    int size  = av_samples_get_buffer_size(0, ctx->channels, ctx->sample_rate, ctx->sample_fmt, 0);
+    int size = av_samples_get_buffer_size(0, ctx->channels, ctx->sample_rate, ctx->sample_fmt, 0);
     uint8_t *audio_out_buffer = (uint8_t *)av_malloc(size);
     Q_ASSERT(audio_out_buffer != nullptr);
     int len = swr_convert(m_swrContext, &audio_out_buffer, size,
@@ -43,6 +47,8 @@ QByteArray AVAudio::convert(PlayFrame *frame, CodecContext *codecCtx)
         // 重采样后的数据流参数
         int dst_bufsize = av_samples_get_buffer_size(0,  CHANNELS, len, AV_SAMPLE_FMT_S16, 1);
         buf = QByteArray((char*)audio_out_buffer, dst_bufsize);
+    }else{
+        qWarning() << AVError::avErrorString(len);
     }
 
     av_free(audio_out_buffer);

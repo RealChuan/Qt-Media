@@ -10,6 +10,7 @@ struct AVCodec;
 
 namespace Ffmpeg {
 
+class AVError;
 class Subtitle;
 class Packet;
 class PlayFrame;
@@ -37,6 +38,9 @@ public:
     int height();
 
     void flush();
+
+signals:
+    void error(const Ffmpeg::AVError& avError);
 
 private:
     AVCodecContext *m_codecCtx; //解码器上下文

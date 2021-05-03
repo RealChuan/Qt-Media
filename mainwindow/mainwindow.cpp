@@ -3,6 +3,7 @@
 #include "slider.h"
 
 #include <ffmpeg/player.h>
+#include <ffmpeg/averror.h>
 
 #include <QtWidgets>
 
@@ -37,9 +38,10 @@ MainWindow::~MainWindow()
     d_ptr->player->onStop();
 }
 
-void MainWindow::onError(const QString &error)
+void MainWindow::onError(const AVError &avError)
 {
-    qWarning() << error;
+    QString str = tr("Error[%1]:%2.").arg(QString::number(avError.error()), avError.errorString());
+    qDebug() << str;
 }
 
 void MainWindow::onDurationChanged(qint64 duration)

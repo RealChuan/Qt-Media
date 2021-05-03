@@ -1,6 +1,7 @@
 #include "avimage.h"
 #include "codeccontext.h"
 #include "playframe.h"
+#include "averror.h"
 
 extern "C"{
 #include <libavcodec/avcodec.h>
@@ -34,9 +35,11 @@ void AVImage::scale(PlayFrame *in, PlayFrame *out, int height)
 {
     AVFrame *inFrame = in->avFrame();
     AVFrame *outFrame = out->avFrame();
-    sws_scale(m_swsContext,
-              (const unsigned char* const*)inFrame->data, inFrame->linesize,
-              0, height, outFrame->data, outFrame->linesize);
+    int ret = sws_scale(m_swsContext,
+                        (const unsigned char* const*)inFrame->data, inFrame->linesize,
+                        0, height, outFrame->data, outFrame->linesize);
+    if(ret < 0)
+        qWarning() << AVError::avErrorString(ret);
 }
 
 }

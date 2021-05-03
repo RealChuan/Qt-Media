@@ -8,6 +8,7 @@
 
 namespace Ffmpeg {
 
+class AVError;
 class AVContextInfo;
 class VideoOutputWidget;
 class PlayerPrivate;
@@ -25,7 +26,6 @@ public:
     ~Player() override;
 
     bool isOpen();
-    QString lastError() const;
 
     void setVolume(qreal volume);
 
@@ -48,15 +48,15 @@ public slots:
 
 signals:
     void readyRead(const QImage &image);
-    void error(const QString& e);
     void durationChanged(qint64 duration); // s
     void positionChanged(qint64 position); // ms
-    void stateChanged(MediaState);
+    void stateChanged(Ffmpeg::Player::MediaState);
     void audioTracksChanged(const QStringList &tracks);
     void audioTrackChanged(const QString &track);
     void subtitleStreamsChanged(const QStringList &streams);
     void subtitleStreamChanged(const QString &stream);
-    void subtitleImages(const QVector<SubtitleImage>&);
+    void subtitleImages(const QVector<Ffmpeg::SubtitleImage>&);
+    void error(const Ffmpeg::AVError& avError);
 
 protected:
     void run() override;
@@ -68,6 +68,7 @@ private:
     void checkSeek();
     void setMediaState(MediaState mediaState);
     bool setMediaIndex(AVContextInfo * contextInfo, int index);
+    void buildConnect2();
 
     QScopedPointer<PlayerPrivate> d_ptr;
 };

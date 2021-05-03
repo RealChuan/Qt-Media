@@ -17,8 +17,6 @@ struct AVContextInfoPrivate{
     QScopedPointer<CodecContext> codecCtx; //解码器上下文
     AVStream *stream;   //流
     int streamIndex = Error_Index; // 索引
-
-    QString error;
 };
 
 AVContextInfo::AVContextInfo(QObject *parent)
@@ -31,11 +29,6 @@ AVContextInfo::AVContextInfo(QObject *parent)
 AVContextInfo::~AVContextInfo()
 {
 
-}
-
-QString AVContextInfo::error() const
-{
-    return d_ptr->error;
 }
 
 CodecContext *AVContextInfo::codecCtx()
@@ -84,12 +77,12 @@ bool AVContextInfo::findDecoder()
 
     AVCodec *codec = avcodec_find_decoder(d_ptr->stream->codecpar->codec_id);
     if (!codec){
-        d_ptr->error =  tr("Audio or Video Codec not found.");
-        qWarning() << d_ptr->error;
+        qWarning() <<  tr("Audio or Video Codec not found.");
         return false;
     }
 
     d_ptr->codecCtx.reset(new CodecContext(codec));
+    connect(d_ptr->codecCtx.data(), &CodecContext::error, this, &AVContextInfo::error, Qt::UniqueConnection);
 
     if(!d_ptr->codecCtx->setParameters(d_ptr->stream->codecpar))
         return false;
@@ -97,8 +90,6 @@ bool AVContextInfo::findDecoder()
 
     //用于初始化pCodecCtx结构
     if(!d_ptr->codecCtx->open(codec)){
-        d_ptr->error = tr("Could not open audio codec.");
-        qWarning() << d_ptr->error;
         return false;
     }
 

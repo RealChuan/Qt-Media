@@ -1,5 +1,6 @@
 #include "formatcontext.h"
 #include "packet.h"
+#include "averror.h"
 
 #include <QDebug>
 #include <QImage>
@@ -27,7 +28,6 @@ public:
     QObject *owner;
     AVFormatContext *formatCtx;
     QString filepath;
-    QString error;
     bool isOpen = false;
 
     QVector<int> videoIndexs;
@@ -48,11 +48,6 @@ FormatContext::~FormatContext()
 
 }
 
-QString FormatContext::error() const
-{
-    return d_ptr->error;
-}
-
 bool FormatContext::isOpen()
 {
     return d_ptr->isOpen;
@@ -63,8 +58,9 @@ bool FormatContext::openFilePath(const QString &filepath)
     close();
     d_ptr->filepath = filepath;
     //初始化pFormatCtx结构
-    if (avformat_open_input(&d_ptr->formatCtx, d_ptr->filepath.toLocal8Bit().constData(), nullptr, nullptr) != 0){
-        d_ptr->error = tr("Couldn't open input stream.");
+    int ret = avformat_open_input(&d_ptr->formatCtx, d_ptr->filepath.toLocal8Bit().constData(), nullptr, nullptr);
+    if (ret != 0){
+        emit error(AVError(ret));
         return false;
     }
     d_ptr->isOpen = true;
@@ -87,8 +83,9 @@ void FormatContext::close()
 bool FormatContext::findStream()
 {
     //获取音视频流数据信息
-    if (avformat_find_stream_info(d_ptr->formatCtx, nullptr) < 0){
-        d_ptr->error = tr("Couldn't find stream information");
+    int ret = avformat_find_stream_info(d_ptr->formatCtx, nullptr);
+    if (ret < 0){
+        emit error(AVError(ret));
         return false;
     }
     initMetaData();
@@ -171,7 +168,7 @@ bool FormatContext::readFrame(Packet *packet)
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     int ret = av_read_frame(d_ptr->formatCtx, packet->avPacket());
     if(ret < 0){
-        qWarning() << "av_read_frame" << ret;
+        emit error(AVError(ret));
         return false;
     }
     return true;
@@ -196,8 +193,9 @@ int FormatContext::checkPktPlayRange(Packet *packet)
 bool FormatContext::seek(int index, int64_t timestamp)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
-    if(av_seek_frame(d_ptr->formatCtx, index, timestamp, AVSEEK_FLAG_BACKWARD) < 0){
-        qWarning() << "seek Failed";
+    int ret = av_seek_frame(d_ptr->formatCtx, index, timestamp, AVSEEK_FLAG_BACKWARD);
+    if(ret < 0){
+        emit error(AVError(ret));
         return false;
     }
     return true;

@@ -8,15 +8,15 @@ struct AVFormatContext;
 
 namespace Ffmpeg {
 
+class AVError;
 class Packet;
 class FormatContextPrivate;
 class FormatContext : public QObject
 {
+    Q_OBJECT
 public:
     explicit FormatContext(QObject *parent = nullptr);
     ~FormatContext();
-
-    QString error() const;
 
     bool isOpen();
 
@@ -44,6 +44,9 @@ public:
     qint64 duration(); // ms
 
     QImage coverImage() const;
+
+signals:
+    void error(const Ffmpeg::AVError& avError);
 
 private:
     void findStreamIndex();

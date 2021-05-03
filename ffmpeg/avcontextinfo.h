@@ -7,6 +7,7 @@ struct AVStream;
 
 namespace Ffmpeg {
 
+class AVError;
 class Subtitle;
 class Packet;
 class PlayFrame;
@@ -14,11 +15,11 @@ class CodecContext;
 struct AVContextInfoPrivate;
 class AVContextInfo : public QObject
 {
+    Q_OBJECT
 public:
     AVContextInfo(QObject *parent = nullptr);
     ~AVContextInfo();
 
-    QString error() const;
     CodecContext *codecCtx();
 
     void resetIndex();
@@ -42,6 +43,9 @@ public:
     void flush();
 
     double timebase();
+
+signals:
+    void error(const Ffmpeg::AVError& avError);
 
 private:
     QScopedPointer<AVContextInfoPrivate> d_ptr;

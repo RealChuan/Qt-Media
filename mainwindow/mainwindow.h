@@ -5,6 +5,10 @@
 
 #include "mainwindow_global.h"
 
+namespace Ffmpeg {
+class AVError;
+}
+
 class MainWindowPrivate;
 class MAINWINDOW_EXPORT MainWindow : public QMainWindow
 {
@@ -14,7 +18,7 @@ public:
     ~MainWindow();
 
 private slots:
-    void onError(const QString &error);
+    void onError(const Ffmpeg::AVError &averror);
     void onDurationChanged(qint64 duration);
     void onPositionChanged(qint64 position);
 

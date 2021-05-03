@@ -10,6 +10,7 @@
 #include "videodecoder.h"
 #include "videooutputwidget.h"
 #include "subtitledecoder.h"
+#include "averror.h"
 
 #include <utils/utils.h>
 
@@ -55,8 +56,6 @@ public:
     qint64 seekTime = 0; // seconds
 
     volatile Player::MediaState mediaState = Player::MediaState::StoppedState;
-
-    QString error;
 };
 
 Player::Player(QObject *parent)
@@ -65,7 +64,9 @@ Player::Player(QObject *parent)
 {
     qDebug() << avcodec_configuration();
     qDebug() << avcodec_version();
+    qRegisterMetaType<Ffmpeg::AVError>("Ffmpeg::AVError");
     buildConnect();
+    buildConnect2();
 }
 
 Player::~Player()
@@ -167,11 +168,6 @@ bool Player::isOpen()
     return d_ptr->isopen;
 }
 
-QString Player::lastError() const
-{
-    return d_ptr->error;
-}
-
 void Player::setVolume(qreal volume)
 {
     if(volume < 0 || volume > 1)
@@ -201,7 +197,6 @@ bool Player::initAvCode()
 
     //初始化pFormatCtx结构
     if(!d_ptr->formatCtx->openFilePath(d_ptr->filepath)){
-        qWarning() << d_ptr->formatCtx->error();
         return false;
     }
 
@@ -210,14 +205,12 @@ bool Player::initAvCode()
 
     //获取音视频流数据信息
     if(!d_ptr->formatCtx->findStream()){
-        qWarning() << d_ptr->formatCtx->error();
         return false;
     }
 
     if(d_ptr->formatCtx->audioMap().isEmpty()
         && d_ptr->formatCtx->videoIndexs().isEmpty()){
-        d_ptr->error = tr("Didn't find a video and audio stream.");
-        emit error(d_ptr->error);
+        qWarning() << tr("Didn't find a video and audio stream.");;
         return false;
     }
 
@@ -325,6 +318,14 @@ bool Player::setMediaIndex(AVContextInfo * contextInfo, int index)
     return true;
 }
 
+void Player::buildConnect2()
+{
+    connect(d_ptr->formatCtx, &FormatContext::error, this, &Player::error);
+    connect(d_ptr->audioInfo, &AVContextInfo::error, this, &Player::error);
+    connect(d_ptr->videoInfo, &AVContextInfo::error, this, &Player::error);
+    connect(d_ptr->subtitleInfo, &AVContextInfo::error, this, &Player::error);
+}
+
 void Player::pause(bool status)
 {
     d_ptr->audioDecoder->pause(status);
@@ -355,8 +356,6 @@ void Player::run()
 {
     if(!d_ptr->isopen)
         return;
-    // test code
-    //onSeek(1000);
     playVideo();
 }
 

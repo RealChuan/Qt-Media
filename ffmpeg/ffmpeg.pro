@@ -12,6 +12,7 @@ SOURCES += \
     audiodecoder.cpp \
     avaudio.cpp \
     avcontextinfo.cpp \
+    averror.cpp \
     avimage.cpp \
     codeccontext.cpp \
     decoderaudioframe.cpp \
@@ -29,6 +30,7 @@ HEADERS += \
     audiodecoder.h \
     avaudio.h \
     avcontextinfo.h \
+    averror.h \
     avimage.h \
     codeccontext.h \
     decoder.h \
