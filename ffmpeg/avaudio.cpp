@@ -10,12 +10,14 @@ extern "C"{
 
 namespace Ffmpeg {
 
-AVAudio::AVAudio(CodecContext *codecCtx)
+AVAudio::AVAudio(CodecContext *codecCtx, AVSampleFormat format)
 {
+    m_format = format;
     AVCodecContext *ctx = codecCtx->avCodecCtx();
-    //qDebug() << AV_CH_LAYOUT_5POINT1 << AV_CH_LAYOUT_STEREO;
-    m_swrContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, SAMPLE_RATE/*ctx->sample_rate*/,
-                                      ctx->channel_layout, ctx->sample_fmt, ctx->sample_rate, NULL, NULL);
+    m_swrContext = swr_alloc_set_opts(nullptr, int64_t(ctx->channel_layout), format,
+                                      ctx->sample_rate, int64_t(ctx->channel_layout),
+                                      ctx->sample_fmt, ctx->sample_rate, 0, nullptr);
+
     int ret = swr_init(m_swrContext);
     if(ret < 0){
         qWarning() << AVError::avErrorString(ret);
@@ -29,30 +31,22 @@ AVAudio::~AVAudio()
     swr_free(&m_swrContext);
 }
 
-QByteArray AVAudio::convert(PlayFrame *frame, CodecContext *codecCtx)
+QByteArray AVAudio::convert(PlayFrame *frame)
 {
-    QByteArray buf;
-    AVCodecContext *ctx = codecCtx->avCodecCtx();
-    // 解码器数据流参数
-    int size = av_samples_get_buffer_size(0, ctx->channels, ctx->sample_rate, ctx->sample_fmt, 0);
-    uint8_t *audio_out_buffer = (uint8_t *)av_malloc(size);
-    Q_ASSERT(audio_out_buffer != nullptr);
-    int len = swr_convert(m_swrContext, &audio_out_buffer, size,
-                          (const uint8_t **)frame->avFrame()->data, frame->avFrame()->nb_samples);
-    if(len == size){
-        qWarning() << "audio_out_buffer is too small.";
-    }
+    QByteArray data;
+    int size = av_samples_get_buffer_size(nullptr, frame->avFrame()->channels,
+                                          frame->avFrame()->nb_samples, m_format, 0);
+    uint8_t *buf = new uint8_t[size];
+    int len = swr_convert(m_swrContext, &buf, frame->avFrame()->nb_samples,
+                          const_cast<const uint8_t**>(frame->avFrame()->data), frame->avFrame()->nb_samples);
+    data += QByteArray((const char *)(buf), size);
+    delete[] buf;
 
-    if(len > 0){
-        // 重采样后的数据流参数
-        int dst_bufsize = av_samples_get_buffer_size(0,  CHANNELS, len, AV_SAMPLE_FMT_S16, 1);
-        buf = QByteArray((char*)audio_out_buffer, dst_bufsize);
-    }else{
+    if(len <= 0){
         qWarning() << AVError::avErrorString(len);
     }
 
-    av_free(audio_out_buffer);
-    return buf;
+    return data;
 }
 
 }

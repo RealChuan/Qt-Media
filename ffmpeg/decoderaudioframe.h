@@ -4,6 +4,8 @@
 #include "decoder.h"
 #include "playframe.h"
 
+#include <QAudioFormat>
+
 namespace Ffmpeg {
 
 class DecoderAudioFramePrivate;
@@ -36,7 +38,11 @@ private:
     void checkSeek(QElapsedTimer &timer, qint64 &pauseTime);
     void checkSpeed(QElapsedTimer &timer, qint64 &pauseTime);
     void writeToDevice(QByteArray &audioBuf);
+    QAudioFormat resetAudioOutput();
+    void setAudioClock(double time);
 
+    static QMutex m_mutex;
+    static double m_audioClock;
     QScopedPointer<DecoderAudioFramePrivate> d_ptr;
 };
 

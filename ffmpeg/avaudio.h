@@ -3,8 +3,9 @@
 
 #include <QtCore>
 
-#define SAMPLE_RATE 48000
-#define CHANNELS 2
+extern "C"{
+#include <libavutil/samplefmt.h>
+}
 
 struct SwrContext;
 
@@ -15,13 +16,14 @@ class PlayFrame;
 class AVAudio
 {
 public:
-    AVAudio(CodecContext *codecCtx);
+    AVAudio(CodecContext *codecCtx, AVSampleFormat format);
     ~AVAudio();
 
-    QByteArray convert(PlayFrame *frame, CodecContext *codecCtx);
+    QByteArray convert(PlayFrame *frame);
 
 private:
     SwrContext *m_swrContext;
+    AVSampleFormat m_format;
 };
 
 }

@@ -51,6 +51,7 @@ signals:
 private:
     void findStreamIndex();
     void initMetaData();
+    void printInformation();
 
     QScopedPointer<FormatContextPrivate> d_ptr;
 };

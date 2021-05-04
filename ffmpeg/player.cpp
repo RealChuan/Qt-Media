@@ -200,19 +200,13 @@ bool Player::initAvCode()
         return false;
     }
 
-    emit durationChanged(d_ptr->formatCtx->duration());
-    emit positionChanged(0);
-
     //获取音视频流数据信息
     if(!d_ptr->formatCtx->findStream()){
         return false;
     }
 
-    if(d_ptr->formatCtx->audioMap().isEmpty()
-        && d_ptr->formatCtx->videoIndexs().isEmpty()){
-        qWarning() << tr("Didn't find a video and audio stream.");;
-        return false;
-    }
+    emit durationChanged(d_ptr->formatCtx->duration());
+    emit positionChanged(0);
 
     d_ptr->audioInfo->resetIndex();
     QMap<int, QString> audioTracks = d_ptr->formatCtx->audioMap();
@@ -224,11 +218,15 @@ bool Player::initAvCode()
         emit audioTrackChanged(audioTracks.value(audioIndex));
     }
 
+    if(!d_ptr->formatCtx->coverImage().isNull()){
+        emit readyRead(d_ptr->formatCtx->coverImage());
+    }
+
     d_ptr->videoInfo->resetIndex();
     if(!d_ptr->formatCtx->videoIndexs().isEmpty()){
-        int videoIndex = d_ptr->formatCtx->videoIndexs().first();
+        int videoIndex = d_ptr->formatCtx->videoIndexs().at(0);
         if(!setMediaIndex(d_ptr->videoInfo, videoIndex))
-            return false;
+            d_ptr->videoInfo->resetIndex();
     }
 
     d_ptr->subtitleInfo->resetIndex();
@@ -242,6 +240,8 @@ bool Player::initAvCode()
     }
 
     qDebug() << d_ptr->audioInfo->index() << d_ptr->videoInfo->index() << d_ptr->subtitleInfo->index();
+    if(!d_ptr->audioInfo->isIndexVaild() && !d_ptr->videoInfo->isIndexVaild())
+        return false;
 
     d_ptr->isopen = true;
 
@@ -265,7 +265,7 @@ void Player::playVideo()
         }else if(d_ptr->audioInfo->isIndexVaild() && packet.avPacket()->stream_index == d_ptr->audioInfo->index()){ // 如果是音频数据
             d_ptr->audioDecoder->append(packet);
         }else if(d_ptr->videoInfo->isIndexVaild() && packet.avPacket()->stream_index == d_ptr->videoInfo->index()
-                   && !(d_ptr->videoInfo->stream()->disposition &AV_DISPOSITION_ATTACHED_PIC)){ // 如果是视频数据
+                   && !(d_ptr->videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC)){ // 如果是视频数据
             d_ptr->videoDecoder->append(packet);
         }else if(d_ptr->subtitleInfo->isIndexVaild() && packet.avPacket()->stream_index == d_ptr->subtitleInfo->index()){
             d_ptr->subtitleDecoder->append(packet);
@@ -274,11 +274,12 @@ void Player::playVideo()
 
         checkSeek();
 
-        while(d_ptr->runing && d_ptr->videoDecoder->size() > 20 && !d_ptr->seek)
+        while(d_ptr->runing && !d_ptr->seek
+               && (d_ptr->videoDecoder->size() > 20 || d_ptr->audioDecoder->size() > 20))
             msleep(1);
     }
 
-    while(d_ptr->runing && d_ptr->videoDecoder->size() != 0)
+    while(d_ptr->runing && (d_ptr->videoDecoder->size() > 20 || d_ptr->audioDecoder->size() > 20))
         msleep(1);
     d_ptr->subtitleDecoder->stopDecoder();
     d_ptr->videoDecoder->stopDecoder();

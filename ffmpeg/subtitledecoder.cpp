@@ -21,7 +21,7 @@ SubtitleDecoder::SubtitleDecoder(QObject *parent)
     : Decoder<Packet>(parent)
     , d_ptr(new SubtitleDecoderPrivate(this))
 {
-    qRegisterMetaType<QVector<SubtitleImage>>("QVector<SubtitleImage>");
+    qRegisterMetaType<QVector<Ffmpeg::SubtitleImage>>("QVector<Ffmpeg::SubtitleImage>");
 }
 
 SubtitleDecoder::~SubtitleDecoder()

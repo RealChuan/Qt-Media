@@ -61,9 +61,7 @@ bool AVContextInfo::isIndexVaild()
 void AVContextInfo::setStream(AVStream *stream)
 {
     d_ptr->stream = stream;
-
-    double frameRate = av_q2d(stream->avg_frame_rate);
-    qDebug() << frameRate;
+    qDebug() << av_q2d(stream->avg_frame_rate);
 }
 
 AVStream *AVContextInfo::stream()
@@ -74,10 +72,10 @@ AVStream *AVContextInfo::stream()
 bool AVContextInfo::findDecoder()
 {
     Q_ASSERT(d_ptr->stream != nullptr);
-
+    const char *typeStr = av_get_media_type_string(d_ptr->stream->codecpar->codec_type);
     AVCodec *codec = avcodec_find_decoder(d_ptr->stream->codecpar->codec_id);
     if (!codec){
-        qWarning() <<  tr("Audio or Video Codec not found.");
+        qWarning() <<  tr("Audio or Video Codec not found: ") << typeStr;
         return false;
     }
 

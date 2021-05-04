@@ -11,6 +11,7 @@ namespace Ffmpeg {
 Packet::Packet()
 {
     m_packet = av_packet_alloc();
+    av_init_packet(m_packet);
     Q_ASSERT(nullptr != m_packet);
 }
 

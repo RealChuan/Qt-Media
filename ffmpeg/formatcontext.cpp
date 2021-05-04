@@ -7,6 +7,7 @@
 #include <QTime>
 
 extern "C"{
+#include <libavdevice/avdevice.h>
 #include <libavformat/avformat.h>
 }
 
@@ -16,6 +17,10 @@ class FormatContextPrivate{
 public:
     FormatContextPrivate(QObject *parent)
         : owner(parent){
+#if CONFIG_AVDEVICE
+        avdevice_register_all();
+#endif
+        avformat_network_init();
         formatCtx = avformat_alloc_context();
         Q_ASSERT(formatCtx != nullptr);
     }
@@ -63,10 +68,8 @@ bool FormatContext::openFilePath(const QString &filepath)
         emit error(AVError(ret));
         return false;
     }
+    av_format_inject_global_side_data(d_ptr->formatCtx);
     d_ptr->isOpen = true;
-    qInfo() << tr("AV Format Name: ") << d_ptr->formatCtx->iformat->name;
-    QTime time(QTime::fromMSecsSinceStartOfDay(d_ptr->formatCtx->duration / 1000));
-    qInfo() << tr("Duration:") << time.toString("hh:mm:ss.zzz");
     return true;
 }
 
@@ -88,6 +91,8 @@ bool FormatContext::findStream()
         emit error(AVError(ret));
         return false;
     }
+    qDebug() << "The video file contains the number of stream information:" << d_ptr->formatCtx->nb_streams;
+    printInformation();
     initMetaData();
     findStreamIndex();
     return true;
@@ -113,8 +118,7 @@ void FormatContext::findStreamIndex()
     d_ptr->videoIndexs.clear();
     d_ptr->audioMap.clear();
     d_ptr->subtitleMap.clear();
-
-    //av_find_best_stream
+    d_ptr->coverImage = QImage();
 
     //nb_streams视音频流的个数
     for (uint i = 0; i < d_ptr->formatCtx->nb_streams; i++){
@@ -157,6 +161,16 @@ void FormatContext::initMetaData()
     }
 }
 
+void FormatContext::printInformation()
+{
+    qInfo() << tr("AV Format Name: ") << d_ptr->formatCtx->iformat->name;
+    QTime time(QTime::fromMSecsSinceStartOfDay(d_ptr->formatCtx->duration / 1000));
+    qInfo() << tr("Duration:") << time.toString("hh:mm:ss.zzz");
+
+    if (d_ptr->formatCtx->pb)
+        d_ptr->formatCtx->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
+}
+
 AVStream *FormatContext::stream(int index)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
@@ -167,11 +181,10 @@ bool FormatContext::readFrame(Packet *packet)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     int ret = av_read_frame(d_ptr->formatCtx, packet->avPacket());
-    if(ret < 0){
-        emit error(AVError(ret));
-        return false;
-    }
-    return true;
+    if(ret >= 0)
+        return true;
+    emit error(AVError(ret));;
+    return false;
 }
 
 int FormatContext::checkPktPlayRange(Packet *packet)
