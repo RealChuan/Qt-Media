@@ -52,6 +52,7 @@ void VideoOutputWidget::onSubtitleImages(const QVector<SubtitleImage> &subtitleI
 void VideoOutputWidget::onFinish()
 {
     d_ptr->image = QImage();
+    d_ptr->subtitleImages.clear();
     update();
 }
 
@@ -59,8 +60,8 @@ void VideoOutputWidget::paintEvent(QPaintEvent *event)
 {
     QWidget::paintEvent(event);
 
-    QElapsedTimer timer;
-    timer.start();
+    //QElapsedTimer timer;
+    //timer.start();
 
     QPainter painter(this);
     painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
@@ -122,17 +123,18 @@ void VideoOutputWidget::checkSubtitle()
 
     QPainter painter(&d_ptr->image);
     painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
-    for(const SubtitleImage& subtitleimage: d_ptr->subtitleImages){
+    for(const SubtitleImage& subtitleimage: qAsConst(d_ptr->subtitleImages)){
         QRectF rectF = subtitleimage.rectF;
         if(!rectF.isValid()){
-            rectF = QRectF(0, d_ptr->image.height() / 12.0 * 11, d_ptr->image.width(), d_ptr->image.height() / 12.0);
+            double h = d_ptr->image.rect().height() / 20.0;
+            rectF = d_ptr->image.rect().adjusted(0, h, 0, -h);
         }
         if(subtitleimage.image.isNull()){
             QFont font = painter.font();
             font.setPixelSize(d_ptr->image.height() / 13.0);
             painter.setFont(font);
             painter.setPen(Qt::white);
-            painter.drawText(rectF, Qt::AlignCenter, subtitleimage.text);
+            painter.drawText(rectF, Qt::AlignHCenter | Qt::AlignBottom, subtitleimage.text);
         }else{
             painter.drawImage(rectF, subtitleimage.image);
         }

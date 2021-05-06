@@ -66,7 +66,7 @@ Player::Player(QObject *parent)
     qDebug() << avcodec_version();
     qRegisterMetaType<Ffmpeg::AVError>("Ffmpeg::AVError");
     buildConnect();
-    buildConnect2();
+    buildErrorConnect();
 }
 
 Player::~Player()
@@ -98,9 +98,8 @@ void Player::onStop()
 {
     buildConnect(false);
     d_ptr->runing = false;
-    if(isRunning()){
-        quit();
-        wait();
+    while(isRunning()){
+        Utils::msleep(100); // 不太好
     }
     d_ptr->formatCtx->close();
     setMediaState(MediaState::StoppedState);
@@ -259,7 +258,7 @@ void Player::playVideo()
 
     checkSeek();
 
-    while (d_ptr->runing && d_ptr->formatCtx->readFrame(&packet)){
+    while(d_ptr->runing && d_ptr->formatCtx->readFrame(&packet)){
         if(d_ptr->formatCtx->checkPktPlayRange(&packet) <= 0){
 
         }else if(d_ptr->audioInfo->isIndexVaild() && packet.avPacket()->stream_index == d_ptr->audioInfo->index()){ // 如果是音频数据
@@ -319,7 +318,7 @@ bool Player::setMediaIndex(AVContextInfo * contextInfo, int index)
     return true;
 }
 
-void Player::buildConnect2()
+void Player::buildErrorConnect()
 {
     connect(d_ptr->formatCtx, &FormatContext::error, this, &Player::error);
     connect(d_ptr->audioInfo, &AVContextInfo::error, this, &Player::error);

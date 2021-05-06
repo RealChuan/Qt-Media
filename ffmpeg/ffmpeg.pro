@@ -1,5 +1,5 @@
 include(../libs.pri)
-include(../ffmpeg.pri)
+include(ffmpeg.pri)
 
 QT += widgets multimedia
 

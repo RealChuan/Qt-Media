@@ -86,12 +86,11 @@ void DecoderVideoFrame::runDecoder()
         if(diff > 0){
             msleep(diff);
         }else if(speed() > 1.0){
-            continue; // speed > 1.0 drop
+            continue; // speed > 1.0 drop 其余 暂不丢弃
         }
         //基于信号槽的队列不可控，会产生堆积，不如自己建生成消费队列？
         emit readyRead(image); // 略慢于音频
     }
-    QThread::sleep(1); // 最后一帧
     m_contextInfo->clearImageBuffer();
 }
 

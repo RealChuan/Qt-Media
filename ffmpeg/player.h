@@ -68,7 +68,7 @@ private:
     void checkSeek();
     void setMediaState(MediaState mediaState);
     bool setMediaIndex(AVContextInfo * contextInfo, int index);
-    void buildConnect2();
+    void buildErrorConnect();
 
     QScopedPointer<PlayerPrivate> d_ptr;
 };
