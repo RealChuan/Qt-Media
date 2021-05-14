@@ -1,6 +1,7 @@
 #ifndef LOGASYNC_H
 #define LOGASYNC_H
 
+#include <QMutex>
 #include <QThread>
 
 #include "utils_global.h"
@@ -59,6 +60,7 @@ private:
     LogAsync(QObject *parent = nullptr);
     ~LogAsync() override;
 
+    static QMutex m_mutex;
     QScopedPointer<LogAsyncPrivate> d_ptr;
 };
 

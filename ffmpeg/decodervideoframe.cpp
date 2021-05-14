@@ -60,7 +60,8 @@ void DecoderVideoFrame::runDecoder()
     m_contextInfo->imageBuffer(frameRGB);
     AVImage avImage(m_contextInfo->codecCtx());
 
-    //int drop = 0;
+    qint64 dropNum = 0;
+    qint64 playNum = 0;
     while(m_runing){
         checkPause();
         checkSeek();
@@ -84,14 +85,16 @@ void DecoderVideoFrame::runDecoder()
 
         double diff = (pts - DecoderAudioFrame::audioClock()) * 1000;
         if(diff > 0){
+            playNum++;
             msleep(diff);
-        }else if(speed() > 1.0){
-            continue; // speed > 1.0 drop 其余 暂不丢弃
+        }else{
+            dropNum++;
         }
         //基于信号槽的队列不可控，会产生堆积，不如自己建生成消费队列？
         emit readyRead(image); // 略慢于音频
     }
     m_contextInfo->clearImageBuffer();
+    qDebug() << dropNum << playNum;
 }
 
 void DecoderVideoFrame::checkPause()

@@ -2,7 +2,6 @@
 
 #include <QDateTime>
 #include <QWaitCondition>
-#include <QMutex>
 #include <QFileInfoList>
 #include <QDir>
 #include <QTextStream>
@@ -49,12 +48,10 @@ void FileUtil::onWrite(const QString &msg)
         if(thisPeriod != d_ptr->startTime){
             d_ptr->count = 0;
             rollFile(0);
-            autoDelFile();
         }
     }
 
     d_ptr->stream << msg;
-    //d->file.write(msg.toUtf8().constData());
 }
 
 void FileUtil::onFlush()
@@ -85,6 +82,8 @@ bool FileUtil::rollFile(int count)
     QString filename = getFileName(&now);
     if(count){
         filename += QString(".%1").arg(count);
+    }else{
+        autoDelFile();
     }
     qint64 start = now / kRollPerSeconds_ * kRollPerSeconds_;
     if (now > d_ptr->lastRoll){
@@ -175,11 +174,11 @@ struct LogAsyncPrivate{
     QMutex mutex;
 };
 
-static QMutex g_mutex;
+QMutex LogAsync::m_mutex;
 
 LogAsync *LogAsync::instance()
 {
-    QMutexLocker locker(&g_mutex);
+    QMutexLocker locker(&m_mutex);
     static LogAsync log;
     return &log;
 }
