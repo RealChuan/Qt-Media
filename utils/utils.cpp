@@ -50,8 +50,14 @@ void Utils::windowCenter(QWidget *window)
 
 void Utils::msleep(int msec)
 {
+    if(msec <= 0){
+        qWarning() << QObject::tr("msec not <= 0!");
+        return;
+    }
     QEventLoop loop;
-    QTimer::singleShot(msec, &loop, &QEventLoop::quit);
+    QTimer timer;
+    QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit, Qt::UniqueConnection);
+    timer.start(msec);
     loop.exec();
 }
 
