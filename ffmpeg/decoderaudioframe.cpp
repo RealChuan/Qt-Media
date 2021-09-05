@@ -121,7 +121,7 @@ void DecoderAudioFrame::runDecoder()
             msleep(1);
             continue;
         }
-        PlayFrame frame = m_queue.takeFirst();
+        PlayFrame frame = m_queue.dequeue();
 
         double duration = 0;
         double pts = 0;

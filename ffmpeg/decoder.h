@@ -35,18 +35,18 @@ public:
 
     virtual void stopDecoder()
     {
-        clear();
         m_runing = false;
         if(isRunning()){
             quit();
             wait();
         }
+        clear();
         m_seekTime = 0;
     }
 
-    void append(const T& t) { m_queue.append(t); }
+    void append(const T& t) { m_queue.enqueue(t); }
 
-    int size() { return m_queue.size(); };
+    int size() { return m_queue.size(); }
 
     void clear() { m_queue.clear(); }
 

@@ -59,7 +59,7 @@ void VideoDecoder::runDecoder()
             continue;
         }
 
-        Packet packet = m_queue.takeFirst();
+        Packet packet = m_queue.dequeue();
 
         if(!m_contextInfo->sendPacket(&packet)){
             continue;

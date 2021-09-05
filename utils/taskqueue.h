@@ -23,29 +23,29 @@ public:
     {}
     ~Queue(){}
 
-    bool append(const T& t)
+    bool enqueue(const T& t)
     {
         QMutexLocker locker(&m_mutex);
         if(m_T.size() >= m_maxSize)
             return false;
-        m_T.append(std::move(t));
+        m_T.enqueue(t);
         return true;
     }
 
-    bool append(T&& t)
+    bool enqueue(T&& t)
     {
         QMutexLocker locker(&m_mutex);
         if(m_T.size() >= m_maxSize)
             return false;
-        m_T.append(std::move(t));
+        m_T.enqueue(t);
         return true;
     }
 
-    T takeFirst()
+    T dequeue()
     {
         QMutexLocker locker(&m_mutex);
         if(!m_T.isEmpty())
-            return m_T.takeFirst();
+            return m_T.dequeue();
         return T();
     }
 

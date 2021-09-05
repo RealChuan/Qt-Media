@@ -59,7 +59,7 @@ void SubtitleDecoder::runDecoder()
             continue;
         }
 
-        Packet packet = m_queue.takeFirst();
+        Packet packet = m_queue.dequeue();
 
         if(!m_contextInfo->decodeSubtitle2(&subtitle, &packet)){
             continue;

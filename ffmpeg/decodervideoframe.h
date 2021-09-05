@@ -4,9 +4,17 @@
 #include "decoder.h"
 #include "playframe.h"
 
+#include <utils/taskqueue.h>
+
 struct AVFrame;
 
 namespace Ffmpeg {
+
+struct VideoFrame
+{
+    double pts = 0;
+    QImage image;
+};
 
 class DecoderVideoFramePrivate;
 class DecoderVideoFrame : public Decoder<PlayFrame>
@@ -19,6 +27,8 @@ public:
     void stopDecoder() override;
 
     void pause(bool state) override;
+
+    static Utils::Queue<VideoFrame> videoFrameQueue;
 
 signals:
     void readyRead(const QImage &image);

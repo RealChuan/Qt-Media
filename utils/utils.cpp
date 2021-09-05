@@ -12,39 +12,42 @@ void Utils::setUTF8Code()
 void Utils::setQSS()
 {
     Json json("./config/config.json", true);
-    QStringList qssPath = json.getValue("qss_files").toStringList();
+    const QStringList qssPath = json.getValue("qss_files").toStringList();
     QString qss;
-    for(const QString& path: qssPath){
-        qDebug() << QString(QObject::tr("Loading QSS file: %1.")).arg(path);
+    for(const QString& path: qAsConst(qssPath)){
+        qDebug() << QObject::tr("Loading QSS file: %1.").arg(path);
         QFile file(path);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)){
-            qDebug() << QString(QObject::tr("Cannot open the file: %1!")).arg(path)
+            qDebug() << QObject::tr("Cannot open the file: %1!").arg(path)
                      << file.errorString();
             continue;
         }
         qss.append(QLatin1String(file.readAll())).append("\n");
         file.close();
     }
-    if(!qss.isEmpty())
-        qApp->setStyleSheet(qss);
+    if(qss.isEmpty())
+        return;
+    qApp->setStyleSheet(qss);
 }
 
 void Utils::loadFonts()
 {
     Json json("./config/config.json", true);
-    QStringList fontFiles = json.getValue("font_files").toStringList();
+    const QStringList fontFiles = json.getValue("font_files").toStringList();
 
-    for (const QString &file : fontFiles) {
-        qDebug() << QString(QObject::tr("Loading Font file: %1")).arg(file);
+    for (const QString &file : qAsConst(fontFiles)) {
+        qDebug() << QObject::tr("Loading Font file: %1").arg(file);
         QFontDatabase::addApplicationFont(file);
     }
 }
 
 void Utils::windowCenter(QWidget *window)
 {
-    QSize size = qApp->primaryScreen()->availableSize() - window->size();
-    int x = qMax(0, size.width() / 2);
-    int y = qMax(0, size.height() / 2);
+    const QRect rect = qApp->primaryScreen()->availableGeometry();
+    int x = (rect.width() - window->width()) / 2 + rect.x();
+    int y = (rect.height() - window->height()) / 2 + rect.y();
+    x = qMax(0, x);
+    y = qMax(0, y);
     window->move(x, y);
 }
 
@@ -77,10 +80,9 @@ QString compilerString()
 
 void Utils::printBuildInfo()
 {
-    QString info = QString("Qt %1 (%2, %3 bit)")
-                       .arg(qVersion())
-                       .arg(compilerString())
-                       .arg(QSysInfo::WordSize);
+    const QString info = QString("Qt %1 (%2, %3 bit)")
+                             .arg(qVersion(),  compilerString(),
+                                  QString::number(QSysInfo::WordSize));
     qDebug() << QObject::tr("Build with: ") << info;
 }
 

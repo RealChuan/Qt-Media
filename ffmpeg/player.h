@@ -45,6 +45,7 @@ public slots:
     void onSeek(int timestamp); // s
     void onSetAudioTracks(const QString &text);
     void onSetSubtitleStream(const QString &text);
+    void onPlayOneFrame();
 
 signals:
     void readyRead(const QImage &image);
@@ -57,6 +58,7 @@ signals:
     void subtitleStreamChanged(const QString &stream);
     void subtitleImages(const QVector<Ffmpeg::SubtitleImage>&);
     void error(const Ffmpeg::AVError& avError);
+    void end();
 
 protected:
     void run() override;

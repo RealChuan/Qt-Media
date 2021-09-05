@@ -24,6 +24,8 @@ public:
     QWaitCondition waitCondition;
 };
 
+Utils::Queue<VideoFrame> DecoderVideoFrame::videoFrameQueue;
+
 DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
     : Decoder<PlayFrame>(parent)
     , d_ptr(new DecoderVideoFramePrivate(this))
@@ -60,8 +62,7 @@ void DecoderVideoFrame::runDecoder()
     m_contextInfo->imageBuffer(frameRGB);
     AVImage avImage(m_contextInfo->codecCtx());
 
-    qint64 dropNum = 0;
-    qint64 playNum = 0;
+    quint64 dropNum = 0;
     while(m_runing){
         checkPause();
         checkSeek();
@@ -71,7 +72,7 @@ void DecoderVideoFrame::runDecoder()
             continue;
         }
 
-        PlayFrame frame = m_queue.takeFirst();
+        PlayFrame frame = m_queue.dequeue();
 
         double duration = 0;
         double pts = 0;
@@ -84,17 +85,20 @@ void DecoderVideoFrame::runDecoder()
         QImage image(frameRGB.toImage(m_contextInfo->codecCtx()));
 
         double diff = (pts - DecoderAudioFrame::audioClock()) * 1000;
-        if(diff > 0){
-            playNum++;
-            msleep(diff);
-        }else{
+        if(diff <= 0){
             dropNum++;
+            continue;
+        }else{
+            msleep(diff);
         }
+
         //基于信号槽的队列不可控，会产生堆积，不如自己建生成消费队列？
         emit readyRead(image); // 略慢于音频
+        // 消息队列播放一卡一卡的
+        //videoFrameQueue.enqueue(VideoFrame{pts, image});
     }
     m_contextInfo->clearImageBuffer();
-    qDebug() << dropNum << playNum;
+    qDebug() << dropNum;
 }
 
 void DecoderVideoFrame::checkPause()

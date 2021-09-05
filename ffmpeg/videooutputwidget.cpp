@@ -53,7 +53,7 @@ void VideoOutputWidget::onFinish()
 {
     d_ptr->image = QImage();
     d_ptr->subtitleImages.clear();
-    update();
+    //update();
 }
 
 void VideoOutputWidget::paintEvent(QPaintEvent *event)

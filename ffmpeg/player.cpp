@@ -11,6 +11,8 @@
 #include "videooutputwidget.h"
 #include "subtitledecoder.h"
 #include "averror.h"
+#include "decodervideoframe.h"
+#include "decoderaudioframe.h"
 
 #include <utils/utils.h>
 
@@ -56,6 +58,9 @@ public:
     qint64 seekTime = 0; // seconds
 
     volatile Player::MediaState mediaState = Player::MediaState::StoppedState;
+
+    VideoFrame videoFrame;
+    QTimer timer;
 };
 
 Player::Player(QObject *parent)
@@ -92,15 +97,33 @@ void Player::onPlay()
     setMediaState(MediaState::PlayingState);
     d_ptr->runing = true;
     start();
+    DecoderVideoFrame::videoFrameQueue.clear();
+    d_ptr->videoFrame = VideoFrame{};
+    if(d_ptr->videoInfo->isIndexVaild()){
+        //d_ptr->timer.start(10);
+    }
 }
 
 void Player::onStop()
 {
+    d_ptr->timer.stop();
+    d_ptr->videoFrame = VideoFrame{};
     buildConnect(false);
     d_ptr->runing = false;
+    //if(isRunning()){
+    //    quit();
+    //    wait();
+    //}
+    // 临时策略
     while(isRunning()){
-        Utils::msleep(100); // 不太好
+        qApp->processEvents();
     }
+    int count = 100;
+    while(count-- > 0){
+        qApp->processEvents();
+    }
+    emit end();
+    DecoderVideoFrame::videoFrameQueue.clear();
     d_ptr->formatCtx->close();
     setMediaState(MediaState::StoppedState);
 }
@@ -160,6 +183,27 @@ void Player::onSetSubtitleStream(const QString &text)
     emit subtitleStreamChanged(text);
     onSeek(d_ptr->audioDecoder->audioClock());
     onPlay();
+}
+
+void Player::onPlayOneFrame()
+{
+    if(!d_ptr->videoFrame.image.isNull()){
+        emit readyRead(d_ptr->videoFrame.image);
+    }
+
+    double diff = -1;
+    while(diff < 0){
+        if(DecoderVideoFrame::videoFrameQueue.isEmpty()){
+            d_ptr->videoFrame = VideoFrame{};
+            return;
+        }
+        d_ptr->videoFrame = DecoderVideoFrame::videoFrameQueue.dequeue();
+        diff = (d_ptr->videoFrame.pts - DecoderAudioFrame::audioClock()) * 1000;
+    }
+    if(diff < 1){
+        diff = 1;
+    }
+    d_ptr->timer.start(diff);
 }
 
 bool Player::isOpen()
@@ -252,9 +296,9 @@ bool Player::initAvCode()
 void Player::playVideo()
 {
     Packet packet;
-    d_ptr->audioDecoder->startDecoder(d_ptr->formatCtx, d_ptr->audioInfo);
     d_ptr->videoDecoder->startDecoder(d_ptr->formatCtx, d_ptr->videoInfo);
     d_ptr->subtitleDecoder->startDecoder(d_ptr->formatCtx, d_ptr->subtitleInfo);
+    d_ptr->audioDecoder->startDecoder(d_ptr->formatCtx, d_ptr->audioInfo);
 
     checkSeek();
 
@@ -274,7 +318,8 @@ void Player::playVideo()
         checkSeek();
 
         while(d_ptr->runing && !d_ptr->seek
-               && (d_ptr->videoDecoder->size() > 20 || d_ptr->audioDecoder->size() > 20))
+               && (d_ptr->videoDecoder->size() > 20 || d_ptr->audioDecoder->size() > 20
+                   || DecoderVideoFrame::videoFrameQueue.size() > 20))
             msleep(1);
     }
 
@@ -348,7 +393,8 @@ Player::MediaState Player::mediaState()
 void Player::setVideoOutputWidget(VideoOutputWidget *widget)
 {
     connect(this, &Player::readyRead, widget, &VideoOutputWidget::onReadyRead, Qt::UniqueConnection);
-    connect(this, &Player::finished, widget, &VideoOutputWidget::onFinish, Qt::UniqueConnection);
+    //connect(this, &Player::finished, widget, &VideoOutputWidget::onFinish, Qt::UniqueConnection);
+    connect(this, &Player::end, widget, &VideoOutputWidget::onFinish, Qt::UniqueConnection);
     connect(this, &Player::subtitleImages, widget, &VideoOutputWidget::onSubtitleImages, Qt::UniqueConnection);
 }
 
@@ -370,6 +416,7 @@ void Player::buildConnect(bool state)
         disconnect(d_ptr->audioDecoder, &AudioDecoder::positionChanged, this, &Player::positionChanged);
         disconnect(d_ptr->subtitleDecoder, &SubtitleDecoder::subtitleImages, this, &Player::subtitleImages);
     }
+    //connect(&d_ptr->timer, &QTimer::timeout, this, &Player::onPlayOneFrame, Qt::UniqueConnection);
 }
 
 }
