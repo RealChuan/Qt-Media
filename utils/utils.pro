@@ -1,6 +1,6 @@
 include(../libs.pri)
 
-QT += widgets
+QT += widgets core5compat
 
 DEFINES += UTILS_LIBRARY
 TARGET = $$replaceLibName(utils)

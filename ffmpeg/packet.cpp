@@ -2,7 +2,7 @@
 
 #include <QtCore>
 
-extern "C"{
+extern "C" {
 #include <libavcodec/avcodec.h>
 }
 
@@ -11,7 +11,6 @@ namespace Ffmpeg {
 Packet::Packet()
 {
     m_packet = av_packet_alloc();
-    av_init_packet(m_packet);
     Q_ASSERT(nullptr != m_packet);
 }
 
@@ -37,4 +36,4 @@ AVPacket *Packet::avPacket()
     return m_packet;
 }
 
-}
+} // namespace Ffmpeg

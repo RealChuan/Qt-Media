@@ -17,7 +17,7 @@ struct VideoFrame
 };
 
 class DecoderVideoFramePrivate;
-class DecoderVideoFrame : public Decoder<PlayFrame>
+class DecoderVideoFrame : public Decoder<PlayFrame *>
 {
     Q_OBJECT
 public:

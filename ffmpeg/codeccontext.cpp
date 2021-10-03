@@ -1,12 +1,12 @@
 #include "codeccontext.h"
+#include "averror.h"
 #include "packet.h"
 #include "playframe.h"
 #include "subtitle.h"
-#include "averror.h"
 
 #include <QDebug>
 
-extern "C"{
+extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/imgutils.h>
 }
@@ -36,7 +36,7 @@ bool CodecContext::setParameters(const AVCodecParameters *par)
 {
     Q_ASSERT(m_codecCtx != nullptr);
     int ret = avcodec_parameters_to_context(m_codecCtx, par);
-    if(ret < 0){
+    if (ret < 0) {
         emit error(AVError(ret));
         return false;
     }
@@ -58,7 +58,7 @@ void CodecContext::setTimebase(const AVRational &timebase)
 bool CodecContext::open(AVCodec *codec)
 {
     int ret = avcodec_open2(m_codecCtx, codec, NULL);
-    if (ret < 0){
+    if (ret < 0) {
         emit error(AVError(ret));
         return false;
     }
@@ -68,7 +68,7 @@ bool CodecContext::open(AVCodec *codec)
 bool CodecContext::sendPacket(Packet *packet)
 {
     int ret = avcodec_send_packet(m_codecCtx, packet->avPacket());
-    if(ret < 0){
+    if (ret < 0) {
         emit error(AVError(ret));
         return false;
     }
@@ -78,9 +78,9 @@ bool CodecContext::sendPacket(Packet *packet)
 bool CodecContext::receiveFrame(PlayFrame *frame)
 {
     int ret = avcodec_receive_frame(m_codecCtx, frame->avFrame());
-    if(ret >= 0)
+    if (ret >= 0)
         return true;
-    if(ret != -11) // Resource temporarily unavailable
+    if (ret != -11) // Resource temporarily unavailable
         emit error(AVError(ret));
     return false;
 }
@@ -88,29 +88,31 @@ bool CodecContext::receiveFrame(PlayFrame *frame)
 bool CodecContext::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
 {
     int got_sub_ptr = 0;
-    int ret = avcodec_decode_subtitle2(m_codecCtx, subtitle->avSubtitle(), &got_sub_ptr, packet->avPacket());
-    if(ret < 0 || got_sub_ptr <= 0){
+    int ret = avcodec_decode_subtitle2(m_codecCtx,
+                                       subtitle->avSubtitle(),
+                                       &got_sub_ptr,
+                                       packet->avPacket());
+    if (ret < 0 || got_sub_ptr <= 0) {
         emit error(AVError(ret));
         return false;
     }
     return true;
 }
 
-unsigned char *CodecContext::imageBuffer(PlayFrame &frame)
+bool CodecContext::imageAlloc(PlayFrame &frame)
 {
-    m_out_buffer = (unsigned char *)av_malloc(av_image_get_buffer_size(AV_PIX_FMT_RGB32, width(), height(), 1));
-    int ret = av_image_fill_arrays(frame.avFrame()->data, frame.avFrame()->linesize, m_out_buffer,
-                                   AV_PIX_FMT_RGB32, width(), height(), 1);
-    if(ret < 0){
-        emit error(AVError(ret));
-    }
-    return m_out_buffer;
-}
+    int ret = av_image_alloc(frame.avFrame()->data,
+                             frame.avFrame()->linesize,
+                             width(),
+                             height(),
+                             AV_PIX_FMT_RGB32,
+                             1);
 
-void CodecContext::clearImageBuffer()
-{
-    if(m_out_buffer != nullptr)
-        av_free(m_out_buffer);
+    if (ret < 0) {
+        emit error(AVError(ret));
+        return false;
+    }
+    return true;
 }
 
 int CodecContext::width()
@@ -128,4 +130,4 @@ void CodecContext::flush()
     avcodec_flush_buffers(m_codecCtx);
 }
 
-}
+} // namespace Ffmpeg

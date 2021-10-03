@@ -1,6 +1,6 @@
 include(../libs.pri)
 
-QT += widgets concurrent
+QT += widgets concurrent openglwidgets
 
 DEFINES += MAINWINDOW_LIBRARY
 TARGET = $$replaceLibName(mainwindow)

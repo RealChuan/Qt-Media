@@ -1,8 +1,8 @@
 #ifndef DECODER_H
 #define DECODER_H
 
-#include <QThread>
 #include <QDebug>
+#include <QThread>
 #include <QWaitCondition>
 
 #include <utils/taskqueue.h>
@@ -10,9 +10,9 @@
 #include "avcontextinfo.h"
 #include "formatcontext.h"
 
-extern "C"{
-#include <libavutil/time.h>
+extern "C" {
 #include <libavformat/avformat.h>
+#include <libavutil/time.h>
 }
 
 namespace Ffmpeg {
@@ -21,7 +21,9 @@ template<typename T>
 class Decoder : public QThread
 {
 public:
-    Decoder(QObject *parent = nullptr) : QThread(parent) {}
+    Decoder(QObject *parent = nullptr)
+        : QThread(parent)
+    {}
     virtual ~Decoder() override { stopDecoder(); }
 
     void startDecoder(FormatContext *formatContext, AVContextInfo *contextInfo)
@@ -36,7 +38,7 @@ public:
     virtual void stopDecoder()
     {
         m_runing = false;
-        if(isRunning()){
+        if (isRunning()) {
             quit();
             wait();
         }
@@ -44,18 +46,18 @@ public:
         m_seekTime = 0;
     }
 
-    void append(const T& t) { m_queue.enqueue(t); }
+    void append(const T &t) { m_queue.enqueue(t); }
 
     int size() { return m_queue.size(); }
 
-    void clear() { m_queue.clear(); }
+    void clear() { m_queue.clearPoints(); }
 
     virtual void pause(bool state) = 0;
 
     void seek(qint64 seekTime)
     {
         assertVaild();
-        if(!m_contextInfo->isIndexVaild())
+        if (!m_contextInfo->isIndexVaild())
             return;
         m_seek = true;
         m_seekTime = seekTime;
@@ -88,7 +90,7 @@ protected:
     void run() override final
     {
         assertVaild();
-        if(!m_contextInfo->isIndexVaild())
+        if (!m_contextInfo->isIndexVaild())
             return;
         runDecoder();
     }
@@ -96,9 +98,13 @@ protected:
     void calculateTime(AVFrame *frame, double &duration, double &pts)
     {
         AVRational tb = m_contextInfo->stream()->time_base;
-        AVRational frame_rate = av_guess_frame_rate(m_formatContext->avFormatContext(), m_contextInfo->stream(), NULL);
+        AVRational frame_rate = av_guess_frame_rate(m_formatContext->avFormatContext(),
+                                                    m_contextInfo->stream(),
+                                                    NULL);
         // 当前帧播放时长
-        duration = (frame_rate.num && frame_rate.den ? av_q2d(AVRational{frame_rate.den, frame_rate.num}) : 0);
+        duration = (frame_rate.num && frame_rate.den
+                        ? av_q2d(AVRational{frame_rate.den, frame_rate.num})
+                        : 0);
         // 当前帧显示时间戳
         pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
         //qDebug() << duration << pts;
@@ -145,6 +151,6 @@ protected:
     QWaitCondition m_waitCondition;
 };
 
-}
+} // namespace Ffmpeg
 
 #endif // DECODER_H

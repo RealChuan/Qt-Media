@@ -31,8 +31,7 @@ public:
     bool receiveFrame(PlayFrame *frame);
     bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
 
-    unsigned char *imageBuffer(PlayFrame &frame);
-    void clearImageBuffer();
+    bool imageAlloc(PlayFrame &frame);
 
     int width();
     int height();
@@ -40,13 +39,12 @@ public:
     void flush();
 
 signals:
-    void error(const Ffmpeg::AVError& avError);
+    void error(const Ffmpeg::AVError &avError);
 
 private:
     AVCodecContext *m_codecCtx; //解码器上下文
-    unsigned char *m_out_buffer;
 };
 
-}
+} // namespace Ffmpeg
 
 #endif // CODECCONTEXT_H

@@ -9,7 +9,7 @@ class Packet
 {
 public:
     explicit Packet();
-    Packet(const Packet& other);
+    Packet(const Packet &other);
     ~Packet();
 
     void clear();
@@ -20,6 +20,6 @@ private:
     AVPacket *m_packet;
 };
 
-}
+} // namespace Ffmpeg
 
 #endif // PACKET_H

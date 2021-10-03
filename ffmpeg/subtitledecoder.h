@@ -8,7 +8,7 @@
 namespace Ffmpeg {
 
 class SubtitleDecoderPrivate;
-class SubtitleDecoder : public Decoder<Packet>
+class SubtitleDecoder : public Decoder<Packet *>
 {
     Q_OBJECT
 public:

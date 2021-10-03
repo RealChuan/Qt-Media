@@ -7,10 +7,12 @@
 
 namespace Ffmpeg {
 
-class VideoDecoderPrivate{
+class VideoDecoderPrivate
+{
 public:
     VideoDecoderPrivate(QObject *parent)
-        : owner(parent){
+        : owner(parent)
+    {
         decoderVideoFrame = new DecoderVideoFrame(owner);
     }
 
@@ -20,16 +22,13 @@ public:
 };
 
 VideoDecoder::VideoDecoder(QObject *parent)
-    : Decoder<Packet>(parent)
+    : Decoder<Packet *>(parent)
     , d_ptr(new VideoDecoderPrivate(this))
 {
     connect(d_ptr->decoderVideoFrame, &DecoderVideoFrame::readyRead, this, &VideoDecoder::readyRead);
 }
 
-VideoDecoder::~VideoDecoder()
-{
-
-}
+VideoDecoder::~VideoDecoder() {}
 
 void VideoDecoder::pause(bool state)
 {
@@ -38,46 +37,46 @@ void VideoDecoder::pause(bool state)
 
 void VideoDecoder::setSpeed(double speed)
 {
-    Decoder<Packet>::setSpeed(speed);
+    Decoder<Packet *>::setSpeed(speed);
     d_ptr->decoderVideoFrame->setSpeed(speed);
 }
 
 void VideoDecoder::runDecoder()
 {
-    PlayFrame frame;
-
     d_ptr->decoderVideoFrame->startDecoder(m_formatContext, m_contextInfo);
 
-    while(m_runing){
-        if(m_seek){
+    while (m_runing) {
+        if (m_seek) {
             d_ptr->decoderVideoFrame->seek(m_seekTime);
             seekFinish();
         }
 
-        if(m_queue.isEmpty()){
+        if (m_queue.isEmpty()) {
             msleep(1);
             continue;
         }
 
-        Packet packet = m_queue.dequeue();
+        QScopedPointer<Packet> packetPtr(m_queue.dequeue());
 
-        if(!m_contextInfo->sendPacket(&packet)){
-            continue;
-        }
-        if(!m_contextInfo->receiveFrame(&frame)){ // 一个packet一个视频帧
+        if (!m_contextInfo->sendPacket(packetPtr.data())) {
             continue;
         }
 
-        d_ptr->decoderVideoFrame->append(frame);
+        std::unique_ptr<PlayFrame> framePtr(new PlayFrame);
+        if (!m_contextInfo->receiveFrame(framePtr.get())) { // 一个packet一个视频帧
+            continue;
+        }
 
-        while(m_runing && d_ptr->decoderVideoFrame->size() > 10 && !m_seek)
+        d_ptr->decoderVideoFrame->append(framePtr.release());
+
+        while (m_runing && d_ptr->decoderVideoFrame->size() > 10 && !m_seek) {
             msleep(1);
+        }
     }
-
-    while(m_runing && d_ptr->decoderVideoFrame->size() != 0)
+    while (m_runing && d_ptr->decoderVideoFrame->size() != 0) {
         msleep(40);
-
+    }
     d_ptr->decoderVideoFrame->stopDecoder();
 }
 
-}
+} // namespace Ffmpeg

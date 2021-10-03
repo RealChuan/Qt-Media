@@ -2,19 +2,24 @@
 #include "avaudio.h"
 #include "codeccontext.h"
 
-#include <QAudioOutput>
+#include <QAudioDevice>
+#include <QAudioSink>
+#include <QMediaDevices>
+#include <QMediaFormat>
 
 namespace Ffmpeg {
 
-class DecoderAudioFramePrivate{
+class DecoderAudioFramePrivate
+{
 public:
     DecoderAudioFramePrivate(QObject *parent)
-        : owner(parent) {}
+        : owner(parent)
+    {}
     ~DecoderAudioFramePrivate() {}
 
     QObject *owner;
 
-    QScopedPointer<QAudioOutput> audioOutput;
+    QScopedPointer<QAudioSink> audioSink;
     QIODevice *audioDevice;
     qreal volume = 0.5;
 
@@ -27,30 +32,25 @@ public:
 };
 
 DecoderAudioFrame::DecoderAudioFrame(QObject *parent)
-    : Decoder<PlayFrame>(parent)
+    : Decoder<PlayFrame *>(parent)
     , d_ptr(new DecoderAudioFramePrivate(this))
-{
+{}
 
-}
-
-DecoderAudioFrame::~DecoderAudioFrame()
-{
-
-}
+DecoderAudioFrame::~DecoderAudioFrame() {}
 
 void DecoderAudioFrame::stopDecoder()
 {
     pause(false);
-    Decoder<PlayFrame>::stopDecoder();
+    Decoder<PlayFrame *>::stopDecoder();
 }
 
 void DecoderAudioFrame::pause(bool state)
 {
-    if(!isRunning())
+    if (!isRunning())
         return;
 
     d_ptr->pause = state;
-    if(state)
+    if (state)
         return;
     d_ptr->waitCondition.wakeOne();
 }
@@ -63,13 +63,13 @@ bool DecoderAudioFrame::isPause()
 void DecoderAudioFrame::setVolume(qreal volume)
 {
     d_ptr->volume = volume;
-    if(d_ptr->audioOutput)
-        d_ptr->audioOutput->setVolume(volume);
+    if (d_ptr->audioSink)
+        d_ptr->audioSink->setVolume(volume);
 }
 
 void DecoderAudioFrame::setSpeed(double speed)
 {
-    Decoder<PlayFrame>::setSpeed(speed);
+    Decoder<PlayFrame *>::setSpeed(speed);
     d_ptr->speedChanged = true;
 }
 
@@ -88,17 +88,16 @@ void DecoderAudioFrame::setAudioClock(double time)
     m_audioClock = time;
 }
 
-AVSampleFormat converSampleFormat(QAudioFormat::SampleType format)
+AVSampleFormat converSampleFormat(QAudioFormat::SampleFormat format)
 {
     AVSampleFormat type;
     switch (format) {
-    case QAudioFormat::Float:
-        type = AV_SAMPLE_FMT_FLT;
-        break;
-    default:
-    case QAudioFormat::SignedInt:
-        type = AV_SAMPLE_FMT_S32;
-        break;
+    case QAudioFormat::Unknown: type = AV_SAMPLE_FMT_NONE; break;
+    case QAudioFormat::UInt8: type = AV_SAMPLE_FMT_U8; break;
+    case QAudioFormat::Int16: type = AV_SAMPLE_FMT_S16; break;
+    case QAudioFormat::Int32: type = AV_SAMPLE_FMT_S32; break;
+    case QAudioFormat::Float: type = AV_SAMPLE_FMT_FLT; break;
+    default: break;
     }
     return type;
 }
@@ -106,36 +105,36 @@ AVSampleFormat converSampleFormat(QAudioFormat::SampleType format)
 void DecoderAudioFrame::runDecoder()
 {
     QAudioFormat format = resetAudioOutput();
-    AVSampleFormat fmt = converSampleFormat(format.sampleType());
+    AVSampleFormat fmt = converSampleFormat(format.sampleFormat());
     setAudioClock(0);
     AVAudio avAudio(m_contextInfo->codecCtx(), fmt);
     qint64 pauseTime = 0;
     QElapsedTimer timer;
     timer.start();
-    while(m_runing){
+    while (m_runing) {
         checkPause(pauseTime);
         checkSeek(timer, pauseTime);
         checkSpeed(timer, pauseTime);
 
-        if(m_queue.isEmpty()){
+        if (m_queue.isEmpty()) {
             msleep(1);
             continue;
         }
-        PlayFrame frame = m_queue.dequeue();
+        QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
 
         double duration = 0;
         double pts = 0;
-        calculateTime(frame.avFrame(), duration, pts);
-        if(m_seekTime > pts)
+        calculateTime(framePtr->avFrame(), duration, pts);
+        if (m_seekTime > pts)
             continue;
         setAudioClock(pts);
 
-        QByteArray audioBuf = avAudio.convert(&frame);
+        QByteArray audioBuf = avAudio.convert(framePtr.data());
         double speed_ = speed();
         double diff = pts * 1000 - d_ptr->seekTime - (timer.elapsed() - pauseTime) * speed_;
-        if(diff > 0){
+        if (diff > 0) {
             msleep(diff);
-        }else if(speed_ > 1.0){
+        } else if (speed_ > 1.0) {
             continue; // speed > 1.0 drop
         }
 
@@ -148,19 +147,19 @@ void DecoderAudioFrame::checkPause(qint64 &pauseTime)
 {
     QElapsedTimer timerPause;
     timerPause.start();
-    while(d_ptr->pause){
+    while (d_ptr->pause) {
         msleep(100);
         QMutexLocker locker(&d_ptr->mutex);
         d_ptr->waitCondition.wait(&d_ptr->mutex);
     }
-    if(timerPause.elapsed() > 100){
+    if (timerPause.elapsed() > 100) {
         pauseTime += timerPause.elapsed();
     }
 }
 
 void DecoderAudioFrame::checkSeek(QElapsedTimer &timer, qint64 &pauseTime)
 {
-    if(!m_seek)
+    if (!m_seek)
         return;
 
     seekCodec(m_seekTime);
@@ -173,7 +172,7 @@ void DecoderAudioFrame::checkSeek(QElapsedTimer &timer, qint64 &pauseTime)
 
 void DecoderAudioFrame::checkSpeed(QElapsedTimer &timer, qint64 &pauseTime)
 {
-    if(!d_ptr->speedChanged)
+    if (!d_ptr->speedChanged)
         return;
 
     d_ptr->seekTime = audioClock() * 1000;
@@ -184,9 +183,9 @@ void DecoderAudioFrame::checkSpeed(QElapsedTimer &timer, qint64 &pauseTime)
 
 void DecoderAudioFrame::writeToDevice(QByteArray &audioBuf)
 {
-    while(d_ptr->audioOutput->bytesFree() < audioBuf.size()){
-        int byteFree = d_ptr->audioOutput->bytesFree();
-        if(byteFree > 0){
+    while (d_ptr->audioSink->bytesFree() < audioBuf.size()) {
+        int byteFree = d_ptr->audioSink->bytesFree();
+        if (byteFree > 0) {
             d_ptr->audioDevice->write(audioBuf.data(), byteFree);
             audioBuf = audioBuf.mid(byteFree);
         }
@@ -198,30 +197,41 @@ void DecoderAudioFrame::writeToDevice(QByteArray &audioBuf)
 QAudioFormat DecoderAudioFrame::resetAudioOutput()
 {
     AVCodecContext *ctx = m_contextInfo->codecCtx()->avCodecCtx();
+    int sampleSzie = 0;
     QAudioFormat format;
-    format.setCodec("audio/pcm");
+    //format.setCodec("audio/pcm");
     format.setSampleRate(ctx->sample_rate);
     format.setChannelCount(ctx->channels);
-    format.setByteOrder(QAudioFormat::LittleEndian);
-    if (ctx->sample_fmt == AV_SAMPLE_FMT_FLT) {
-        format.setSampleType(QAudioFormat::Float);
-        format.setSampleSize(8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT));
+    //format.setByteOrder(QAudioFormat::LittleEndian);
+    if (ctx->sample_fmt == AV_SAMPLE_FMT_U8) {
+        format.setSampleFormat(QAudioFormat::UInt8);
+        sampleSzie = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_U8);
+    } else if (ctx->sample_fmt == AV_SAMPLE_FMT_S16) {
+        format.setSampleFormat(QAudioFormat::Int16);
+        sampleSzie = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
+    } /*else if (ctx->sample_fmt == AV_SAMPLE_FMT_S32) {
+        format.setSampleFormat(QAudioFormat::Int32);
+        sampleSzie = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_S32);
+    } */
+    else if (ctx->sample_fmt == AV_SAMPLE_FMT_FLT) {
+        format.setSampleFormat(QAudioFormat::Float);
+        sampleSzie = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT);
     } else {
-        format.setSampleType(QAudioFormat::SignedInt);
-        format.setSampleSize(8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_S32));
+        format.setSampleFormat(QAudioFormat::Int16);
+        sampleSzie = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
     }
 
-    QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
-    qInfo() << info.supportedCodecs();
-    if (!info.isFormatSupported(format)) {
+    QAudioDevice audioDevice(QMediaDevices::defaultAudioOutput());
+    qInfo() << audioDevice.supportedSampleFormats();
+    if (!audioDevice.isFormatSupported(format)) {
         qWarning() << "Raw audio format not supported by backend, cannot play audio.";
     }
 
-    d_ptr->audioOutput.reset(new QAudioOutput(format));
-    d_ptr->audioOutput->setBufferSize(format.sampleRate() * format.sampleSize() / 8);
-    d_ptr->audioOutput->setVolume(d_ptr->volume);
-    d_ptr->audioDevice = d_ptr->audioOutput->start();
+    d_ptr->audioSink.reset(new QAudioSink(format));
+    d_ptr->audioSink->setBufferSize(format.sampleRate() * sampleSzie / 8);
+    d_ptr->audioSink->setVolume(d_ptr->volume);
+    d_ptr->audioDevice = d_ptr->audioSink->start();
     return format;
 }
 
-}
+} // namespace Ffmpeg

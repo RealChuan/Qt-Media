@@ -9,7 +9,7 @@ struct AVFrame;
 namespace Ffmpeg {
 
 class VideoDecoderPrivate;
-class VideoDecoder : public Decoder<Packet>
+class VideoDecoder : public Decoder<Packet *>
 {
     Q_OBJECT
 public:

@@ -9,7 +9,7 @@
 namespace Ffmpeg {
 
 class DecoderAudioFramePrivate;
-class DecoderAudioFrame : public Decoder<PlayFrame>
+class DecoderAudioFrame : public Decoder<PlayFrame *>
 {
     Q_OBJECT
 public:

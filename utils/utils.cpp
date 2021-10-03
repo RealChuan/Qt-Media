@@ -1,7 +1,8 @@
 #include "utils.h"
-#include "json.h"
 #include "hostosinfo.h"
+#include "json.h"
 
+#include <QTextCodec>
 #include <QtWidgets>
 
 void Utils::setUTF8Code()
@@ -14,18 +15,17 @@ void Utils::setQSS()
     Json json("./config/config.json", true);
     const QStringList qssPath = json.getValue("qss_files").toStringList();
     QString qss;
-    for(const QString& path: qAsConst(qssPath)){
+    for (const QString &path : qAsConst(qssPath)) {
         qDebug() << QObject::tr("Loading QSS file: %1.").arg(path);
         QFile file(path);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)){
-            qDebug() << QObject::tr("Cannot open the file: %1!").arg(path)
-                     << file.errorString();
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qDebug() << QObject::tr("Cannot open the file: %1!").arg(path) << file.errorString();
             continue;
         }
         qss.append(QLatin1String(file.readAll())).append("\n");
         file.close();
     }
-    if(qss.isEmpty())
+    if (qss.isEmpty())
         return;
     qApp->setStyleSheet(qss);
 }
@@ -53,7 +53,7 @@ void Utils::windowCenter(QWidget *window)
 
 void Utils::msleep(int msec)
 {
-    if(msec <= 0){
+    if (msec <= 0) {
         qWarning() << QObject::tr("msec not <= 0!");
         return;
     }
@@ -68,10 +68,10 @@ QString compilerString()
 {
 #if defined(__apple_build_version__) // Apple clang has other version numbers
     QString isAppleString = QLatin1String(" (Apple)");
-    return QLatin1String("Clang " ) + QString::number(__clang_major__) + QLatin1Char('.')
+    return QLatin1String("Clang ") + QString::number(__clang_major__) + QLatin1Char('.')
            + QString::number(__clang_minor__) + isAppleString;
 #elif defined(Q_CC_GNU)
-    return QLatin1String("GCC " ) + QLatin1String(__VERSION__);
+    return QLatin1String("GCC ") + QLatin1String(__VERSION__);
 #elif defined(Q_CC_MSVC)
     return QString("MSVC Version: %1").arg(_MSC_VER);
 #endif
@@ -81,8 +81,7 @@ QString compilerString()
 void Utils::printBuildInfo()
 {
     const QString info = QString("Qt %1 (%2, %3 bit)")
-                             .arg(qVersion(),  compilerString(),
-                                  QString::number(QSysInfo::WordSize));
+                             .arg(qVersion(), compilerString(), QString::number(QSysInfo::WordSize));
     qDebug() << QObject::tr("Build with: ") << info;
 }
 
@@ -127,20 +126,24 @@ static Utils::Language CURRENT_LANGUAGE = Utils::Chinese;
 void Utils::loadLanguage()
 {
     static QTranslator translator;
-    if(!QFileInfo::exists(ConfigFile)){
-        translator.load("./translator/language.zh_en.qm");
+    if (!QFileInfo::exists(ConfigFile)) {
+        qInfo() << translator.load("./translator/language.zh_en.qm");
         CURRENT_LANGUAGE = Utils::English;
-    }else{
+    } else {
         QSettings setting(ConfigFile, QSettings::IniFormat);
-        setting.beginGroup("Language_config");     //向当前组追加前缀
+        setting.beginGroup("Language_config"); //向当前组追加前缀
         Utils::Language type = Utils::Language(setting.value("Language").toInt());
         setting.endGroup();
 
         switch (type) {
-        case Utils::Chinese: translator.load("./translator/language.zh_cn.qm");
-            CURRENT_LANGUAGE = Utils::Chinese; break;
-        case Utils::English: translator.load("./translator/language.zh_en.qm");
-            CURRENT_LANGUAGE = Utils::English; break;
+        case Utils::Chinese:
+            qInfo() << translator.load("./translator/language.zh_cn.qm");
+            CURRENT_LANGUAGE = Utils::Chinese;
+            break;
+        case Utils::English:
+            qInfo() << translator.load("./translator/language.zh_en.qm");
+            CURRENT_LANGUAGE = Utils::English;
+            break;
         }
     }
     qApp->installTranslator(&translator);

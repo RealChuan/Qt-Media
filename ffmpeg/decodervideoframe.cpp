@@ -2,21 +2,21 @@
 #include "avcontextinfo.h"
 #include "avimage.h"
 #include "codeccontext.h"
-#include "formatcontext.h"
 #include "decoderaudioframe.h"
+#include "formatcontext.h"
 
-#include <QPixmap>
 #include <QDebug>
+#include <QPixmap>
 #include <QWaitCondition>
 
 namespace Ffmpeg {
 
-class DecoderVideoFramePrivate{
+class DecoderVideoFramePrivate
+{
 public:
     DecoderVideoFramePrivate(QObject *parent)
-        : owner(parent){
-
-    }
+        : owner(parent)
+    {}
 
     QObject *owner;
     bool pause = false;
@@ -27,30 +27,25 @@ public:
 Utils::Queue<VideoFrame> DecoderVideoFrame::videoFrameQueue;
 
 DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
-    : Decoder<PlayFrame>(parent)
+    : Decoder<PlayFrame *>(parent)
     , d_ptr(new DecoderVideoFramePrivate(this))
-{
+{}
 
-}
-
-DecoderVideoFrame::~DecoderVideoFrame()
-{
-
-}
+DecoderVideoFrame::~DecoderVideoFrame() {}
 
 void DecoderVideoFrame::stopDecoder()
 {
     pause(false);
-    Decoder<PlayFrame>::stopDecoder();
+    Decoder<PlayFrame *>::stopDecoder();
 }
 
 void DecoderVideoFrame::pause(bool state)
 {
-    if(!isRunning())
+    if (!isRunning())
         return;
 
     d_ptr->pause = state;
-    if(state)
+    if (state)
         return;
     d_ptr->waitCondition.wakeOne();
 }
@@ -59,36 +54,35 @@ void DecoderVideoFrame::runDecoder()
 {
     PlayFrame frameRGB;
 
-    m_contextInfo->imageBuffer(frameRGB);
+    m_contextInfo->imageAlloc(frameRGB);
     AVImage avImage(m_contextInfo->codecCtx());
 
     quint64 dropNum = 0;
-    while(m_runing){
+    while (m_runing) {
         checkPause();
         checkSeek();
 
-        if(m_queue.isEmpty()){
+        if (m_queue.isEmpty()) {
             msleep(1);
             continue;
         }
-
-        PlayFrame frame = m_queue.dequeue();
+        QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
 
         double duration = 0;
         double pts = 0;
-        calculateTime(frame.avFrame(), duration, pts);
+        calculateTime(framePtr->avFrame(), duration, pts);
 
-        if(m_seekTime > pts)
+        if (m_seekTime > pts)
             continue;
 
-        avImage.scale(&frame, &frameRGB, m_contextInfo->codecCtx()->height());
+        avImage.scale(framePtr.data(), &frameRGB, m_contextInfo->codecCtx()->height());
         QImage image(frameRGB.toImage(m_contextInfo->codecCtx()));
 
         double diff = (pts - DecoderAudioFrame::audioClock()) * 1000;
-        if(diff <= 0){
+        if (diff <= 0) {
             dropNum++;
             continue;
-        }else{
+        } else {
             msleep(diff);
         }
 
@@ -97,13 +91,12 @@ void DecoderVideoFrame::runDecoder()
         // 消息队列播放一卡一卡的
         //videoFrameQueue.enqueue(VideoFrame{pts, image});
     }
-    m_contextInfo->clearImageBuffer();
     qDebug() << dropNum;
 }
 
 void DecoderVideoFrame::checkPause()
 {
-    while(d_ptr->pause){
+    while (d_ptr->pause) {
         QMutexLocker locker(&d_ptr->mutex);
         d_ptr->waitCondition.wait(&d_ptr->mutex);
     }
@@ -111,11 +104,11 @@ void DecoderVideoFrame::checkPause()
 
 void DecoderVideoFrame::checkSeek()
 {
-    if(!m_seek)
+    if (!m_seek)
         return;
 
     seekCodec(m_seekTime);
     seekFinish();
 }
 
-}
+} // namespace Ffmpeg

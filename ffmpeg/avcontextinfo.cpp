@@ -4,7 +4,7 @@
 #include <QDebug>
 #include <QTime>
 
-extern "C"{
+extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 }
@@ -13,23 +13,19 @@ extern "C"{
 
 namespace Ffmpeg {
 
-struct AVContextInfoPrivate{
+struct AVContextInfoPrivate
+{
     QScopedPointer<CodecContext> codecCtx; //解码器上下文
-    AVStream *stream;   //流
-    int streamIndex = Error_Index; // 索引
+    AVStream *stream;                      //流
+    int streamIndex = Error_Index;         // 索引
 };
 
 AVContextInfo::AVContextInfo(QObject *parent)
     : QObject(parent)
     , d_ptr(new AVContextInfoPrivate)
-{
+{}
 
-}
-
-AVContextInfo::~AVContextInfo()
-{
-
-}
+AVContextInfo::~AVContextInfo() {}
 
 CodecContext *AVContextInfo::codecCtx()
 {
@@ -53,7 +49,7 @@ int AVContextInfo::index()
 
 bool AVContextInfo::isIndexVaild()
 {
-    if(d_ptr->streamIndex == Error_Index)
+    if (d_ptr->streamIndex == Error_Index)
         return false;
     return true;
 }
@@ -74,20 +70,24 @@ bool AVContextInfo::findDecoder()
     Q_ASSERT(d_ptr->stream != nullptr);
     const char *typeStr = av_get_media_type_string(d_ptr->stream->codecpar->codec_type);
     AVCodec *codec = avcodec_find_decoder(d_ptr->stream->codecpar->codec_id);
-    if (!codec){
-        qWarning() <<  tr("Audio or Video Codec not found: ") << typeStr;
+    if (!codec) {
+        qWarning() << tr("Audio or Video Codec not found: ") << typeStr;
         return false;
     }
 
     d_ptr->codecCtx.reset(new CodecContext(codec));
-    connect(d_ptr->codecCtx.data(), &CodecContext::error, this, &AVContextInfo::error, Qt::UniqueConnection);
+    connect(d_ptr->codecCtx.data(),
+            &CodecContext::error,
+            this,
+            &AVContextInfo::error,
+            Qt::UniqueConnection);
 
-    if(!d_ptr->codecCtx->setParameters(d_ptr->stream->codecpar))
+    if (!d_ptr->codecCtx->setParameters(d_ptr->stream->codecpar))
         return false;
     d_ptr->codecCtx->setTimebase(d_ptr->stream->time_base);
 
     //用于初始化pCodecCtx结构
-    if(!d_ptr->codecCtx->open(codec)){
+    if (!d_ptr->codecCtx->open(codec)) {
         return false;
     }
 
@@ -111,14 +111,9 @@ bool AVContextInfo::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
     return d_ptr->codecCtx->decodeSubtitle2(subtitle, packet);
 }
 
-unsigned char *AVContextInfo::imageBuffer(PlayFrame &frame)
+bool AVContextInfo::imageAlloc(PlayFrame &frame)
 {
-    return d_ptr->codecCtx->imageBuffer(frame);
-}
-
-void AVContextInfo::clearImageBuffer()
-{
-    d_ptr->codecCtx->clearImageBuffer();
+    return d_ptr->codecCtx->imageAlloc(frame);
 }
 
 void AVContextInfo::flush()
@@ -131,4 +126,4 @@ double AVContextInfo::timebase()
     return av_q2d(d_ptr->stream->time_base);
 }
 
-}
+} // namespace Ffmpeg

@@ -18,7 +18,7 @@ public:
 
 public slots:
     void onReadyRead(const QImage &image);
-    void onSubtitleImages(const QVector<SubtitleImage>&);
+    void onSubtitleImages(const QVector<Ffmpeg::SubtitleImage> &);
     void onFinish();
 
 protected:

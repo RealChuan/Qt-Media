@@ -7,7 +7,7 @@
 namespace Ffmpeg {
 
 class AudioDecoderPrivate;
-class AudioDecoder : public Decoder<Packet>
+class AudioDecoder : public Decoder<Packet *>
 {
     Q_OBJECT
 public:

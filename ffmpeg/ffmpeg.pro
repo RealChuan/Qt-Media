@@ -1,7 +1,7 @@
 include(../libs.pri)
 include(ffmpeg.pri)
 
-QT += widgets multimedia
+QT += widgets multimedia openglwidgets
 
 DEFINES += FFMPEG_LIBRARY
 TARGET = $$replaceLibName(ffmpeg)

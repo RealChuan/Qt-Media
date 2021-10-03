@@ -37,20 +37,19 @@ public:
     bool receiveFrame(PlayFrame *frame);
     bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
 
-    unsigned char *imageBuffer(PlayFrame &frame);
-    void clearImageBuffer();
+    bool imageAlloc(PlayFrame &frame);
 
     void flush();
 
     double timebase();
 
 signals:
-    void error(const Ffmpeg::AVError& avError);
+    void error(const Ffmpeg::AVError &avError);
 
 private:
     QScopedPointer<AVContextInfoPrivate> d_ptr;
 };
 
-}
+} // namespace Ffmpeg
 
 #endif // AVCONTEXTINFO_H

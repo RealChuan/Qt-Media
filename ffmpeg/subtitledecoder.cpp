@@ -4,12 +4,12 @@
 
 namespace Ffmpeg {
 
-class SubtitleDecoderPrivate{
+class SubtitleDecoderPrivate
+{
 public:
     SubtitleDecoderPrivate(QObject *parent)
-        : owner(parent){
-
-    }
+        : owner(parent)
+    {}
 
     QObject *owner;
     bool pause = false;
@@ -18,30 +18,27 @@ public:
 };
 
 SubtitleDecoder::SubtitleDecoder(QObject *parent)
-    : Decoder<Packet>(parent)
+    : Decoder<Packet *>(parent)
     , d_ptr(new SubtitleDecoderPrivate(this))
 {
     qRegisterMetaType<QVector<Ffmpeg::SubtitleImage>>("QVector<Ffmpeg::SubtitleImage>");
 }
 
-SubtitleDecoder::~SubtitleDecoder()
-{
-
-}
+SubtitleDecoder::~SubtitleDecoder() {}
 
 void SubtitleDecoder::stopDecoder()
 {
     pause(false);
-    Decoder<Packet>::stopDecoder();
+    Decoder<Packet *>::stopDecoder();
 }
 
 void SubtitleDecoder::pause(bool state)
 {
-    if(!isRunning())
+    if (!isRunning())
         return;
 
     d_ptr->pause = state;
-    if(state)
+    if (state)
         return;
     d_ptr->waitCondition.wakeOne();
 }
@@ -50,35 +47,35 @@ void SubtitleDecoder::runDecoder()
 {
     Subtitle subtitle;
 
-    while(m_runing){
+    while (m_runing) {
         checkPause();
         checkSeek();
 
-        if(m_queue.isEmpty()){
+        if (m_queue.isEmpty()) {
             msleep(1);
             continue;
         }
 
-        Packet packet = m_queue.dequeue();
+        QScopedPointer<Packet> packetPtr(m_queue.dequeue());
 
-        if(!m_contextInfo->decodeSubtitle2(&subtitle, &packet)){
+        if (!m_contextInfo->decodeSubtitle2(&subtitle, packetPtr.data())) {
             continue;
         }
 
         double duration = 0;
         double pts = 0;
-        calculateTime(packet.avPacket(), duration, pts);
-        subtitle.setdefault(pts, duration, (const char *)packet.avPacket()->data);
+        calculateTime(packetPtr->avPacket(), duration, pts);
+        subtitle.setdefault(pts, duration, (const char *) packetPtr->avPacket()->data);
         QVector<SubtitleImage> subtitles = subtitle.subtitleImages();
         subtitle.clear();
-        if(subtitles.isEmpty())
+        if (subtitles.isEmpty())
             continue;
 
         double audioPts = DecoderAudioFrame::audioClock() * 1000;
         double diff = subtitles.at(0).startDisplayTime - audioPts;
-        if(diff > 0){
+        if (diff > 0) {
             msleep(diff);
-        }else if(audioPts > subtitles.at(0).endDisplayTime){
+        } else if (audioPts > subtitles.at(0).endDisplayTime) {
             continue;
         }
 
@@ -88,7 +85,7 @@ void SubtitleDecoder::runDecoder()
 
 void SubtitleDecoder::checkPause()
 {
-    while(d_ptr->pause){
+    while (d_ptr->pause) {
         QMutexLocker locker(&d_ptr->mutex);
         d_ptr->waitCondition.wait(&d_ptr->mutex);
     }
@@ -96,11 +93,11 @@ void SubtitleDecoder::checkPause()
 
 void SubtitleDecoder::checkSeek()
 {
-    if(!m_seek)
+    if (!m_seek)
         return;
 
     seekCodec(m_seekTime);
     seekFinish();
 }
 
-}
+} // namespace Ffmpeg

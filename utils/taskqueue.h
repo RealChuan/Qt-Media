@@ -21,21 +21,21 @@ public:
         , m_mutex()
         , m_maxSize(100)
     {}
-    ~Queue(){}
+    ~Queue() {}
 
-    bool enqueue(const T& t)
+    bool enqueue(const T &t)
     {
         QMutexLocker locker(&m_mutex);
-        if(m_T.size() >= m_maxSize)
+        if (m_T.size() >= m_maxSize)
             return false;
         m_T.enqueue(t);
         return true;
     }
 
-    bool enqueue(T&& t)
+    bool enqueue(T &&t)
     {
         QMutexLocker locker(&m_mutex);
-        if(m_T.size() >= m_maxSize)
+        if (m_T.size() >= m_maxSize)
             return false;
         m_T.enqueue(t);
         return true;
@@ -44,7 +44,7 @@ public:
     T dequeue()
     {
         QMutexLocker locker(&m_mutex);
-        if(!m_T.isEmpty())
+        if (!m_T.isEmpty())
             return m_T.dequeue();
         return T();
     }
@@ -52,16 +52,21 @@ public:
     bool isEmpty()
     {
         QMutexLocker locker(&m_mutex);
-        if(m_T.isEmpty())
+        if (m_T.isEmpty())
             return true;
         return false;
     }
 
-    void clear()
+    void clearPoints()
     {
         QMutexLocker locker(&m_mutex);
+        if (m_T.isEmpty())
+            return;
+        qDeleteAll(m_T);
         m_T.clear();
     }
+
+    void clear() { m_T.clear(); }
 
     int size() const
     {
@@ -81,6 +86,6 @@ private:
     int m_maxSize;
 };
 
-}
+} // namespace Utils
 
 #endif // TASKQUEUE_H

@@ -82,7 +82,7 @@ int Slider::pixelPosToRangeValue(int pos) const
                                            sliderMax - sliderMin, opt.upsideDown);
 }
 
-void Slider::enterEvent(QEvent *event)
+void Slider::enterEvent(QEnterEvent *event)
 {
     emit onEnter();
     QSlider::enterEvent(event);

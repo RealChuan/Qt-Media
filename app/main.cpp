@@ -1,7 +1,7 @@
-#include <utils/logasync.h>
-#include <utils/utils.h>
 #include <crashhandler/crashhandler.h>
 #include <mainwindow/mainwindow.h>
+#include <utils/logasync.h>
+#include <utils/utils.h>
 
 #include <QApplication>
 #include <QDir>
