@@ -186,12 +186,13 @@ void DecoderAudioFrame::writeToDevice(QByteArray &audioBuf)
     while (d_ptr->audioSink->bytesFree() < audioBuf.size()) {
         int byteFree = d_ptr->audioSink->bytesFree();
         if (byteFree > 0) {
-            d_ptr->audioDevice->write(audioBuf.data(), byteFree);
+            d_ptr->audioDevice->write(audioBuf.data(), byteFree); // Memory leak
             audioBuf = audioBuf.mid(byteFree);
         }
         msleep(1);
     }
-    d_ptr->audioDevice->write(audioBuf);
+    d_ptr->audioDevice->write(audioBuf); // Memory leak
+    qApp->processEvents();               // fix Memory leak
 }
 
 QAudioFormat DecoderAudioFrame::resetAudioOutput()

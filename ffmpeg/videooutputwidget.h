@@ -32,6 +32,6 @@ private:
     QScopedPointer<VideoOutputWidgetPrivate> d_ptr;
 };
 
-}
+} // namespace Ffmpeg
 
 #endif // VIDEOOUTPUTWIDGET_H
