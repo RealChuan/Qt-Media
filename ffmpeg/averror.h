@@ -10,19 +10,23 @@ namespace Ffmpeg {
 class FFMPEG_EXPORT AVError
 {
 public:
-    AVError(int error = 0) : m_error(error) {}
+    AVError(int error = 0)
+        : m_error(error)
+    {}
 
     void setError(int error) { m_error = error; }
-    int error() const { return m_error; };
+    int error() const { return m_error; }
 
     QString errorString() const;
 
     static QString avErrorString(int error);
 
 private:
+    Q_DISABLE_COPY(AVError)
+
     int m_error = 0;
     QString m_errorString;
 };
 
-}
+} // namespace Ffmpeg
 #endif // AVERROR_H

@@ -1,8 +1,6 @@
 #include "playframe.h"
 #include "codeccontext.h"
 
-#include <QImage>
-
 extern "C" {
 #include <libavformat/avformat.h>
 }
@@ -13,11 +11,6 @@ PlayFrame::PlayFrame()
 {
     m_frame = av_frame_alloc();
     Q_ASSERT(m_frame != nullptr);
-}
-
-PlayFrame::PlayFrame(const PlayFrame &other)
-{
-    m_frame = av_frame_clone(other.m_frame);
 }
 
 PlayFrame::~PlayFrame()

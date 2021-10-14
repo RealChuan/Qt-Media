@@ -1,6 +1,8 @@
 #ifndef PACKET_H
 #define PACKET_H
 
+#include <QtCore>
+
 struct AVPacket;
 
 namespace Ffmpeg {
@@ -9,7 +11,6 @@ class Packet
 {
 public:
     explicit Packet();
-    Packet(const Packet &other);
     ~Packet();
 
     void clear();
@@ -17,6 +18,8 @@ public:
     AVPacket *avPacket();
 
 private:
+    Q_DISABLE_COPY(Packet)
+
     AVPacket *m_packet;
 };
 

@@ -1,8 +1,6 @@
 #ifndef TASKQUEUE_H
 #define TASKQUEUE_H
 
-#include "utils_global.h"
-
 #include <QMutex>
 #include <QQueue>
 
@@ -81,6 +79,8 @@ public:
     }
 
 private:
+    Q_DISABLE_COPY(Queue)
+
     QQueue<T> m_T;
     mutable QMutex m_mutex;
     int m_maxSize;
