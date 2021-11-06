@@ -18,6 +18,7 @@ SOURCES += \
     decoderaudioframe.cpp \
     decodervideoframe.cpp \
     formatcontext.cpp \
+    hardwaredecode.cc \
     packet.cpp \
     player.cpp \
     playframe.cpp \
@@ -38,6 +39,7 @@ HEADERS += \
     decodervideoframe.h \
     ffmepg_global.h \
     formatcontext.h \
+    hardwaredecode.hpp \
     packet.h \
     player.h \
     playframe.h \

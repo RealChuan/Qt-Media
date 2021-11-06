@@ -29,7 +29,7 @@ public:
     QVector<int> videoIndexs() const;
     QMap<int, QString> subtitleMap() const;
 
-    AVStream *stream(int index);   //音频流
+    AVStream *stream(int index); //音频流
 
     bool readFrame(Packet *packet);
 
@@ -45,17 +45,21 @@ public:
 
     QImage coverImage() const;
 
+    AVError avError();
+
 signals:
-    void error(const Ffmpeg::AVError& avError);
+    void error(const Ffmpeg::AVError &avError);
 
 private:
     void findStreamIndex();
     void initMetaData();
     void printInformation();
 
+    void setError(int errorCode);
+
     QScopedPointer<FormatContextPrivate> d_ptr;
 };
 
-}
+} // namespace Ffmpeg
 
 #endif // FORMATCONTEXT_H

@@ -1,13 +1,13 @@
 #include "crashhandler.h"
 #include "utils/utils.h"
 
-#include <QDateTime>
-#include <QThread>
 #include <QApplication>
+#include <QDateTime>
 #include <QDebug>
-#include <QFile>
-#include <QDir>
 #include <QDesktopServices>
+#include <QDir>
+#include <QFile>
+#include <QThread>
 #include <QUrl>
 
 inline QString getDumpFileName()
@@ -22,11 +22,12 @@ inline QString getDumpFileName()
                        .arg(qApp->applicationPid());
 
     QFile file(path);
-    if(file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)){
+    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
         file.close();
         return path;
     }
-    qDebug() << "Path: " << path  << "\n" << "Error: "<< file.errorString();
+    qDebug() << "Path: " << path << "\n"
+             << "Error: " << file.errorString();
     return QString();
 }
 
@@ -37,23 +38,35 @@ inline QString getDumpFileName()
 
 #pragma comment(lib, "dbghelp.lib")
 
-inline void CreateMiniDump(EXCEPTION_POINTERS* pep)
+inline void CreateMiniDump(EXCEPTION_POINTERS *pep)
 {
     QString path = getDumpFileName();
-    if(path.isEmpty())
+    if (path.isEmpty())
         return;
 
-    HANDLE hFile = CreateFile(path.toStdWString().c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE hFile = CreateFile(path.toStdWString().c_str(),
+                              GENERIC_WRITE,
+                              0,
+                              NULL,
+                              CREATE_ALWAYS,
+                              FILE_ATTRIBUTE_NORMAL,
+                              NULL);
 
-    if ((hFile != NULL) && (hFile != INVALID_HANDLE_VALUE)){
+    if ((hFile != NULL) && (hFile != INVALID_HANDLE_VALUE)) {
         MINIDUMP_EXCEPTION_INFORMATION mdei;
         mdei.ThreadId = GetCurrentThreadId();
         mdei.ExceptionPointers = pep;
         mdei.ClientPointers = FALSE;
 
-        MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, &mdei, NULL, NULL);
+        MiniDumpWriteDump(GetCurrentProcess(),
+                          GetCurrentProcessId(),
+                          hFile,
+                          MiniDumpNormal,
+                          &mdei,
+                          NULL,
+                          NULL);
         CloseHandle(hFile);
-    }else{
+    } else {
         qDebug() << strerror(errno);
     }
 }
@@ -70,7 +83,7 @@ BOOL PreventSetUnhandledExceptionFilter()
     if (hKernel32 == NULL)
         return FALSE;
 
-    void* pOrgEntry = GetProcAddress(hKernel32, "SetUnhandledExceptionFilter");
+    void *pOrgEntry = GetProcAddress(hKernel32, "SetUnhandledExceptionFilter");
 
     if (pOrgEntry == NULL)
         return FALSE;
@@ -81,14 +94,18 @@ BOOL PreventSetUnhandledExceptionFilter()
 
     dwOrgEntryAddr += 5; // add 5 for 5 op-codes for jmp far
 
-    void* pNewFunc = &MyDummySetUnhandledExceptionFilter;
+    void *pNewFunc = &MyDummySetUnhandledExceptionFilter;
 
     DWORD dwNewEntryAddr = DWORD(pNewFunc);
     DWORD dwRelativeAddr = dwNewEntryAddr - dwOrgEntryAddr;
-    newJump[0] = 0xE9;  // JMP absolute
+    newJump[0] = 0xE9; // JMP absolute
     memcpy(&newJump[1], &dwRelativeAddr, sizeof(pNewFunc));
     SIZE_T bytesWritten;
-    BOOL bRet = WriteProcessMemory(GetCurrentProcess(), pOrgEntry, newJump, sizeof(pNewFunc) + 1, &bytesWritten);
+    BOOL bRet = WriteProcessMemory(GetCurrentProcess(),
+                                   pOrgEntry,
+                                   newJump,
+                                   sizeof(pNewFunc) + 1,
+                                   &bytesWritten);
     return bRet;
 }
 
@@ -108,8 +125,8 @@ LONG WINAPI UnhandledExceptionFilterEx(LPEXCEPTION_POINTERS lpExceptionInfo)
 
 void Utils::setCrashHandler()
 {
-    QString path = qApp->applicationDirPath() + "/crashes";
-    if(!Utils::createPath(path))
+    const QString path = qApp->applicationDirPath() + "/crashes";
+    if (!Utils::generateDirectorys(path))
         return;
 
         //#ifdef QT_NO_DEBUG
@@ -127,8 +144,8 @@ void Utils::openCrashAndLogPath()
     QDir dir;
     QString urlCrash = qApp->applicationDirPath() + "/crashes";
     QString urlLog = qApp->applicationDirPath() + "/log";
-    if(dir.exists(urlCrash))
+    if (dir.exists(urlCrash))
         QDesktopServices::openUrl(QUrl(urlCrash, QUrl::TolerantMode));
-    if(dir.exists(urlLog))
+    if (dir.exists(urlLog))
         QDesktopServices::openUrl(QUrl(urlLog, QUrl::TolerantMode));
 }

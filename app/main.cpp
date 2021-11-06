@@ -14,6 +14,7 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
     Utils::setCrashHandler();
+    Utils::setGlobalThreadPoolMaxSize();
 
     QDir::setCurrent(a.applicationDirPath());
     Utils::loadLanguage();
@@ -25,9 +26,6 @@ int main(int argc, char *argv[])
     log->startWork();
 
     Utils::printBuildInfo();
-    //Utils::setUTF8Code();
-    //Utils::loadFonts();
-    //Utils::setQSS();
 
     a.setApplicationVersion(QObject::tr("0.0.1"));
     a.setApplicationDisplayName(QObject::tr("Ffmpeg Player"));
@@ -35,11 +33,6 @@ int main(int argc, char *argv[])
     a.setDesktopFileName(QObject::tr("Ffmpeg Player"));
     a.setOrganizationDomain(QObject::tr("Youth"));
     a.setOrganizationName(QObject::tr("Youth"));
-
-    const int threadCount = QThreadPool::globalInstance()->maxThreadCount();
-    QThreadPool::globalInstance()->setMaxThreadCount(2 * threadCount);
-
-    //qDebug() << threadCount;
 
     MainWindow w;
     w.show();

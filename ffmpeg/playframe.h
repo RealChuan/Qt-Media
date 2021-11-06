@@ -12,6 +12,8 @@ class PlayFrame
 {
 public:
     explicit PlayFrame();
+    PlayFrame(const PlayFrame &other);
+    PlayFrame &operator=(const PlayFrame &other);
     ~PlayFrame();
 
     void clear();
@@ -21,8 +23,6 @@ public:
     QImage toImage(CodecContext *codecContext);
 
 private:
-    Q_DISABLE_COPY(PlayFrame)
-
     AVFrame *m_frame;
 };
 

@@ -1,3 +1,5 @@
+vcpkg_path = D:/Mine/CODE/vcpkg
+
 contains(QT_ARCH, i386) {
     ffmpeg_arch = ffmpeg_x86-windows
 }else{
@@ -5,11 +7,11 @@ contains(QT_ARCH, i386) {
 }
 
 CONFIG(debug, debug|release) {
-    LIBS += -LD:/Mine/CODE/vcpkg/packages/$$ffmpeg_arch/debug/lib
+    LIBS += -L$$vcpkg_path/packages/$$ffmpeg_arch/debug/lib
 }else{
-    LIBS += -LD:/Mine/CODE/vcpkg/packages/$$ffmpeg_arch/lib
+    LIBS += -L$$vcpkg_path/packages/$$ffmpeg_arch/lib
 }
 
 LIBS += -lavutil -lavformat -lavcodec -lavdevice -lavfilter -lswresample -lswscale
 
-INCLUDEPATH += D:/Mine/CODE/vcpkg/packages/$$ffmpeg_arch/include
+INCLUDEPATH += $$vcpkg_path/packages/$$ffmpeg_arch/include

@@ -15,12 +15,12 @@ public:
     explicit AVImage(CodecContext *codecCtx);
     ~AVImage();
 
-    struct SwsContext *swsContext();
-
     void scale(PlayFrame *in, PlayFrame *out, int height);
 
 private:
     Q_DISABLE_COPY(AVImage)
+
+    void flush(PlayFrame *frame);
 
     struct SwsContext *m_swsContext;
 };

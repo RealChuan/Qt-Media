@@ -1,22 +1,25 @@
 #include "logasync.h"
+#include "utils.h"
 
-#include <QDateTime>
-#include <QWaitCondition>
-#include <QFileInfoList>
-#include <QDir>
-#include <QTextStream>
 #include <QCoreApplication>
+#include <QDateTime>
+#include <QDir>
+#include <QFileInfoList>
+#include <QTextStream>
 #include <QTimer>
+#include <QWaitCondition>
 
 namespace Utils {
 
-#define ROLLSIZE 1000*1000*1000
+#define ROLLSIZE 1000 * 1000 * 1000
 
-const static int kRollPerSeconds_ = 60*60*24;
+const static int kRollPerSeconds_ = 60 * 60 * 24;
 
-struct FileUtilPrivate{
+struct FileUtilPrivate
+{
     QFile file;
-    QTextStream stream; //QTextStream 读写分离的，内部有缓冲区static const int QTEXTSTREAM_BUFFERSIZE = 16384;
+    //QTextStream 读写分离的，内部有缓冲区static const int QTEXTSTREAM_BUFFERSIZE = 16384;
+    QTextStream stream;
     qint64 startTime = 0;
     qint64 lastRoll = 0;
     int count = 0;
@@ -28,7 +31,7 @@ FileUtil::FileUtil(qint64 days, QObject *parent)
     , d_ptr(new FileUtilPrivate)
 {
     d_ptr->autoDelFileDays = days;
-    newDir("log");
+    Utils::generateDirectorys(qApp->applicationDirPath() + "/log");
     rollFile(0);
     setTimer();
 }
@@ -40,12 +43,12 @@ FileUtil::~FileUtil()
 
 void FileUtil::onWrite(const QString &msg)
 {
-    if(d_ptr->file.size() > ROLLSIZE){
+    if (d_ptr->file.size() > ROLLSIZE) {
         rollFile(++d_ptr->count);
-    }else{
+    } else {
         qint64 now = QDateTime::currentSecsSinceEpoch();
         qint64 thisPeriod = now / kRollPerSeconds_ * kRollPerSeconds_;
-        if(thisPeriod != d_ptr->startTime){
+        if (thisPeriod != d_ptr->startTime) {
             d_ptr->count = 0;
             rollFile(0);
         }
@@ -59,19 +62,15 @@ void FileUtil::onFlush()
     d_ptr->stream.flush();
 }
 
-void FileUtil::newDir(const QString &path)
-{
-    QDir dir;
-    if(!dir.exists(path))
-        dir.mkdir(path);
-}
-
-QString FileUtil::getFileName(qint64* now) const
+QString FileUtil::getFileName(qint64 *now) const
 {
     *now = QDateTime::currentSecsSinceEpoch();
     QString data = QDateTime::fromSecsSinceEpoch(*now).toString("yyyy-MM-dd-hh-mm-ss");
-    QString filename = QString("./log/%1.%2.%3.%4.log")
-                           .arg(qAppName(), data, QSysInfo::machineHostName(),
+    QString filename = QString("%1/log/%2.%3.%4.%5.log")
+                           .arg(qApp->applicationDirPath(),
+                                qAppName(),
+                                data,
+                                QSysInfo::machineHostName(),
                                 QString::number(qApp->applicationPid()));
     return filename;
 }
@@ -80,21 +79,21 @@ bool FileUtil::rollFile(int count)
 {
     qint64 now = 0;
     QString filename = getFileName(&now);
-    if(count){
+    if (count) {
         filename += QString(".%1").arg(count);
-    }else{
+    } else {
         autoDelFile();
     }
     qint64 start = now / kRollPerSeconds_ * kRollPerSeconds_;
-    if (now > d_ptr->lastRoll){
+    if (now > d_ptr->lastRoll) {
         d_ptr->startTime = start;
         d_ptr->lastRoll = now;
-        if(d_ptr->file.isOpen()){
+        if (d_ptr->file.isOpen()) {
             d_ptr->file.flush();
             d_ptr->file.close();
         }
         d_ptr->file.setFileName(filename);
-        d_ptr->file.open(QIODevice::WriteOnly| QIODevice::Append| QIODevice::Unbuffered);
+        d_ptr->file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Unbuffered);
         d_ptr->stream.setDevice(&d_ptr->file);
         fprintf(stderr, "%s\n", filename.toUtf8().constData());
         return true;
@@ -104,17 +103,18 @@ bool FileUtil::rollFile(int count)
 
 void FileUtil::autoDelFile()
 {
-    newDir("log");
-    QDir dir("./log/");
+    const QString path(qApp->applicationDirPath() + "/log");
+    Utils::generateDirectorys(path);
+    QDir dir(path);
 
-    QFileInfoList list = dir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot, QDir::Time);
-    QDateTime cur = QDateTime::currentDateTime();
-    QDateTime pre = cur.addDays(-d_ptr->autoDelFileDays);
+    const QFileInfoList list = dir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot, QDir::Time);
+    const QDateTime cur = QDateTime::currentDateTime();
+    const QDateTime pre = cur.addDays(-d_ptr->autoDelFileDays);
 
-    for(const QFileInfo &info : qAsConst(list)){
-        QDateTime birthTime = info.lastModified();
-        if(birthTime <= pre)
+    for (const QFileInfo &info : qAsConst(list)) {
+        if (info.lastModified() <= pre) {
             dir.remove(info.fileName());
+        }
     }
 }
 
@@ -128,21 +128,42 @@ void FileUtil::setTimer()
 // 消息处理函数
 void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
-    if(type < LogAsync::instance()->logLevel())
+    if (type < LogAsync::instance()->logLevel())
         return;
 
+    FILE *stdPrint = stdout;
     QString level;
-    switch(type){
-    case QtDebugMsg: level = QLatin1String("Debug"); break;
-    case QtWarningMsg: level = QLatin1String("Warning"); break;
-    case QtCriticalMsg: level = QLatin1String("Critica"); break;
-    case QtFatalMsg: level = QLatin1String("Fatal"); break;
-    case QtInfoMsg: level = QLatin1String("Info"); break;
-    default: level = QLatin1String("Unknown"); break;
+    switch (type) {
+    case QtDebugMsg:
+        level = QString("%1").arg("Debug", -7);
+        stdPrint = stdout;
+        break;
+    case QtWarningMsg:
+        level = QString("%1").arg("Warning", -7);
+        stdPrint = stderr;
+        break;
+    case QtCriticalMsg:
+        level = QString("%1").arg("Critica", -7);
+        stdPrint = stderr;
+        break;
+    case QtFatalMsg:
+        level = QString("%1").arg("Fatal", -7);
+        stdPrint = stderr;
+        break;
+    case QtInfoMsg:
+        level = QString("%1").arg("Info", -7);
+        stdPrint = stdout;
+        break;
+    default: level = QString("%1").arg("Unknown", -7); break;
     }
 
     const QString dataTimeString(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz"));
-    const QString threadId(QString::number(qulonglong(QThread::currentThreadId())));
+    const QString threadId = QString("%1").arg(qulonglong(QThread::currentThreadId()),
+                                               5,
+                                               10,
+                                               QLatin1Char('0'));
+    // By default, this information is recorded only in debug builds.
+    // You can overwrite this explicitly by defining QT_MESSAGELOGCONTEXT or QT_NO_MESSAGELOGCONTEXT.
     QString contexInfo;
 #ifndef QT_NO_DEBUG
     contexInfo = QString("File:(%1) Line:(%2)").arg(context.file).arg(context.line);
@@ -152,22 +173,24 @@ void messageHandler(QtMsgType type, const QMessageLogContext &context, const QSt
 
     switch (LogAsync::instance()->orientation()) {
     case LogAsync::Orientation::Std:
-        fprintf(stderr, "%s", message.toLocal8Bit().constData());
+        fprintf(stdPrint, "%s", message.toLocal8Bit().constData());
+        ::fflush(stdPrint);
         break;
-    case LogAsync::Orientation::File:
-        emit LogAsync::instance()->appendBuf(message);
-        break;
+    case LogAsync::Orientation::File: emit LogAsync::instance()->appendBuf(message); break;
     case LogAsync::Orientation::StdAndFile:
-        fprintf(stderr, "%s", message.toLocal8Bit().constData());
+        fprintf(stdPrint, "%s", message.toLocal8Bit().constData());
+        ::fflush(stdPrint);
         emit LogAsync::instance()->appendBuf(message);
         break;
     default:
-        fprintf(stderr, "%s", message.toLocal8Bit().constData());
+        fprintf(stdPrint, "%s", message.toLocal8Bit().constData());
+        ::fflush(stdPrint);
         break;
     }
 }
 
-struct LogAsyncPrivate{
+struct LogAsyncPrivate
+{
     QtMsgType msgType = QtWarningMsg;
     LogAsync::Orientation orientation = LogAsync::Orientation::Std;
     QWaitCondition waitCondition;
@@ -212,7 +235,7 @@ void LogAsync::startWork()
 
 void LogAsync::stop()
 {
-    if(isRunning()){
+    if (isRunning()) {
         //QThread::sleep(1);   // 最后一条日志格式化可能来不及进入信号槽
         quit();
         wait();
@@ -241,4 +264,4 @@ LogAsync::~LogAsync()
     fprintf(stderr, "%s\n", "~LogAsync");
 }
 
-}
+} // namespace Utils

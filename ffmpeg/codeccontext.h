@@ -14,6 +14,7 @@ class AVError;
 class Subtitle;
 class Packet;
 class PlayFrame;
+struct CodecContextPrivate;
 class CodecContext : public QObject
 {
     Q_OBJECT
@@ -38,11 +39,15 @@ public:
 
     void flush();
 
+    AVError avError();
+
 signals:
     void error(const Ffmpeg::AVError &avError);
 
 private:
-    AVCodecContext *m_codecCtx; //解码器上下文
+    void setError(int errorCode);
+
+    QScopedPointer<CodecContextPrivate> d_ptr;
 };
 
 } // namespace Ffmpeg

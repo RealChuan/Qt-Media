@@ -1,22 +1,24 @@
 #include "formatcontext.h"
-#include "packet.h"
 #include "averror.h"
+#include "packet.h"
 
 #include <QDebug>
 #include <QImage>
 #include <QTime>
 
-extern "C"{
+extern "C" {
 #include <libavdevice/avdevice.h>
 #include <libavformat/avformat.h>
 }
 
 namespace Ffmpeg {
 
-class FormatContextPrivate{
+class FormatContextPrivate
+{
 public:
     FormatContextPrivate(QObject *parent)
-        : owner(parent){
+        : owner(parent)
+    {
 #if CONFIG_AVDEVICE
         avdevice_register_all();
 #endif
@@ -25,7 +27,8 @@ public:
         Q_ASSERT(formatCtx != nullptr);
     }
 
-    ~FormatContextPrivate(){
+    ~FormatContextPrivate()
+    {
         //Q_ASSERT(formatCtx != nullptr);
         avformat_free_context(formatCtx);
     }
@@ -39,19 +42,15 @@ public:
     QMap<int, QString> audioMap;
     QMap<int, QString> subtitleMap;
     QImage coverImage;
+    AVError error;
 };
 
 FormatContext::FormatContext(QObject *parent)
     : QObject(parent)
     , d_ptr(new FormatContextPrivate(this))
-{
+{}
 
-}
-
-FormatContext::~FormatContext()
-{
-
-}
+FormatContext::~FormatContext() {}
 
 bool FormatContext::isOpen()
 {
@@ -63,9 +62,12 @@ bool FormatContext::openFilePath(const QString &filepath)
     close();
     d_ptr->filepath = filepath;
     //初始化pFormatCtx结构
-    int ret = avformat_open_input(&d_ptr->formatCtx, d_ptr->filepath.toLocal8Bit().constData(), nullptr, nullptr);
-    if (ret != 0){
-        emit error(AVError(ret));
+    int ret = avformat_open_input(&d_ptr->formatCtx,
+                                  d_ptr->filepath.toLocal8Bit().constData(),
+                                  nullptr,
+                                  nullptr);
+    if (ret != 0) {
+        setError(ret);
         return false;
     }
     av_format_inject_global_side_data(d_ptr->formatCtx);
@@ -75,7 +77,7 @@ bool FormatContext::openFilePath(const QString &filepath)
 
 void FormatContext::close()
 {
-    if(!d_ptr->isOpen)
+    if (!d_ptr->isOpen)
         return;
     avformat_close_input(&d_ptr->formatCtx);
     //d_ptr->formatCtx = avformat_alloc_context();
@@ -87,11 +89,12 @@ bool FormatContext::findStream()
 {
     //获取音视频流数据信息
     int ret = avformat_find_stream_info(d_ptr->formatCtx, nullptr);
-    if (ret < 0){
-        emit error(AVError(ret));
+    if (ret < 0) {
+        setError(ret);
         return false;
     }
-    qDebug() << "The video file contains the number of stream information:" << d_ptr->formatCtx->nb_streams;
+    qDebug() << "The video file contains the number of stream information:"
+             << d_ptr->formatCtx->nb_streams;
     printInformation();
     initMetaData();
     findStreamIndex();
@@ -121,24 +124,31 @@ void FormatContext::findStreamIndex()
     d_ptr->coverImage = QImage();
 
     //nb_streams视音频流的个数
-    for (uint i = 0; i < d_ptr->formatCtx->nb_streams; i++){
+    for (uint i = 0; i < d_ptr->formatCtx->nb_streams; i++) {
         switch (d_ptr->formatCtx->streams[i]->codecpar->codec_type) {
         case AVMEDIA_TYPE_VIDEO: d_ptr->videoIndexs.append(i); break;
         case AVMEDIA_TYPE_AUDIO: {
             AVDictionaryEntry *tag = nullptr;
             QString str;
-            while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))){
-                str = str + tag->key + ":"+ QString::fromUtf8(tag->value) + " ";
+            while (nullptr
+                   != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata,
+                                         "",
+                                         tag,
+                                         AV_DICT_IGNORE_SUFFIX))) {
+                str = str + tag->key + ":" + QString::fromUtf8(tag->value) + " ";
             }
             str.chop(1);
             d_ptr->audioMap.insert(i, str);
-        }
-        break;
-        case AVMEDIA_TYPE_SUBTITLE:{
+        } break;
+        case AVMEDIA_TYPE_SUBTITLE: {
             QString str;
             AVDictionaryEntry *tag = nullptr;
-            while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))){
-                str = str + tag->key + ":"+ QString::fromUtf8(tag->value) + " ";
+            while (nullptr
+                   != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata,
+                                         "",
+                                         tag,
+                                         AV_DICT_IGNORE_SUFFIX))) {
+                str = str + tag->key + ":" + QString::fromUtf8(tag->value) + " ";
             }
             str.chop(1);
             d_ptr->subtitleMap.insert(i, str);
@@ -146,9 +156,9 @@ void FormatContext::findStreamIndex()
         default: break;
         }
 
-        if (d_ptr->formatCtx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC){
+        if (d_ptr->formatCtx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) {
             AVPacket pkt = d_ptr->formatCtx->streams[i]->attached_pic;
-            d_ptr->coverImage = QImage::fromData((uchar*)pkt.data, pkt.size);
+            d_ptr->coverImage = QImage::fromData((uchar *) pkt.data, pkt.size);
         }
     }
 }
@@ -156,7 +166,8 @@ void FormatContext::findStreamIndex()
 void FormatContext::initMetaData()
 {
     AVDictionaryEntry *tag = nullptr;
-    while (nullptr != (tag = av_dict_get(d_ptr->formatCtx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))){
+    while (nullptr
+           != (tag = av_dict_get(d_ptr->formatCtx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
         qDebug() << tag->key << QString::fromUtf8(tag->value);
     }
 }
@@ -167,8 +178,16 @@ void FormatContext::printInformation()
     QTime time(QTime::fromMSecsSinceStartOfDay(d_ptr->formatCtx->duration / 1000));
     qInfo() << tr("Duration:") << time.toString("hh:mm:ss.zzz");
 
-    if (d_ptr->formatCtx->pb)
-        d_ptr->formatCtx->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
+    if (d_ptr->formatCtx->pb) {
+        // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
+        d_ptr->formatCtx->pb->eof_reached = 0;
+    }
+}
+
+void FormatContext::setError(int errorCode)
+{
+    d_ptr->error.setError(errorCode);
+    emit error(d_ptr->error);
 }
 
 AVStream *FormatContext::stream(int index)
@@ -181,9 +200,9 @@ bool FormatContext::readFrame(Packet *packet)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     int ret = av_read_frame(d_ptr->formatCtx, packet->avPacket());
-    if(ret >= 0)
+    if (ret >= 0)
         return true;
-    emit error(AVError(ret));;
+    setError(ret);
     return false;
 }
 
@@ -193,13 +212,17 @@ int FormatContext::checkPktPlayRange(Packet *packet)
     /* check if packet is in play range specified by user, then queue, otherwise discard */
     int64_t start_time = AV_NOPTS_VALUE;
     int64_t duration = AV_NOPTS_VALUE;
-    int64_t stream_start_time = d_ptr->formatCtx->streams[packet->avPacket()->stream_index]->start_time;
-    int64_t pkt_ts = packet->avPacket()->pts == AV_NOPTS_VALUE ? packet->avPacket()->dts : packet->avPacket()->pts;
-    int pkt_in_play_range = duration == AV_NOPTS_VALUE ||
-                            (pkt_ts - (stream_start_time != AV_NOPTS_VALUE ? stream_start_time : 0)) *
-                                        av_q2d(d_ptr->formatCtx->streams[packet->avPacket()->stream_index]->time_base) -
-                                    (double)(start_time != AV_NOPTS_VALUE ? start_time : 0) / 1000000
-                                <= ((double)duration / 1000000);
+    int64_t stream_start_time = d_ptr->formatCtx->streams[packet->avPacket()->stream_index]
+                                    ->start_time;
+    int64_t pkt_ts = packet->avPacket()->pts == AV_NOPTS_VALUE ? packet->avPacket()->dts
+                                                               : packet->avPacket()->pts;
+    int pkt_in_play_range
+        = duration == AV_NOPTS_VALUE
+          || (pkt_ts - (stream_start_time != AV_NOPTS_VALUE ? stream_start_time : 0))
+                         * av_q2d(
+                             d_ptr->formatCtx->streams[packet->avPacket()->stream_index]->time_base)
+                     - (double) (start_time != AV_NOPTS_VALUE ? start_time : 0) / 1000000
+                 <= ((double) duration / 1000000);
     return pkt_in_play_range;
 }
 
@@ -207,8 +230,8 @@ bool FormatContext::seek(int index, int64_t timestamp)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     int ret = av_seek_frame(d_ptr->formatCtx, index, timestamp, AVSEEK_FLAG_BACKWARD);
-    if(ret < 0){
-        emit error(AVError(ret));
+    if (ret < 0) {
+        setError(ret);
         return false;
     }
     return true;
@@ -228,6 +251,8 @@ AVFormatContext *FormatContext::avFormatContext()
 
 qint64 FormatContext::duration()
 {
+    if (!d_ptr->isOpen)
+        return 0;
     return d_ptr->formatCtx->duration / 1000;
 }
 
@@ -236,4 +261,9 @@ QImage FormatContext::coverImage() const
     return d_ptr->coverImage;
 }
 
+AVError FormatContext::avError()
+{
+    return d_ptr->error;
 }
+
+} // namespace Ffmpeg

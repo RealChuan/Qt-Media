@@ -13,6 +13,17 @@ PlayFrame::PlayFrame()
     Q_ASSERT(m_frame != nullptr);
 }
 
+PlayFrame::PlayFrame(const PlayFrame &other)
+{
+    m_frame = av_frame_clone(other.m_frame);
+}
+
+PlayFrame &PlayFrame::operator=(const PlayFrame &other)
+{
+    m_frame = av_frame_clone(other.m_frame);
+    return *this;
+}
+
 PlayFrame::~PlayFrame()
 {
     Q_ASSERT(m_frame != nullptr);

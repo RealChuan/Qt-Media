@@ -17,13 +17,12 @@ public:
     ~FileUtil();
 
 public slots:
-    void onWrite(const QString&);
+    void onWrite(const QString &);
 
 private slots:
     void onFlush();
 
 private:
-    void newDir(const QString &);
     QString getFileName(qint64 *now) const;
     bool rollFile(int);
     void autoDelFile();
@@ -37,9 +36,9 @@ class UTILS_EXPORT LogAsync : public QThread
 {
     Q_OBJECT
 public:
-    enum Orientation { Std = 1, File, StdAndFile};
+    enum Orientation { Std = 1, File, StdAndFile };
 
-    static LogAsync* instance();
+    static LogAsync *instance();
 
     void setOrientation(Orientation);
     Orientation orientation();
@@ -51,7 +50,7 @@ public:
     void stop();
 
 signals:
-    void appendBuf(const QString&);
+    void appendBuf(const QString &);
 
 protected:
     void run() override;
@@ -64,6 +63,6 @@ private:
     QScopedPointer<LogAsyncPrivate> d_ptr;
 };
 
-}
+} // namespace Utils
 
 #endif // LOGASYNC_H

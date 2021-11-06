@@ -13,31 +13,35 @@ extern "C" {
 
 namespace Ffmpeg {
 
+struct CodecContextPrivate
+{
+    ~CodecContextPrivate() { avcodec_free_context(&codecCtx); }
+    AVCodecContext *codecCtx; //解码器上下文
+    AVError error;
+};
+
 CodecContext::CodecContext(const AVCodec *codec, QObject *parent)
     : QObject(parent)
+    , d_ptr(new CodecContextPrivate)
 {
-    m_codecCtx = avcodec_alloc_context3(codec);
-    Q_ASSERT(m_codecCtx != nullptr);
+    d_ptr->codecCtx = avcodec_alloc_context3(codec);
+    Q_ASSERT(d_ptr->codecCtx != nullptr);
 }
 
-CodecContext::~CodecContext()
-{
-    Q_ASSERT(m_codecCtx != nullptr);
-    avcodec_free_context(&m_codecCtx);
-}
+CodecContext::~CodecContext() {}
 
 AVCodecContext *CodecContext::avCodecCtx()
 {
-    Q_ASSERT(m_codecCtx != nullptr);
-    return m_codecCtx;
+    Q_ASSERT(d_ptr->codecCtx != nullptr);
+    return d_ptr->codecCtx;
 }
 
 bool CodecContext::setParameters(const AVCodecParameters *par)
 {
-    Q_ASSERT(m_codecCtx != nullptr);
-    int ret = avcodec_parameters_to_context(m_codecCtx, par);
+    Q_ASSERT(d_ptr->codecCtx != nullptr);
+    int ret = avcodec_parameters_to_context(d_ptr->codecCtx, par);
     if (ret < 0) {
-        emit error(AVError(ret));
+        setError(ret);
         return false;
     }
     //qDebug() << m_codecCtx->framerate.num;
@@ -51,15 +55,15 @@ bool CodecContext::setParameters(const AVCodecParameters *par)
 
 void CodecContext::setTimebase(const AVRational &timebase)
 {
-    Q_ASSERT(m_codecCtx != nullptr);
-    m_codecCtx->pkt_timebase = timebase;
+    Q_ASSERT(d_ptr->codecCtx != nullptr);
+    d_ptr->codecCtx->pkt_timebase = timebase;
 }
 
 bool CodecContext::open(AVCodec *codec)
 {
-    int ret = avcodec_open2(m_codecCtx, codec, NULL);
+    int ret = avcodec_open2(d_ptr->codecCtx, codec, NULL);
     if (ret < 0) {
-        emit error(AVError(ret));
+        setError(ret);
         return false;
     }
     return true;
@@ -67,9 +71,9 @@ bool CodecContext::open(AVCodec *codec)
 
 bool CodecContext::sendPacket(Packet *packet)
 {
-    int ret = avcodec_send_packet(m_codecCtx, packet->avPacket());
+    int ret = avcodec_send_packet(d_ptr->codecCtx, packet->avPacket());
     if (ret < 0) {
-        emit error(AVError(ret));
+        setError(ret);
         return false;
     }
     return true;
@@ -77,23 +81,25 @@ bool CodecContext::sendPacket(Packet *packet)
 
 bool CodecContext::receiveFrame(PlayFrame *frame)
 {
-    int ret = avcodec_receive_frame(m_codecCtx, frame->avFrame());
-    if (ret >= 0)
+    int ret = avcodec_receive_frame(d_ptr->codecCtx, frame->avFrame());
+    if (ret >= 0) {
         return true;
-    if (ret != -11) // Resource temporarily unavailable
-        emit error(AVError(ret));
+    }
+    if (ret != -11) { // Resource temporarily unavailable
+        setError(ret);
+    }
     return false;
 }
 
 bool CodecContext::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
 {
     int got_sub_ptr = 0;
-    int ret = avcodec_decode_subtitle2(m_codecCtx,
+    int ret = avcodec_decode_subtitle2(d_ptr->codecCtx,
                                        subtitle->avSubtitle(),
                                        &got_sub_ptr,
                                        packet->avPacket());
     if (ret < 0 || got_sub_ptr <= 0) {
-        emit error(AVError(ret));
+        setError(ret);
         return false;
     }
     return true;
@@ -109,7 +115,7 @@ bool CodecContext::imageAlloc(PlayFrame &frame)
                              1);
 
     if (ret < 0) {
-        emit error(AVError(ret));
+        setError(ret);
         return false;
     }
     return true;
@@ -117,17 +123,28 @@ bool CodecContext::imageAlloc(PlayFrame &frame)
 
 int CodecContext::width()
 {
-    return m_codecCtx->width;
+    return d_ptr->codecCtx->width;
 }
 
 int CodecContext::height()
 {
-    return m_codecCtx->height;
+    return d_ptr->codecCtx->height;
 }
 
 void CodecContext::flush()
 {
-    avcodec_flush_buffers(m_codecCtx);
+    avcodec_flush_buffers(d_ptr->codecCtx);
+}
+
+AVError CodecContext::avError()
+{
+    return d_ptr->error;
+}
+
+void CodecContext::setError(int errorCode)
+{
+    d_ptr->error.setError(errorCode);
+    emit error(d_ptr->error);
 }
 
 } // namespace Ffmpeg

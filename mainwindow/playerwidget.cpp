@@ -4,10 +4,12 @@
 
 #include <QtWidgets>
 
-class PlayerWidgetPrivate{
+class PlayerWidgetPrivate
+{
 public:
     PlayerWidgetPrivate(QWidget *parent)
-        : owner(parent){
+        : owner(parent)
+    {
         menu = new QMenu(owner);
     }
     QWidget *owner;
@@ -22,10 +24,7 @@ PlayerWidget::PlayerWidget(QWidget *parent)
     setupUI();
 }
 
-PlayerWidget::~PlayerWidget()
-{
-
-}
+PlayerWidget::~PlayerWidget() {}
 
 void PlayerWidget::dragEnterEvent(QDragEnterEvent *event)
 {
@@ -51,18 +50,49 @@ void PlayerWidget::dropEvent(QDropEvent *event)
 
 void PlayerWidget::setupUI()
 {
-    d_ptr->menu->addAction(tr("Open Video"), this, &PlayerWidget::onOpenVideo);
+    d_ptr->menu->addAction(tr("Open Local Media"), this, &PlayerWidget::onOpenLocalMedia);
+    d_ptr->menu->addAction(tr("Open Web Media"), this, &PlayerWidget::onOpenWebMedia);
 }
 
-void PlayerWidget::onOpenVideo()
+void PlayerWidget::onOpenLocalMedia()
 {
-    QString path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).value(0, QDir::homePath());
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),path,
-                                                    tr("Audio Video (*.mp3 *.mp4 *.mkv *.rmvb)"));
-    if(fileName.isEmpty())
+    const QString path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation)
+                             .value(0, QDir::homePath());
+    const QString fileName
+        = QFileDialog::getOpenFileName(this,
+                                       tr("Open File"),
+                                       path,
+                                       tr("Audio Video (*.mp3 *.mp4 *.mkv *.rmvb)"));
+    if (fileName.isEmpty())
         return;
 
     emit openFile(fileName);
+}
+
+void PlayerWidget::onOpenWebMedia()
+{
+    QDialog dialog(this);
+    QLineEdit *lineEdit = new QLineEdit(&dialog);
+    connect(lineEdit, &QLineEdit::returnPressed, &dialog, &QDialog::accept);
+    lineEdit->setPlaceholderText("http://.....");
+    QHBoxLayout *layout = new QHBoxLayout(&dialog);
+    layout->setContentsMargins(QMargins());
+    layout->setSpacing(0);
+    layout->addWidget(lineEdit);
+    dialog.setMinimumWidth(width() / 2);
+    dialog.exec();
+
+    const QString str(lineEdit->text().trimmed());
+    if (str.isEmpty()) {
+        return;
+    }
+    QUrl url(str);
+    if (!url.isValid()) {
+        qWarning("Invalid URL: %s", qUtf8Printable(url.toString()));
+        return;
+    }
+
+    emit openFile(url.toEncoded());
 }
 
 void PlayerWidget::contextMenuEvent(QContextMenuEvent *event)

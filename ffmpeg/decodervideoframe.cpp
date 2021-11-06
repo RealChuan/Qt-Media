@@ -4,6 +4,7 @@
 #include "codeccontext.h"
 #include "decoderaudioframe.h"
 #include "formatcontext.h"
+#include "hardwaredecode.hpp"
 
 #include <QDebug>
 #include <QPixmap>
@@ -23,8 +24,6 @@ public:
     QMutex mutex;
     QWaitCondition waitCondition;
 };
-
-Utils::Queue<VideoFrame> DecoderVideoFrame::videoFrameQueue;
 
 DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
     : Decoder<PlayFrame *>(parent)
@@ -74,7 +73,11 @@ void DecoderVideoFrame::runDecoder()
 
         if (m_seekTime > pts)
             continue;
-
+#ifdef HardWareDecodeOn
+        bool ok = false;
+        framePtr.reset(m_contextInfo->hardWareDecode()->transforFrame(framePtr.get(), ok));
+        //qDebug() << framePtr->avFrame()->format;
+#endif
         avImage.scale(framePtr.data(), &frameRGB, m_contextInfo->codecCtx()->height());
         QImage image(frameRGB.toImage(m_contextInfo->codecCtx()));
 
@@ -88,10 +91,8 @@ void DecoderVideoFrame::runDecoder()
 
         //基于信号槽的队列不可控，会产生堆积，不如自己建生成消费队列？
         emit readyRead(image); // 略慢于音频
-        // 消息队列播放一卡一卡的
-        //videoFrameQueue.enqueue(VideoFrame{pts, image});
     }
-    qDebug() << dropNum;
+    qInfo() << dropNum;
 }
 
 void DecoderVideoFrame::checkPause()

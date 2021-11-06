@@ -14,9 +14,14 @@ namespace Ffmpeg {
 AVImage::AVImage(CodecContext *codecCtx)
 {
     AVCodecContext *ctx = codecCtx->avCodecCtx();
+    qInfo() << ctx->pix_fmt;
+    AVPixelFormat pix_fmt = ctx->pix_fmt;
+    if (sws_isSupportedInput(pix_fmt) <= 0) {
+        pix_fmt = AV_PIX_FMT_NV12;
+    }
     m_swsContext = sws_getContext(ctx->width,
                                   ctx->height,
-                                  ctx->pix_fmt,
+                                  pix_fmt,
                                   ctx->width,
                                   ctx->height,
                                   AV_PIX_FMT_RGB32,
@@ -33,14 +38,26 @@ AVImage::~AVImage()
     sws_freeContext(m_swsContext);
 }
 
-SwsContext *AVImage::swsContext()
+void AVImage::flush(PlayFrame *frame)
 {
+    AVFrame *avFrame = frame->avFrame();
+    sws_getCachedContext(m_swsContext,
+                         avFrame->width,
+                         avFrame->height,
+                         static_cast<AVPixelFormat>(avFrame->format),
+                         avFrame->width,
+                         avFrame->height,
+                         AV_PIX_FMT_RGB32,
+                         SWS_BICUBIC,
+                         NULL,
+                         NULL,
+                         NULL);
     Q_ASSERT(m_swsContext != nullptr);
-    return m_swsContext;
 }
 
 void AVImage::scale(PlayFrame *in, PlayFrame *out, int height)
 {
+    flush(in);
     AVFrame *inFrame = in->avFrame();
     AVFrame *outFrame = out->avFrame();
     int ret = sws_scale(m_swsContext,

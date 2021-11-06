@@ -10,12 +10,6 @@ struct AVFrame;
 
 namespace Ffmpeg {
 
-struct VideoFrame
-{
-    double pts = 0;
-    QImage image;
-};
-
 class DecoderVideoFramePrivate;
 class DecoderVideoFrame : public Decoder<PlayFrame *>
 {
@@ -27,8 +21,6 @@ public:
     void stopDecoder() override;
 
     void pause(bool state) override;
-
-    static Utils::Queue<VideoFrame> videoFrameQueue;
 
 signals:
     void readyRead(const QImage &image);
@@ -43,6 +35,6 @@ private:
     QScopedPointer<DecoderVideoFramePrivate> d_ptr;
 };
 
-}
+} // namespace Ffmpeg
 
 #endif // DECODERVIDEOFRAME_H

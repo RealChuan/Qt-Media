@@ -16,11 +16,7 @@ class FFMPEG_EXPORT Player : public QThread
 {
     Q_OBJECT
 public:
-    enum MediaState {
-        StoppedState,
-        PlayingState,
-        PausedState
-    };
+    enum MediaState { StoppedState, PlayingState, PausedState };
 
     explicit Player(QObject *parent = nullptr);
     ~Player() override;
@@ -36,7 +32,9 @@ public:
 
     MediaState mediaState();
 
-    void setVideoOutputWidget(VideoOutputWidget* widget);
+    void setVideoOutputWidget(VideoOutputWidget *widget);
+
+    void setMaxiFrameBufferSize(quint64 size);
 
 public slots:
     void onSetFilePath(const QString &filepath);
@@ -45,20 +43,22 @@ public slots:
     void onSeek(int timestamp); // s
     void onSetAudioTracks(const QString &text);
     void onSetSubtitleStream(const QString &text);
-    void onPlayOneFrame();
 
 signals:
     void readyRead(const QImage &image);
-    void durationChanged(qint64 duration); // s
+    void durationChanged(qint64 duration); // ms
     void positionChanged(qint64 position); // ms
     void stateChanged(Ffmpeg::Player::MediaState);
     void audioTracksChanged(const QStringList &tracks);
     void audioTrackChanged(const QString &track);
     void subtitleStreamsChanged(const QStringList &streams);
     void subtitleStreamChanged(const QString &stream);
-    void subtitleImages(const QVector<Ffmpeg::SubtitleImage>&);
-    void error(const Ffmpeg::AVError& avError);
+    void subtitleImages(const QVector<Ffmpeg::SubtitleImage> &);
+    void error(const Ffmpeg::AVError &avError);
     void end();
+
+    void playStarted();
+    void seekFinished();
 
 protected:
     void run() override;
@@ -69,12 +69,12 @@ private:
     void playVideo();
     void checkSeek();
     void setMediaState(MediaState mediaState);
-    bool setMediaIndex(AVContextInfo * contextInfo, int index);
+    bool setMediaIndex(AVContextInfo *contextInfo, int index);
     void buildErrorConnect();
 
     QScopedPointer<PlayerPrivate> d_ptr;
 };
 
-}
+} // namespace Ffmpeg
 
 #endif // PLAYER_H

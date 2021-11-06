@@ -1,7 +1,9 @@
 #include "avcontextinfo.h"
 #include "codeccontext.h"
+#include "hardwaredecode.hpp"
 
 #include <QDebug>
+#include <QMetaEnum>
 #include <QTime>
 
 extern "C" {
@@ -18,12 +20,21 @@ struct AVContextInfoPrivate
     QScopedPointer<CodecContext> codecCtx; //解码器上下文
     AVStream *stream;                      //流
     int streamIndex = Error_Index;         // 索引
+    AVContextInfo::MediaType mediaType;
+    QScopedPointer<HardWareDecode> hardWareDecode;
 };
 
-AVContextInfo::AVContextInfo(QObject *parent)
+QString AVContextInfo::mediaTypeString(MediaType type)
+{
+    return QMetaEnum::fromType<MediaType>().valueToKey(type);
+}
+
+AVContextInfo::AVContextInfo(MediaType mediaType, QObject *parent)
     : QObject(parent)
     , d_ptr(new AVContextInfoPrivate)
-{}
+{
+    d_ptr->mediaType = mediaType;
+}
 
 AVContextInfo::~AVContextInfo() {}
 
@@ -71,17 +82,26 @@ bool AVContextInfo::findDecoder()
     const char *typeStr = av_get_media_type_string(d_ptr->stream->codecpar->codec_type);
     AVCodec *codec = avcodec_find_decoder(d_ptr->stream->codecpar->codec_id);
     if (!codec) {
-        qWarning() << tr("Audio or Video Codec not found: ") << typeStr;
+        qWarning() << tr("%1 Codec not found.").arg(typeStr);
         return false;
     }
-
+#ifdef HardWareDecodeOn
+    if (d_ptr->mediaType == Video) {
+        d_ptr->hardWareDecode.reset(new HardWareDecode);
+        d_ptr->hardWareDecode->initPixelFormat(codec);
+    }
+#endif
     d_ptr->codecCtx.reset(new CodecContext(codec));
     connect(d_ptr->codecCtx.data(),
             &CodecContext::error,
             this,
             &AVContextInfo::error,
             Qt::UniqueConnection);
-
+#ifdef HardWareDecodeOn
+    if (d_ptr->mediaType == Video) {
+        d_ptr->hardWareDecode->initHardWareDevice(d_ptr->codecCtx.data());
+    }
+#endif
     if (!d_ptr->codecCtx->setParameters(d_ptr->stream->codecpar))
         return false;
     d_ptr->codecCtx->setTimebase(d_ptr->stream->time_base);
@@ -124,6 +144,11 @@ void AVContextInfo::flush()
 double AVContextInfo::timebase()
 {
     return av_q2d(d_ptr->stream->time_base);
+}
+
+HardWareDecode *AVContextInfo::hardWareDecode()
+{
+    return d_ptr->hardWareDecode.data();
 }
 
 } // namespace Ffmpeg

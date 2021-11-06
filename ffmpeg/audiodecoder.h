@@ -24,6 +24,8 @@ public:
 
     double audioClock();
 
+    void setIsLocalFile(bool isLocalFile);
+
 signals:
     void positionChanged(qint64 position); // ms
 
@@ -34,6 +36,6 @@ private:
     QScopedPointer<AudioDecoderPrivate> d_ptr;
 };
 
-}
+} // namespace Ffmpeg
 
 #endif // AUDIODECODER_H

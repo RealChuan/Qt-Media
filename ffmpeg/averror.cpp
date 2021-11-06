@@ -1,16 +1,35 @@
 #include "averror.h"
 
-extern "C"{
+extern "C" {
 #include <libavutil/error.h>
 }
 
 namespace Ffmpeg {
 
-QString AVError::errorString() const
+AVError::AVError(const AVError &other)
 {
+    m_error = other.m_error;
+    m_errorString = other.m_errorString;
+}
+
+AVError &AVError::operator=(const AVError &other)
+{
+    m_error = other.m_error;
+    m_errorString = other.m_errorString;
+    return *this;
+}
+
+void AVError::setError(int error)
+{
+    m_error = error;
     char buf[1024] = {0};
     av_strerror(m_error, buf, sizeof buf);
-    return buf;
+    m_errorString = buf;
+}
+
+QString AVError::errorString() const
+{
+    return m_errorString;
 }
 
 QString AVError::avErrorString(int error)
@@ -18,5 +37,4 @@ QString AVError::avErrorString(int error)
     return AVError(error).errorString();
 }
 
-
-}
+} // namespace Ffmpeg

@@ -53,7 +53,8 @@ QByteArray AVAudio::convert(PlayFrame *frame)
                           frame->avFrame()->nb_samples,
                           const_cast<const uint8_t **>(frame->avFrame()->data),
                           frame->avFrame()->nb_samples);
-    data += QByteArray::fromRawData((const char *) (bufPtr.get()), size);
+    //data += QByteArray::fromRawData((const char *) (bufPtr.get()), size);
+    data += QByteArray((const char *) (bufPtr.get()), size);
 
     if (len <= 0) {
         qWarning() << AVError::avErrorString(len);

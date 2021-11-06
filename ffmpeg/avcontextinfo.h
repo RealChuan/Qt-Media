@@ -7,6 +7,7 @@ struct AVStream;
 
 namespace Ffmpeg {
 
+class HardWareDecode;
 class AVError;
 class Subtitle;
 class Packet;
@@ -17,7 +18,11 @@ class AVContextInfo : public QObject
 {
     Q_OBJECT
 public:
-    AVContextInfo(QObject *parent = nullptr);
+    enum MediaType { Audio, Video, SubTiTle };
+    Q_ENUM(MediaType)
+    static QString mediaTypeString(MediaType type);
+
+    AVContextInfo(MediaType mediaType, QObject *parent = nullptr);
     ~AVContextInfo();
 
     CodecContext *codecCtx();
@@ -42,6 +47,8 @@ public:
     void flush();
 
     double timebase();
+
+    HardWareDecode *hardWareDecode();
 
 signals:
     void error(const Ffmpeg::AVError &avError);

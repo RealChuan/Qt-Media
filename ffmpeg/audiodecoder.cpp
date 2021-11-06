@@ -52,6 +52,11 @@ double AudioDecoder::audioClock()
     return d_ptr->decoderAudioFrame->audioClock();
 }
 
+void AudioDecoder::setIsLocalFile(bool isLocalFile)
+{
+    d_ptr->decoderAudioFrame->setIsLocalFile(isLocalFile);
+}
+
 void AudioDecoder::runDecoder()
 {
     d_ptr->decoderAudioFrame->startDecoder(m_formatContext, m_contextInfo);

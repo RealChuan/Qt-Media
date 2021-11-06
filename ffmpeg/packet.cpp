@@ -14,6 +14,17 @@ Packet::Packet()
     Q_ASSERT(nullptr != m_packet);
 }
 
+Packet::Packet(const Packet &other)
+{
+    m_packet = av_packet_clone(other.m_packet);
+}
+
+Packet &Packet::operator=(const Packet &other)
+{
+    m_packet = av_packet_clone(other.m_packet);
+    return *this;
+}
+
 Packet::~Packet()
 {
     Q_ASSERT(nullptr != m_packet);

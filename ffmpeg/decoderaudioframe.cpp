@@ -7,19 +7,12 @@
 #include <QMediaDevices>
 #include <QMediaFormat>
 
+//#define ExternalClock // 音频播放依赖外部时钟，适用于本地文件播放
+
 namespace Ffmpeg {
-
-class DecoderAudioFramePrivate
+struct DecoderAudioFramePrivate
 {
-public:
-    DecoderAudioFramePrivate(QObject *parent)
-        : owner(parent)
-    {}
-    ~DecoderAudioFramePrivate() {}
-
-    QObject *owner;
-
-    QScopedPointer<QAudioSink> audioSink;
+    QScopedPointer<QAudioSink> audioSinkPtr;
     QIODevice *audioDevice;
     qreal volume = 0.5;
 
@@ -29,12 +22,18 @@ public:
     QWaitCondition waitCondition;
 
     qint64 seekTime = 0; // milliseconds
+
+    QScopedPointer<QMediaDevices> mediaDevicesPtr;
+    volatile bool audioOutputsChanged = false;
+    volatile bool isLocalFile = true;
 };
 
 DecoderAudioFrame::DecoderAudioFrame(QObject *parent)
     : Decoder<PlayFrame *>(parent)
-    , d_ptr(new DecoderAudioFramePrivate(this))
-{}
+    , d_ptr(new DecoderAudioFramePrivate)
+{
+    buildConnect();
+}
 
 DecoderAudioFrame::~DecoderAudioFrame() {}
 
@@ -63,8 +62,8 @@ bool DecoderAudioFrame::isPause()
 void DecoderAudioFrame::setVolume(qreal volume)
 {
     d_ptr->volume = volume;
-    if (d_ptr->audioSink)
-        d_ptr->audioSink->setVolume(volume);
+    if (d_ptr->audioSinkPtr)
+        d_ptr->audioSinkPtr->setVolume(volume);
 }
 
 void DecoderAudioFrame::setSpeed(double speed)
@@ -80,6 +79,34 @@ double DecoderAudioFrame::audioClock()
 {
     QMutexLocker locker(&m_mutex);
     return m_audioClock;
+}
+
+void DecoderAudioFrame::setIsLocalFile(bool isLocalFile)
+{
+    d_ptr->isLocalFile = isLocalFile;
+}
+
+void DecoderAudioFrame::onStateChanged(QAudio::State state)
+{
+    if (d_ptr->audioSinkPtr->error() != QAudio::NoError) {
+        qWarning() << tr("QAudioSink Error:") << d_ptr->audioSinkPtr->error();
+    }
+    //    switch (state) {
+    //    case QAudio::StoppedState:
+    //        // Stopped for other reasons
+    //        if (d_ptr->audioSink->error() != QAudio::NoError) {
+    //            qWarning() << tr("QAudioSink Error:") << d_ptr->audioSink->error();
+    //        }
+    //        break;
+    //    default:
+    //        // ... other cases as appropriate
+    //        break;
+    //    }
+}
+
+void DecoderAudioFrame::onAudioOutputsChanged()
+{
+    d_ptr->audioOutputsChanged = true;
 }
 
 void DecoderAudioFrame::setAudioClock(double time)
@@ -104,43 +131,110 @@ AVSampleFormat converSampleFormat(QAudioFormat::SampleFormat format)
 
 void DecoderAudioFrame::runDecoder()
 {
+    QAudioDevice audioDevice(QMediaDevices::defaultAudioOutput());
     QAudioFormat format = resetAudioOutput();
     AVSampleFormat fmt = converSampleFormat(format.sampleFormat());
     setAudioClock(0);
     AVAudio avAudio(m_contextInfo->codecCtx(), fmt);
-    qint64 pauseTime = 0;
     QElapsedTimer timer;
-    timer.start();
-    while (m_runing) {
-        checkPause(pauseTime);
-        checkSeek(timer, pauseTime);
-        checkSpeed(timer, pauseTime);
+    if (d_ptr->isLocalFile) { // 音频播放依赖外部时钟，适用于本地文件播放
+        qint64 pauseTime = 0;
+        timer.start();
+        while (m_runing) {
+            checkDefaultAudioOutput(audioDevice);
+            checkPause(pauseTime);
+            checkSeek(timer, pauseTime);
+            checkSpeed(timer, pauseTime);
 
-        if (m_queue.isEmpty()) {
-            msleep(1);
-            continue;
+            if (m_queue.isEmpty()) {
+                msleep(1);
+                continue;
+            }
+            QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
+
+            double duration = 0;
+            double pts = 0;
+            calculateTime(framePtr->avFrame(), duration, pts);
+            if (m_seekTime > pts)
+                continue;
+            setAudioClock(pts);
+
+            QByteArray audioBuf = avAudio.convert(framePtr.data());
+            double speed_ = speed();
+            double diff = pts * 1000 - d_ptr->seekTime - (timer.elapsed() - pauseTime) * speed_;
+            if (diff > 0) {
+                msleep(diff);
+            } else if (speed_ > 1.0) {
+                continue; // speed > 1.0 drop
+            }
+
+            emit positionChanged(pts * 1000);
+            writeToDevice(audioBuf);
         }
-        QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
+    } else { // 播放网络媒体
+        QElapsedTimer timer_;
+        qint64 lastPts = 0;
+        while (m_runing) {
+            checkDefaultAudioOutput(audioDevice);
+            qint64 pauseTime = 0;
+            checkPause(pauseTime);
+            checkSeek(timer, lastPts);
+            checkSpeed(timer, lastPts);
 
-        double duration = 0;
-        double pts = 0;
-        calculateTime(framePtr->avFrame(), duration, pts);
-        if (m_seekTime > pts)
-            continue;
-        setAudioClock(pts);
+            if (m_queue.isEmpty()) {
+                msleep(1);
+                continue;
+            }
+            QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
 
-        QByteArray audioBuf = avAudio.convert(framePtr.data());
-        double speed_ = speed();
-        double diff = pts * 1000 - d_ptr->seekTime - (timer.elapsed() - pauseTime) * speed_;
-        if (diff > 0) {
-            msleep(diff);
-        } else if (speed_ > 1.0) {
-            continue; // speed > 1.0 drop
+            double duration = 0;
+            double pts = 0;
+            calculateTime(framePtr->avFrame(), duration, pts);
+            if (m_seekTime > pts)
+                continue;
+            setAudioClock(pts);
+
+            QByteArray audioBuf = avAudio.convert(framePtr.data());
+            double speed_ = speed();
+            double diff = 0;
+            if (lastPts != 0) {
+                diff = pts * 1000 - lastPts - (timer_.elapsed() - pauseTime) * speed_;
+            }
+            lastPts = pts * 1000;
+            timer_.restart();
+
+            if (diff > 0) {
+                msleep(diff);
+            } else if (speed_ > 1.0) {
+                continue; // speed > 1.0 drop
+            }
+
+            emit positionChanged(pts * 1000);
+            writeToDevice(audioBuf);
         }
-
-        emit positionChanged(pts * 1000);
-        writeToDevice(audioBuf);
     }
+}
+
+void DecoderAudioFrame::buildConnect()
+{
+    d_ptr->mediaDevicesPtr.reset(new QMediaDevices);
+    connect(d_ptr->mediaDevicesPtr.data(),
+            &QMediaDevices::audioOutputsChanged,
+            this,
+            &DecoderAudioFrame::onAudioOutputsChanged);
+}
+
+void DecoderAudioFrame::checkDefaultAudioOutput(QAudioDevice &audioDevice)
+{
+    if (!d_ptr->audioOutputsChanged) {
+        return;
+    }
+    d_ptr->audioOutputsChanged = false;
+    if (audioDevice == QMediaDevices::defaultAudioOutput()) {
+        return;
+    }
+    resetAudioOutput();
+    audioDevice = QMediaDevices::defaultAudioOutput();
 }
 
 void DecoderAudioFrame::checkPause(qint64 &pauseTime)
@@ -183,8 +277,8 @@ void DecoderAudioFrame::checkSpeed(QElapsedTimer &timer, qint64 &pauseTime)
 
 void DecoderAudioFrame::writeToDevice(QByteArray &audioBuf)
 {
-    while (d_ptr->audioSink->bytesFree() < audioBuf.size()) {
-        int byteFree = d_ptr->audioSink->bytesFree();
+    while (d_ptr->audioSinkPtr->bytesFree() < audioBuf.size()) {
+        int byteFree = d_ptr->audioSinkPtr->bytesFree();
         if (byteFree > 0) {
             d_ptr->audioDevice->write(audioBuf.data(), byteFree); // Memory leak
             audioBuf = audioBuf.mid(byteFree);
@@ -193,6 +287,14 @@ void DecoderAudioFrame::writeToDevice(QByteArray &audioBuf)
     }
     d_ptr->audioDevice->write(audioBuf); // Memory leak
     qApp->processEvents();               // fix Memory leak
+}
+
+void printAudioOuputDevice()
+{
+    QList<QAudioDevice> audioDevices = QMediaDevices::audioOutputs();
+    for (const QAudioDevice &audioDevice : qAsConst(audioDevices)) {
+        qDebug() << audioDevice.id() << audioDevice.description() << audioDevice.isDefault();
+    }
 }
 
 QAudioFormat DecoderAudioFrame::resetAudioOutput()
@@ -221,17 +323,22 @@ QAudioFormat DecoderAudioFrame::resetAudioOutput()
         format.setSampleFormat(QAudioFormat::Int16);
         sampleSzie = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
     }
-
+    printAudioOuputDevice();
     QAudioDevice audioDevice(QMediaDevices::defaultAudioOutput());
     qInfo() << audioDevice.supportedSampleFormats();
     if (!audioDevice.isFormatSupported(format)) {
         qWarning() << "Raw audio format not supported by backend, cannot play audio.";
     }
 
-    d_ptr->audioSink.reset(new QAudioSink(format));
-    d_ptr->audioSink->setBufferSize(format.sampleRate() * sampleSzie / 8);
-    d_ptr->audioSink->setVolume(d_ptr->volume);
-    d_ptr->audioDevice = d_ptr->audioSink->start();
+    d_ptr->audioSinkPtr.reset(new QAudioSink(format));
+    d_ptr->audioSinkPtr->setBufferSize(format.sampleRate() * sampleSzie / 8);
+    d_ptr->audioSinkPtr->setVolume(d_ptr->volume);
+    d_ptr->audioDevice = d_ptr->audioSinkPtr->start();
+    connect(d_ptr->audioSinkPtr.data(),
+            &QAudioSink::stateChanged,
+            this,
+            &DecoderAudioFrame::onStateChanged);
+
     return format;
 }
 

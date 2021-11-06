@@ -11,13 +11,11 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     hostosinfo.cpp \
-    json.cpp \
     logasync.cpp \
     utils.cpp
 
 HEADERS += \
     hostosinfo.h \
-    json.h \
     logasync.h \
     osspecificaspects.h \
     taskqueue.h \

@@ -17,7 +17,8 @@ signals:
     void openFile(const QString &filepath);
 
 private slots:
-    void onOpenVideo();
+    void onOpenLocalMedia();
+    void onOpenWebMedia();
 
 protected:
     void contextMenuEvent(QContextMenuEvent *) override;

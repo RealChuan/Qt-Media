@@ -11,6 +11,8 @@ class Packet
 {
 public:
     explicit Packet();
+    Packet(const Packet &other);
+    Packet &operator=(const Packet &other);
     ~Packet();
 
     void clear();
@@ -18,8 +20,6 @@ public:
     AVPacket *avPacket();
 
 private:
-    Q_DISABLE_COPY(Packet)
-
     AVPacket *m_packet;
 };
 
