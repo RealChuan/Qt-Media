@@ -9,12 +9,11 @@ namespace Ffmpeg {
 class AVError;
 }
 
-class MainWindowPrivate;
 class MAINWINDOW_EXPORT MainWindow : public QMainWindow
 {
     Q_OBJECT
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 private slots:
@@ -26,6 +25,7 @@ private:
     void setupUI();
     void buildConnect();
 
+    class MainWindowPrivate;
     QScopedPointer<MainWindowPrivate> d_ptr;
 };
 #endif // MAINWINDOW_H

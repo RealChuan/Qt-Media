@@ -13,7 +13,6 @@ namespace Ffmpeg {
 class PlayFrame;
 class AVError;
 class CodecContext;
-struct HardWareDecodePrivate;
 class HardWareDecode : public QObject
 {
     Q_OBJECT
@@ -35,6 +34,7 @@ signals:
 private:
     void setError(int errorCode);
 
+    struct HardWareDecodePrivate;
     QScopedPointer<HardWareDecodePrivate> d_ptr;
 };
 

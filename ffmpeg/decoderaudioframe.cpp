@@ -10,7 +10,8 @@
 //#define ExternalClock // 音频播放依赖外部时钟，适用于本地文件播放
 
 namespace Ffmpeg {
-struct DecoderAudioFramePrivate
+
+struct DecoderAudioFrame::DecoderAudioFramePrivate
 {
     QScopedPointer<QAudioSink> audioSinkPtr;
     QIODevice *audioDevice;

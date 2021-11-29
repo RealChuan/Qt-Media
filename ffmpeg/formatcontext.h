@@ -10,7 +10,6 @@ namespace Ffmpeg {
 
 class AVError;
 class Packet;
-class FormatContextPrivate;
 class FormatContext : public QObject
 {
     Q_OBJECT
@@ -57,6 +56,7 @@ private:
 
     void setError(int errorCode);
 
+    class FormatContextPrivate;
     QScopedPointer<FormatContextPrivate> d_ptr;
 };
 

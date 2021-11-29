@@ -10,7 +10,7 @@ namespace Ffmpeg {
 class FFMPEG_EXPORT AVError
 {
 public:
-    AVError(int error = 0) { setError(error); }
+    explicit AVError(int error = 0) { setError(error); }
     AVError(const AVError &other);
     AVError &operator=(const AVError &other);
 

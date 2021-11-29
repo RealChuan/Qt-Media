@@ -13,7 +13,7 @@ extern "C" {
 
 namespace Ffmpeg {
 
-class FormatContextPrivate
+class FormatContext::FormatContextPrivate
 {
 public:
     FormatContextPrivate(QObject *parent)

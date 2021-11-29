@@ -85,7 +85,7 @@ AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_f
     return AV_PIX_FMT_NONE;
 }
 
-struct HardWareDecodePrivate
+struct HardWareDecode::HardWareDecodePrivate
 {
     ~HardWareDecodePrivate() { av_buffer_unref(&bufferRef); }
 

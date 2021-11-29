@@ -7,12 +7,11 @@
 
 namespace Ffmpeg {
 
-class SubtitleDecoderPrivate;
 class SubtitleDecoder : public Decoder<Packet *>
 {
     Q_OBJECT
 public:
-    SubtitleDecoder(QObject *parent = nullptr);
+    explicit SubtitleDecoder(QObject *parent = nullptr);
     ~SubtitleDecoder();
 
     void stopDecoder() override;
@@ -29,6 +28,7 @@ private:
     void checkPause();
     void checkSeek();
 
+    class SubtitleDecoderPrivate;
     QScopedPointer<SubtitleDecoderPrivate> d_ptr;
 };
 

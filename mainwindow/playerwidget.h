@@ -1,12 +1,9 @@
 #ifndef PLAYERWIDGET_H
 #define PLAYERWIDGET_H
 
-#include <ffmpeg/videooutputwidget.h>
+#include <ffmpeg/videooutput/videooutputrenderopenglrender.hpp>
 
-using namespace Ffmpeg;
-
-class PlayerWidgetPrivate;
-class PlayerWidget : public VideoOutputWidget
+class PlayerWidget : public Ffmpeg::VideoOutputRenderOpenGLRender
 {
     Q_OBJECT
 public:
@@ -30,6 +27,7 @@ protected:
 private:
     void setupUI();
 
+    class PlayerWidgetPrivate;
     QScopedPointer<PlayerWidgetPrivate> d_ptr;
 };
 

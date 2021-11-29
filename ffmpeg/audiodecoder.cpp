@@ -6,7 +6,7 @@
 
 namespace Ffmpeg {
 
-class AudioDecoderPrivate
+class AudioDecoder::AudioDecoderPrivate
 {
 public:
     AudioDecoderPrivate(QObject *parent)
@@ -15,7 +15,6 @@ public:
         decoderAudioFrame = new DecoderAudioFrame(owner);
     }
     QObject *owner;
-
     DecoderAudioFrame *decoderAudioFrame;
 };
 

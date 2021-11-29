@@ -16,7 +16,6 @@ struct SubtitleImage{
     qint64 endDisplayTime; // ms
 };
 
-class SubtitlePrivate;
 class Subtitle : public QObject
 {
     Q_OBJECT
@@ -36,6 +35,7 @@ private:
     QVector<SubtitleImage> scale();
     QVector<SubtitleImage> text();
 
+    class SubtitlePrivate;
     QScopedPointer<SubtitlePrivate> d_ptr;
 };
 

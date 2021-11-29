@@ -4,7 +4,7 @@
 
 #include <QtWidgets>
 
-class PlayerWidgetPrivate
+class PlayerWidget::PlayerWidgetPrivate
 {
 public:
     PlayerWidgetPrivate(QWidget *parent)
@@ -13,11 +13,12 @@ public:
         menu = new QMenu(owner);
     }
     QWidget *owner;
+
     QMenu *menu;
 };
 
 PlayerWidget::PlayerWidget(QWidget *parent)
-    : VideoOutputWidget(parent)
+    : Ffmpeg::VideoOutputRenderOpenGLRender(parent)
     , d_ptr(new PlayerWidgetPrivate(this))
 {
     setAcceptDrops(true);

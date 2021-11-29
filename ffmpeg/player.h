@@ -10,8 +10,7 @@ namespace Ffmpeg {
 
 class AVError;
 class AVContextInfo;
-class VideoOutputWidget;
-class PlayerPrivate;
+class VideoOutputRender;
 class FFMPEG_EXPORT Player : public QThread
 {
     Q_OBJECT
@@ -32,7 +31,8 @@ public:
 
     MediaState mediaState();
 
-    void setVideoOutputWidget(VideoOutputWidget *widget);
+    void setVideoOutputWidget(VideoOutputRender *widget);
+    void unsetVideoOutputWidget();
 
     void setMaxiFrameBufferSize(quint64 size);
 
@@ -72,6 +72,7 @@ private:
     bool setMediaIndex(AVContextInfo *contextInfo, int index);
     void buildErrorConnect();
 
+    class PlayerPrivate;
     QScopedPointer<PlayerPrivate> d_ptr;
 };
 

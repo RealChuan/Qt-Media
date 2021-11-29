@@ -13,7 +13,6 @@ class Subtitle;
 class Packet;
 class PlayFrame;
 class CodecContext;
-struct AVContextInfoPrivate;
 class AVContextInfo : public QObject
 {
     Q_OBJECT
@@ -22,7 +21,7 @@ public:
     Q_ENUM(MediaType)
     static QString mediaTypeString(MediaType type);
 
-    AVContextInfo(MediaType mediaType, QObject *parent = nullptr);
+    explicit AVContextInfo(MediaType mediaType, QObject *parent = nullptr);
     ~AVContextInfo();
 
     CodecContext *codecCtx();
@@ -54,6 +53,7 @@ signals:
     void error(const Ffmpeg::AVError &avError);
 
 private:
+    struct AVContextInfoPrivate;
     QScopedPointer<AVContextInfoPrivate> d_ptr;
 };
 

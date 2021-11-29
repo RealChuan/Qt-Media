@@ -14,7 +14,6 @@ class AVError;
 class Subtitle;
 class Packet;
 class PlayFrame;
-struct CodecContextPrivate;
 class CodecContext : public QObject
 {
     Q_OBJECT
@@ -47,6 +46,7 @@ signals:
 private:
     void setError(int errorCode);
 
+    struct CodecContextPrivate;
     QScopedPointer<CodecContextPrivate> d_ptr;
 };
 

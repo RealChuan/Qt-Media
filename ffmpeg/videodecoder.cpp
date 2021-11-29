@@ -7,7 +7,7 @@
 
 namespace Ffmpeg {
 
-class VideoDecoderPrivate
+class VideoDecoder::VideoDecoderPrivate
 {
 public:
     VideoDecoderPrivate(QObject *parent)

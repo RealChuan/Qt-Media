@@ -13,7 +13,7 @@ extern "C" {
 
 namespace Ffmpeg {
 
-struct CodecContextPrivate
+struct CodecContext::CodecContextPrivate
 {
     ~CodecContextPrivate() { avcodec_free_context(&codecCtx); }
     AVCodecContext *codecCtx; //解码器上下文

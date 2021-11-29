@@ -11,12 +11,11 @@ class QAudioDevice;
 
 namespace Ffmpeg {
 
-struct DecoderAudioFramePrivate;
 class DecoderAudioFrame : public Decoder<PlayFrame *>
 {
     Q_OBJECT
 public:
-    DecoderAudioFrame(QObject *parent = nullptr);
+    explicit DecoderAudioFrame(QObject *parent = nullptr);
     ~DecoderAudioFrame();
 
     void stopDecoder() override;
@@ -56,6 +55,8 @@ private:
 
     static QMutex m_mutex;
     static double m_audioClock;
+
+    struct DecoderAudioFramePrivate;
     QScopedPointer<DecoderAudioFramePrivate> d_ptr;
 };
 

@@ -15,7 +15,7 @@ extern "C" {
 
 namespace Ffmpeg {
 
-struct AVContextInfoPrivate
+struct AVContextInfo::AVContextInfoPrivate
 {
     QScopedPointer<CodecContext> codecCtx; //解码器上下文
     AVStream *stream;                      //流

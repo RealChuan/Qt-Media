@@ -16,7 +16,7 @@ class PlayFrame;
 class AVAudio
 {
 public:
-    AVAudio(CodecContext *codecCtx, AVSampleFormat format);
+    explicit AVAudio(CodecContext *codecCtx, AVSampleFormat format);
     ~AVAudio();
 
     QByteArray convert(PlayFrame *frame);

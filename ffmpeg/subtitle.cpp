@@ -10,7 +10,8 @@ extern "C"{
 
 namespace Ffmpeg {
 
-class SubtitlePrivate{
+class Subtitle::SubtitlePrivate
+{
 public:
     SubtitlePrivate(QObject *parent)
         : owner(parent){

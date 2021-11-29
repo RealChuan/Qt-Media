@@ -12,7 +12,6 @@
 #include "playframe.h"
 #include "subtitledecoder.h"
 #include "videodecoder.h"
-#include "videooutputwidget.h"
 
 #include <utils/utils.h>
 
@@ -26,9 +25,11 @@
 
 #include <memory>
 
+#include <videooutput/videooutputrender.hpp>
+
 namespace Ffmpeg {
 
-class PlayerPrivate
+class Player::PlayerPrivate
 {
 public:
     PlayerPrivate(QThread *parent)
@@ -64,14 +65,16 @@ public:
     volatile Player::MediaState mediaState = Player::MediaState::StoppedState;
 
     quint64 maxiFrameBufferSize = 20;
+
+    VideoOutputRender *videoOutputRender = nullptr;
 };
 
 Player::Player(QObject *parent)
     : QThread(parent)
     , d_ptr(new PlayerPrivate(this))
 {
-    qDebug() << avcodec_configuration();
-    qDebug() << avcodec_version();
+    qInfo() << avcodec_configuration();
+    qInfo() << avcodec_version();
     qRegisterMetaType<Ffmpeg::AVError>("Ffmpeg::AVError");
     buildConnect();
     buildErrorConnect();
@@ -381,16 +384,35 @@ Player::MediaState Player::mediaState()
     return d_ptr->mediaState;
 }
 
-void Player::setVideoOutputWidget(VideoOutputWidget *widget)
+void Player::setVideoOutputWidget(VideoOutputRender *widget)
 {
-    connect(this, &Player::readyRead, widget, &VideoOutputWidget::onReadyRead, Qt::UniqueConnection);
-    //connect(this, &Player::finished, this, &Player::onStop, Qt::UniqueConnection);
-    connect(this, &Player::end, widget, &VideoOutputWidget::onFinish, Qt::UniqueConnection);
+    d_ptr->videoOutputRender = widget;
+    connect(this, &Player::readyRead, this, [this](const QImage &image) {
+        if (d_ptr->videoOutputRender) {
+            d_ptr->videoOutputRender->onReadyRead(image);
+        }
+    });
+    connect(this, &Player::end, this, [this] {
+        if (d_ptr->videoOutputRender) {
+            d_ptr->videoOutputRender->onFinish();
+        }
+    });
     connect(this,
             &Player::subtitleImages,
-            widget,
-            &VideoOutputWidget::onSubtitleImages,
-            Qt::UniqueConnection);
+            this,
+            [this](const QVector<Ffmpeg::SubtitleImage> &SubtitleImages) {
+                if (d_ptr->videoOutputRender) {
+                    d_ptr->videoOutputRender->onSubtitleImages(SubtitleImages);
+                }
+            });
+}
+
+void Player::unsetVideoOutputWidget()
+{
+    d_ptr->videoOutputRender = nullptr;
+    disconnect(SIGNAL(readyRead(const QImage &image)));
+    disconnect(SIGNAL(subtitleImages(const QVector<Ffmpeg::SubtitleImage> &)));
+    disconnect(SIGNAL(end()));
 }
 
 void Player::setMaxiFrameBufferSize(quint64 size)

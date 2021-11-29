@@ -7,7 +7,7 @@
 
 #include <QtWidgets>
 
-class MainWindowPrivate
+class MainWindow::MainWindowPrivate
 {
 public:
     MainWindowPrivate(QWidget *parent)
@@ -40,7 +40,7 @@ MainWindow::~MainWindow()
     d_ptr->player->onStop();
 }
 
-void MainWindow::onError(const AVError &avError)
+void MainWindow::onError(const Ffmpeg::AVError &avError)
 {
     const QString str = tr("Error[%1]:%2.")
                             .arg(QString::number(avError.error()), avError.errorString());

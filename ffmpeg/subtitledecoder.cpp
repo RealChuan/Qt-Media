@@ -4,7 +4,7 @@
 
 namespace Ffmpeg {
 
-class SubtitleDecoderPrivate
+class SubtitleDecoder::SubtitleDecoderPrivate
 {
 public:
     SubtitleDecoderPrivate(QObject *parent)

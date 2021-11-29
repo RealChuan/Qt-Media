@@ -6,7 +6,6 @@
 
 namespace Ffmpeg {
 
-class AudioDecoderPrivate;
 class AudioDecoder : public Decoder<Packet *>
 {
     Q_OBJECT
@@ -33,6 +32,7 @@ protected:
     void runDecoder() override;
 
 private:
+    class AudioDecoderPrivate;
     QScopedPointer<AudioDecoderPrivate> d_ptr;
 };
 

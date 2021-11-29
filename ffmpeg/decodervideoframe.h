@@ -10,12 +10,11 @@ struct AVFrame;
 
 namespace Ffmpeg {
 
-class DecoderVideoFramePrivate;
 class DecoderVideoFrame : public Decoder<PlayFrame *>
 {
     Q_OBJECT
 public:
-    DecoderVideoFrame(QObject *parent = nullptr);
+    explicit DecoderVideoFrame(QObject *parent = nullptr);
     ~DecoderVideoFrame();
 
     void stopDecoder() override;
@@ -32,6 +31,7 @@ private:
     void checkPause();
     void checkSeek();
 
+    class DecoderVideoFramePrivate;
     QScopedPointer<DecoderVideoFramePrivate> d_ptr;
 };
 

@@ -1,5 +1,6 @@
 include(../libs.pri)
 include(ffmpeg.pri)
+include(videooutput/videooutput.pri)
 
 QT += widgets multimedia openglwidgets
 
@@ -24,8 +25,7 @@ SOURCES += \
     playframe.cpp \
     subtitle.cpp \
     subtitledecoder.cpp \
-    videodecoder.cpp \
-    videooutputwidget.cpp
+    videodecoder.cpp
 
 HEADERS += \
     audiodecoder.h \
@@ -45,5 +45,4 @@ HEADERS += \
     playframe.h \
     subtitle.h \
     subtitledecoder.h \
-    videodecoder.h \
-    videooutputwidget.h
+    videodecoder.h
