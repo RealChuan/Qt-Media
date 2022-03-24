@@ -1,9 +1,9 @@
 #ifndef LOGASYNC_H
 #define LOGASYNC_H
 
-#include <QMutex>
 #include <QThread>
 
+#include "singleton.hpp"
 #include "utils_global.h"
 
 namespace Utils {
@@ -38,8 +38,6 @@ class UTILS_EXPORT LogAsync : public QThread
 public:
     enum Orientation { Std = 1, File, StdAndFile };
 
-    static LogAsync *instance();
-
     void setOrientation(Orientation);
     Orientation orientation();
 
@@ -56,11 +54,12 @@ protected:
     void run() override;
 
 private:
-    LogAsync(QObject *parent = nullptr);
+    explicit LogAsync(QObject *parent = nullptr);
     ~LogAsync() override;
 
-    static QMutex m_mutex;
     QScopedPointer<LogAsyncPrivate> d_ptr;
+
+    Singleton(LogAsync)
 };
 
 } // namespace Utils

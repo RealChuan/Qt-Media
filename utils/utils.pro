@@ -18,6 +18,7 @@ HEADERS += \
     hostosinfo.h \
     logasync.h \
     osspecificaspects.h \
+    singleton.hpp \
     taskqueue.h \
     utils_global.h \
     utils.h

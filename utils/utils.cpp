@@ -112,47 +112,6 @@ void Utils::reboot()
     QApplication::exit();
 }
 
-void Utils::saveLanguage(Utils::Language type)
-{
-    QSettings setting(ConfigFile, QSettings::IniFormat);
-    setting.beginGroup("Language_config");
-    setting.setValue("Language", type);
-    setting.endGroup();
-}
-
-static Utils::Language CURRENT_LANGUAGE = Utils::Chinese;
-
-void Utils::loadLanguage()
-{
-    static QTranslator translator;
-    if (!QFileInfo::exists(ConfigFile)) {
-        qInfo() << translator.load(qApp->applicationDirPath() + "/translator/language.zh_en.qm");
-        CURRENT_LANGUAGE = Utils::English;
-    } else {
-        QSettings setting(ConfigFile, QSettings::IniFormat);
-        setting.beginGroup("Language_config"); //向当前组追加前缀
-        Utils::Language type = Utils::Language(setting.value("Language").toInt());
-        setting.endGroup();
-
-        switch (type) {
-        case Utils::Chinese:
-            qInfo() << translator.load(qApp->applicationDirPath() + "/translator/language.zh_cn.qm");
-            CURRENT_LANGUAGE = Utils::Chinese;
-            break;
-        case Utils::English:
-            qInfo() << translator.load(qApp->applicationDirPath() + "/translator/language.zh_en.qm");
-            CURRENT_LANGUAGE = Utils::English;
-            break;
-        }
-    }
-    qApp->installTranslator(&translator);
-}
-
-Utils::Language Utils::getCurrentLanguage()
-{
-    return CURRENT_LANGUAGE;
-}
-
 qint64 calculateDir(const QString &localPath)
 {
     qint64 size = 0;
@@ -314,4 +273,21 @@ void Utils::setGlobalThreadPoolMaxSize(int maxSize)
         return;
     }
     instance->setMaxThreadCount(qMax(4, 2 * instance->maxThreadCount()));
+}
+
+QString Utils::getConfigPath()
+{
+    static QString path;
+    if (path.isEmpty()) {
+        path = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+        if (path.isEmpty()) {
+            path = QDir::homePath();
+        }
+        if (!path.endsWith(qAppName())) {
+            path = path + "/" + qAppName();
+        }
+    }
+    //qInfo() << path;
+    Utils::generateDirectorys(path);
+    return path;
 }

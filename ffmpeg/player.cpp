@@ -64,7 +64,7 @@ public:
 
     volatile Player::MediaState mediaState = Player::MediaState::StoppedState;
 
-    quint64 maxiFrameBufferSize = 20;
+    int maxiFrameBufferSize = 20;
 
     VideoOutputRender *videoOutputRender = nullptr;
 };

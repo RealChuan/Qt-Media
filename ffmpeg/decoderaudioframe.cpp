@@ -89,6 +89,9 @@ void DecoderAudioFrame::setIsLocalFile(bool isLocalFile)
 
 void DecoderAudioFrame::onStateChanged(QAudio::State state)
 {
+    if (d_ptr->audioSinkPtr.isNull()) {
+        return;
+    }
     if (d_ptr->audioSinkPtr->error() != QAudio::NoError) {
         qWarning() << tr("QAudioSink Error:") << d_ptr->audioSinkPtr->error();
     }
@@ -214,6 +217,7 @@ void DecoderAudioFrame::runDecoder()
             writeToDevice(audioBuf);
         }
     }
+    d_ptr->audioSinkPtr.reset();
 }
 
 void DecoderAudioFrame::buildConnect()

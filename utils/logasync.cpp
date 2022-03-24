@@ -31,7 +31,7 @@ FileUtil::FileUtil(qint64 days, QObject *parent)
     , d_ptr(new FileUtilPrivate)
 {
     d_ptr->autoDelFileDays = days;
-    Utils::generateDirectorys(qApp->applicationDirPath() + "/log");
+    Utils::generateDirectorys(Utils::getConfigPath() + "/log");
     rollFile(0);
     setTimer();
 }
@@ -67,7 +67,7 @@ QString FileUtil::getFileName(qint64 *now) const
     *now = QDateTime::currentSecsSinceEpoch();
     QString data = QDateTime::fromSecsSinceEpoch(*now).toString("yyyy-MM-dd-hh-mm-ss");
     QString filename = QString("%1/log/%2.%3.%4.%5.log")
-                           .arg(qApp->applicationDirPath(),
+                           .arg(Utils::getConfigPath(),
                                 qAppName(),
                                 data,
                                 QSysInfo::machineHostName(),
@@ -103,7 +103,7 @@ bool FileUtil::rollFile(int count)
 
 void FileUtil::autoDelFile()
 {
-    const QString path(qApp->applicationDirPath() + "/log");
+    const QString path(Utils::getConfigPath() + "/log");
     Utils::generateDirectorys(path);
     QDir dir(path);
 
@@ -196,15 +196,6 @@ struct LogAsyncPrivate
     QWaitCondition waitCondition;
     QMutex mutex;
 };
-
-QMutex LogAsync::m_mutex;
-
-LogAsync *LogAsync::instance()
-{
-    QMutexLocker locker(&m_mutex);
-    static LogAsync log;
-    return &log;
-}
 
 void LogAsync::setOrientation(LogAsync::Orientation orientation)
 {

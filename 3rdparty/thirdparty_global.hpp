@@ -1,0 +1,12 @@
+#ifndef THIRDPARTY_GLOBAL_HPP
+#define THIRDPARTY_GLOBAL_HPP
+
+#include <QtCore/qglobal.h>
+
+#if defined(THRIDPARTY_LIBRARY)
+#define THRIDPARTY_EXPORT Q_DECL_EXPORT
+#else
+#define THRIDPARTY_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // THIRDPARTY_GLOBAL_HPP

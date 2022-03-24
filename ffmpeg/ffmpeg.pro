@@ -1,5 +1,5 @@
 include(../libs.pri)
-include(ffmpeg.pri)
+include(../3rdparty/3rdparty.pri)
 include(videooutput/videooutput.pri)
 
 QT += widgets multimedia openglwidgets

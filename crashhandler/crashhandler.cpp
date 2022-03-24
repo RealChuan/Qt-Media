@@ -15,7 +15,7 @@ inline QString getDumpFileName()
     QString strTime = QDateTime::currentDateTime().toString("yyyy-MM-dd-HH-mm-ss-zzz");
 
     QString path = QString("%1/crashes/%2-%3-%4-%5.dmp")
-                       .arg(qApp->applicationDirPath())
+                       .arg(Utils::getConfigPath())
                        .arg(qAppName())
                        .arg(qApp->applicationVersion())
                        .arg(strTime)
@@ -125,7 +125,7 @@ LONG WINAPI UnhandledExceptionFilterEx(LPEXCEPTION_POINTERS lpExceptionInfo)
 
 void Utils::setCrashHandler()
 {
-    const QString path = qApp->applicationDirPath() + "/crashes";
+    const QString path = Utils::getConfigPath() + "/crashes";
     if (!Utils::generateDirectorys(path))
         return;
 
@@ -142,8 +142,8 @@ void Utils::setCrashHandler()
 void Utils::openCrashAndLogPath()
 {
     QDir dir;
-    QString urlCrash = qApp->applicationDirPath() + "/crashes";
-    QString urlLog = qApp->applicationDirPath() + "/log";
+    QString urlCrash = Utils::getConfigPath() + "/crashes";
+    QString urlLog = Utils::getConfigPath() + "/log";
     if (dir.exists(urlCrash))
         QDesktopServices::openUrl(QUrl(urlCrash, QUrl::TolerantMode));
     if (dir.exists(urlLog))
