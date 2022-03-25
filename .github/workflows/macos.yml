@@ -29,6 +29,10 @@ jobs:
         qt_ver: [6.2.4]
         qt_arch: [clang_64]
     steps:
+      - name: setup python3
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.9' # Version range or exact version of a Python version to use, using SemVer's version range syntax      
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
@@ -36,17 +40,19 @@ jobs:
           install-deps: 'true'
           modules: 'qt5compat addons.qtnetworkauth addons.qtmultimedia addons.qtimageformats'
           cached: 'false'
+          setup-python: false
+          py7zrversion: '==0.18.1'
       - name: cache vcpkg
         uses: actions/cache@v3
         with:
-          path: C:\vcpkg\downloads
+          path: /usr/local/share/vcpkg/downloads
           key: ${{ runner.os }}-vcpkg-download-${{ matrix.os }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-vcpkg-download-${{ matrix.os }}-
             ${{ runner.os }}-vcpkg-download-
       - uses: actions/cache@v3
         with:
-          path: C:\vcpkg\installed
+          path: /usr/local/share/vcpkg/installed
           key: ${{ runner.os }}-vcpkg-installed-${{ matrix.os }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-vcpkg-installed-${{ matrix.os }}-
