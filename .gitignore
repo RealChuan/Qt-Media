@@ -58,3 +58,4 @@ bin-*/
 .vscode/
 build/
 build*/
+lib-*/
