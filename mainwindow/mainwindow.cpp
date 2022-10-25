@@ -32,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     setupUI();
     buildConnect();
-    resize(1000, 600);
+    resize(1000, 650);
 }
 
 MainWindow::~MainWindow()
@@ -65,11 +65,11 @@ void MainWindow::onPositionChanged(qint64 position)
 void MainWindow::setupUI()
 {
     PlayerWidget *playWidget = new PlayerWidget(this);
-    d_ptr->player->setVideoOutputWidget(playWidget);
+    d_ptr->player->setVideoOutputWidget(QVector<Ffmpeg::VideoOutputRender *>{playWidget});
     QPushButton *playButton = new QPushButton(tr("play"), this);
     playButton->setCheckable(true);
     connect(playWidget, &PlayerWidget::openFile, d_ptr->player, &Ffmpeg::Player::onSetFilePath);
-    connect(playButton, &QPushButton::clicked, [this](bool checked) {
+    connect(playButton, &QPushButton::clicked, this, [this](bool checked) {
         if (checked && !d_ptr->player->isRunning())
             d_ptr->player->onPlay();
         else {
@@ -78,6 +78,7 @@ void MainWindow::setupUI()
     });
     connect(d_ptr->player,
             &Ffmpeg::Player::stateChanged,
+            this,
             [playButton](Ffmpeg::Player::MediaState state) {
                 switch (state) {
                 case Ffmpeg::Player::MediaState::StoppedState:
@@ -88,7 +89,7 @@ void MainWindow::setupUI()
             });
 
     Slider *volumeSlider = new Slider(this);
-    connect(volumeSlider, &QSlider::sliderMoved, [this](int value) {
+    connect(volumeSlider, &QSlider::sliderMoved, this, [this](int value) {
         d_ptr->player->setVolume(value / 100.0);
     });
     volumeSlider->setRange(0, 100);
@@ -97,11 +98,14 @@ void MainWindow::setupUI()
     QComboBox *speedComboBox = new QComboBox(this);
     connect(speedComboBox,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
             [this, speedComboBox](int index) {
                 d_ptr->player->setSpeed(speedComboBox->itemData(index).toDouble());
             });
-    for (double i = 0.5; i < 5.5; i += 0.5) {
+    double i = 0.5;
+    while (i < 5.5) {
         speedComboBox->addItem(QString::number(i), i);
+        i += 0.5;
     }
     speedComboBox->setCurrentIndex(1);
 
@@ -109,6 +113,7 @@ void MainWindow::setupUI()
     audioTracksComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     connect(d_ptr->player,
             &Ffmpeg::Player::audioTracksChanged,
+            this,
             [audioTracksComboBox](const QStringList &tracks) {
                 audioTracksComboBox->blockSignals(true);
                 audioTracksComboBox->clear();
@@ -117,6 +122,7 @@ void MainWindow::setupUI()
             });
     connect(d_ptr->player,
             &Ffmpeg::Player::audioTrackChanged,
+            this,
             [audioTracksComboBox](const QString &track) {
                 audioTracksComboBox->blockSignals(true);
                 audioTracksComboBox->setCurrentText(track);
@@ -132,6 +138,7 @@ void MainWindow::setupUI()
     ;
     connect(d_ptr->player,
             &Ffmpeg::Player::subtitleStreamsChanged,
+            this,
             [subtitleStreamsComboBox](const QStringList &streams) {
                 subtitleStreamsComboBox->blockSignals(true);
                 subtitleStreamsComboBox->clear();
@@ -140,6 +147,7 @@ void MainWindow::setupUI()
             });
     connect(d_ptr->player,
             &Ffmpeg::Player::subtitleStreamChanged,
+            this,
             [subtitleStreamsComboBox](const QString &stream) {
                 subtitleStreamsComboBox->blockSignals(true);
                 subtitleStreamsComboBox->setCurrentText(stream);
@@ -151,7 +159,7 @@ void MainWindow::setupUI()
             &Ffmpeg::Player::onSetSubtitleStream);
 
     QWidget *processWidget = new QWidget(this);
-    processWidget->setMaximumHeight(100);
+    processWidget->setMaximumHeight(70);
     QHBoxLayout *processLayout = new QHBoxLayout(processWidget);
     processLayout->addWidget(d_ptr->slider);
     processLayout->addWidget(d_ptr->positionLabel);

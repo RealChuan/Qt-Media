@@ -15,7 +15,7 @@ VideoOuputRenderWidget::VideoOuputRenderWidget(QWidget *parent)
     //setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 }
 
-void VideoOuputRenderWidget::onReadyRead(const QImage &image)
+void VideoOuputRenderWidget::setDisplayImage(const QImage &image)
 {
     if (image.isNull()) {
         qWarning() << "image is null!";
@@ -23,7 +23,8 @@ void VideoOuputRenderWidget::onReadyRead(const QImage &image)
     }
     m_image = image;
     checkSubtitle();
-    update();
+    QMetaObject::invokeMethod(
+        this, [this] { update(); }, Qt::QueuedConnection);
 }
 
 void VideoOuputRenderWidget::onSubtitleImages(const QVector<SubtitleImage> &subtitleImages)

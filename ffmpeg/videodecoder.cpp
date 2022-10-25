@@ -24,9 +24,7 @@ public:
 VideoDecoder::VideoDecoder(QObject *parent)
     : Decoder<Packet *>(parent)
     , d_ptr(new VideoDecoderPrivate(this))
-{
-    connect(d_ptr->decoderVideoFrame, &DecoderVideoFrame::readyRead, this, &VideoDecoder::readyRead);
-}
+{}
 
 VideoDecoder::~VideoDecoder() {}
 
@@ -41,6 +39,11 @@ void VideoDecoder::setSpeed(double speed)
     d_ptr->decoderVideoFrame->setSpeed(speed);
 }
 
+void VideoDecoder::setVideoOutputRenders(QVector<VideoOutputRender *> videoOutputRenders)
+{
+    d_ptr->decoderVideoFrame->setVideoOutputRenders(videoOutputRenders);
+}
+
 void VideoDecoder::runDecoder()
 {
     d_ptr->decoderVideoFrame->startDecoder(m_formatContext, m_contextInfo);
@@ -52,7 +55,7 @@ void VideoDecoder::runDecoder()
         }
 
         if (m_queue.isEmpty()) {
-            msleep(1);
+            msleep(Sleep_Milliseconds);
             continue;
         }
 
@@ -69,12 +72,12 @@ void VideoDecoder::runDecoder()
 
         d_ptr->decoderVideoFrame->append(framePtr.release());
 
-        while (m_runing && d_ptr->decoderVideoFrame->size() > 10 && !m_seek) {
-            msleep(1);
+        while (m_runing && d_ptr->decoderVideoFrame->size() > Max_Frame_Size && !m_seek) {
+            msleep(Sleep_Milliseconds);
         }
     }
     while (m_runing && d_ptr->decoderVideoFrame->size() != 0) {
-        msleep(40);
+        msleep(Sleep_Milliseconds);
     }
     d_ptr->decoderVideoFrame->stopDecoder();
 }

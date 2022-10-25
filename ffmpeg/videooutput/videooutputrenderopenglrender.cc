@@ -37,19 +37,21 @@ VideoOutputRenderOpenGLRender::~VideoOutputRenderOpenGLRender()
     doneCurrent();
 }
 
-void VideoOutputRenderOpenGLRender::onReadyRead(const QImage &image)
+void VideoOutputRenderOpenGLRender::setDisplayImage(const QImage &image)
 {
-    bool isFirst = m_image.isNull();
     if (image.isNull()) {
         qWarning() << "image is null!";
         return;
     }
+    auto lastSize = m_image.size();
     m_image = image;
     checkSubtitle();
-    if (isFirst) {
+    if (lastSize != m_image.size()) {
         resizeGL(width(), height());
     }
-    update();
+    QMetaObject::invokeMethod(
+        this, [this] { update(); }, Qt::QueuedConnection);
+    //update();
 }
 
 void VideoOutputRenderOpenGLRender::onSubtitleImages(const QVector<SubtitleImage> &subtitleImages)
@@ -141,8 +143,8 @@ void VideoOutputRenderOpenGLRender::initVbo()
 void VideoOutputRenderOpenGLRender::initShader()
 {
     d_ptr->programPtr.reset(new QOpenGLShaderProgram);
-    qInfo() << d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/video.vs");
-    qInfo() << d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/video.fs");
+    qInfo() << d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/video_rgb.vs");
+    qInfo() << d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/video_rgb.fs");
     d_ptr->programPtr->setAttributeBuffer(0, GL_FLOAT, 0, 3, sizeof(float) * 5);
     d_ptr->programPtr->enableAttributeArray(0);
     d_ptr->programPtr->setAttributeBuffer(1, GL_FLOAT, 3 * sizeof(float), 2, sizeof(float) * 5);

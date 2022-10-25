@@ -16,7 +16,7 @@ public:
     explicit VideoOutputRenderOpenGLRender(QWidget *parent = nullptr);
     ~VideoOutputRenderOpenGLRender();
 
-    void onReadyRead(const QImage &image) override;
+    void setDisplayImage(const QImage &image) override;
     void onSubtitleImages(const QVector<Ffmpeg::SubtitleImage> &) override;
 
 protected:

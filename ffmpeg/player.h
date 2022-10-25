@@ -31,10 +31,8 @@ public:
 
     MediaState mediaState();
 
-    void setVideoOutputWidget(VideoOutputRender *widget);
+    void setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRenders);
     void unsetVideoOutputWidget();
-
-    void setMaxiFrameBufferSize(quint64 size);
 
 public slots:
     void onSetFilePath(const QString &filepath);
@@ -45,7 +43,6 @@ public slots:
     void onSetSubtitleStream(const QString &text);
 
 signals:
-    void readyRead(const QImage &image);
     void durationChanged(qint64 duration); // ms
     void positionChanged(qint64 position); // ms
     void stateChanged(Ffmpeg::Player::MediaState);

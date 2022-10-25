@@ -1,15 +1,9 @@
 #include "player.h"
 #include "audiodecoder.h"
-#include "avaudio.h"
 #include "avcontextinfo.h"
 #include "averror.h"
-#include "avimage.h"
-#include "codeccontext.h"
-#include "decoderaudioframe.h"
-#include "decodervideoframe.h"
 #include "formatcontext.h"
 #include "packet.h"
-#include "playframe.h"
 #include "subtitledecoder.h"
 #include "videodecoder.h"
 
@@ -64,9 +58,7 @@ public:
 
     volatile Player::MediaState mediaState = Player::MediaState::StoppedState;
 
-    int maxiFrameBufferSize = 20;
-
-    VideoOutputRender *videoOutputRender = nullptr;
+    QVector<VideoOutputRender *> videoOutputRenders;
 };
 
 Player::Player(QObject *parent)
@@ -140,10 +132,11 @@ void Player::onSeek(int timestamp)
 
 void Player::onSetAudioTracks(const QString &text) // 停止再播放最简单 之后在优化
 {
-    QMap<int, QString> audioTracks = d_ptr->formatCtx->audioMap();
-
-    if (!audioTracks.values().contains(text))
+    auto audioTracks = d_ptr->formatCtx->audioMap();
+    auto list = audioTracks.values();
+    if (!list.contains(text)) {
         return;
+    }
     int index = audioTracks.key(text);
     int subtitleIndex = d_ptr->subtitleInfo->index();
 
@@ -158,15 +151,17 @@ void Player::onSetAudioTracks(const QString &text) // 停止再播放最简单 �
     if (!setMediaIndex(d_ptr->audioInfo, index))
         return;
     emit audioTrackChanged(text);
-    onSeek(d_ptr->audioDecoder->audioClock());
+    onSeek(d_ptr->audioDecoder->clock());
     onPlay();
 }
 
 void Player::onSetSubtitleStream(const QString &text)
 {
-    QMap<int, QString> subtitleTracks = d_ptr->formatCtx->subtitleMap();
-    if (!subtitleTracks.values().contains(text))
+    auto subtitleTracks = d_ptr->formatCtx->subtitleMap();
+    auto list = subtitleTracks.values();
+    if (!list.contains(text)) {
         return;
+    }
     int index = subtitleTracks.key(text);
     int audioIndex = d_ptr->audioInfo->index();
 
@@ -180,7 +175,7 @@ void Player::onSetSubtitleStream(const QString &text)
     if (!setMediaIndex(d_ptr->subtitleInfo, index))
         return;
     emit subtitleStreamChanged(text);
-    onSeek(d_ptr->audioDecoder->audioClock());
+    onSeek(d_ptr->audioDecoder->clock());
     onPlay();
 }
 
@@ -242,7 +237,9 @@ bool Player::initAvCode()
     }
 
     if (!d_ptr->formatCtx->coverImage().isNull()) {
-        emit readyRead(d_ptr->formatCtx->coverImage());
+        for (auto render : d_ptr->videoOutputRenders) {
+            render->setDisplayImage(d_ptr->formatCtx->coverImage());
+        }
     }
 
     d_ptr->videoInfo->resetIndex();
@@ -309,14 +306,14 @@ void Player::playVideo()
         checkSeek();
 
         while (d_ptr->runing && !d_ptr->seek
-               && (d_ptr->videoDecoder->size() > d_ptr->maxiFrameBufferSize
-                   || d_ptr->audioDecoder->size() > d_ptr->maxiFrameBufferSize)) {
-            msleep(1);
+               && (d_ptr->videoDecoder->size() > Max_Frame_Size
+                   || d_ptr->audioDecoder->size() > Max_Frame_Size)) {
+            msleep(Sleep_Milliseconds);
         }
     }
 
     while (d_ptr->runing && (d_ptr->videoDecoder->size() > 0 || d_ptr->audioDecoder->size() > 0)) {
-        msleep(1);
+        msleep(Sleep_Milliseconds);
     }
     d_ptr->subtitleDecoder->stopDecoder();
     d_ptr->videoDecoder->stopDecoder();
@@ -384,43 +381,31 @@ Player::MediaState Player::mediaState()
     return d_ptr->mediaState;
 }
 
-void Player::setVideoOutputWidget(VideoOutputRender *widget)
+void Player::setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRenders)
 {
-    d_ptr->videoOutputRender = widget;
-    connect(this, &Player::readyRead, this, [this](const QImage &image) {
-        if (d_ptr->videoOutputRender) {
-            d_ptr->videoOutputRender->onReadyRead(image);
-        }
-    });
+    d_ptr->videoOutputRenders = videoOutputRenders;
     connect(this, &Player::end, this, [this] {
-        if (d_ptr->videoOutputRender) {
-            d_ptr->videoOutputRender->onFinish();
+        for (auto render : d_ptr->videoOutputRenders) {
+            render->onFinish();
         }
     });
     connect(this,
             &Player::subtitleImages,
             this,
             [this](const QVector<Ffmpeg::SubtitleImage> &SubtitleImages) {
-                if (d_ptr->videoOutputRender) {
-                    d_ptr->videoOutputRender->onSubtitleImages(SubtitleImages);
+                for (auto render : d_ptr->videoOutputRenders) {
+                    render->onSubtitleImages(SubtitleImages);
                 }
             });
+    d_ptr->videoDecoder->setVideoOutputRenders(videoOutputRenders);
 }
 
 void Player::unsetVideoOutputWidget()
 {
-    d_ptr->videoOutputRender = nullptr;
+    d_ptr->videoOutputRenders.clear();
     disconnect(SIGNAL(readyRead(const QImage &image)));
     disconnect(SIGNAL(subtitleImages(const QVector<Ffmpeg::SubtitleImage> &)));
     disconnect(SIGNAL(end()));
-}
-
-void Player::setMaxiFrameBufferSize(quint64 size)
-{
-    if (size == 0) {
-        return;
-    }
-    d_ptr->maxiFrameBufferSize = size;
 }
 
 void Player::run()
@@ -433,11 +418,6 @@ void Player::run()
 void Player::buildConnect(bool state)
 {
     if (state) {
-        connect(d_ptr->videoDecoder,
-                &VideoDecoder::readyRead,
-                this,
-                &Player::readyRead,
-                Qt::UniqueConnection);
         connect(d_ptr->audioDecoder,
                 &AudioDecoder::positionChanged,
                 this,
@@ -449,7 +429,6 @@ void Player::buildConnect(bool state)
                 &Player::subtitleImages,
                 Qt::UniqueConnection);
     } else {
-        disconnect(d_ptr->videoDecoder, &VideoDecoder::readyRead, this, &Player::readyRead);
         disconnect(d_ptr->audioDecoder,
                    &AudioDecoder::positionChanged,
                    this,

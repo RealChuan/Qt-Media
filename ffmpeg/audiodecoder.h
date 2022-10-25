@@ -21,8 +21,6 @@ public:
 
     void setSpeed(double speed) override;
 
-    double audioClock();
-
     void setIsLocalFile(bool isLocalFile);
 
 signals:

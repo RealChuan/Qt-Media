@@ -256,7 +256,7 @@ qint64 FormatContext::duration()
     return d_ptr->formatCtx->duration / 1000;
 }
 
-QImage FormatContext::coverImage() const
+QImage &FormatContext::coverImage() const
 {
     return d_ptr->coverImage;
 }

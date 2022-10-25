@@ -1,5 +1,4 @@
 #include "videooutputrender.hpp"
-#include "decoderaudioframe.h"
 
 #include <QPainter>
 
@@ -55,7 +54,7 @@ void VideoOutputRender::checkSubtitle()
         return;
     }
 
-    double pts = DecoderAudioFrame::audioClock() * 1000;
+    double pts = clock() * 1000;
     if (pts < m_subtitleImages.at(0).startDisplayTime
         || pts > m_subtitleImages.at(0).endDisplayTime) {
         return;

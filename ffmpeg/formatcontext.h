@@ -42,7 +42,7 @@ public:
 
     qint64 duration(); // ms
 
-    QImage coverImage() const;
+    QImage &coverImage() const;
 
     AVError avError();
 

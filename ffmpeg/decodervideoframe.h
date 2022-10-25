@@ -10,6 +10,8 @@ struct AVFrame;
 
 namespace Ffmpeg {
 
+class VideoOutputRender;
+
 class DecoderVideoFrame : public Decoder<PlayFrame *>
 {
     Q_OBJECT
@@ -21,8 +23,7 @@ public:
 
     void pause(bool state) override;
 
-signals:
-    void readyRead(const QImage &image);
+    void setVideoOutputRenders(QVector<VideoOutputRender *> videoOutputRenders);
 
 protected:
     void runDecoder() override;

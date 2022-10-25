@@ -15,6 +15,10 @@ extern "C" {
 #include <libavutil/time.h>
 }
 
+#define Sleep_Milliseconds 100
+#define Max_Frame_Size 30
+#define UnWait_Milliseconds 50
+
 namespace Ffmpeg {
 
 template<typename T>
@@ -84,14 +88,18 @@ public:
         return m_speed;
     }
 
+    static void setClock(double value) { m_clock.store(value); }
+    static double clock() { return m_clock.load(); }
+
 protected:
     virtual void runDecoder() = 0;
 
     void run() override final
     {
         assertVaild();
-        if (!m_contextInfo->isIndexVaild())
+        if (!m_contextInfo->isIndexVaild()) {
             return;
+        }
         runDecoder();
     }
 
@@ -149,7 +157,13 @@ protected:
     double m_speed = 1.0;
     QMutex m_mutex;
     QWaitCondition m_waitCondition;
+
+private:
+    static std::atomic<double> m_clock;
 };
+
+template<typename T>
+std::atomic<double> Decoder<T>::m_clock = 0;
 
 } // namespace Ffmpeg
 

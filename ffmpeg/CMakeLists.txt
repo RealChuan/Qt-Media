@@ -1,44 +1,25 @@
 set(PROJECT_SOURCES
-        videooutput/videoouputrenderwidget.cc
-        videooutput/videoouputrenderwidget.hpp
-        videooutput/videooutputrender.cc
-        videooutput/videooutputrender.hpp
-        videooutput/videooutputrenderopenglrender.cc
-        videooutput/videooutputrenderopenglrender.hpp
-        audiodecoder.cpp
-        audiodecoder.h
-        avaudio.cpp
-        avaudio.h
-        avcontextinfo.cpp
-        avcontextinfo.h
-        averror.cpp
-        averror.h
-        avimage.cpp
-        avimage.h
-        codeccontext.cpp
-        codeccontext.h
+        videooutput/videoouputrenderwidget.cc videooutput/videoouputrenderwidget.hpp
+        videooutput/videooutputrender.cc videooutput/videooutputrender.hpp
+        videooutput/videooutputrenderopenglrender.cc videooutput/videooutputrenderopenglrender.hpp
+        audiodecoder.cpp audiodecoder.h
+        avaudio.cpp avaudio.h
+        avcontextinfo.cpp avcontextinfo.h
+        averror.cpp averror.h
+        avimage.cpp avimage.h
+        codeccontext.cpp codeccontext.h
         decoder.h
-        decoderaudioframe.cpp
-        decoderaudioframe.h
-        decodervideoframe.cpp
-        decodervideoframe.h
+        decoderaudioframe.cpp decoderaudioframe.h
+        decodervideoframe.cpp decodervideoframe.h
         ffmepg_global.h
-        formatcontext.cpp
-        formatcontext.h
-        hardwaredecode.cc
-        hardwaredecode.hpp
-        packet.cpp
-        packet.h
-        player.cpp
-        player.h
-        playframe.cpp
-        playframe.h
-        subtitle.cpp
-        subtitle.h
-        subtitledecoder.cpp
-        subtitledecoder.h
-        videodecoder.cpp
-        videodecoder.h)
+        formatcontext.cpp formatcontext.h
+        hardwaredecode.cc hardwaredecode.hpp
+        packet.cpp packet.h
+        player.cpp player.h
+        playframe.cpp playframe.h
+        subtitle.cpp subtitle.h
+        subtitledecoder.cpp subtitledecoder.h
+        videodecoder.cpp videodecoder.h)
 
 qt_add_resources(SOURCES videooutput/shader/shader.qrc)
 

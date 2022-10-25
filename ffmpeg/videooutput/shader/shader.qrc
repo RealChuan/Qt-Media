@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>video.fs</file>
-        <file>video.vs</file>
+        <file>video_rgb.fs</file>
+        <file>video_rgb.vs</file>
     </qresource>
 </RCC>

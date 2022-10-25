@@ -46,11 +46,6 @@ void AudioDecoder::setSpeed(double speed)
     d_ptr->decoderAudioFrame->setSpeed(speed);
 }
 
-double AudioDecoder::audioClock()
-{
-    return d_ptr->decoderAudioFrame->audioClock();
-}
-
 void AudioDecoder::setIsLocalFile(bool isLocalFile)
 {
     d_ptr->decoderAudioFrame->setIsLocalFile(isLocalFile);
@@ -67,7 +62,7 @@ void AudioDecoder::runDecoder()
         }
 
         if (m_queue.isEmpty()) {
-            msleep(1);
+            msleep(Sleep_Milliseconds);
             continue;
         }
 
@@ -83,12 +78,12 @@ void AudioDecoder::runDecoder()
             framePtr.reset(new PlayFrame);
         }
 
-        while (m_runing && d_ptr->decoderAudioFrame->size() > 10 && !m_seek) {
-            msleep(1);
+        while (m_runing && d_ptr->decoderAudioFrame->size() > Max_Frame_Size && !m_seek) {
+            msleep(Sleep_Milliseconds);
         }
     }
     while (m_runing && d_ptr->decoderAudioFrame->size() != 0) {
-        msleep(40);
+        msleep(Sleep_Milliseconds);
     }
 
     d_ptr->decoderAudioFrame->stopDecoder();

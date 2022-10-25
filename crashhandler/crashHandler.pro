@@ -9,10 +9,8 @@ TARGET = $$replaceLibName(crashhandler)
 LIBS += -l$$replaceLibName(utils)
 	
 SOURCES += \
-    breakpad.cc \
-    crashhandler.cpp
+    breakpad.cc
 
 HEADERS += \
     breakpad.hpp \
-    crashHandler_global.h \
-    crashhandler.h
+    crashHandler_global.h

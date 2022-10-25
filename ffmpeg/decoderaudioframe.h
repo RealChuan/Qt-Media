@@ -27,8 +27,6 @@ public:
 
     void setSpeed(double speed) override;
 
-    static double audioClock();
-
     void setIsLocalFile(bool isLocalFile);
 
 signals:
@@ -51,10 +49,6 @@ private:
 
     void writeToDevice(QByteArray &audioBuf);
     QAudioFormat resetAudioOutput();
-    void setAudioClock(double time);
-
-    static QMutex m_mutex;
-    static double m_audioClock;
 
     struct DecoderAudioFramePrivate;
     QScopedPointer<DecoderAudioFramePrivate> d_ptr;

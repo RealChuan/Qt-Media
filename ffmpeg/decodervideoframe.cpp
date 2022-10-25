@@ -2,9 +2,8 @@
 #include "avcontextinfo.h"
 #include "avimage.h"
 #include "codeccontext.h"
-#include "decoderaudioframe.h"
-#include "formatcontext.h"
-#include "hardwaredecode.hpp"
+
+#include <videooutput/videooutputrender.hpp>
 
 #include <QDebug>
 #include <QPixmap>
@@ -23,6 +22,8 @@ public:
     bool pause = false;
     QMutex mutex;
     QWaitCondition waitCondition;
+
+    QVector<VideoOutputRender *> videoOutputRenders;
 };
 
 DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
@@ -49,6 +50,11 @@ void DecoderVideoFrame::pause(bool state)
     d_ptr->waitCondition.wakeOne();
 }
 
+void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoOutputRender *> videoOutputRenders)
+{
+    d_ptr->videoOutputRenders = videoOutputRenders;
+}
+
 void DecoderVideoFrame::runDecoder()
 {
     PlayFrame frameRGB;
@@ -62,7 +68,7 @@ void DecoderVideoFrame::runDecoder()
         checkSeek();
 
         if (m_queue.isEmpty()) {
-            msleep(1);
+            msleep(Sleep_Milliseconds);
             continue;
         }
         QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
@@ -71,8 +77,9 @@ void DecoderVideoFrame::runDecoder()
         double pts = 0;
         calculateTime(framePtr->avFrame(), duration, pts);
 
-        if (m_seekTime > pts)
+        if (m_seekTime > pts) {
             continue;
+        }
 #ifdef HardWareDecodeOn
         bool ok = false;
         framePtr.reset(m_contextInfo->hardWareDecode()->transforFrame(framePtr.get(), ok));
@@ -81,16 +88,17 @@ void DecoderVideoFrame::runDecoder()
         avImage.scale(framePtr.data(), &frameRGB, m_contextInfo->codecCtx()->height());
         QImage image(frameRGB.toImage(m_contextInfo->codecCtx()));
 
-        double diff = (pts - DecoderAudioFrame::audioClock()) * 1000;
+        double diff = (pts - clock()) * 1000;
         if (diff <= 0) {
             dropNum++;
             continue;
-        } else {
+        } else if (diff > UnWait_Milliseconds) {
             msleep(diff);
         }
-
-        //基于信号槽的队列不可控，会产生堆积，不如自己建生成消费队列？
-        emit readyRead(image); // 略慢于音频
+        // 略慢于音频
+        for (auto render : d_ptr->videoOutputRenders) {
+            render->setDisplayImage(image);
+        }
     }
     qInfo() << dropNum;
 }

@@ -7,8 +7,6 @@
 #include <QMediaDevices>
 #include <QMediaFormat>
 
-//#define ExternalClock // 音频播放依赖外部时钟，适用于本地文件播放
-
 namespace Ffmpeg {
 
 struct DecoderAudioFrame::DecoderAudioFramePrivate
@@ -73,15 +71,6 @@ void DecoderAudioFrame::setSpeed(double speed)
     d_ptr->speedChanged = true;
 }
 
-QMutex DecoderAudioFrame::m_mutex;
-double DecoderAudioFrame::m_audioClock = 0;
-
-double DecoderAudioFrame::audioClock()
-{
-    QMutexLocker locker(&m_mutex);
-    return m_audioClock;
-}
-
 void DecoderAudioFrame::setIsLocalFile(bool isLocalFile)
 {
     d_ptr->isLocalFile = isLocalFile;
@@ -113,15 +102,9 @@ void DecoderAudioFrame::onAudioOutputsChanged()
     d_ptr->audioOutputsChanged = true;
 }
 
-void DecoderAudioFrame::setAudioClock(double time)
-{
-    QMutexLocker locker(&m_mutex);
-    m_audioClock = time;
-}
-
 AVSampleFormat converSampleFormat(QAudioFormat::SampleFormat format)
 {
-    AVSampleFormat type;
+    AVSampleFormat type = AV_SAMPLE_FMT_NONE;
     switch (format) {
     case QAudioFormat::Unknown: type = AV_SAMPLE_FMT_NONE; break;
     case QAudioFormat::UInt8: type = AV_SAMPLE_FMT_U8; break;
@@ -138,7 +121,7 @@ void DecoderAudioFrame::runDecoder()
     QAudioDevice audioDevice(QMediaDevices::defaultAudioOutput());
     QAudioFormat format = resetAudioOutput();
     AVSampleFormat fmt = converSampleFormat(format.sampleFormat());
-    setAudioClock(0);
+    setClock(0);
     AVAudio avAudio(m_contextInfo->codecCtx(), fmt);
     QElapsedTimer timer;
     if (d_ptr->isLocalFile) { // 音频播放依赖外部时钟，适用于本地文件播放
@@ -151,7 +134,7 @@ void DecoderAudioFrame::runDecoder()
             checkSpeed(timer, pauseTime);
 
             if (m_queue.isEmpty()) {
-                msleep(1);
+                msleep(Sleep_Milliseconds);
                 continue;
             }
             QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
@@ -161,7 +144,7 @@ void DecoderAudioFrame::runDecoder()
             calculateTime(framePtr->avFrame(), duration, pts);
             if (m_seekTime > pts)
                 continue;
-            setAudioClock(pts);
+            setClock(pts);
 
             QByteArray audioBuf = avAudio.convert(framePtr.data());
             double speed_ = speed();
@@ -186,7 +169,7 @@ void DecoderAudioFrame::runDecoder()
             checkSpeed(timer, lastPts);
 
             if (m_queue.isEmpty()) {
-                msleep(1);
+                msleep(Sleep_Milliseconds);
                 continue;
             }
             QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
@@ -194,9 +177,10 @@ void DecoderAudioFrame::runDecoder()
             double duration = 0;
             double pts = 0;
             calculateTime(framePtr->avFrame(), duration, pts);
-            if (m_seekTime > pts)
+            if (m_seekTime > pts) {
                 continue;
-            setAudioClock(pts);
+            }
+            setClock(pts);
 
             QByteArray audioBuf = avAudio.convert(framePtr.data());
             double speed_ = speed();
@@ -207,9 +191,9 @@ void DecoderAudioFrame::runDecoder()
             lastPts = pts * 1000;
             timer_.restart();
 
-            if (diff > 0) {
+            if (diff > UnWait_Milliseconds) {
                 msleep(diff);
-            } else if (speed_ > 1.0) {
+            } else if (speed_ > 1.0 && diff > 0) {
                 continue; // speed > 1.0 drop
             }
 
@@ -247,7 +231,7 @@ void DecoderAudioFrame::checkPause(qint64 &pauseTime)
     QElapsedTimer timerPause;
     timerPause.start();
     while (d_ptr->pause) {
-        msleep(100);
+        msleep(Sleep_Milliseconds);
         QMutexLocker locker(&d_ptr->mutex);
         d_ptr->waitCondition.wait(&d_ptr->mutex);
     }
@@ -264,7 +248,7 @@ void DecoderAudioFrame::checkSeek(QElapsedTimer &timer, qint64 &pauseTime)
     seekCodec(m_seekTime);
     pauseTime = 0;
     d_ptr->seekTime = m_seekTime * 1000;
-    setAudioClock(m_seekTime);
+    setClock(m_seekTime);
     seekFinish();
     timer.restart();
 }
@@ -274,7 +258,7 @@ void DecoderAudioFrame::checkSpeed(QElapsedTimer &timer, qint64 &pauseTime)
     if (!d_ptr->speedChanged)
         return;
 
-    d_ptr->seekTime = audioClock() * 1000;
+    d_ptr->seekTime = clock() * 1000;
     pauseTime = 0;
     d_ptr->speedChanged = false;
     timer.restart();
@@ -288,7 +272,7 @@ void DecoderAudioFrame::writeToDevice(QByteArray &audioBuf)
             d_ptr->audioDevice->write(audioBuf.data(), byteFree); // Memory leak
             audioBuf = audioBuf.mid(byteFree);
         }
-        msleep(1);
+        msleep(Sleep_Milliseconds);
     }
     d_ptr->audioDevice->write(audioBuf); // Memory leak
     qApp->processEvents();               // fix Memory leak

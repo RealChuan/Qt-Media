@@ -14,7 +14,7 @@ class FFMPEG_EXPORT VideoOutputRender
 public:
     explicit VideoOutputRender() {}
 
-    virtual void onReadyRead(const QImage &image) = 0;
+    virtual void setDisplayImage(const QImage &image) = 0;
     virtual void onSubtitleImages(const QVector<Ffmpeg::SubtitleImage> &) = 0;
     void onFinish();
 

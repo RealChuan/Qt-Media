@@ -52,7 +52,7 @@ void SubtitleDecoder::runDecoder()
         checkSeek();
 
         if (m_queue.isEmpty()) {
-            msleep(1);
+            msleep(Sleep_Milliseconds);
             continue;
         }
 
@@ -71,7 +71,7 @@ void SubtitleDecoder::runDecoder()
         if (subtitles.isEmpty())
             continue;
 
-        double audioPts = DecoderAudioFrame::audioClock() * 1000;
+        double audioPts = clock() * 1000;
         double diff = subtitles.at(0).startDisplayTime - audioPts;
         if (diff > 0) {
             msleep(diff);

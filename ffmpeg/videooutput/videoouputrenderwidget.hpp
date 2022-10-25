@@ -12,7 +12,7 @@ class FFMPEG_EXPORT VideoOuputRenderWidget : public VideoOutputRender, public QW
 public:
     explicit VideoOuputRenderWidget(QWidget *parent = nullptr);
 
-    void onReadyRead(const QImage &image) override;
+    void setDisplayImage(const QImage &image) override;
     void onSubtitleImages(const QVector<Ffmpeg::SubtitleImage> &) override;
 
 protected:

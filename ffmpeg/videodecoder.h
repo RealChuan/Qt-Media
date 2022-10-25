@@ -8,6 +8,8 @@ struct AVFrame;
 
 namespace Ffmpeg {
 
+class VideoOutputRender;
+
 class VideoDecoder : public Decoder<Packet *>
 {
     Q_OBJECT
@@ -19,8 +21,7 @@ public:
 
     void setSpeed(double speed) override;
 
-signals:
-    void readyRead(const QImage &image);
+    void setVideoOutputRenders(QVector<VideoOutputRender *> videoOutputRenders);
 
 protected:
     void runDecoder() override;
@@ -30,6 +31,6 @@ private:
     QScopedPointer<VideoDecoderPrivate> d_ptr;
 };
 
-}
+} // namespace Ffmpeg
 
 #endif // VIDEODECODER_H
