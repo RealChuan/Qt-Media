@@ -26,11 +26,12 @@ jobs:
     name: Build
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os:
           - windows-latest
           - macos-latest
+          - ubuntu-latest
         qt_ver: 
           - 6.4.0
         build_type:
@@ -64,6 +65,14 @@ jobs:
           cmake --version
           clang --version
           vcpkg install breakpad ffmpeg --triplet x64-osx
+      - name: Install dependencies on ubuntu
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get install ninja-build nasm
+          ninja --version
+          cmake --version
+          gcc --version
+          vcpkg install breakpad ffmpeg --triplet x64-linux
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
@@ -101,6 +110,7 @@ jobs:
             -G "${{ matrix.generators }}" \
             -DCMAKE_INSTALL_PREFIX:PATH=instdir
       - name: Build
+        if: startsWith(matrix.os, 'macos') || startsWith(matrix.os, 'windows')
         shell: bash
         run: |
           cmake --build ./build --config ${{ matrix.build_type }}
