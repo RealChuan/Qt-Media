@@ -59,3 +59,4 @@ bin-*/
 build/
 build*/
 lib-*/
+.cache/

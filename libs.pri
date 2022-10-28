@@ -7,15 +7,9 @@ DESTDIR = $$APP_OUTPUT_PATH/../libs
 DLLDESTDIR = $$APP_OUTPUT_PATH
 }
 
-macx{
+unix{
 CONFIG += staticlib
-DESTDIR = $$APP_OUTPUT_PATH/libs
-#DESTDIR = $$APP_OUTPUT_PATH/FfmpegPlayer.app/Contents/Frameworks
-}
-
-unix:!macx {
-CONFIG += c++14
-DESTDIR = $$APP_OUTPUT_PATH
+DESTDIR = $$APP_OUTPUT_PATH/../libs
 }
 
 LIBS += -L$$DESTDIR

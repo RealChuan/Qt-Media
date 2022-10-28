@@ -8,26 +8,14 @@ TEMPLATE = app
 
 TARGET = FfmpegPlayer
 
-win32 {
-LIBS += -L$$APP_OUTPUT_PATH/../libs
-}
-
-macx{
-include(../3rdparty/3rdparty.pri)
-LIBS += -L$$APP_OUTPUT_PATH/libs
-#LIBS += -L$$APP_OUTPUT_PATH/FfmpegPlayer.app/Contents/Frameworks
-}
-
-unix!:macx {
-LIBS += -L$$APP_OUTPUT_PATH
-}
-
-LIBS += \
-    -l$$replaceLibName(thirdparty) \
-    -l$$replaceLibName(utils) \
+LIBS += -L$$APP_OUTPUT_PATH/../libs \
+    -l$$replaceLibName(mainwindow) \
     -l$$replaceLibName(crashhandler) \
     -l$$replaceLibName(ffmpeg) \
-    -l$$replaceLibName(mainwindow)
+    -l$$replaceLibName(thirdparty) \
+    -l$$replaceLibName(utils)
+
+include(../3rdparty/3rdparty.pri)
 
 RC_ICONS = app.ico
 #ICON     = app.icns

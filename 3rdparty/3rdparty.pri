@@ -27,6 +27,11 @@ LIBS += \
     -framework CoreMedia
 }
 
+unix:!macx{
+    vcpkg_path = /usr/local/share/vcpkg
+    arch = x64-linux
+}
+
 CONFIG(debug, debug|release) {
     LIBS += -L$$vcpkg_path/installed/$$arch/debug/lib \
             -llibbreakpad_clientd \
@@ -37,6 +42,13 @@ CONFIG(debug, debug|release) {
             -llibbreakpad
 }
 
+win32{
 LIBS += -lavutil -lavformat -lavcodec -lavdevice -lavfilter -lswresample -lswscale
+}
+
+unix{
+# 这个顺序在Linux下非常重要！！！！！！！！！！！！！！！！！！
+LIBS += -lswscale -lavdevice -lavformat -lavcodec -lavutil -lavfilter -lswresample
+}
 
 INCLUDEPATH += $$vcpkg_path/installed/$$arch/include

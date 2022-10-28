@@ -1,4 +1,4 @@
-CONFIG += c++11
+CONFIG += c++17
 
 DEFINES += QT_DEPRECATED_WARNINGS
 
@@ -9,9 +9,9 @@ contains(QT_ARCH, i386) {
 }
 
 CONFIG(debug, debug|release) {
-    APP_OUTPUT_PATH = $$PWD/$$BIN/debug
+    APP_OUTPUT_PATH = $$PWD/$$BIN/Debug
 }else{
-    APP_OUTPUT_PATH = $$PWD/$$BIN/release
+    APP_OUTPUT_PATH = $$PWD/$$BIN/Release
 }
 
 INCLUDEPATH += $$PWD/

@@ -31,6 +31,7 @@ jobs:
         os:
           - windows-2019
           - macos-latest
+          - ubuntu-latest
         qt_ver: 
           - 6.4.0
 
@@ -60,6 +61,14 @@ jobs:
           cmake --version
           clang --version
           vcpkg install breakpad ffmpeg --triplet x64-osx
+      - name: Install dependencies on ubuntu
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get install ninja-build nasm
+          ninja --version
+          cmake --version
+          gcc --version
+          vcpkg install breakpad ffmpeg --triplet x64-linux
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
@@ -80,8 +89,8 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           qmake
           nmake
-      - name: build macos
-        if: startsWith(matrix.os, 'macos')
+      - name: build macos or ubuntu
+        if: startsWith(matrix.os, 'macos') || startsWith(matrix.os, 'ubuntu')
         run: |
           qmake
           make

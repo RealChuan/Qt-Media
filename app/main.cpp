@@ -37,7 +37,9 @@ int main(int argc, char *argv[])
             return EXIT_SUCCESS;
         }
     }
-
+#ifndef Q_OS_WIN
+    Q_INIT_RESOURCE(shader);
+#endif
 #ifdef Q_OS_WIN
     if (!qFuzzyCompare(qApp->devicePixelRatio(), 1.0)
         && QApplication::style()->objectName().startsWith(QLatin1String("windows"),

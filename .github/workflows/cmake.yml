@@ -26,7 +26,7 @@ jobs:
     name: Build
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os:
           - windows-latest
@@ -97,8 +97,8 @@ jobs:
             -B ./build \
             -A x64 \
             -DCMAKE_INSTALL_PREFIX:PATH=instdir
-      - name: Configure macos
-        if: startsWith(matrix.os, 'macos')
+      - name: Configure macos or ubuntu
+        if: startsWith(matrix.os, 'macos') || startsWith(matrix.os, 'ubuntu')
         env:
           CMAKE_PREFIX_PATH: ${{env.Qt6_Dir}}
         shell: bash
@@ -110,7 +110,6 @@ jobs:
             -G "${{ matrix.generators }}" \
             -DCMAKE_INSTALL_PREFIX:PATH=instdir
       - name: Build
-        if: startsWith(matrix.os, 'macos') || startsWith(matrix.os, 'windows')
         shell: bash
         run: |
           cmake --build ./build --config ${{ matrix.build_type }}

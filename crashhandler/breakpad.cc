@@ -9,6 +9,8 @@
 #include <client/windows/handler/exception_handler.h>
 #elif defined(Q_OS_MAC)
 #include <client/mac/handler/exception_handler.h>
+#elif defined(Q_OS_LINUX)
+#include <client/linux/handler/exception_handler.h>
 #endif
 
 namespace Utils {
@@ -60,6 +62,17 @@ bool callback(const char *dump_dir, const char *minidump_id, void *, bool succee
     }
     return succeeded;
 }
+#elif defined(Q_OS_LINUX)
+bool callback(const google_breakpad::MinidumpDescriptor &descriptor, void *context, bool succeeded)
+{
+    Q_UNUSED(context)
+    if (succeeded) {
+        qInfo() << "Create dump file success:" << QString::fromLocal8Bit(descriptor.path());
+    } else {
+        qWarning() << "Create dump file failed";
+    }
+    return succeeded;
+}
 #endif
 
 struct BreakPad::BreakPadPrivate
@@ -69,17 +82,26 @@ struct BreakPad::BreakPadPrivate
 #if defined(Q_OS_WIN)
         exceptionHandlerPtr.reset(
             new google_breakpad::ExceptionHandler(getCrashPath().toStdWString(),
-                                                  NULL,
+                                                  nullptr,
                                                   callback,
-                                                  NULL,
+                                                  nullptr,
                                                   google_breakpad::ExceptionHandler::HANDLER_ALL));
 #elif defined(Q_OS_MAC)
         exceptionHandlerPtr.reset(new google_breakpad::ExceptionHandler(getCrashPath().toStdString(),
-                                                                        NULL,
+                                                                        nullptr,
                                                                         callback,
-                                                                        NULL,
+                                                                        nullptr,
                                                                         true,
                                                                         nullptr));
+#elif defined(Q_OS_LINUX)
+        exceptionHandlerPtr.reset(
+            new google_breakpad::ExceptionHandler(google_breakpad::MinidumpDescriptor(
+                                                      getCrashPath().toStdString()),
+                                                  nullptr,
+                                                  callback,
+                                                  nullptr,
+                                                  true,
+                                                  -1));
 #endif
     }
     ~BreakPadPrivate() {}

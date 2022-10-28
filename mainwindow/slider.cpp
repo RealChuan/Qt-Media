@@ -1,7 +1,7 @@
 #include "slider.h"
 
-#include <QtWidgets>
 #include <QMouseEvent>
+#include <QtWidgets>
 
 #define CODE_FOR_CLICK 1 // 0 = old code, 1 = code copied from QSlider, 2 = button swap
 
@@ -16,17 +16,14 @@
 #define initStyleOption initStyleOption_Qt430
 #endif //QT_VERSION
 
-
-Slider::Slider(QWidget *parent):
-    QSlider(parent)
+Slider::Slider(QWidget *parent)
+    : QSlider(parent)
 {
     setOrientation(Qt::Horizontal);
     setMouseTracking(true); //mouseMoveEvent without press.
 }
 
-Slider::~Slider()
-{
-}
+Slider::~Slider() {}
 
 #if CODE_FOR_CLICK == 1
 // Function copied from qslider.cpp
@@ -49,9 +46,9 @@ void Slider::initStyleOption_Qt430(QStyleOptionSlider *option) const
     option->minimum = minimum();
     option->tickPosition = (QSlider::TickPosition) tickPosition();
     option->tickInterval = tickInterval();
-    option->upsideDown = (orientation() == Qt::Horizontal) ?
-                                                           (invertedAppearance() != (option->direction == Qt::RightToLeft))
-                                                           : (!invertedAppearance());
+    option->upsideDown = (orientation() == Qt::Horizontal)
+                             ? (invertedAppearance() != (option->direction == Qt::RightToLeft))
+                             : (!invertedAppearance());
     option->direction = Qt::LeftToRight; // we use the upsideDown option instead
     option->sliderPosition = sliderPosition();
     option->sliderValue = value();
@@ -78,8 +75,11 @@ int Slider::pixelPosToRangeValue(int pos) const
         sliderMin = gr.y();
         sliderMax = gr.bottom() - sliderLength + 1;
     }
-    return QStyle::sliderValueFromPosition(minimum(), maximum(), pos - sliderMin,
-                                           sliderMax - sliderMin, opt.upsideDown);
+    return QStyle::sliderValueFromPosition(minimum(),
+                                           maximum(),
+                                           pos - sliderMin,
+                                           sliderMax - sliderMin,
+                                           opt.upsideDown);
 }
 
 void Slider::enterEvent(QEnterEvent *event)
@@ -96,9 +96,13 @@ void Slider::leaveEvent(QEvent *e)
 
 void Slider::mouseMoveEvent(QMouseEvent *e)
 {
-    const int o = style()->pixelMetric(QStyle::PM_SliderLength ) - 1;
-    int v = QStyle::sliderValueFromPosition(minimum(), maximum(), e->pos().x()-o/2, width()-o, false);
-    emit onHover(e->x(), v);
+    const int o = style()->pixelMetric(QStyle::PM_SliderLength) - 1;
+    int v = QStyle::sliderValueFromPosition(minimum(),
+                                            maximum(),
+                                            e->pos().x() - o / 2,
+                                            width() - o,
+                                            false);
+    emit onHover(e->position().x(), v);
     QSlider::mouseMoveEvent(e);
 }
 
@@ -109,7 +113,10 @@ void Slider::mousePressEvent(QMouseEvent *e)
     if (e->button() == Qt::LeftButton) {
         QStyleOptionSlider opt;
         initStyleOption(&opt);
-        const QRect sliderRect = style()->subControlRect(QStyle::CC_Slider, &opt, QStyle::SC_SliderHandle, this);
+        const QRect sliderRect = style()->subControlRect(QStyle::CC_Slider,
+                                                         &opt,
+                                                         QStyle::SC_SliderHandle,
+                                                         this);
         const QPoint center = sliderRect.center() - sliderRect.topLeft();
         // to take half of the slider off for the setSliderPosition call we use the center - topLeft
 
@@ -121,7 +128,7 @@ void Slider::mousePressEvent(QMouseEvent *e)
             setSliderPosition(v);
             triggerAction(SliderMove);
             setRepeatAction(SliderNoAction);
-            emit sliderMoved(v);//TODO: ok?
+            emit sliderMoved(v);  //TODO: ok?
             emit sliderPressed(); //TODO: ok?
         } else {
             QSlider::mousePressEvent(e);
@@ -136,13 +143,22 @@ void Slider::mousePressEvent(QMouseEvent *e)
 {
     // Swaps middle button click with left click
     if (e->button() == Qt::LeftButton) {
-        QMouseEvent ev2(QEvent::MouseButtonRelease, e->pos(), e->globalPos(), Qt::MidButton, Qt::MidButton, e->modifiers());
+        QMouseEvent ev2(QEvent::MouseButtonRelease,
+                        e->pos(),
+                        e->globalPos(),
+                        Qt::MidButton,
+                        Qt::MidButton,
+                        e->modifiers());
         QSlider::mousePressEvent(&ev2);
     } else if (e->button() == Qt::MidButton) {
-        QMouseEvent ev2(QEvent::MouseButtonRelease, e->pos(), e->globalPos(), Qt::LeftButton, Qt::LeftButton, e->modifiers());
+        QMouseEvent ev2(QEvent::MouseButtonRelease,
+                        e->pos(),
+                        e->globalPos(),
+                        Qt::LeftButton,
+                        Qt::LeftButton,
+                        e->modifiers());
         QSlider::mousePressEvent(&ev2);
-    }
-    else {
+    } else {
         QSlider::mousePressEvent(e);
     }
 }
@@ -158,15 +174,15 @@ void Slider::mousePressEvent(QMouseEvent *e)
         return;
     }
 
-    int range = maximum()-minimum();
+    int range = maximum() - minimum();
     int pos = (e->x() * range) / width();
     //qDebug( "width: %d x: %d", width(), e->x());
     //qDebug( "range: %d pos: %d value: %d", range, pos, value());
 
     // Calculate how many positions takes the slider handle
     int metric = qApp->style()->pixelMetric(QStyle::PM_SliderLength);
-    double one_tick_pixels = (double)width() / range;
-    int slider_handle_positions = (int)(metric / one_tick_pixels);
+    double one_tick_pixels = (double) width() / range;
+    int slider_handle_positions = (int) (metric / one_tick_pixels);
 
     /*
     qDebug("metric: %d", metric );
