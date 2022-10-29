@@ -10,11 +10,13 @@ TARGET = $$replaceLibName(utils)
 DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
+    countdownlatch.cc \
     hostosinfo.cpp \
     logasync.cpp \
     utils.cpp
 
 HEADERS += \
+    countdownlatch.hpp \
     hostosinfo.h \
     logasync.h \
     osspecificaspects.h \

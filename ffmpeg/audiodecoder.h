@@ -17,8 +17,6 @@ public:
 
     void setVolume(qreal volume);
 
-    void setSeek(qint64 seek);
-
     void setSpeed(double speed) override;
 
     void setIsLocalFile(bool isLocalFile);

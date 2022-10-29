@@ -13,7 +13,7 @@ class FileUtil : public QObject
 {
     Q_OBJECT
 public:
-    explicit FileUtil(qint64 days = 30, QObject *parent = nullptr);
+    explicit FileUtil(qint64 days = 7, QObject *parent = nullptr);
     ~FileUtil();
 
 public slots:

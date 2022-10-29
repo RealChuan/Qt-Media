@@ -57,17 +57,16 @@ void AudioDecoder::runDecoder()
 
     while (m_runing) {
         if (m_seek) {
-            d_ptr->decoderAudioFrame->seek(m_seekTime);
+            clear();
+            d_ptr->decoderAudioFrame->seek(m_seekTime, m_latchPtr.lock());
             seekFinish();
         }
-
         if (m_queue.isEmpty()) {
-            msleep(Sleep_Milliseconds);
+            msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
 
         QScopedPointer<Packet> packetPtr(m_queue.dequeue());
-
         if (!m_contextInfo->sendPacket(packetPtr.data())) {
             continue;
         }
@@ -79,11 +78,11 @@ void AudioDecoder::runDecoder()
         }
 
         while (m_runing && d_ptr->decoderAudioFrame->size() > Max_Frame_Size && !m_seek) {
-            msleep(Sleep_Milliseconds);
+            msleep(Sleep_Queue_Full_Milliseconds);
         }
     }
     while (m_runing && d_ptr->decoderAudioFrame->size() != 0) {
-        msleep(Sleep_Milliseconds);
+        msleep(Sleep_Queue_Full_Milliseconds);
     }
 
     d_ptr->decoderAudioFrame->stopDecoder();

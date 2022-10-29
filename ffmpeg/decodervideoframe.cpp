@@ -41,12 +41,13 @@ void DecoderVideoFrame::stopDecoder()
 
 void DecoderVideoFrame::pause(bool state)
 {
-    if (!isRunning())
+    if (!isRunning()) {
         return;
-
+    }
     d_ptr->pause = state;
-    if (state)
+    if (state) {
         return;
+    }
     d_ptr->waitCondition.wakeOne();
 }
 
@@ -68,7 +69,7 @@ void DecoderVideoFrame::runDecoder()
         checkSeek();
 
         if (m_queue.isEmpty()) {
-            msleep(Sleep_Milliseconds);
+            msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
         QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
@@ -92,8 +93,10 @@ void DecoderVideoFrame::runDecoder()
         if (diff <= 0) {
             dropNum++;
             continue;
-        } else if (diff > UnWait_Milliseconds) {
-            msleep(diff);
+        } else if (diff > UnWait_Milliseconds && !m_seek && !d_ptr->pause) {
+            QMutexLocker locker(&d_ptr->mutex);
+            d_ptr->waitCondition.wait(&d_ptr->mutex, diff);
+            //msleep(diff);
         }
         // 略慢于音频
         for (auto render : d_ptr->videoOutputRenders) {
@@ -113,10 +116,14 @@ void DecoderVideoFrame::checkPause()
 
 void DecoderVideoFrame::checkSeek()
 {
-    if (!m_seek)
+    if (!m_seek) {
         return;
-
-    seekCodec(m_seekTime);
+    }
+    clear();
+    auto latchPtr = m_latchPtr.lock();
+    if (latchPtr) {
+        latchPtr->countDown();
+    }
     seekFinish();
 }
 

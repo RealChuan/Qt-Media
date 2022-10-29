@@ -32,13 +32,11 @@ CodecContext::~CodecContext() {}
 
 AVCodecContext *CodecContext::avCodecCtx()
 {
-    Q_ASSERT(d_ptr->codecCtx != nullptr);
     return d_ptr->codecCtx;
 }
 
 bool CodecContext::setParameters(const AVCodecParameters *par)
 {
-    Q_ASSERT(d_ptr->codecCtx != nullptr);
     int ret = avcodec_parameters_to_context(d_ptr->codecCtx, par);
     if (ret < 0) {
         setError(ret);

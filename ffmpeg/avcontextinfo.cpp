@@ -60,9 +60,7 @@ int AVContextInfo::index()
 
 bool AVContextInfo::isIndexVaild()
 {
-    if (d_ptr->streamIndex == Error_Index)
-        return false;
-    return true;
+    return d_ptr->streamIndex != Error_Index;
 }
 
 void AVContextInfo::setStream(AVStream *stream)
@@ -102,8 +100,9 @@ bool AVContextInfo::findDecoder()
         d_ptr->hardWareDecode->initHardWareDevice(d_ptr->codecCtx.data());
     }
 #endif
-    if (!d_ptr->codecCtx->setParameters(d_ptr->stream->codecpar))
+    if (!d_ptr->codecCtx->setParameters(d_ptr->stream->codecpar)) {
         return false;
+    }
     d_ptr->codecCtx->setTimebase(d_ptr->stream->time_base);
 
     //用于初始化pCodecCtx结构

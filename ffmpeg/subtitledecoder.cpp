@@ -34,12 +34,13 @@ void SubtitleDecoder::stopDecoder()
 
 void SubtitleDecoder::pause(bool state)
 {
-    if (!isRunning())
+    if (!isRunning()) {
         return;
-
+    }
     d_ptr->pause = state;
-    if (state)
+    if (state) {
         return;
+    }
     d_ptr->waitCondition.wakeOne();
 }
 
@@ -52,7 +53,7 @@ void SubtitleDecoder::runDecoder()
         checkSeek();
 
         if (m_queue.isEmpty()) {
-            msleep(Sleep_Milliseconds);
+            msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
 
@@ -93,10 +94,14 @@ void SubtitleDecoder::checkPause()
 
 void SubtitleDecoder::checkSeek()
 {
-    if (!m_seek)
+    if (!m_seek) {
         return;
-
-    seekCodec(m_seekTime);
+    }
+    clear();
+    auto latchPtr = m_latchPtr.lock();
+    if (latchPtr) {
+        latchPtr->countDown();
+    }
     seekFinish();
 }
 

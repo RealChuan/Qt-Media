@@ -226,6 +226,44 @@ int FormatContext::checkPktPlayRange(Packet *packet)
     return pkt_in_play_range;
 }
 
+bool FormatContext::seekFirstFrame()
+{
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
+    int64_t timestamp = 0;
+    if (d_ptr->formatCtx->start_time != AV_NOPTS_VALUE) {
+        timestamp = d_ptr->formatCtx->start_time;
+    }
+    int ret = avformat_seek_file(d_ptr->formatCtx, -1, INT64_MIN, timestamp, INT64_MAX, 0);
+    if (ret < 0) {
+        setError(ret);
+        return false;
+    }
+    return true;
+}
+
+bool FormatContext::seek(int64_t timestamp)
+{
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
+    int64_t seek_min = timestamp - Seek_Offset;
+    if (seek_min < 0) {
+        seek_min = 0;
+    }
+    int64_t seek_max = timestamp + Seek_Offset;
+    // qDebug() << "seek: " << timestamp;
+    // AV_TIME_BASE
+    int ret = avformat_seek_file(d_ptr->formatCtx,
+                                 -1,
+                                 seek_min * AV_TIME_BASE,
+                                 timestamp * AV_TIME_BASE,
+                                 seek_max * AV_TIME_BASE,
+                                 0);
+    if (ret < 0) {
+        setError(ret);
+        return false;
+    }
+    return true;
+}
+
 bool FormatContext::seek(int index, int64_t timestamp)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
@@ -251,9 +289,7 @@ AVFormatContext *FormatContext::avFormatContext()
 
 qint64 FormatContext::duration()
 {
-    if (!d_ptr->isOpen)
-        return 0;
-    return d_ptr->formatCtx->duration / 1000;
+    return d_ptr->isOpen ? (d_ptr->formatCtx->duration / 1000) : 0;
 }
 
 QImage &FormatContext::coverImage() const

@@ -1,11 +1,12 @@
 set(PROJECT_SOURCES
-        hostosinfo.cpp hostosinfo.h
-        logasync.cpp logasync.h
-        osspecificaspects.h
-        singleton.hpp
-        taskqueue.h
-        utils_global.h
-        utils.cpp utils.h)
+      countdownlatch.cc countdownlatch.hpp
+      hostosinfo.cpp hostosinfo.h
+      logasync.cpp logasync.h
+      osspecificaspects.h
+      singleton.hpp
+      taskqueue.h
+      utils_global.h
+      utils.cpp utils.h)
 
 if (CMAKE_HOST_WIN32)
   add_library(utils SHARED ${PROJECT_SOURCES} ${SOURCES})

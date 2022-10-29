@@ -5,6 +5,7 @@
 #include <QThread>
 #include <QWaitCondition>
 
+#include <utils/countdownlatch.hpp>
 #include <utils/taskqueue.h>
 
 #include "avcontextinfo.h"
@@ -15,7 +16,8 @@ extern "C" {
 #include <libavutil/time.h>
 }
 
-#define Sleep_Milliseconds 100
+#define Sleep_Queue_Full_Milliseconds 100
+#define Sleep_Queue_Empty_Milliseconds 10
 #define Max_Frame_Size 30
 #define UnWait_Milliseconds 50
 
@@ -58,19 +60,17 @@ public:
 
     virtual void pause(bool state) = 0;
 
-    void seek(qint64 seekTime)
+    void seek(qint64 seekTime, QSharedPointer<Utils::CountDownLatch> latchPtr)
     {
         assertVaild();
-        if (!m_contextInfo->isIndexVaild())
+        if (!m_contextInfo->isIndexVaild()) {
+            latchPtr->countDown();
             return;
+        }
         m_seek = true;
         m_seekTime = seekTime;
-        clear();
+        m_latchPtr = latchPtr;
         pause(false);
-        while (m_seek) {
-            QMutexLocker locker(&m_mutex);
-            m_waitCondition.wait(&m_mutex);
-        }
     }
 
     bool isSeek() { return m_seek; }
@@ -78,15 +78,10 @@ public:
     virtual void setSpeed(double speed)
     {
         Q_ASSERT(speed > 0);
-        QMutexLocker locker(&m_mutex);
-        m_speed = speed;
+        m_speed.store(speed);
     }
 
-    double speed()
-    {
-        QMutexLocker locker(&m_mutex);
-        return m_speed;
-    }
+    double speed() { return m_speed.load(); }
 
     static void setClock(double value) { m_clock.store(value); }
     static double clock() { return m_clock.load(); }
@@ -136,11 +131,7 @@ protected:
         m_contextInfo->flush();
     }
 
-    void seekFinish()
-    {
-        m_seek = false;
-        m_waitCondition.wakeOne();
-    }
+    void seekFinish() { m_seek = false; }
 
     void assertVaild()
     {
@@ -154,9 +145,8 @@ protected:
     volatile bool m_runing = true;
     volatile bool m_seek = false;
     qint64 m_seekTime = 0; // seconds
-    double m_speed = 1.0;
-    QMutex m_mutex;
-    QWaitCondition m_waitCondition;
+    std::atomic<double> m_speed = 1.0;
+    QWeakPointer<Utils::CountDownLatch> m_latchPtr;
 
 private:
     static std::atomic<double> m_clock;

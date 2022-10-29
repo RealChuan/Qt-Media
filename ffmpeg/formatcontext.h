@@ -3,6 +3,8 @@
 
 #include <QObject>
 
+#define Seek_Offset 2 // S
+
 struct AVStream;
 struct AVFormatContext;
 
@@ -34,6 +36,8 @@ public:
 
     int checkPktPlayRange(Packet *packet);
 
+    bool seekFirstFrame();
+    bool seek(int64_t timestamp);
     bool seek(int index, int64_t timestamp); // s
 
     void dumpFormat();

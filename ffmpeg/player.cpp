@@ -81,7 +81,7 @@ void Player::onSetFilePath(const QString &filepath)
 {
     onStop();
     d_ptr->filepath = filepath;
-    d_ptr->audioDecoder->setIsLocalFile(!QUrl(filepath).isValid());
+    d_ptr->audioDecoder->setIsLocalFile(QFile::exists(filepath));
     initAvCode();
     if (!d_ptr->isopen) {
         qWarning() << "initAvCode Error";
@@ -274,15 +274,16 @@ bool Player::initAvCode()
 
 void Player::playVideo()
 {
+    d_ptr->formatCtx->seekFirstFrame();
+
     d_ptr->videoDecoder->startDecoder(d_ptr->formatCtx, d_ptr->videoInfo);
     d_ptr->subtitleDecoder->startDecoder(d_ptr->formatCtx, d_ptr->subtitleInfo);
     d_ptr->audioDecoder->startDecoder(d_ptr->formatCtx, d_ptr->audioInfo);
-
-    checkSeek();
-
     emit playStarted();
 
     while (d_ptr->runing) {
+        checkSeek();
+
         std::unique_ptr<Packet> packetPtr(new Packet);
         if (!d_ptr->formatCtx->readFrame(packetPtr.get())) {
             break;
@@ -302,18 +303,14 @@ void Player::playVideo()
                    && packetPtr->avPacket()->stream_index == d_ptr->subtitleInfo->index()) {
             d_ptr->subtitleDecoder->append(packetPtr.release());
         }
-
-        checkSeek();
-
         while (d_ptr->runing && !d_ptr->seek
                && (d_ptr->videoDecoder->size() > Max_Frame_Size
                    || d_ptr->audioDecoder->size() > Max_Frame_Size)) {
-            msleep(Sleep_Milliseconds);
+            msleep(Sleep_Queue_Full_Milliseconds);
         }
     }
-
     while (d_ptr->runing && (d_ptr->videoDecoder->size() > 0 || d_ptr->audioDecoder->size() > 0)) {
-        msleep(Sleep_Milliseconds);
+        msleep(Sleep_Queue_Full_Milliseconds);
     }
     d_ptr->subtitleDecoder->stopDecoder();
     d_ptr->videoDecoder->stopDecoder();
@@ -324,13 +321,27 @@ void Player::playVideo()
 
 void Player::checkSeek()
 {
-    if (!d_ptr->seek)
+    if (!d_ptr->seek) {
         return;
+    }
     QElapsedTimer timer;
     timer.start();
-    d_ptr->videoDecoder->seek(d_ptr->seekTime);
-    d_ptr->audioDecoder->seek(d_ptr->seekTime);
-    d_ptr->subtitleDecoder->seek(d_ptr->seekTime);
+
+    QSharedPointer<Utils::CountDownLatch> latchPtr(new Utils::CountDownLatch(3));
+    d_ptr->videoDecoder->seek(d_ptr->seekTime, latchPtr);
+    d_ptr->audioDecoder->seek(d_ptr->seekTime, latchPtr);
+    d_ptr->subtitleDecoder->seek(d_ptr->seekTime, latchPtr);
+    latchPtr->wait();
+    d_ptr->formatCtx->seek(d_ptr->seekTime);
+    if (d_ptr->videoInfo->isIndexVaild()) {
+        d_ptr->videoInfo->flush();
+    }
+    if (d_ptr->audioInfo->isIndexVaild()) {
+        d_ptr->audioInfo->flush();
+    }
+    if (d_ptr->subtitleInfo->isIndexVaild()) {
+        d_ptr->subtitleInfo->flush();
+    }
     d_ptr->seek = false;
     blockSignals(false);
     setMediaState(MediaState::PlayingState);
@@ -410,8 +421,9 @@ void Player::unsetVideoOutputWidget()
 
 void Player::run()
 {
-    if (!d_ptr->isopen)
+    if (!d_ptr->isopen) {
         return;
+    }
     playVideo();
 }
 

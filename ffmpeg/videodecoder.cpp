@@ -50,17 +50,16 @@ void VideoDecoder::runDecoder()
 
     while (m_runing) {
         if (m_seek) {
-            d_ptr->decoderVideoFrame->seek(m_seekTime);
+            clear();
+            d_ptr->decoderVideoFrame->seek(m_seekTime, m_latchPtr.lock());
             seekFinish();
         }
-
         if (m_queue.isEmpty()) {
-            msleep(Sleep_Milliseconds);
+            msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
 
         QScopedPointer<Packet> packetPtr(m_queue.dequeue());
-
         if (!m_contextInfo->sendPacket(packetPtr.data())) {
             continue;
         }
@@ -69,15 +68,14 @@ void VideoDecoder::runDecoder()
         if (!m_contextInfo->receiveFrame(framePtr.get())) { // 一个packet一个视频帧
             continue;
         }
-
         d_ptr->decoderVideoFrame->append(framePtr.release());
 
         while (m_runing && d_ptr->decoderVideoFrame->size() > Max_Frame_Size && !m_seek) {
-            msleep(Sleep_Milliseconds);
+            msleep(Sleep_Queue_Full_Milliseconds);
         }
     }
     while (m_runing && d_ptr->decoderVideoFrame->size() != 0) {
-        msleep(Sleep_Milliseconds);
+        msleep(Sleep_Queue_Full_Milliseconds);
     }
     d_ptr->decoderVideoFrame->stopDecoder();
 }
