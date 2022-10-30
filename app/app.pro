@@ -6,7 +6,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TEMPLATE = app
 
-TARGET = FfmpegPlayer
+TARGET = QFfmpegPlayer
 
 LIBS += -L$$APP_OUTPUT_PATH/../libs \
     -l$$replaceLibName(mainwindow) \

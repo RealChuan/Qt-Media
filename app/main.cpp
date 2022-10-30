@@ -11,9 +11,9 @@
 void setAppInfo()
 {
     qApp->setApplicationVersion(QObject::tr("0.0.1"));
-    qApp->setApplicationDisplayName(QObject::tr("Ffmpeg Player"));
-    qApp->setApplicationName(QObject::tr("Ffmpeg Player"));
-    qApp->setDesktopFileName(QObject::tr("Ffmpeg Player"));
+    qApp->setApplicationDisplayName(QObject::tr("QFfmpegPlayer"));
+    qApp->setApplicationName(QObject::tr("QFfmpegPlayer"));
+    qApp->setDesktopFileName(QObject::tr("QFfmpegPlayer"));
     qApp->setOrganizationDomain(QObject::tr("Youth"));
     qApp->setOrganizationName(QObject::tr("Youth"));
 }

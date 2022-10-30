@@ -10,7 +10,7 @@ ENDIF ()
 
 list(APPEND CMAKE_PREFIX_PATH "C:\\Qt\\6.4.0\\msvc2019_64")
 
-project(FfmpegPlayer VERSION 0.1 LANGUAGES CXX)
+project(Qt-Ffmpeg VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
