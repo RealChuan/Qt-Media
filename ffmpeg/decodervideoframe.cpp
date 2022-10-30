@@ -59,7 +59,6 @@ void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoOutputRender *> video
 void DecoderVideoFrame::runDecoder()
 {
     PlayFrame frameRGB;
-
     m_contextInfo->imageAlloc(frameRGB);
     AVImage avImage(m_contextInfo->codecCtx());
 
@@ -67,20 +66,19 @@ void DecoderVideoFrame::runDecoder()
     while (m_runing) {
         checkPause();
         checkSeek();
-
         if (m_queue.isEmpty()) {
             msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
-        QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
 
+        QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
         double duration = 0;
         double pts = 0;
         calculateTime(framePtr->avFrame(), duration, pts);
-
         if (m_seekTime > pts) {
             continue;
         }
+
 #ifdef HardWareDecodeOn
         bool ok = false;
         framePtr.reset(m_contextInfo->hardWareDecode()->transforFrame(framePtr.get(), ok));
