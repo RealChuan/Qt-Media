@@ -123,8 +123,9 @@ void Player::onSeek(int timestamp)
 {
     qDebug() << "Seek: " << timestamp;
 
-    if (d_ptr->seek)
+    if (d_ptr->seek) {
         return;
+    }
     blockSignals(true);
     d_ptr->seek = true;
     d_ptr->seekTime = timestamp;

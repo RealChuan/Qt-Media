@@ -51,14 +51,12 @@ void SubtitleDecoder::runDecoder()
     while (m_runing) {
         checkPause();
         checkSeek();
-
         if (m_queue.isEmpty()) {
             msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
 
         QScopedPointer<Packet> packetPtr(m_queue.dequeue());
-
         if (!m_contextInfo->decodeSubtitle2(&subtitle, packetPtr.data())) {
             continue;
         }
@@ -69,13 +67,16 @@ void SubtitleDecoder::runDecoder()
         subtitle.setdefault(pts, duration, (const char *) packetPtr->avPacket()->data);
         QVector<SubtitleImage> subtitles = subtitle.subtitleImages();
         subtitle.clear();
-        if (subtitles.isEmpty())
+        if (subtitles.isEmpty()) {
             continue;
+        }
 
         double audioPts = clock() * 1000;
         double diff = subtitles.at(0).startDisplayTime - audioPts;
         if (diff > 0) {
-            msleep(diff);
+            QMutexLocker locker(&d_ptr->mutex);
+            d_ptr->waitCondition.wait(&d_ptr->mutex, diff);
+            //msleep(diff);
         } else if (audioPts > subtitles.at(0).endDisplayTime) {
             continue;
         }

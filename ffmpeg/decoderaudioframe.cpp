@@ -62,8 +62,9 @@ bool DecoderAudioFrame::isPause()
 void DecoderAudioFrame::setVolume(qreal volume)
 {
     d_ptr->volume = volume;
-    if (d_ptr->audioSinkPtr)
+    if (d_ptr->audioSinkPtr) {
         d_ptr->audioSinkPtr->setVolume(volume);
+    }
 }
 
 void DecoderAudioFrame::setSpeed(double speed)
@@ -289,16 +290,17 @@ void DecoderAudioFrame::checkSpeed(QElapsedTimer &timer, qint64 &pauseTime)
 
 void DecoderAudioFrame::writeToDevice(QByteArray &audioBuf)
 {
-    while (d_ptr->audioSinkPtr->bytesFree() < audioBuf.size()) {
+    while (audioBuf.size() > 0 && !m_seek && !d_ptr->pause) {
         int byteFree = d_ptr->audioSinkPtr->bytesFree();
-        if (byteFree > 0) {
+        if (byteFree > 0 && byteFree < audioBuf.size()) {
             d_ptr->audioDevice->write(audioBuf.data(), byteFree); // Memory leak
-            audioBuf = audioBuf.mid(byteFree);
+            audioBuf = audioBuf.sliced(byteFree);
+        } else {
+            d_ptr->audioDevice->write(audioBuf);
+            break;
         }
-        yieldCurrentThread();
     }
-    d_ptr->audioDevice->write(audioBuf); // Memory leak
-    qApp->processEvents();               // fix Memory leak
+    qApp->processEvents();
 }
 
 void printAudioOuputDevice()

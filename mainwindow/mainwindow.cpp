@@ -135,7 +135,6 @@ void MainWindow::setupUI()
 
     QComboBox *subtitleStreamsComboBox = new QComboBox(this);
     subtitleStreamsComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    ;
     connect(d_ptr->player,
             &Ffmpeg::Player::subtitleStreamsChanged,
             this,
@@ -190,4 +189,14 @@ void MainWindow::buildConnect()
     connect(d_ptr->player, &Ffmpeg::Player::durationChanged, this, &MainWindow::onDurationChanged);
     connect(d_ptr->player, &Ffmpeg::Player::positionChanged, this, &MainWindow::onPositionChanged);
     connect(d_ptr->slider, &QSlider::sliderMoved, d_ptr->player, &Ffmpeg::Player::onSeek);
+    new QShortcut(QKeySequence::MoveToNextChar, this, this, [this] {
+        d_ptr->player->onSeek(d_ptr->slider->value() + 5);
+    });
+    new QShortcut(QKeySequence::MoveToPreviousChar, this, this, [this] {
+        auto value = d_ptr->slider->value() - 5;
+        if (value < 0) {
+            value = 0;
+        }
+        d_ptr->player->onSeek(value);
+    });
 }

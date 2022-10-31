@@ -244,6 +244,7 @@ bool FormatContext::seekFirstFrame()
 bool FormatContext::seek(int64_t timestamp)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
+    Q_ASSERT(timestamp >= 0);
     int64_t seek_min = timestamp - Seek_Offset;
     if (seek_min < 0) {
         seek_min = 0;
