@@ -20,6 +20,8 @@ public:
     explicit Player(QObject *parent = nullptr);
     ~Player() override;
 
+    QString &filePath() const;
+
     bool isOpen();
 
     void setVolume(qreal volume);
@@ -30,6 +32,8 @@ public:
     void pause(bool status = true);
 
     MediaState mediaState();
+
+    int videoIndex();
 
     void setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRenders);
     void unsetVideoOutputWidget();

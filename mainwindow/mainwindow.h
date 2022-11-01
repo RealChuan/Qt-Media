@@ -20,6 +20,8 @@ private slots:
     void onError(const Ffmpeg::AVError &averror);
     void onDurationChanged(qint64 duration);
     void onPositionChanged(qint64 position);
+    void onHoverSlider(int pos, int value);
+    void onLeaveSlider();
 
 private:
     void setupUI();

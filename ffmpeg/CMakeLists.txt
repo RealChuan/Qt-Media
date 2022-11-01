@@ -2,6 +2,7 @@ set(PROJECT_SOURCES
         videooutput/videoouputrenderwidget.cc videooutput/videoouputrenderwidget.hpp
         videooutput/videooutputrender.cc videooutput/videooutputrender.hpp
         videooutput/videooutputrenderopenglrender.cc videooutput/videooutputrenderopenglrender.hpp
+        videooutput/videopreviewwidget.cc videooutput/videopreviewwidget.hpp
         audiodecoder.cpp audiodecoder.h
         avaudio.cpp avaudio.h
         avcontextinfo.cpp avcontextinfo.h

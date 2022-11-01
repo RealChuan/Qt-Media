@@ -4,6 +4,7 @@
 
 #include <ffmpeg/averror.h>
 #include <ffmpeg/player.h>
+#include <ffmpeg/videooutput/videopreviewwidget.hpp>
 
 #include <QtWidgets>
 
@@ -16,10 +17,13 @@ public:
         player = new Ffmpeg::Player(owner);
         slider = new Slider(owner);
         positionLabel = new QLabel("00:00:00", owner);
-        durationLabel = new QLabel("/00:00:00", owner);
+        durationLabel = new QLabel("/ 00:00:00", owner);
     }
+    ~MainWindowPrivate() {}
+
     QWidget *owner;
     Ffmpeg::Player *player;
+    QScopedPointer<Ffmpeg::VideoPreviewWidget> videoPreviewWidgetPtr;
 
     Slider *slider;
     QLabel *positionLabel;
@@ -49,7 +53,7 @@ void MainWindow::onError(const Ffmpeg::AVError &avError)
 
 void MainWindow::onDurationChanged(qint64 duration)
 {
-    d_ptr->durationLabel->setText("/"
+    d_ptr->durationLabel->setText("/ "
                                   + QTime::fromMSecsSinceStartOfDay(duration).toString("hh:mm:ss"));
     d_ptr->slider->blockSignals(true);
     d_ptr->slider->setRange(0, duration / 1000);
@@ -60,6 +64,37 @@ void MainWindow::onPositionChanged(qint64 position)
 {
     d_ptr->positionLabel->setText(QTime::fromMSecsSinceStartOfDay(position).toString("hh:mm:ss"));
     d_ptr->slider->setValue(position / 1000);
+}
+
+void MainWindow::onHoverSlider(int pos, int value)
+{
+    auto index = d_ptr->player->videoIndex();
+    if (index < 0) {
+        return;
+    }
+    auto filePath = d_ptr->player->filePath();
+    if (filePath.isEmpty()) {
+        return;
+    }
+    if (d_ptr->player->isFinished()) {
+        return;
+    }
+    d_ptr->videoPreviewWidgetPtr.reset(
+        new Ffmpeg::VideoPreviewWidget(filePath, index, value, d_ptr->slider->maximum()));
+    d_ptr->videoPreviewWidgetPtr->setWindowFlags(d_ptr->videoPreviewWidgetPtr->windowFlags()
+                                                 | Qt::FramelessWindowHint
+                                                 | Qt::WindowStaysOnTopHint);
+    int w = 320;
+    int h = 200;
+    d_ptr->videoPreviewWidgetPtr->setFixedSize(w, h);
+    QPoint gpos = d_ptr->slider->mapToGlobal(d_ptr->slider->pos() + QPoint(pos, 0));
+    d_ptr->videoPreviewWidgetPtr->move(gpos - QPoint(w / 2, h + 50));
+    d_ptr->videoPreviewWidgetPtr->show();
+}
+
+void MainWindow::onLeaveSlider()
+{
+    d_ptr->videoPreviewWidgetPtr.reset();
 }
 
 void MainWindow::setupUI()
@@ -188,7 +223,15 @@ void MainWindow::buildConnect()
     connect(d_ptr->player, &Ffmpeg::Player::error, this, &MainWindow::onError);
     connect(d_ptr->player, &Ffmpeg::Player::durationChanged, this, &MainWindow::onDurationChanged);
     connect(d_ptr->player, &Ffmpeg::Player::positionChanged, this, &MainWindow::onPositionChanged);
-    connect(d_ptr->slider, &QSlider::sliderMoved, d_ptr->player, &Ffmpeg::Player::onSeek);
+    connect(d_ptr->player, &Ffmpeg::Player::finished, this, [this] {
+        onDurationChanged(0);
+        onPositionChanged(0);
+    });
+
+    connect(d_ptr->slider, &Slider::sliderMoved, d_ptr->player, &Ffmpeg::Player::onSeek);
+    connect(d_ptr->slider, &Slider::onHover, this, &MainWindow::onHoverSlider);
+    connect(d_ptr->slider, &Slider::onLeave, this, &MainWindow::onLeaveSlider);
+
     new QShortcut(QKeySequence::MoveToNextChar, this, this, [this] {
         d_ptr->player->onSeek(d_ptr->slider->value() + 5);
     });

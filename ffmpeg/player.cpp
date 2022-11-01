@@ -8,6 +8,7 @@
 #include "videodecoder.h"
 
 #include <utils/utils.h>
+#include <videooutput/videooutputrender.hpp>
 
 #include <QDateTime>
 #include <QDebug>
@@ -19,14 +20,12 @@
 
 #include <memory>
 
-#include <videooutput/videooutputrender.hpp>
-
 namespace Ffmpeg {
 
 class Player::PlayerPrivate
 {
 public:
-    PlayerPrivate(QThread *parent)
+    PlayerPrivate(QObject *parent)
         : owner(parent)
     {
         formatCtx = new FormatContext(owner);
@@ -39,7 +38,7 @@ public:
         videoDecoder = new VideoDecoder(owner);
         subtitleDecoder = new SubtitleDecoder(owner);
     }
-    QThread *owner;
+    QObject *owner;
 
     FormatContext *formatCtx;
     AVContextInfo *audioInfo;
@@ -75,6 +74,11 @@ Player::Player(QObject *parent)
 Player::~Player()
 {
     onStop();
+}
+
+QString &Player::filePath() const
+{
+    return d_ptr->filepath;
 }
 
 void Player::onSetFilePath(const QString &filepath)
@@ -144,13 +148,15 @@ void Player::onSetAudioTracks(const QString &text) // 停止再播放最简单 �
     onStop();
     initAvCode();
     if (subtitleIndex >= 0) {
-        if (!setMediaIndex(d_ptr->subtitleInfo, subtitleIndex))
+        if (!setMediaIndex(d_ptr->subtitleInfo, subtitleIndex)) {
             return;
+        }
         emit subtitleStreamChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
     }
 
-    if (!setMediaIndex(d_ptr->audioInfo, index))
+    if (!setMediaIndex(d_ptr->audioInfo, index)) {
         return;
+    }
     emit audioTrackChanged(text);
     onSeek(d_ptr->audioDecoder->clock());
     onPlay();
@@ -391,6 +397,11 @@ void Player::pause(bool status)
 Player::MediaState Player::mediaState()
 {
     return d_ptr->mediaState;
+}
+
+int Player::videoIndex()
+{
+    return d_ptr->videoInfo->index();
 }
 
 void Player::setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRenders)
