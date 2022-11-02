@@ -1,8 +1,8 @@
 #include "videopreviewwidget.hpp"
 
-#include <ffmpeg/avimage.h>
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/formatcontext.h>
+#include <ffmpeg/frameconverter.hpp>
 #include <ffmpeg/playframe.h>
 #include <ffmpeg/videodecoder.h>
 
@@ -73,11 +73,23 @@ private:
                 if (m_timestamp > pts) {
                     continue;
                 }
-                PlayFrame frameRGB;
-                videoInfo->imageAlloc(frameRGB);
-                AVImage avImage(videoInfo->codecCtx());
-                avImage.scale(framePtr.data(), &frameRGB, videoInfo->codecCtx()->height());
-                QImage image(frameRGB.toImage(videoInfo->codecCtx()));
+                auto dstSize = QSize(framePtr->avFrame()->width, framePtr->avFrame()->height);
+                if (m_videoPreviewWidgetPtr.isNull()) {
+                    return;
+                } else {
+                    dstSize.scale(m_videoPreviewWidgetPtr->width(),
+                                  m_videoPreviewWidgetPtr->height(),
+                                  Qt::KeepAspectRatio);
+                }
+                QScopedPointer<FrameConverter> frameConverterPtr(
+                    new FrameConverter(videoInfo->codecCtx(), dstSize));
+                QScopedPointer<PlayFrame> frameRgbPtr(new PlayFrame);
+                videoInfo->imageAlloc(*frameRgbPtr.data(), dstSize);
+                frameConverterPtr->flush(framePtr.data(), dstSize);
+                auto image(frameConverterPtr->scaleToImageRgb32(framePtr.data(),
+                                                                frameRgbPtr.data(),
+                                                                videoInfo->codecCtx(),
+                                                                dstSize));
                 if (!m_videoPreviewWidgetPtr.isNull()) {
                     m_videoPreviewWidgetPtr->setDisplayImage(image, pts);
                 }
@@ -136,14 +148,7 @@ VideoPreviewWidget::~VideoPreviewWidget() {}
 void VideoPreviewWidget::setDisplayImage(const QImage &image, qint64 pts)
 {
     d_ptr->timestamp = pts;
-    d_ptr->image = image;
-    if (d_ptr->image.width() > width() || d_ptr->image.height() > height()) {
-        d_ptr->image = d_ptr->image.scaled(width(),
-                                           height(),
-                                           Qt::KeepAspectRatio,
-                                           Qt::SmoothTransformation);
-    }
-
+    d_ptr->image = image.scaled(width(), height(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
     QMetaObject::invokeMethod(
         this, [this] { update(); }, Qt::QueuedConnection);
 }

@@ -8,12 +8,13 @@ struct AVSubtitle;
 
 namespace Ffmpeg {
 
-struct SubtitleImage{
+struct SubtitleImage
+{
     QRectF rectF;
     QImage image;
     QString text;
     qint64 startDisplayTime; // ms
-    qint64 endDisplayTime; // ms
+    qint64 endDisplayTime;   // ms
 };
 
 class Subtitle : public QObject
@@ -23,7 +24,7 @@ public:
     explicit Subtitle(QObject *parent = nullptr);
     ~Subtitle();
 
-    void setdefault(double pts, double duration, const QString &text);
+    void setDefault(double pts, double duration, const QString &text);
 
     QVector<SubtitleImage> subtitleImages();
 
@@ -39,6 +40,6 @@ private:
     QScopedPointer<SubtitlePrivate> d_ptr;
 };
 
-}
+} // namespace Ffmpeg
 
 #endif // SUBTITLE_H

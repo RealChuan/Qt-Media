@@ -18,7 +18,7 @@ extern "C" {
 
 #define Sleep_Queue_Full_Milliseconds 100
 #define Sleep_Queue_Empty_Milliseconds 10
-#define Max_Frame_Size 30
+#define Max_Frame_Size 25
 #define UnWait_Milliseconds 50
 
 namespace Ffmpeg {

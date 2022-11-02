@@ -7,13 +7,13 @@ set(PROJECT_SOURCES
         avaudio.cpp avaudio.h
         avcontextinfo.cpp avcontextinfo.h
         averror.cpp averror.h
-        avimage.cpp avimage.h
         codeccontext.cpp codeccontext.h
         decoder.h
         decoderaudioframe.cpp decoderaudioframe.h
         decodervideoframe.cpp decodervideoframe.h
         ffmepg_global.h
         formatcontext.cpp formatcontext.h
+        frameconverter.cc frameconverter.hpp
         hardwaredecode.cc hardwaredecode.hpp
         packet.cpp packet.h
         player.cpp player.h

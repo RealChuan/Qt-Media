@@ -97,11 +97,29 @@ void MainWindow::onLeaveSlider()
     d_ptr->videoPreviewWidgetPtr.reset();
 }
 
+void MainWindow::keyPressEvent(QKeyEvent *ev)
+{
+    QMainWindow::keyPressEvent(ev);
+
+    qDebug() << ev->key();
+    switch (ev->key()) {
+    case Qt::Key_Space:
+        d_ptr->player->pause(d_ptr->player->mediaState()
+                             == Ffmpeg::Player::MediaState::PlayingState);
+        break;
+        //    useless
+        //    case Qt::Key_Right: d_ptr->player->onSeek(d_ptr->slider->value() + 5); break;
+        //    case Qt::Key_Left: d_ptr->player->onSeek(d_ptr->slider->value() - 5); break;
+    case Qt::Key_Q: qApp->quit(); break;
+    default: break;
+    }
+}
+
 void MainWindow::setupUI()
 {
-    PlayerWidget *playWidget = new PlayerWidget(this);
+    auto playWidget = new PlayerWidget(this);
     d_ptr->player->setVideoOutputWidget(QVector<Ffmpeg::VideoOutputRender *>{playWidget});
-    QPushButton *playButton = new QPushButton(tr("play"), this);
+    auto playButton = new QPushButton(tr("play"), this);
     playButton->setCheckable(true);
     connect(playWidget, &PlayerWidget::openFile, d_ptr->player, &Ffmpeg::Player::onSetFilePath);
     connect(playButton, &QPushButton::clicked, this, [this](bool checked) {
@@ -123,14 +141,14 @@ void MainWindow::setupUI()
                 }
             });
 
-    Slider *volumeSlider = new Slider(this);
+    auto volumeSlider = new Slider(this);
     connect(volumeSlider, &QSlider::sliderMoved, this, [this](int value) {
         d_ptr->player->setVolume(value / 100.0);
     });
     volumeSlider->setRange(0, 100);
     volumeSlider->setValue(50);
 
-    QComboBox *speedComboBox = new QComboBox(this);
+    auto speedComboBox = new QComboBox(this);
     connect(speedComboBox,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this,
@@ -144,7 +162,7 @@ void MainWindow::setupUI()
     }
     speedComboBox->setCurrentIndex(1);
 
-    QComboBox *audioTracksComboBox = new QComboBox(this);
+    auto audioTracksComboBox = new QComboBox(this);
     audioTracksComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     connect(d_ptr->player,
             &Ffmpeg::Player::audioTracksChanged,

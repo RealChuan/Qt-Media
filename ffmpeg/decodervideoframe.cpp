@@ -1,7 +1,7 @@
 #include "decodervideoframe.h"
 #include "avcontextinfo.h"
-#include "avimage.h"
 #include "codeccontext.h"
+#include "frameconverter.hpp"
 
 #include <videooutput/videooutputrender.hpp>
 
@@ -58,9 +58,9 @@ void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoOutputRender *> video
 
 void DecoderVideoFrame::runDecoder()
 {
-    PlayFrame frameRGB;
-    m_contextInfo->imageAlloc(frameRGB);
-    AVImage avImage(m_contextInfo->codecCtx());
+    QScopedPointer<FrameConverter> frameConverterPtr(new FrameConverter(m_contextInfo->codecCtx()));
+    QScopedPointer<PlayFrame> frameRgbPtr(new PlayFrame);
+    m_contextInfo->imageAlloc(*frameRgbPtr.data());
 
     quint64 dropNum = 0;
     while (m_runing) {
@@ -84,9 +84,10 @@ void DecoderVideoFrame::runDecoder()
         framePtr.reset(m_contextInfo->hardWareDecode()->transforFrame(framePtr.get(), ok));
         //qDebug() << framePtr->avFrame()->format;
 #endif
-        avImage.scale(framePtr.data(), &frameRGB, m_contextInfo->codecCtx()->height());
-        QImage image(frameRGB.toImage(m_contextInfo->codecCtx()));
-
+        frameConverterPtr->flush(framePtr.data());
+        QImage image(frameConverterPtr->scaleToImageRgb32(framePtr.data(),
+                                                          frameRgbPtr.data(),
+                                                          m_contextInfo->codecCtx()));
         double diff = (pts - clock()) * 1000;
         if (diff <= 0) {
             dropNum++;

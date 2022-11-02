@@ -19,7 +19,7 @@ public:
     void pause(bool state) override;
 
 signals:
-    void subtitleImages(const QVector<Ffmpeg::SubtitleImage>&);
+    void subtitleImages(const QVector<Ffmpeg::SubtitleImage> &);
 
 protected:
     void runDecoder() override;
@@ -32,6 +32,6 @@ private:
     QScopedPointer<SubtitleDecoderPrivate> d_ptr;
 };
 
-}
+} // namespace Ffmpeg
 
 #endif // SUBTITLEDECODER_H

@@ -14,11 +14,11 @@ SOURCES += \
     avaudio.cpp \
     avcontextinfo.cpp \
     averror.cpp \
-    avimage.cpp \
     codeccontext.cpp \
     decoderaudioframe.cpp \
     decodervideoframe.cpp \
     formatcontext.cpp \
+    frameconverter.cc \
     hardwaredecode.cc \
     packet.cpp \
     player.cpp \
@@ -32,13 +32,13 @@ HEADERS += \
     avaudio.h \
     avcontextinfo.h \
     averror.h \
-    avimage.h \
     codeccontext.h \
     decoder.h \
     decoderaudioframe.h \
     decodervideoframe.h \
     ffmepg_global.h \
     formatcontext.h \
+    frameconverter.hpp \
     hardwaredecode.hpp \
     packet.h \
     player.h \

@@ -23,6 +23,9 @@ private slots:
     void onHoverSlider(int pos, int value);
     void onLeaveSlider();
 
+protected:
+    void keyPressEvent(QKeyEvent *ev) override;
+
 private:
     void setupUI();
     void buildConnect();

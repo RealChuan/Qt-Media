@@ -1,5 +1,4 @@
 #include "subtitledecoder.h"
-#include "avimage.h"
 #include "decoderaudioframe.h"
 
 namespace Ffmpeg {
@@ -64,7 +63,7 @@ void SubtitleDecoder::runDecoder()
         double duration = 0;
         double pts = 0;
         calculateTime(packetPtr->avPacket(), duration, pts);
-        subtitle.setdefault(pts, duration, (const char *) packetPtr->avPacket()->data);
+        subtitle.setDefault(pts, duration, (const char *) packetPtr->avPacket()->data);
         QVector<SubtitleImage> subtitles = subtitle.subtitleImages();
         subtitle.clear();
         if (subtitles.isEmpty()) {

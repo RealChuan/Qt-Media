@@ -50,7 +50,10 @@ FormatContext::FormatContext(QObject *parent)
     , d_ptr(new FormatContextPrivate(this))
 {}
 
-FormatContext::~FormatContext() {}
+FormatContext::~FormatContext()
+{
+    close();
+}
 
 bool FormatContext::isOpen()
 {
@@ -77,8 +80,9 @@ bool FormatContext::openFilePath(const QString &filepath)
 
 void FormatContext::close()
 {
-    if (!d_ptr->isOpen)
+    if (!d_ptr->isOpen) {
         return;
+    }
     avformat_close_input(&d_ptr->formatCtx);
     //d_ptr->formatCtx = avformat_alloc_context();
     //Q_ASSERT(d_ptr->formatCtx != nullptr);

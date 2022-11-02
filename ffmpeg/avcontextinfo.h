@@ -2,6 +2,7 @@
 #define AVCONTEXTINFO_H
 
 #include <QObject>
+#include <QSize>
 
 struct AVStream;
 
@@ -41,7 +42,7 @@ public:
     bool receiveFrame(PlayFrame *frame);
     bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
 
-    bool imageAlloc(PlayFrame &frame);
+    bool imageAlloc(PlayFrame &frame, const QSize &size = QSize(-1, -1));
 
     void flush();
 

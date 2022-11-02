@@ -103,15 +103,20 @@ bool CodecContext::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
     return true;
 }
 
-bool CodecContext::imageAlloc(PlayFrame &frame)
+bool CodecContext::imageAlloc(PlayFrame &frame, const QSize &size)
 {
+    int width = this->width();
+    int height = this->height();
+    if (size.isValid()) {
+        width = size.width();
+        height = size.height();
+    }
     int ret = av_image_alloc(frame.avFrame()->data,
                              frame.avFrame()->linesize,
-                             width(),
-                             height(),
+                             width,
+                             height,
                              AV_PIX_FMT_RGB32,
                              1);
-
     if (ret < 0) {
         setError(ret);
         return false;

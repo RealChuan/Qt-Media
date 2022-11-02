@@ -20,8 +20,6 @@ public:
 
     AVFrame *avFrame();
 
-    QImage toImage(CodecContext *codecContext);
-
 private:
     AVFrame *m_frame;
 };

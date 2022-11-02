@@ -130,9 +130,9 @@ bool AVContextInfo::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
     return d_ptr->codecCtx->decodeSubtitle2(subtitle, packet);
 }
 
-bool AVContextInfo::imageAlloc(PlayFrame &frame)
+bool AVContextInfo::imageAlloc(PlayFrame &frame, const QSize &size)
 {
-    return d_ptr->codecCtx->imageAlloc(frame);
+    return d_ptr->codecCtx->imageAlloc(frame, size);
 }
 
 void AVContextInfo::flush()
