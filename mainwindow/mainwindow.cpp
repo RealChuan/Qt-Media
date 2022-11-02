@@ -80,15 +80,15 @@ void MainWindow::onHoverSlider(int pos, int value)
         return;
     }
     d_ptr->videoPreviewWidgetPtr.reset(
-        new Ffmpeg::VideoPreviewWidget(filePath, index, value, d_ptr->slider->maximum()));
+        new Ffmpeg::VideoPreviewWidget(filePath, index, value, d_ptr->slider->maximum(), this));
     d_ptr->videoPreviewWidgetPtr->setWindowFlags(d_ptr->videoPreviewWidgetPtr->windowFlags()
                                                  | Qt::FramelessWindowHint
                                                  | Qt::WindowStaysOnTopHint);
     int w = 320;
     int h = 200;
     d_ptr->videoPreviewWidgetPtr->setFixedSize(w, h);
-    QPoint gpos = d_ptr->slider->mapToGlobal(d_ptr->slider->pos() + QPoint(pos, 0));
-    d_ptr->videoPreviewWidgetPtr->move(gpos - QPoint(w / 2, h + 50));
+    auto gpos = d_ptr->slider->mapTo(this, d_ptr->slider->pos() + QPoint(pos, 0));
+    d_ptr->videoPreviewWidgetPtr->move(gpos - QPoint(w / 2, h + 15));
     d_ptr->videoPreviewWidgetPtr->show();
 }
 
@@ -118,6 +118,7 @@ void MainWindow::keyPressEvent(QKeyEvent *ev)
 void MainWindow::setupUI()
 {
     auto playWidget = new PlayerWidget(this);
+    playWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     d_ptr->player->setVideoOutputWidget(QVector<Ffmpeg::VideoOutputRender *>{playWidget});
     auto playButton = new QPushButton(tr("play"), this);
     playButton->setCheckable(true);
@@ -156,7 +157,7 @@ void MainWindow::setupUI()
                 d_ptr->player->setSpeed(speedComboBox->itemData(index).toDouble());
             });
     double i = 0.5;
-    while (i < 5.5) {
+    while (i <= 2) {
         speedComboBox->addItem(QString::number(i), i);
         i += 0.5;
     }
@@ -211,7 +212,7 @@ void MainWindow::setupUI()
             &Ffmpeg::Player::onSetSubtitleStream);
 
     QWidget *processWidget = new QWidget(this);
-    processWidget->setMaximumHeight(70);
+    //processWidget->setMaximumHeight(70);
     QHBoxLayout *processLayout = new QHBoxLayout(processWidget);
     processLayout->addWidget(d_ptr->slider);
     processLayout->addWidget(d_ptr->positionLabel);

@@ -35,9 +35,9 @@ inline int Slider::pick(const QPoint &pt) const
 // Function copied from qslider.cpp and modified to make it compile
 void Slider::initStyleOption_Qt430(QStyleOptionSlider *option) const
 {
-    if (!option)
+    if (!option) {
         return;
-
+    }
     option->initFrom(this);
     option->subControls = QStyle::SC_None;
     option->activeSubControls = QStyle::SC_None;
@@ -54,8 +54,9 @@ void Slider::initStyleOption_Qt430(QStyleOptionSlider *option) const
     option->sliderValue = value();
     option->singleStep = singleStep();
     option->pageStep = pageStep();
-    if (orientation() == Qt::Horizontal)
+    if (orientation() == Qt::Horizontal) {
         option->state |= QStyle::State_Horizontal;
+    }
 }
 
 // Function copied from qslider.cpp and modified to make it compile
@@ -84,14 +85,16 @@ int Slider::pixelPosToRangeValue(int pos) const
 
 void Slider::enterEvent(QEnterEvent *event)
 {
+    setCursor(Qt::PointingHandCursor);
     emit onEnter();
     QSlider::enterEvent(event);
 }
 
 void Slider::leaveEvent(QEvent *e)
 {
-    emit onLeave();
     QSlider::leaveEvent(e);
+    emit onLeave();
+    unsetCursor();
 }
 
 void Slider::mouseMoveEvent(QMouseEvent *e)
