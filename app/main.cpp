@@ -6,6 +6,7 @@
 
 #include <QApplication>
 #include <QDir>
+#include <QNetworkProxyFactory>
 #include <QStyle>
 
 void setAppInfo()
@@ -62,6 +63,10 @@ int main(int argc, char *argv[])
     log->startWork();
 
     Utils::printBuildInfo();
+    Utils::setGlobalThreadPoolMaxSize();
+
+    // Make sure we honor the system's proxy settings
+    QNetworkProxyFactory::setUseSystemConfiguration(true);
 
     MainWindow w;
     w.show();

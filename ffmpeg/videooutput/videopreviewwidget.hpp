@@ -16,12 +16,15 @@ class FFMPEG_EXPORT VideoPreviewWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit VideoPreviewWidget(const QString &filepath,
-                                int videoIndex,
-                                qint64 timestamp,
-                                qint64 duration,
-                                QWidget *parent = nullptr);
+    explicit VideoPreviewWidget(QWidget *parent = nullptr);
+    VideoPreviewWidget(const QString &filepath,
+                       int videoIndex,
+                       qint64 timestamp,
+                       qint64 duration,
+                       QWidget *parent = nullptr);
     ~VideoPreviewWidget();
+
+    void startPreview(const QString &filepath, int videoIndex, qint64 timestamp, qint64 duration);
 
     void setDisplayImage(const QImage &image, qint64 pts);
 

@@ -131,6 +131,13 @@ struct VideoPreviewWidget::VideoPreviewWidgetPrivate
     qint64 duration;
 };
 
+VideoPreviewWidget::VideoPreviewWidget(QWidget *parent)
+    : QWidget{parent}
+    , d_ptr(new VideoPreviewWidgetPrivate)
+{
+    setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
+}
+
 VideoPreviewWidget::VideoPreviewWidget(
     const QString &filepath, int videoIndex, qint64 timestamp, qint64 duration, QWidget *parent)
     : QWidget{parent}
@@ -144,6 +151,18 @@ VideoPreviewWidget::VideoPreviewWidget(
 }
 
 VideoPreviewWidget::~VideoPreviewWidget() {}
+
+void VideoPreviewWidget::startPreview(const QString &filepath,
+                                      int videoIndex,
+                                      qint64 timestamp,
+                                      qint64 duration)
+{
+    Q_ASSERT(videoIndex >= 0);
+    QThreadPool::globalInstance()->start(new PreviewTask(filepath, videoIndex, timestamp, this));
+    d_ptr->timestamp = timestamp;
+    d_ptr->duration = duration;
+    d_ptr->image = QImage();
+}
 
 void VideoPreviewWidget::setDisplayImage(const QImage &image, qint64 pts)
 {
@@ -175,22 +194,6 @@ void VideoPreviewWidget::paintEvent(QPaintEvent *event)
     int x = (width() - d_ptr->image.width()) / 2;
     int y = (height() - d_ptr->image.height()) / 2;
     painter.drawImage(QRect(x, y, d_ptr->image.width(), d_ptr->image.height()), d_ptr->image);
-
-    //    if (d_ptr->image.width() > rect.width() || d_ptr->image.height() > rect.height()) {
-    //        double wScale = d_ptr->image.width() * 1.0 / rect.width();
-    //        double hScale = d_ptr->image.height() * 1.0 / rect.height();
-    //        double maxScale = qMax(wScale, hScale);
-
-    //        double w = d_ptr->image.width() / maxScale;
-    //        double h = d_ptr->image.height() / maxScale;
-    //        double x = (rect.width() - w) / 2;
-    //        double y = (rect.height() - h) / 2;
-    //        painter.drawImage(QRect(x, y, w, h), d_ptr->image);
-    //    } else {
-    //        double x = (rect.width() - d_ptr->image.width()) / 2;
-    //        double y = (rect.height() - d_ptr->image.height()) / 2;
-    //        painter.drawImage(QRect(x, y, d_ptr->image.width(), d_ptr->image.height()), d_ptr->image);
-    //    }
 
     QFont font;
     font.setPixelSize(height() / 9);

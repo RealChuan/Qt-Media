@@ -123,6 +123,7 @@ void DecoderAudioFrame::runDecoder()
     QAudioDevice audioDevice(QMediaDevices::defaultAudioOutput());
     QAudioFormat format = resetAudioOutput();
     AVSampleFormat fmt = converSampleFormat(format.sampleFormat());
+    d_ptr->seekTime = 0;
     setClock(0);
     AVAudio avAudio(m_contextInfo->codecCtx(), fmt);
     QElapsedTimer timer;

@@ -13,21 +13,24 @@ class MainWindow::MainWindowPrivate
 public:
     MainWindowPrivate(QWidget *parent)
         : owner(parent)
+        , playerPtr(new Ffmpeg::Player)
     {
-        player = new Ffmpeg::Player(owner);
         slider = new Slider(owner);
         positionLabel = new QLabel("00:00:00", owner);
         durationLabel = new QLabel("/ 00:00:00", owner);
+        playButton = new QPushButton(tr("play", "MainWindowPrivate"), owner);
+        playButton->setCheckable(true);
     }
     ~MainWindowPrivate() {}
 
     QWidget *owner;
-    Ffmpeg::Player *player;
+    QScopedPointer<Ffmpeg::Player> playerPtr;
     QScopedPointer<Ffmpeg::VideoPreviewWidget> videoPreviewWidgetPtr;
 
     Slider *slider;
     QLabel *positionLabel;
     QLabel *durationLabel;
+    QPushButton *playButton;
 };
 
 MainWindow::MainWindow(QWidget *parent)
@@ -39,10 +42,7 @@ MainWindow::MainWindow(QWidget *parent)
     resize(1000, 650);
 }
 
-MainWindow::~MainWindow()
-{
-    d_ptr->player->onStop();
-}
+MainWindow::~MainWindow() {}
 
 void MainWindow::onError(const Ffmpeg::AVError &avError)
 {
@@ -68,26 +68,26 @@ void MainWindow::onPositionChanged(qint64 position)
 
 void MainWindow::onHoverSlider(int pos, int value)
 {
-    auto index = d_ptr->player->videoIndex();
+    auto index = d_ptr->playerPtr->videoIndex();
     if (index < 0) {
         return;
     }
-    auto filePath = d_ptr->player->filePath();
+    auto filePath = d_ptr->playerPtr->filePath();
     if (filePath.isEmpty()) {
         return;
     }
-    if (d_ptr->player->isFinished()) {
+    if (d_ptr->playerPtr->isFinished()) {
         return;
     }
     d_ptr->videoPreviewWidgetPtr.reset(
-        new Ffmpeg::VideoPreviewWidget(filePath, index, value, d_ptr->slider->maximum(), this));
+        new Ffmpeg::VideoPreviewWidget(filePath, index, value, d_ptr->slider->maximum()));
     d_ptr->videoPreviewWidgetPtr->setWindowFlags(d_ptr->videoPreviewWidgetPtr->windowFlags()
-                                                 | Qt::FramelessWindowHint
+                                                 | Qt::Tool | Qt::FramelessWindowHint
                                                  | Qt::WindowStaysOnTopHint);
     int w = 320;
     int h = 200;
     d_ptr->videoPreviewWidgetPtr->setFixedSize(w, h);
-    auto gpos = d_ptr->slider->mapTo(this, d_ptr->slider->pos() + QPoint(pos, 0));
+    auto gpos = d_ptr->slider->mapToGlobal(d_ptr->slider->pos() + QPoint(pos, 0));
     d_ptr->videoPreviewWidgetPtr->move(gpos - QPoint(w / 2, h + 15));
     d_ptr->videoPreviewWidgetPtr->show();
 }
@@ -104,8 +104,7 @@ void MainWindow::keyPressEvent(QKeyEvent *ev)
     qDebug() << ev->key();
     switch (ev->key()) {
     case Qt::Key_Space:
-        d_ptr->player->pause(d_ptr->player->mediaState()
-                             == Ffmpeg::Player::MediaState::PlayingState);
+        d_ptr->playButton->click();
         break;
         //    useless
         //    case Qt::Key_Right: d_ptr->player->onSeek(d_ptr->slider->value() + 5); break;
@@ -119,32 +118,15 @@ void MainWindow::setupUI()
 {
     auto playWidget = new PlayerWidget(this);
     playWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    d_ptr->player->setVideoOutputWidget(QVector<Ffmpeg::VideoOutputRender *>{playWidget});
-    auto playButton = new QPushButton(tr("play"), this);
-    playButton->setCheckable(true);
-    connect(playWidget, &PlayerWidget::openFile, d_ptr->player, &Ffmpeg::Player::onSetFilePath);
-    connect(playButton, &QPushButton::clicked, this, [this](bool checked) {
-        if (checked && !d_ptr->player->isRunning())
-            d_ptr->player->onPlay();
-        else {
-            d_ptr->player->pause(!checked);
-        }
-    });
-    connect(d_ptr->player,
-            &Ffmpeg::Player::stateChanged,
-            this,
-            [playButton](Ffmpeg::Player::MediaState state) {
-                switch (state) {
-                case Ffmpeg::Player::MediaState::StoppedState:
-                case Ffmpeg::Player::MediaState::PausedState: playButton->setChecked(false); break;
-                case Ffmpeg::Player::MediaState::PlayingState: playButton->setChecked(true); break;
-                default: break;
-                }
-            });
+    d_ptr->playerPtr->setVideoOutputWidget(QVector<Ffmpeg::VideoOutputRender *>{playWidget});
+    connect(playWidget,
+            &PlayerWidget::openFile,
+            d_ptr->playerPtr.data(),
+            &Ffmpeg::Player::onSetFilePath);
 
     auto volumeSlider = new Slider(this);
     connect(volumeSlider, &QSlider::sliderMoved, this, [this](int value) {
-        d_ptr->player->setVolume(value / 100.0);
+        d_ptr->playerPtr->setVolume(value / 100.0);
     });
     volumeSlider->setRange(0, 100);
     volumeSlider->setValue(50);
@@ -154,7 +136,7 @@ void MainWindow::setupUI()
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this,
             [this, speedComboBox](int index) {
-                d_ptr->player->setSpeed(speedComboBox->itemData(index).toDouble());
+                d_ptr->playerPtr->setSpeed(speedComboBox->itemData(index).toDouble());
             });
     double i = 0.5;
     while (i <= 2) {
@@ -165,7 +147,7 @@ void MainWindow::setupUI()
 
     auto audioTracksComboBox = new QComboBox(this);
     audioTracksComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    connect(d_ptr->player,
+    connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::audioTracksChanged,
             this,
             [audioTracksComboBox](const QStringList &tracks) {
@@ -174,7 +156,7 @@ void MainWindow::setupUI()
                 audioTracksComboBox->addItems(tracks);
                 audioTracksComboBox->blockSignals(false);
             });
-    connect(d_ptr->player,
+    connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::audioTrackChanged,
             this,
             [audioTracksComboBox](const QString &track) {
@@ -184,12 +166,12 @@ void MainWindow::setupUI()
             });
     connect(audioTracksComboBox,
             &QComboBox::currentTextChanged,
-            d_ptr->player,
+            d_ptr->playerPtr.data(),
             &Ffmpeg::Player::onSetAudioTracks);
 
     QComboBox *subtitleStreamsComboBox = new QComboBox(this);
     subtitleStreamsComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    connect(d_ptr->player,
+    connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::subtitleStreamsChanged,
             this,
             [subtitleStreamsComboBox](const QStringList &streams) {
@@ -198,7 +180,7 @@ void MainWindow::setupUI()
                 subtitleStreamsComboBox->addItems(streams);
                 subtitleStreamsComboBox->blockSignals(false);
             });
-    connect(d_ptr->player,
+    connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::subtitleStreamChanged,
             this,
             [subtitleStreamsComboBox](const QString &stream) {
@@ -208,7 +190,7 @@ void MainWindow::setupUI()
             });
     connect(subtitleStreamsComboBox,
             &QComboBox::currentTextChanged,
-            d_ptr->player,
+            d_ptr->playerPtr.data(),
             &Ffmpeg::Player::onSetSubtitleStream);
 
     QWidget *processWidget = new QWidget(this);
@@ -219,7 +201,7 @@ void MainWindow::setupUI()
     processLayout->addWidget(d_ptr->durationLabel);
 
     QHBoxLayout *controlLayout = new QHBoxLayout;
-    controlLayout->addWidget(playButton);
+    controlLayout->addWidget(d_ptr->playButton);
     controlLayout->addWidget(new QLabel(tr("Volume: "), this));
     controlLayout->addWidget(volumeSlider);
     controlLayout->addWidget(new QLabel(tr("Speed: "), this));
@@ -239,26 +221,55 @@ void MainWindow::setupUI()
 
 void MainWindow::buildConnect()
 {
-    connect(d_ptr->player, &Ffmpeg::Player::error, this, &MainWindow::onError);
-    connect(d_ptr->player, &Ffmpeg::Player::durationChanged, this, &MainWindow::onDurationChanged);
-    connect(d_ptr->player, &Ffmpeg::Player::positionChanged, this, &MainWindow::onPositionChanged);
-    connect(d_ptr->player, &Ffmpeg::Player::finished, this, [this] {
+    connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::error, this, &MainWindow::onError);
+    connect(d_ptr->playerPtr.data(),
+            &Ffmpeg::Player::durationChanged,
+            this,
+            &MainWindow::onDurationChanged);
+    connect(d_ptr->playerPtr.data(),
+            &Ffmpeg::Player::positionChanged,
+            this,
+            &MainWindow::onPositionChanged);
+    connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::finished, this, [this] {
         onDurationChanged(0);
         onPositionChanged(0);
     });
 
-    connect(d_ptr->slider, &Slider::sliderMoved, d_ptr->player, &Ffmpeg::Player::onSeek);
+    connect(d_ptr->slider, &Slider::sliderMoved, d_ptr->playerPtr.data(), &Ffmpeg::Player::onSeek);
     connect(d_ptr->slider, &Slider::onHover, this, &MainWindow::onHoverSlider);
     connect(d_ptr->slider, &Slider::onLeave, this, &MainWindow::onLeaveSlider);
 
+    connect(d_ptr->playButton, &QPushButton::clicked, this, [this](bool checked) {
+        if (checked && !d_ptr->playerPtr->isRunning())
+            d_ptr->playerPtr->onPlay();
+        else {
+            d_ptr->playerPtr->pause(!checked);
+        }
+    });
+    connect(d_ptr->playerPtr.data(),
+            &Ffmpeg::Player::stateChanged,
+            d_ptr->playButton,
+            [this](Ffmpeg::Player::MediaState state) {
+                switch (state) {
+                case Ffmpeg::Player::MediaState::StoppedState:
+                case Ffmpeg::Player::MediaState::PausedState:
+                    d_ptr->playButton->setChecked(false);
+                    break;
+                case Ffmpeg::Player::MediaState::PlayingState:
+                    d_ptr->playButton->setChecked(true);
+                    break;
+                default: break;
+                }
+            });
+
     new QShortcut(QKeySequence::MoveToNextChar, this, this, [this] {
-        d_ptr->player->onSeek(d_ptr->slider->value() + 5);
+        d_ptr->playerPtr->onSeek(d_ptr->slider->value() + 5);
     });
     new QShortcut(QKeySequence::MoveToPreviousChar, this, this, [this] {
-        auto value = d_ptr->slider->value() - 5;
+        auto value = d_ptr->slider->value() - 10;
         if (value < 0) {
             value = 0;
         }
-        d_ptr->player->onSeek(value);
+        d_ptr->playerPtr->onSeek(value);
     });
 }

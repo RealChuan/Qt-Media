@@ -106,19 +106,19 @@ void Player::onStop()
 {
     buildConnect(false);
     d_ptr->runing = false;
-    //if(isRunning()){
-    //    quit();
-    //    wait();
-    //}
-    // 临时策略
+    if (isRunning()) {
+        quit();
+    }
     while (isRunning()) {
         qApp->processEvents();
     }
     int count = 1000;
     while (count-- > 0) {
-        qApp->processEvents();
+        qApp->processEvents(); // just for signal finished
     }
-    emit end();
+    for (auto render : d_ptr->videoOutputRenders) {
+        render->onFinish();
+    }
     d_ptr->formatCtx->close();
     setMediaState(MediaState::StoppedState);
 }
@@ -399,19 +399,34 @@ Player::MediaState Player::mediaState()
     return d_ptr->mediaState;
 }
 
-int Player::videoIndex()
+qint64 Player::duration() const
+{
+    return d_ptr->formatCtx->duration();
+}
+
+qint64 Player::position() const
+{
+    return d_ptr->audioDecoder->clock() * 1000;
+}
+
+int Player::audioIndex() const
+{
+    return d_ptr->audioInfo->index();
+}
+
+int Player::videoIndex() const
 {
     return d_ptr->videoInfo->index();
+}
+
+int Player::subtitleIndex() const
+{
+    return d_ptr->subtitleInfo->index();
 }
 
 void Player::setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRenders)
 {
     d_ptr->videoOutputRenders = videoOutputRenders;
-    connect(this, &Player::end, this, [this] {
-        for (auto render : d_ptr->videoOutputRenders) {
-            render->onFinish();
-        }
-    });
     connect(this,
             &Player::subtitleImages,
             this,
@@ -421,14 +436,6 @@ void Player::setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRender
                 }
             });
     d_ptr->videoDecoder->setVideoOutputRenders(videoOutputRenders);
-}
-
-void Player::unsetVideoOutputWidget()
-{
-    d_ptr->videoOutputRenders.clear();
-    disconnect(SIGNAL(readyRead(const QImage &image)));
-    disconnect(SIGNAL(subtitleImages(const QVector<Ffmpeg::SubtitleImage> &)));
-    disconnect(SIGNAL(end()));
 }
 
 void Player::run()

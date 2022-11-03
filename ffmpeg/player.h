@@ -33,10 +33,14 @@ public:
 
     MediaState mediaState();
 
-    int videoIndex();
+    qint64 duration() const; // ms
+    qint64 position() const; // ms
+
+    int audioIndex() const;
+    int videoIndex() const;
+    int subtitleIndex() const;
 
     void setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRenders);
-    void unsetVideoOutputWidget();
 
 public slots:
     void onSetFilePath(const QString &filepath);
@@ -56,7 +60,6 @@ signals:
     void subtitleStreamChanged(const QString &stream);
     void subtitleImages(const QVector<Ffmpeg::SubtitleImage> &);
     void error(const Ffmpeg::AVError &avError);
-    void end();
 
     void playStarted();
     void seekFinished();
