@@ -29,3 +29,6 @@ OTHER_FILES += \
     app.ico
 
 DESTDIR = $$APP_OUTPUT_PATH
+
+RESOURCES += \
+    resource.qrc
