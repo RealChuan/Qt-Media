@@ -1,10 +1,9 @@
 #ifndef HARDWAREDECODE_HPP
 #define HARDWAREDECODE_HPP
 
-#include <QtCore/QObject>
-#include <QtCore/qglobal.h>
+#include <QObject>
 
-//#define HardWareDecodeOn
+#define HardWareDecodeOn
 
 struct AVCodec;
 

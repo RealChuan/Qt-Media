@@ -78,12 +78,6 @@ void DecoderVideoFrame::runDecoder()
         if (m_seekTime > pts) {
             continue;
         }
-
-#ifdef HardWareDecodeOn
-        bool ok = false;
-        framePtr.reset(m_contextInfo->hardWareDecode()->transforFrame(framePtr.get(), ok));
-        //qDebug() << framePtr->avFrame()->format;
-#endif
         frameConverterPtr->flush(framePtr.data());
         QImage image(frameConverterPtr->scaleToImageRgb32(framePtr.data(),
                                                           frameRgbPtr.data(),

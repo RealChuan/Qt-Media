@@ -123,7 +123,6 @@ bool HardWareDecode::initHardWareDevice(CodecContext *codecContext)
     if (hw_pix_fmt == AV_PIX_FMT_NONE) {
         return false;
     }
-    codecContext->avCodecCtx()->get_format = get_hw_format;
     int ret = av_hwdevice_ctx_create(&d_ptr->bufferRef, d_ptr->hwDeviceType, nullptr, nullptr, 0);
     if (ret < 0) {
         qWarning() << "Failed to create specified HW device.";
@@ -131,27 +130,33 @@ bool HardWareDecode::initHardWareDevice(CodecContext *codecContext)
         return false;
     }
     codecContext->avCodecCtx()->hw_device_ctx = av_buffer_ref(d_ptr->bufferRef);
+    codecContext->avCodecCtx()->get_format = get_hw_format;
     d_ptr->vaild = true;
     return true;
 }
 
-Frame *HardWareDecode::transforFrame(Frame *playFrame, bool &ok)
+Frame *HardWareDecode::transforFrame(Frame *in, bool &ok)
 {
     ok = true;
     if (!isVaild()) {
-        return playFrame;
+        return in;
     }
 
-    if (playFrame->avFrame()->format != hw_pix_fmt) {
-        return playFrame;
+    if (in->avFrame()->format != hw_pix_fmt) {
+        return in;
     }
-    Frame *out = new Frame;
-    int ret = av_hwframe_transfer_data(out->avFrame(), playFrame->avFrame(), 0);
+    auto out = new Frame;
+    int ret = av_hwframe_transfer_data(out->avFrame(), in->avFrame(), 0);
+    //int ret = av_hwframe_map(out->avFrame(), playFrame->avFrame(), 0);
     if (ret < 0) {
         qWarning() << "Error transferring the data to system memory";
         setError(ret);
         ok = false;
     }
+    // 拷贝其他信息
+    av_frame_copy_props(out->avFrame(), in->avFrame());
+    out->avFrame()->width = in->avFrame()->width;
+    out->avFrame()->height = in->avFrame()->height;
     return out;
 }
 
