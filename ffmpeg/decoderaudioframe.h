@@ -2,7 +2,7 @@
 #define DECODERAUDIOFRAME_H
 
 #include "decoder.h"
-#include "playframe.h"
+#include "frame.hpp"
 
 #include <QAudio>
 #include <QAudioFormat>
@@ -11,7 +11,7 @@ class QAudioDevice;
 
 namespace Ffmpeg {
 
-class DecoderAudioFrame : public Decoder<PlayFrame *>
+class DecoderAudioFrame : public Decoder<Frame *>
 {
     Q_OBJECT
 public:

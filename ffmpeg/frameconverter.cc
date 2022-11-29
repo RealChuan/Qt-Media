@@ -1,13 +1,15 @@
 #include "frameconverter.hpp"
 #include "averror.h"
 #include "codeccontext.h"
-#include "playframe.h"
+#include "frame.hpp"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
 }
+
+#include <QImage>
 
 namespace Ffmpeg {
 
@@ -47,7 +49,7 @@ FrameConverter::FrameConverter(CodecContext *codecCtx, const QSize &size, QObjec
 
 FrameConverter::~FrameConverter() {}
 
-void FrameConverter::flush(PlayFrame *frame, const QSize &dstSize)
+void FrameConverter::flush(Frame *frame, const QSize &dstSize)
 {
     auto avFrame = frame->avFrame();
     int width = avFrame->width;
@@ -70,7 +72,7 @@ void FrameConverter::flush(PlayFrame *frame, const QSize &dstSize)
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 
-int FrameConverter::scale(PlayFrame *in, PlayFrame *out, int height)
+int FrameConverter::scale(Frame *in, Frame *out, int height)
 {
     Q_ASSERT(d_ptr->swsContext != nullptr);
     auto inFrame = in->avFrame();
@@ -88,8 +90,8 @@ int FrameConverter::scale(PlayFrame *in, PlayFrame *out, int height)
     return ret;
 }
 
-QImage FrameConverter::scaleToImageRgb32(PlayFrame *in,
-                                         PlayFrame *out,
+QImage FrameConverter::scaleToImageRgb32(Frame *in,
+                                         Frame *out,
                                          CodecContext *codecCtx,
                                          const QSize &dstSize)
 {

@@ -13,11 +13,11 @@ set(PROJECT_SOURCES
         decodervideoframe.cpp decodervideoframe.h
         ffmepg_global.h
         formatcontext.cpp formatcontext.h
+        frame.cc frame.hpp
         frameconverter.cc frameconverter.hpp
         hardwaredecode.cc hardwaredecode.hpp
         packet.cpp packet.h
         player.cpp player.h
-        playframe.cpp playframe.h
         subtitle.cpp subtitle.h
         subtitledecoder.cpp subtitledecoder.h
         videodecoder.cpp videodecoder.h)

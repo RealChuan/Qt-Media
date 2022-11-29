@@ -14,7 +14,7 @@ namespace Ffmpeg {
 class AVError;
 class Subtitle;
 class Packet;
-class PlayFrame;
+class Frame;
 class CodecContext : public QObject
 {
     Q_OBJECT
@@ -29,10 +29,10 @@ public:
     bool open(AVCodec *codec);
 
     bool sendPacket(Packet *packet);
-    bool receiveFrame(PlayFrame *frame);
+    bool receiveFrame(Frame *frame);
     bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
 
-    bool imageAlloc(PlayFrame &frame, const QSize &size = QSize(-1, -1));
+    bool imageAlloc(Frame &frame, const QSize &size = QSize(-1, -1));
 
     int width();
     int height();

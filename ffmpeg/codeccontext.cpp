@@ -1,7 +1,7 @@
 #include "codeccontext.h"
 #include "averror.h"
 #include "packet.h"
-#include "playframe.h"
+#include "frame.hpp"
 #include "subtitle.h"
 
 #include <QDebug>
@@ -77,7 +77,7 @@ bool CodecContext::sendPacket(Packet *packet)
     return true;
 }
 
-bool CodecContext::receiveFrame(PlayFrame *frame)
+bool CodecContext::receiveFrame(Frame *frame)
 {
     int ret = avcodec_receive_frame(d_ptr->codecCtx, frame->avFrame());
     if (ret >= 0) {
@@ -103,7 +103,7 @@ bool CodecContext::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
     return true;
 }
 
-bool CodecContext::imageAlloc(PlayFrame &frame, const QSize &size)
+bool CodecContext::imageAlloc(Frame &frame, const QSize &size)
 {
     int width = this->width();
     int height = this->height();

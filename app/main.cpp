@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 #endif
     Utils::setHighDpiEnvironmentVariable();
     SharedTools::QtSingleApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-    SharedTools::QtSingleApplication app("PictrueTools", argc, argv);
+    SharedTools::QtSingleApplication app("QFfmpegPlayer", argc, argv);
     if (app.isRunning()) {
         qWarning() << "This is already running";
         if (app.sendMessage("raise_window_noop", 5000)) {

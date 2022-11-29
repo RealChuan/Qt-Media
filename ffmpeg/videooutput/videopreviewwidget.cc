@@ -3,7 +3,7 @@
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/formatcontext.h>
 #include <ffmpeg/frameconverter.hpp>
-#include <ffmpeg/playframe.h>
+#include <ffmpeg/frame.hpp>
 #include <ffmpeg/videodecoder.h>
 
 #include <QPainter>
@@ -63,7 +63,7 @@ private:
                 if (!videoInfo->sendPacket(packetPtr.data())) {
                     continue;
                 }
-                QScopedPointer<PlayFrame> framePtr(new PlayFrame);
+                QScopedPointer<Frame> framePtr(new Frame);
                 if (!videoInfo->receiveFrame(framePtr.data())) { // 一个packet一个视频帧
                     continue;
                 }
@@ -83,7 +83,7 @@ private:
                 }
                 QScopedPointer<FrameConverter> frameConverterPtr(
                     new FrameConverter(videoInfo->codecCtx(), dstSize));
-                QScopedPointer<PlayFrame> frameRgbPtr(new PlayFrame);
+                QScopedPointer<Frame> frameRgbPtr(new Frame);
                 videoInfo->imageAlloc(*frameRgbPtr.data(), dstSize);
                 frameConverterPtr->flush(framePtr.data(), dstSize);
                 auto image(frameConverterPtr->scaleToImageRgb32(framePtr.data(),

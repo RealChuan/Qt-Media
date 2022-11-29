@@ -10,7 +10,7 @@ struct AVCodec;
 
 namespace Ffmpeg {
 
-class PlayFrame;
+class Frame;
 class AVError;
 class CodecContext;
 class HardWareDecode : public QObject
@@ -22,7 +22,7 @@ public:
 
     bool initPixelFormat(const AVCodec *decoder);
     bool initHardWareDevice(CodecContext *codecContext);
-    PlayFrame *transforFrame(PlayFrame *playFrame, bool &ok);
+    Frame *transforFrame(Frame *playFrame, bool &ok);
 
     bool isVaild();
 

@@ -2,7 +2,7 @@
 #define DECODERVIDEOFRAME_H
 
 #include "decoder.h"
-#include "playframe.h"
+#include "frame.hpp"
 
 #include <utils/taskqueue.h>
 
@@ -12,7 +12,7 @@ namespace Ffmpeg {
 
 class VideoOutputRender;
 
-class DecoderVideoFrame : public Decoder<PlayFrame *>
+class DecoderVideoFrame : public Decoder<Frame *>
 {
     Q_OBJECT
 public:

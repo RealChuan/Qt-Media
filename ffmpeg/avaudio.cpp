@@ -1,7 +1,7 @@
 #include "avaudio.h"
 #include "averror.h"
 #include "codeccontext.h"
-#include "playframe.h"
+#include "frame.hpp"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -37,7 +37,7 @@ AVAudio::~AVAudio()
     swr_free(&m_swrContext);
 }
 
-QByteArray AVAudio::convert(PlayFrame *frame)
+QByteArray AVAudio::convert(Frame *frame)
 {
     QByteArray data;
     int size = av_samples_get_buffer_size(nullptr,

@@ -18,11 +18,11 @@ SOURCES += \
     decoderaudioframe.cpp \
     decodervideoframe.cpp \
     formatcontext.cpp \
+    frame.cc \
     frameconverter.cc \
     hardwaredecode.cc \
     packet.cpp \
     player.cpp \
-    playframe.cpp \
     subtitle.cpp \
     subtitledecoder.cpp \
     videodecoder.cpp
@@ -38,11 +38,11 @@ HEADERS += \
     decodervideoframe.h \
     ffmepg_global.h \
     formatcontext.h \
+    frame.hpp \
     frameconverter.hpp \
     hardwaredecode.hpp \
     packet.h \
     player.h \
-    playframe.h \
     subtitle.h \
     subtitledecoder.h \
     videodecoder.h

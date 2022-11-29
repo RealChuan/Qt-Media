@@ -1,7 +1,7 @@
 #include "hardwaredecode.hpp"
 #include "averror.h"
 #include "codeccontext.h"
-#include "playframe.h"
+#include "frame.hpp"
 
 #include <functional>
 
@@ -135,7 +135,7 @@ bool HardWareDecode::initHardWareDevice(CodecContext *codecContext)
     return true;
 }
 
-PlayFrame *HardWareDecode::transforFrame(PlayFrame *playFrame, bool &ok)
+Frame *HardWareDecode::transforFrame(Frame *playFrame, bool &ok)
 {
     ok = true;
     if (!isVaild()) {
@@ -145,7 +145,7 @@ PlayFrame *HardWareDecode::transforFrame(PlayFrame *playFrame, bool &ok)
     if (playFrame->avFrame()->format != hw_pix_fmt) {
         return playFrame;
     }
-    PlayFrame *out = new PlayFrame;
+    Frame *out = new Frame;
     int ret = av_hwframe_transfer_data(out->avFrame(), playFrame->avFrame(), 0);
     if (ret < 0) {
         qWarning() << "Error transferring the data to system memory";

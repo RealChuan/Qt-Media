@@ -29,7 +29,7 @@ struct DecoderAudioFrame::DecoderAudioFramePrivate
 };
 
 DecoderAudioFrame::DecoderAudioFrame(QObject *parent)
-    : Decoder<PlayFrame *>(parent)
+    : Decoder<Frame *>(parent)
     , d_ptr(new DecoderAudioFramePrivate)
 {
     buildConnect();
@@ -40,7 +40,7 @@ DecoderAudioFrame::~DecoderAudioFrame() {}
 void DecoderAudioFrame::stopDecoder()
 {
     pause(false);
-    Decoder<PlayFrame *>::stopDecoder();
+    Decoder<Frame *>::stopDecoder();
 }
 
 void DecoderAudioFrame::pause(bool state)
@@ -69,7 +69,7 @@ void DecoderAudioFrame::setVolume(qreal volume)
 
 void DecoderAudioFrame::setSpeed(double speed)
 {
-    Decoder<PlayFrame *>::setSpeed(speed);
+    Decoder<Frame *>::setSpeed(speed);
     d_ptr->speedChanged = true;
 }
 
@@ -140,7 +140,7 @@ void DecoderAudioFrame::runDecoder()
                 continue;
             }
 
-            QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
+            QScopedPointer<Frame> framePtr(m_queue.dequeue());
             double duration = 0;
             double pts = 0;
             calculateTime(framePtr->avFrame(), duration, pts);
@@ -186,7 +186,7 @@ void DecoderAudioFrame::runDecoder()
                 continue;
             }
 
-            QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
+            QScopedPointer<Frame> framePtr(m_queue.dequeue());
             double duration = 0;
             double pts = 0;
             calculateTime(framePtr->avFrame(), duration, pts);

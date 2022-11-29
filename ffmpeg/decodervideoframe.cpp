@@ -27,7 +27,7 @@ public:
 };
 
 DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
-    : Decoder<PlayFrame *>(parent)
+    : Decoder<Frame *>(parent)
     , d_ptr(new DecoderVideoFramePrivate(this))
 {}
 
@@ -36,7 +36,7 @@ DecoderVideoFrame::~DecoderVideoFrame() {}
 void DecoderVideoFrame::stopDecoder()
 {
     pause(false);
-    Decoder<PlayFrame *>::stopDecoder();
+    Decoder<Frame *>::stopDecoder();
 }
 
 void DecoderVideoFrame::pause(bool state)
@@ -59,7 +59,7 @@ void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoOutputRender *> video
 void DecoderVideoFrame::runDecoder()
 {
     QScopedPointer<FrameConverter> frameConverterPtr(new FrameConverter(m_contextInfo->codecCtx()));
-    QScopedPointer<PlayFrame> frameRgbPtr(new PlayFrame);
+    QScopedPointer<Frame> frameRgbPtr(new Frame);
     m_contextInfo->imageAlloc(*frameRgbPtr.data());
 
     quint64 dropNum = 0;
@@ -71,7 +71,7 @@ void DecoderVideoFrame::runDecoder()
             continue;
         }
 
-        QScopedPointer<PlayFrame> framePtr(m_queue.dequeue());
+        QScopedPointer<Frame> framePtr(m_queue.dequeue());
         double duration = 0;
         double pts = 0;
         calculateTime(framePtr->avFrame(), duration, pts);

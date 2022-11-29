@@ -12,14 +12,14 @@ struct SwrContext;
 namespace Ffmpeg {
 
 class CodecContext;
-class PlayFrame;
+class Frame;
 class AVAudio
 {
 public:
     explicit AVAudio(CodecContext *codecCtx, AVSampleFormat format);
     ~AVAudio();
 
-    QByteArray convert(PlayFrame *frame);
+    QByteArray convert(Frame *frame);
 
 private:
     Q_DISABLE_COPY(AVAudio)

@@ -1,5 +1,6 @@
-#include "playframe.h"
-#include "codeccontext.h"
+#include "frame.hpp"
+
+#include <QtGlobal>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -7,35 +8,35 @@ extern "C" {
 
 namespace Ffmpeg {
 
-PlayFrame::PlayFrame()
+Frame::Frame()
 {
     m_frame = av_frame_alloc();
     Q_ASSERT(m_frame != nullptr);
 }
 
-PlayFrame::PlayFrame(const PlayFrame &other)
+Frame::Frame(const Frame &other)
 {
     m_frame = av_frame_clone(other.m_frame);
 }
 
-PlayFrame &PlayFrame::operator=(const PlayFrame &other)
+Frame &Frame::operator=(const Frame &other)
 {
     m_frame = av_frame_clone(other.m_frame);
     return *this;
 }
 
-PlayFrame::~PlayFrame()
+Frame::~Frame()
 {
     Q_ASSERT(m_frame != nullptr);
     av_frame_free(&m_frame);
 }
 
-void PlayFrame::clear()
+void Frame::clear()
 {
     av_frame_unref(m_frame);
 }
 
-AVFrame *PlayFrame::avFrame()
+AVFrame *Frame::avFrame()
 {
     Q_ASSERT(m_frame != nullptr);
     return m_frame;

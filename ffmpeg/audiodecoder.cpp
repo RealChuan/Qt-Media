@@ -71,10 +71,10 @@ void AudioDecoder::runDecoder()
             continue;
         }
 
-        std::unique_ptr<PlayFrame> framePtr(new PlayFrame);
+        std::unique_ptr<Frame> framePtr(new Frame);
         while (m_contextInfo->receiveFrame(framePtr.get())) { // 一个packet 一个或多个音频帧
             d_ptr->decoderAudioFrame->append(framePtr.release());
-            framePtr.reset(new PlayFrame);
+            framePtr.reset(new Frame);
         }
 
         while (m_runing && d_ptr->decoderAudioFrame->size() > Max_Frame_Size && !m_seek) {

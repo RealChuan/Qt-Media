@@ -7,7 +7,7 @@
 namespace Ffmpeg {
 
 class CodecContext;
-class PlayFrame;
+class Frame;
 
 // AV_PIX_FMT_RGB32
 class FrameConverter : public QObject
@@ -18,12 +18,12 @@ public:
                             QObject *parent = nullptr);
     ~FrameConverter();
 
-    void flush(PlayFrame *frame, const QSize &dstSize = QSize(-1, -1));
+    void flush(Frame *frame, const QSize &dstSize = QSize(-1, -1));
 
-    int scale(PlayFrame *in, PlayFrame *out, int height);
+    int scale(Frame *in, Frame *out, int height);
 
-    QImage scaleToImageRgb32(PlayFrame *in,
-                             PlayFrame *out,
+    QImage scaleToImageRgb32(Frame *in,
+                             Frame *out,
                              CodecContext *codecCtx,
                              const QSize &dstSize = QSize(-1, -1));
 

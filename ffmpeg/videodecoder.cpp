@@ -64,7 +64,7 @@ void VideoDecoder::runDecoder()
             continue;
         }
 
-        std::unique_ptr<PlayFrame> framePtr(new PlayFrame);
+        std::unique_ptr<Frame> framePtr(new Frame);
         if (!m_contextInfo->receiveFrame(framePtr.get())) { // 一个packet一个视频帧
             continue;
         }
