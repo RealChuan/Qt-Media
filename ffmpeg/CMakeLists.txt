@@ -3,6 +3,10 @@ set(PROJECT_SOURCES
         videooutput/videooutputrender.cc videooutput/videooutputrender.hpp
         videooutput/videooutputrenderopenglrender.cc videooutput/videooutputrenderopenglrender.hpp
         videooutput/videopreviewwidget.cc videooutput/videopreviewwidget.hpp
+
+        videorender/openglrender.cc videorender/openglrender.hpp
+        videorender/videorender.cc videorender/videorender.hpp
+
         audiodecoder.cpp audiodecoder.h
         avaudio.cpp avaudio.h
         avcontextinfo.cpp avcontextinfo.h
@@ -23,6 +27,7 @@ set(PROJECT_SOURCES
         videodecoder.cpp videodecoder.h)
 
 qt_add_resources(SOURCES videooutput/shader/shader.qrc)
+qt_add_resources(SOURCES videorender/shaders.qrc)
 
 if (CMAKE_HOST_WIN32)
   add_library(ffmpeg SHARED ${PROJECT_SOURCES} ${SOURCES})

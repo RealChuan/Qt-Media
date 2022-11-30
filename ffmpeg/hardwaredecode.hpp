@@ -19,7 +19,7 @@ public:
 
     bool initPixelFormat(const AVCodec *decoder);
     bool initHardWareDevice(CodecContext *codecContext);
-    Frame *transforFrame(Frame *playFrame, bool &ok);
+    Frame *transforFrame(Frame *in, bool &ok);
 
     bool isVaild();
 

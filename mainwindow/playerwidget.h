@@ -1,9 +1,9 @@
 #ifndef PLAYERWIDGET_H
 #define PLAYERWIDGET_H
 
-#include <ffmpeg/videooutput/videooutputrenderopenglrender.hpp>
+#include <ffmpeg/videorender/openglrender.hpp>
 
-class PlayerWidget : public Ffmpeg::VideoOutputRenderOpenGLRender
+class PlayerWidget : public Ffmpeg::OpenglRender
 {
     Q_OBJECT
 public:

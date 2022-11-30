@@ -18,7 +18,7 @@ public:
 };
 
 PlayerWidget::PlayerWidget(QWidget *parent)
-    : Ffmpeg::VideoOutputRenderOpenGLRender(parent)
+    : Ffmpeg::OpenglRender(parent)
     , d_ptr(new PlayerWidgetPrivate(this))
 {
     setAcceptDrops(true);

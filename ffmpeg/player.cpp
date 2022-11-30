@@ -449,6 +449,11 @@ void Player::setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRender
     d_ptr->videoDecoder->setVideoOutputRenders(videoOutputRenders);
 }
 
+void Player::setVideoOutputWidget(QVector<VideoRender *> videoOutputRenders)
+{
+    d_ptr->videoDecoder->setVideoOutputRenders(videoOutputRenders);
+}
+
 void Player::run()
 {
     if (!d_ptr->isopen) {

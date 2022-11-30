@@ -118,7 +118,7 @@ void MainWindow::setupUI()
 {
     auto playWidget = new PlayerWidget(this);
     playWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    d_ptr->playerPtr->setVideoOutputWidget(QVector<Ffmpeg::VideoOutputRender *>{playWidget});
+    d_ptr->playerPtr->setVideoOutputWidget(QVector<Ffmpeg::VideoRender *>{playWidget});
     connect(playWidget,
             &PlayerWidget::openFile,
             d_ptr->playerPtr.data(),

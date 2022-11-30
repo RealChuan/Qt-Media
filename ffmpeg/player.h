@@ -11,6 +11,8 @@ namespace Ffmpeg {
 class AVError;
 class AVContextInfo;
 class VideoOutputRender;
+class VideoRender;
+
 class FFMPEG_EXPORT Player : public QThread
 {
     Q_OBJECT
@@ -44,6 +46,7 @@ public:
     int subtitleIndex() const;
 
     void setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRenders);
+    void setVideoOutputWidget(QVector<VideoRender *> videoOutputRenders);
 
 public slots:
     void onSetFilePath(const QString &filepath);

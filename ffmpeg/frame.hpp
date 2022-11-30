@@ -1,10 +1,12 @@
 #pragma once
 
+#include "ffmepg_global.h"
+
 struct AVFrame;
 
 namespace Ffmpeg {
 
-class Frame
+class FFMPEG_EXPORT Frame
 {
 public:
     explicit Frame();

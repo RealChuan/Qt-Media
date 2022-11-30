@@ -4,6 +4,7 @@
 #include "frameconverter.hpp"
 
 #include <videooutput/videooutputrender.hpp>
+#include <videorender/videorender.hpp>
 
 #include <QDebug>
 #include <QPixmap>
@@ -24,6 +25,7 @@ public:
     QWaitCondition waitCondition;
 
     QVector<VideoOutputRender *> videoOutputRenders;
+    QVector<VideoRender *> videoRenders;
 };
 
 DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
@@ -56,11 +58,16 @@ void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoOutputRender *> video
     d_ptr->videoOutputRenders = videoOutputRenders;
 }
 
+void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoRender *> videoRenders)
+{
+    d_ptr->videoRenders = videoRenders;
+}
+
 void DecoderVideoFrame::runDecoder()
 {
-    QScopedPointer<FrameConverter> frameConverterPtr(new FrameConverter(m_contextInfo->codecCtx()));
-    QScopedPointer<Frame> frameRgbPtr(new Frame);
-    m_contextInfo->imageAlloc(*frameRgbPtr.data());
+    //    QScopedPointer<FrameConverter> frameConverterPtr(new FrameConverter(m_contextInfo->codecCtx()));
+    //    QScopedPointer<Frame> frameRgbPtr(new Frame);
+    //    m_contextInfo->imageAlloc(*frameRgbPtr.data());
 
     quint64 dropNum = 0;
     while (m_runing) {
@@ -71,17 +78,18 @@ void DecoderVideoFrame::runDecoder()
             continue;
         }
 
-        QScopedPointer<Frame> framePtr(m_queue.dequeue());
+        std::unique_ptr<Frame> framePtr(m_queue.dequeue());
         double duration = 0;
         double pts = 0;
         calculateTime(framePtr->avFrame(), duration, pts);
         if (m_seekTime > pts) {
             continue;
         }
-        frameConverterPtr->flush(framePtr.data());
-        QImage image(frameConverterPtr->scaleToImageRgb32(framePtr.data(),
-                                                          frameRgbPtr.data(),
-                                                          m_contextInfo->codecCtx()));
+
+        //        frameConverterPtr->flush(framePtr.data());
+        //        QImage image(frameConverterPtr->scaleToImageRgb32(framePtr.data(),
+        //                                                          frameRgbPtr.data(),
+        //                                                          m_contextInfo->codecCtx()));
         double diff = (pts - clock()) * 1000;
         if (diff <= 0) {
             dropNum++;
@@ -92,8 +100,11 @@ void DecoderVideoFrame::runDecoder()
             //msleep(diff);
         }
         // 略慢于音频
-        for (auto render : d_ptr->videoOutputRenders) {
-            render->setDisplayImage(image);
+        //        for (auto render : d_ptr->videoOutputRenders) {
+        //            render->setDisplayImage(image);
+        //        }
+        for (auto render : d_ptr->videoRenders) {
+            render->setFrame(framePtr.release());
         }
     }
     qInfo() << dropNum;

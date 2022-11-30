@@ -45,6 +45,11 @@ void VideoDecoder::setVideoOutputRenders(QVector<VideoOutputRender *> videoOutpu
     d_ptr->decoderVideoFrame->setVideoOutputRenders(videoOutputRenders);
 }
 
+void VideoDecoder::setVideoOutputRenders(QVector<VideoRender *> videoOutputRenders)
+{
+    d_ptr->decoderVideoFrame->setVideoOutputRenders(videoOutputRenders);
+}
+
 void VideoDecoder::runDecoder()
 {
     d_ptr->decoderVideoFrame->startDecoder(m_formatContext, m_contextInfo);
