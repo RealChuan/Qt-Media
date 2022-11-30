@@ -2,8 +2,9 @@
 
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/formatcontext.h>
-#include <ffmpeg/frameconverter.hpp>
 #include <ffmpeg/frame.hpp>
+#include <ffmpeg/frameconverter.hpp>
+#include <ffmpeg/hardwaredecode.hpp>
 #include <ffmpeg/videodecoder.h>
 
 #include <QPainter>
@@ -40,7 +41,7 @@ public:
         QScopedPointer<AVContextInfo> videoInfoPtr(new AVContextInfo(AVContextInfo::Video));
         videoInfoPtr->setIndex(m_videoIndex);
         videoInfoPtr->setStream(formatCtxPtr->stream(m_videoIndex));
-        if (!videoInfoPtr->findDecoder()) {
+        if (!videoInfoPtr->findDecoder()) { // 软解
             return;
         }
         formatCtxPtr->seek(m_timestamp);
@@ -66,6 +67,11 @@ private:
                 QScopedPointer<Frame> framePtr(new Frame);
                 if (!videoInfo->receiveFrame(framePtr.data())) { // 一个packet一个视频帧
                     continue;
+                }
+                if (videoInfo->isGpuDecode()) {
+                    bool ok = false;
+                    framePtr.reset(videoInfo->hardWareDecode()->transforFrame(framePtr.get(), ok));
+                    //qDebug() << framePtr->avFrame()->format;
                 }
                 double duration = 0;
                 double pts = 0;

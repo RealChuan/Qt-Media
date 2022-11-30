@@ -18,7 +18,7 @@ public:
         slider = new Slider(owner);
         positionLabel = new QLabel("00:00:00", owner);
         durationLabel = new QLabel("/ 00:00:00", owner);
-        playButton = new QPushButton(tr("play", "MainWindowPrivate"), owner);
+        playButton = new QPushButton(QObject::tr("play", "MainWindow"), owner);
         playButton->setCheckable(true);
     }
     ~MainWindowPrivate() {}
@@ -124,6 +124,14 @@ void MainWindow::setupUI()
             d_ptr->playerPtr.data(),
             &Ffmpeg::Player::onSetFilePath);
 
+    auto useGpuCheckBox = new QCheckBox(tr("GPU Decode"), this);
+    useGpuCheckBox->setToolTip(tr("The pre-play Settings are valid"));
+    useGpuCheckBox->setChecked(true);
+    connect(useGpuCheckBox, &QCheckBox::clicked, this, [this, useGpuCheckBox] {
+        d_ptr->playerPtr->setUseGpuDecode(useGpuCheckBox->isChecked());
+    });
+    d_ptr->playerPtr->setUseGpuDecode(useGpuCheckBox->isChecked());
+
     auto volumeSlider = new Slider(this);
     connect(volumeSlider, &QSlider::sliderMoved, this, [this](int value) {
         d_ptr->playerPtr->setVolume(value / 100.0);
@@ -202,6 +210,7 @@ void MainWindow::setupUI()
 
     QHBoxLayout *controlLayout = new QHBoxLayout;
     controlLayout->addWidget(d_ptr->playButton);
+    controlLayout->addWidget(useGpuCheckBox);
     controlLayout->addWidget(new QLabel(tr("Volume: "), this));
     controlLayout->addWidget(volumeSlider);
     controlLayout->addWidget(new QLabel(tr("Speed: "), this));

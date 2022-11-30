@@ -36,7 +36,7 @@ public:
     void setStream(AVStream *stream);
     AVStream *stream();
 
-    bool findDecoder();
+    bool findDecoder(bool useGpu = false);
 
     bool sendPacket(Packet *packet);
     bool receiveFrame(Frame *frame);
@@ -47,6 +47,8 @@ public:
     void flush();
 
     double timebase();
+
+    bool isGpuDecode();
 
     HardWareDecode *hardWareDecode();
 

@@ -3,8 +3,6 @@
 
 #include <QObject>
 
-#define HardWareDecodeOn
-
 struct AVCodec;
 
 namespace Ffmpeg {

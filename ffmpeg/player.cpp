@@ -54,6 +54,7 @@ public:
     volatile bool runing = true;
     volatile bool seek = false;
     qint64 seekTime = 0; // seconds
+    bool gpuDecode = false;
 
     volatile Player::MediaState mediaState = Player::MediaState::StoppedState;
 
@@ -366,7 +367,7 @@ bool Player::setMediaIndex(AVContextInfo *contextInfo, int index)
 {
     contextInfo->setIndex(index);
     contextInfo->setStream(d_ptr->formatCtx->stream(index));
-    if (!contextInfo->findDecoder()) {
+    if (!contextInfo->findDecoder(d_ptr->gpuDecode)) {
         return false;
     }
     return true;
@@ -392,6 +393,16 @@ void Player::pause(bool status)
     } else {
         setMediaState(MediaState::StoppedState);
     }
+}
+
+void Player::setUseGpuDecode(bool on)
+{
+    d_ptr->gpuDecode = on;
+}
+
+bool Player::isGpuDecode()
+{
+    return d_ptr->gpuDecode;
 }
 
 Player::MediaState Player::mediaState()

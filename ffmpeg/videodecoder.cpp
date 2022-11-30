@@ -69,12 +69,12 @@ void VideoDecoder::runDecoder()
         if (!m_contextInfo->receiveFrame(framePtr.get())) { // 一个packet一个视频帧
             continue;
         }
-#ifdef HardWareDecodeOn
-        bool ok = false;
-        framePtr.reset(m_contextInfo->hardWareDecode()->transforFrame(framePtr.get(), ok));
-        // qDebug() << framePtr->avFrame()->format;
-        // 硬解出来的帧一定要马上取出来，不能在GPU堆积
-#endif
+        if (m_contextInfo->isGpuDecode()) {
+            bool ok = false;
+            framePtr.reset(m_contextInfo->hardWareDecode()->transforFrame(framePtr.get(), ok));
+            // qDebug() << framePtr->avFrame()->format;
+            // 硬解出来的帧一定要马上取出来，不能在GPU堆积
+        }
         d_ptr->decoderVideoFrame->append(framePtr.release());
 
         while (m_runing && d_ptr->decoderVideoFrame->size() > Max_Frame_Size && !m_seek) {

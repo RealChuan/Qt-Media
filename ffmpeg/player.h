@@ -31,6 +31,9 @@ public:
 
     void pause(bool status = true);
 
+    void setUseGpuDecode(bool on);
+    bool isGpuDecode();
+
     MediaState mediaState();
 
     qint64 duration() const; // ms

@@ -22,6 +22,7 @@ struct AVContextInfo::AVContextInfoPrivate
     int streamIndex = Error_Index;         // 索引
     AVContextInfo::MediaType mediaType;
     QScopedPointer<HardWareDecode> hardWareDecode;
+    bool gpuDecode = false;
 };
 
 QString AVContextInfo::mediaTypeString(MediaType type)
@@ -74,32 +75,29 @@ AVStream *AVContextInfo::stream()
     return d_ptr->stream;
 }
 
-bool AVContextInfo::findDecoder()
+bool AVContextInfo::findDecoder(bool useGpu)
 {
     Q_ASSERT(d_ptr->stream != nullptr);
+    d_ptr->gpuDecode = useGpu;
     const char *typeStr = av_get_media_type_string(d_ptr->stream->codecpar->codec_type);
     AVCodec *codec = avcodec_find_decoder(d_ptr->stream->codecpar->codec_id);
     if (!codec) {
         qWarning() << tr("%1 Codec not found.").arg(typeStr);
         return false;
     }
-#ifdef HardWareDecodeOn
-    if (d_ptr->mediaType == Video) {
+    if (d_ptr->mediaType == Video && d_ptr->gpuDecode) {
         d_ptr->hardWareDecode.reset(new HardWareDecode);
         d_ptr->hardWareDecode->initPixelFormat(codec);
     }
-#endif
     d_ptr->codecCtx.reset(new CodecContext(codec));
     connect(d_ptr->codecCtx.data(),
             &CodecContext::error,
             this,
             &AVContextInfo::error,
             Qt::UniqueConnection);
-#ifdef HardWareDecodeOn
-    if (d_ptr->mediaType == Video) {
+    if (d_ptr->mediaType == Video && d_ptr->gpuDecode) {
         d_ptr->hardWareDecode->initHardWareDevice(d_ptr->codecCtx.data());
     }
-#endif
     if (!d_ptr->codecCtx->setParameters(d_ptr->stream->codecpar)) {
         return false;
     }
@@ -143,6 +141,11 @@ void AVContextInfo::flush()
 double AVContextInfo::timebase()
 {
     return av_q2d(d_ptr->stream->time_base);
+}
+
+bool AVContextInfo::isGpuDecode()
+{
+    return d_ptr->gpuDecode;
 }
 
 HardWareDecode *AVContextInfo::hardWareDecode()
