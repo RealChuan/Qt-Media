@@ -1,4 +1,5 @@
 include(../libs.pri)
+include(../3rdparty/3rdparty.pri)
 
 QT += widgets concurrent openglwidgets
 

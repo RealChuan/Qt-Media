@@ -1,14 +1,13 @@
 #include "codeccontext.h"
 #include "averror.h"
-#include "packet.h"
 #include "frame.hpp"
+#include "packet.h"
 #include "subtitle.h"
 
 #include <QDebug>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
-#include <libavutil/imgutils.h>
 }
 
 namespace Ffmpeg {
@@ -97,27 +96,6 @@ bool CodecContext::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
                                        &got_sub_ptr,
                                        packet->avPacket());
     if (ret < 0 || got_sub_ptr <= 0) {
-        setError(ret);
-        return false;
-    }
-    return true;
-}
-
-bool CodecContext::imageAlloc(Frame &frame, const QSize &size)
-{
-    int width = this->width();
-    int height = this->height();
-    if (size.isValid()) {
-        width = size.width();
-        height = size.height();
-    }
-    int ret = av_image_alloc(frame.avFrame()->data,
-                             frame.avFrame()->linesize,
-                             width,
-                             height,
-                             AV_PIX_FMT_RGB32,
-                             1);
-    if (ret < 0) {
         setError(ret);
         return false;
     }

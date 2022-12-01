@@ -1,7 +1,7 @@
 #include "videopreviewwidget.hpp"
 
 #include <ffmpeg/codeccontext.h>
-#include <ffmpeg/formatcontext.h>
+#include <ffmpeg/decoder.h>
 #include <ffmpeg/frame.hpp>
 #include <ffmpeg/frameconverter.hpp>
 #include <ffmpeg/hardwaredecode.hpp>
@@ -75,7 +75,7 @@ private:
                 }
                 double duration = 0;
                 double pts = 0;
-                calculateTime(framePtr->avFrame(), duration, pts, videoInfo, formatContext);
+                Ffmpeg::calculateTime(framePtr->avFrame(), duration, pts, videoInfo, formatContext);
                 if (m_timestamp > pts) {
                     continue;
                 }
@@ -89,38 +89,17 @@ private:
                 }
                 QScopedPointer<FrameConverter> frameConverterPtr(
                     new FrameConverter(videoInfo->codecCtx(), dstSize));
-                QScopedPointer<Frame> frameRgbPtr(new Frame);
-                videoInfo->imageAlloc(*frameRgbPtr.data(), dstSize);
-                frameConverterPtr->flush(framePtr.data(), dstSize);
-                auto image(frameConverterPtr->scaleToImageRgb32(framePtr.data(),
-                                                                frameRgbPtr.data(),
-                                                                videoInfo->codecCtx(),
-                                                                dstSize));
+                QSharedPointer<Frame> frameRgbPtr(new Frame);
+                frameRgbPtr->imageAlloc(dstSize);
+                //frameConverterPtr->flush(framePtr.data(), dstSize);
+                auto image(
+                    frameConverterPtr->scaleToQImage(framePtr.data(), frameRgbPtr.data(), dstSize));
                 if (!m_videoPreviewWidgetPtr.isNull()) {
-                    m_videoPreviewWidgetPtr->setDisplayImage(image, pts);
+                    m_videoPreviewWidgetPtr->setDisplayImage(frameRgbPtr, image, pts);
                 }
                 return;
             }
         }
-    }
-
-    void calculateTime(AVFrame *frame,
-                       double &duration,
-                       double &pts,
-                       AVContextInfo *contextInfo,
-                       FormatContext *formatContext)
-    {
-        AVRational tb = contextInfo->stream()->time_base;
-        AVRational frame_rate = av_guess_frame_rate(formatContext->avFormatContext(),
-                                                    contextInfo->stream(),
-                                                    NULL);
-        // 当前帧播放时长
-        duration = (frame_rate.num && frame_rate.den
-                        ? av_q2d(AVRational{frame_rate.den, frame_rate.num})
-                        : 0);
-        // 当前帧显示时间戳
-        pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
-        //qDebug() << duration << pts;
     }
 
     QString m_filepath;
@@ -132,9 +111,11 @@ private:
 
 struct VideoPreviewWidget::VideoPreviewWidgetPrivate
 {
+    ~VideoPreviewWidgetPrivate() {}
     QImage image;
     qint64 timestamp;
     qint64 duration;
+    QSharedPointer<Frame> frame;
 };
 
 VideoPreviewWidget::VideoPreviewWidget(QWidget *parent)
@@ -170,8 +151,11 @@ void VideoPreviewWidget::startPreview(const QString &filepath,
     d_ptr->image = QImage();
 }
 
-void VideoPreviewWidget::setDisplayImage(const QImage &image, qint64 pts)
+void VideoPreviewWidget::setDisplayImage(QSharedPointer<Frame> frame,
+                                         const QImage &image,
+                                         qint64 pts)
 {
+    d_ptr->frame = frame;
     d_ptr->timestamp = pts;
     d_ptr->image = image.scaled(width(), height(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
     QMetaObject::invokeMethod(

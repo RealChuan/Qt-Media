@@ -16,17 +16,23 @@ namespace Ffmpeg {
 struct FrameConverter::FrameConverterPrivate
 {
     struct SwsContext *swsContext = nullptr;
+    AVPixelFormat src_pix_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
+    AVPixelFormat dst_pix_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
 };
 
-FrameConverter::FrameConverter(CodecContext *codecCtx, const QSize &size, QObject *parent)
+FrameConverter::FrameConverter(CodecContext *codecCtx,
+                               const QSize &size,
+                               AVPixelFormat pix_fmt,
+                               QObject *parent)
     : QObject(parent)
     , d_ptr(new FrameConverterPrivate)
 {
     auto ctx = codecCtx->avCodecCtx();
-    qInfo() << ctx->pix_fmt;
-    auto pix_fmt = ctx->pix_fmt;
-    if (sws_isSupportedInput(pix_fmt) <= 0) {
-        pix_fmt = AV_PIX_FMT_NV12;
+    d_ptr->src_pix_fmt = ctx->pix_fmt;
+    d_ptr->dst_pix_fmt = pix_fmt;
+    qInfo() << d_ptr->src_pix_fmt;
+    if (sws_isSupportedInput(d_ptr->src_pix_fmt) <= 0) {
+        d_ptr->src_pix_fmt = AV_PIX_FMT_NV12;
     }
     int width = ctx->width;
     int height = ctx->height;
@@ -36,10 +42,10 @@ FrameConverter::FrameConverter(CodecContext *codecCtx, const QSize &size, QObjec
     }
     d_ptr->swsContext = sws_getContext(ctx->width,
                                        ctx->height,
-                                       pix_fmt,
+                                       d_ptr->src_pix_fmt,
                                        width,
                                        height,
-                                       AV_PIX_FMT_RGB32,
+                                       d_ptr->dst_pix_fmt,
                                        size.width() > ctx->width ? SWS_BICUBIC : SWS_BILINEAR,
                                        NULL,
                                        NULL,
@@ -47,11 +53,50 @@ FrameConverter::FrameConverter(CodecContext *codecCtx, const QSize &size, QObjec
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 
-FrameConverter::~FrameConverter() {}
-
-void FrameConverter::flush(Frame *frame, const QSize &dstSize)
+FrameConverter::FrameConverter(Frame *frame,
+                               const QSize &size,
+                               AVPixelFormat pix_fmt,
+                               QObject *parent)
+    : QObject(parent)
+    , d_ptr(new FrameConverterPrivate)
 {
     auto avFrame = frame->avFrame();
+    d_ptr->src_pix_fmt = AVPixelFormat(avFrame->format);
+    d_ptr->dst_pix_fmt = pix_fmt;
+    qInfo() << d_ptr->src_pix_fmt;
+    if (sws_isSupportedInput(d_ptr->src_pix_fmt) <= 0) {
+        d_ptr->src_pix_fmt = AV_PIX_FMT_NV12;
+    }
+    int width = avFrame->width;
+    int height = avFrame->height;
+    if (size.isValid()) {
+        width = size.width();
+        height = size.height();
+    }
+    d_ptr->swsContext = sws_getContext(avFrame->width,
+                                       avFrame->height,
+                                       d_ptr->src_pix_fmt,
+                                       width,
+                                       height,
+                                       d_ptr->dst_pix_fmt,
+                                       size.width() > avFrame->width ? SWS_BICUBIC : SWS_BILINEAR,
+                                       NULL,
+                                       NULL,
+                                       NULL);
+    Q_ASSERT(d_ptr->swsContext != nullptr);
+}
+
+FrameConverter::~FrameConverter()
+{
+    Q_ASSERT(d_ptr->swsContext != nullptr);
+    sws_freeContext(d_ptr->swsContext);
+}
+
+void FrameConverter::flush(Frame *frame, const QSize &dstSize, AVPixelFormat pix_fmt)
+{
+    auto avFrame = frame->avFrame();
+    d_ptr->src_pix_fmt = static_cast<AVPixelFormat>(avFrame->format);
+    d_ptr->dst_pix_fmt = pix_fmt;
     int width = avFrame->width;
     int height = avFrame->height;
     if (dstSize.isValid()) {
@@ -61,10 +106,10 @@ void FrameConverter::flush(Frame *frame, const QSize &dstSize)
     sws_getCachedContext(d_ptr->swsContext,
                          avFrame->width,
                          avFrame->height,
-                         static_cast<AVPixelFormat>(avFrame->format),
+                         d_ptr->src_pix_fmt,
                          width,
                          height,
-                         AV_PIX_FMT_RGB32,
+                         d_ptr->dst_pix_fmt,
                          dstSize.width() > avFrame->width ? SWS_BICUBIC : SWS_BILINEAR,
                          NULL,
                          NULL,
@@ -87,24 +132,38 @@ int FrameConverter::scale(Frame *in, Frame *out, int height)
     if (ret < 0) {
         qWarning() << AVError::avErrorString(ret);
     }
+    outFrame->width = inFrame->width;
+    outFrame->height = inFrame->height;
+    outFrame->format = d_ptr->dst_pix_fmt;
     return ret;
 }
 
-QImage FrameConverter::scaleToImageRgb32(Frame *in,
-                                         Frame *out,
-                                         CodecContext *codecCtx,
-                                         const QSize &dstSize)
+QImage FrameConverter::scaleToQImage(Frame *in,
+                                     Frame *out,
+                                     const QSize &dstSize,
+                                     QImage::Format format)
 {
     Q_ASSERT(d_ptr->swsContext != nullptr);
-    scale(in, out, codecCtx->height());
+    auto inFrame = in->avFrame();
+    scale(in, out, inFrame->height);
 
-    int width = codecCtx->width();
-    int height = codecCtx->height();
+    int width = inFrame->width;
+    int height = inFrame->height;
     if (dstSize.isValid()) {
         width = dstSize.width();
         height = dstSize.height();
     }
-    return QImage((uchar *) out->avFrame()->data[0], width, height, QImage::Format_RGB32);
+    return QImage((uchar *) out->avFrame()->data[0], width, height, format);
+}
+
+bool FrameConverter::isSupportedInput_pix_fmt(AVPixelFormat pix_fmt)
+{
+    return sws_isSupportedInput(pix_fmt);
+}
+
+bool FrameConverter::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
+{
+    return sws_isSupportedOutput(pix_fmt);
 }
 
 } // namespace Ffmpeg

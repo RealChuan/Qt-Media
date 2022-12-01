@@ -16,6 +16,7 @@ SOURCES += \
     avcontextinfo.cpp \
     averror.cpp \
     codeccontext.cpp \
+    decoder.cc \
     decoderaudioframe.cpp \
     decodervideoframe.cpp \
     formatcontext.cpp \

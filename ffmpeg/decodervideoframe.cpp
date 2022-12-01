@@ -78,7 +78,7 @@ void DecoderVideoFrame::runDecoder()
             continue;
         }
 
-        std::unique_ptr<Frame> framePtr(m_queue.dequeue());
+        QSharedPointer<Frame> framePtr(m_queue.dequeue());
         double duration = 0;
         double pts = 0;
         calculateTime(framePtr->avFrame(), duration, pts);
@@ -104,7 +104,7 @@ void DecoderVideoFrame::runDecoder()
         //            render->setDisplayImage(image);
         //        }
         for (auto render : d_ptr->videoRenders) {
-            render->setFrame(framePtr.release());
+            render->setFrame(framePtr);
         }
     }
     qInfo() << dropNum;

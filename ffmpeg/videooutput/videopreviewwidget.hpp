@@ -12,6 +12,8 @@
 
 namespace Ffmpeg {
 
+class Frame;
+
 class FFMPEG_EXPORT VideoPreviewWidget : public QWidget
 {
     Q_OBJECT
@@ -26,7 +28,7 @@ public:
 
     void startPreview(const QString &filepath, int videoIndex, qint64 timestamp, qint64 duration);
 
-    void setDisplayImage(const QImage &image, qint64 pts);
+    void setDisplayImage(QSharedPointer<Ffmpeg::Frame> frame, const QImage &image, qint64 pts);
 
 protected:
     void paintEvent(QPaintEvent *event) override;

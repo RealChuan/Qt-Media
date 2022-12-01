@@ -1,31 +1,44 @@
 #ifndef FRAMECONVERTER_HPP
 #define FRAMECONVERTER_HPP
 
+#include <QImage>
 #include <QObject>
-#include <QSize>
+
+extern "C" {
+#include <libavutil/pixfmt.h>
+}
 
 namespace Ffmpeg {
 
-class CodecContext;
 class Frame;
+class CodecContext;
 
-// AV_PIX_FMT_RGB32
 class FrameConverter : public QObject
 {
 public:
     explicit FrameConverter(CodecContext *codecCtx,
                             const QSize &size = QSize(-1, -1),
+                            AVPixelFormat pix_fmt = AV_PIX_FMT_RGB32,
                             QObject *parent = nullptr);
+    FrameConverter(Frame *frame,
+                   const QSize &size = QSize(-1, -1),
+                   AVPixelFormat pix_fmt = AV_PIX_FMT_RGB32,
+                   QObject *parent = nullptr);
     ~FrameConverter();
 
-    void flush(Frame *frame, const QSize &dstSize = QSize(-1, -1));
+    void flush(Frame *frame,
+               const QSize &dstSize = QSize(-1, -1),
+               AVPixelFormat pix_fmt = AV_PIX_FMT_RGB32);
 
     int scale(Frame *in, Frame *out, int height);
 
-    QImage scaleToImageRgb32(Frame *in,
-                             Frame *out,
-                             CodecContext *codecCtx,
-                             const QSize &dstSize = QSize(-1, -1));
+    QImage scaleToQImage(Frame *in,
+                         Frame *out,
+                         const QSize &dstSize = QSize(-1, -1),
+                         QImage::Format format = QImage::Format_RGB32);
+
+    static bool isSupportedInput_pix_fmt(AVPixelFormat pix_fmt);
+    static bool isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt);
 
 private:
     struct FrameConverterPrivate;

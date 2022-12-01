@@ -42,8 +42,6 @@ public:
     bool receiveFrame(Frame *frame);
     bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
 
-    bool imageAlloc(Frame &frame, const QSize &size = QSize(-1, -1));
-
     void flush();
 
     double timebase();

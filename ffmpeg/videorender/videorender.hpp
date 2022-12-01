@@ -3,6 +3,12 @@
 
 #include <ffmpeg/ffmepg_global.h>
 
+#include <QSharedPointer>
+
+extern "C" {
+#include <libavutil/pixfmt.h>
+}
+
 namespace Ffmpeg {
 
 class Frame;
@@ -14,7 +20,14 @@ public:
     VideoRender();
     virtual ~VideoRender();
 
-    virtual void setFrame(Frame *frame) = 0;
+    virtual bool isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) = 0;
+    virtual QVector<AVPixelFormat> supportedOutput_pix_fmt() = 0;
+    virtual void convertSupported_pix_fmt(QSharedPointer<Frame> frame) = 0;
+    void setFrame(QSharedPointer<Frame> frame);
+
+protected:
+    // may use in anthoer thread, suggest use QMetaObject::invokeMethod(Qt::QueuedConnection)
+    virtual void updateFrame(QSharedPointer<Frame> frame) = 0;
 };
 
 } // namespace Ffmpeg

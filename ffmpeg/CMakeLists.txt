@@ -12,7 +12,7 @@ set(PROJECT_SOURCES
         avcontextinfo.cpp avcontextinfo.h
         averror.cpp averror.h
         codeccontext.cpp codeccontext.h
-        decoder.h
+        decoder.cc decoder.h
         decoderaudioframe.cpp decoderaudioframe.h
         decodervideoframe.cpp decodervideoframe.h
         ffmepg_global.h
@@ -35,8 +35,9 @@ else ()
   add_library(ffmpeg ${PROJECT_SOURCES} ${SOURCES})
 endif ()
 target_include_directories(ffmpeg PRIVATE ${AVCODEC_INCLUDE_DIR} ${AVFORMAT_INCLUDE_DIR} ${AVUTIL_INCLUDE_DIR} ${AVDEVICE_INCLUDE_DIR} ${AVFILTER_INCLUDE_DIR} ${SWRESAMPLE_INCLUDE_DIR} ${SWSCALE_INCLUDE_DIR})
-target_link_libraries(ffmpeg PRIVATE Qt6::Widgets Qt6::Multimedia Qt6::OpenGLWidgets utils
-    ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${AVDEVICE_LIBRARY} ${AVFILTER_LIBRARY} ${SWRESAMPLE_LIBRARY} ${SWSCALE_LIBRARY})
+target_link_libraries(ffmpeg PRIVATE Qt6::Widgets Qt6::Multimedia Qt6::OpenGLWidgets utils)
+target_link_libraries(ffmpeg PRIVATE ${SWSCALE_LIBRARY} ${AVDEVICE_LIBRARY} ${AVFORMAT_LIBRARY} ${AVCODEC_LIBRARY}  ${AVUTIL_LIBRARY} ${AVFILTER_LIBRARY} ${SWRESAMPLE_LIBRARY})
+
 if (CMAKE_HOST_APPLE)
   target_link_libraries(ffmpeg PRIVATE ${Security_LIBRARY} ${AudioToolBox_LIBRARY} ${VideoToolBox_LIBRARY} ${CoreVideo_LIBRARY} ${CoreMedia_LIBRARY})
 endif ()

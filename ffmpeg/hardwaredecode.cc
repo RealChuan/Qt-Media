@@ -11,58 +11,20 @@ extern "C" {
 
 namespace Ffmpeg {
 
-QVector<AVHWDeviceType> getHardWareDeviceTypes()
-{
-    static QVector<AVHWDeviceType> types{AV_HWDEVICE_TYPE_VDPAU,
-                                         AV_HWDEVICE_TYPE_CUDA,
-                                         AV_HWDEVICE_TYPE_VAAPI,
-                                         AV_HWDEVICE_TYPE_DXVA2,
-                                         AV_HWDEVICE_TYPE_QSV,
-                                         AV_HWDEVICE_TYPE_VIDEOTOOLBOX,
-                                         AV_HWDEVICE_TYPE_D3D11VA,
-                                         AV_HWDEVICE_TYPE_DRM,
-                                         AV_HWDEVICE_TYPE_OPENCL,
-                                         AV_HWDEVICE_TYPE_MEDIACODEC,
-                                         AV_HWDEVICE_TYPE_VULKAN};
-    return types;
-    //    const QStringList list{"cuda",
-    //                           "drm",
-    //                           "dxva2",
-    //                           "d3d11va",
-    //                           "opencl",
-    //                           "qsv",
-    //                           "vaapi",
-    //                           "vdpau",
-    //                           "videotoolbox",
-    //                           "mediacodec"};
-    //    AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
-    //    for (const QString &hw : qAsConst(list)) {
-    //        type = av_hwdevice_find_type_by_name(hw.toLocal8Bit().constData());
-    //        if (type != AV_HWDEVICE_TYPE_NONE) {
-    //            types.append(type);
-    //            continue;
-    //        }
-    //        qWarning() << QString("Device type %1 is not supported.").arg(hw);
-    //        qWarning() << "Available device types:";
-    //        while ((type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE) {
-    //            qWarning() << av_hwdevice_get_type_name(type);
-    //        }
-    //    }
-}
-
 AVPixelFormat getPixelFormat(const AVCodec *decoder, AVHWDeviceType type)
 {
     AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
     for (int i = 0;; i++) {
         const AVCodecHWConfig *config = avcodec_get_hw_config(decoder, i);
         if (!config) {
-            qWarning() << QString("Decoder %1 does not support device type %2.")
+            qWarning() << QObject::tr("Decoder %1 does not support device type %2.",
+                                      "HardWareDecode")
                               .arg(decoder->name, av_hwdevice_get_type_name(type));
             return hw_pix_fmt;
         }
         if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX
             && config->device_type == type) {
-            qInfo() << QString("Decoder %1 support device type %2.")
+            qInfo() << QObject::tr("Decoder %1 support device type %2.", "HardWareDecode")
                            .arg(decoder->name, av_hwdevice_get_type_name(type));
             hw_pix_fmt = config->pix_fmt;
             break;
@@ -87,9 +49,28 @@ AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_f
 
 struct HardWareDecode::HardWareDecodePrivate
 {
-    ~HardWareDecodePrivate() { av_buffer_unref(&bufferRef); }
+    HardWareDecodePrivate()
+    {
+        auto type = AV_HWDEVICE_TYPE_NONE; // ffmpeg支持的硬件解码器
+        QStringList list;
+        while ((type = av_hwdevice_iterate_types(type))
+               != AV_HWDEVICE_TYPE_NONE) // 遍历支持的设备类型。
+        {
+            hwDeviceTypes.append(type);
+            const char *ctype = av_hwdevice_get_type_name(type); // 获取AVHWDeviceType的字符串名称。
+            if (ctype) {
+                list.append(QString(ctype));
+            }
+        }
+        qInfo() << QObject::tr("Supported hardware decoders: ", "HardWareDecode") << list;
+    }
+    ~HardWareDecodePrivate()
+    {
+        hw_pix_fmt = AV_PIX_FMT_NONE;
+        av_buffer_unref(&bufferRef);
+    }
 
-    QVector<AVHWDeviceType> hwDeviceTypes = getHardWareDeviceTypes();
+    QVector<AVHWDeviceType> hwDeviceTypes;
     AVHWDeviceType hwDeviceType = AV_HWDEVICE_TYPE_NONE;
     AVBufferRef *bufferRef = nullptr;
     AVError error;

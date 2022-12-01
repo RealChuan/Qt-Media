@@ -1,6 +1,7 @@
 #include "openglrender.hpp"
 
 #include <ffmpeg/frame.hpp>
+#include <ffmpeg/frameconverter.hpp>
 
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
@@ -26,13 +27,16 @@ public:
     GLuint textureU;
     GLuint textureV;
     GLuint textureUV;
+    GLuint textureRGB32;
     QOpenGLBuffer vbo = QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
     QOpenGLBuffer ebo = QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
     GLuint vao = 0; // 顶点数组对象,任何随后的顶点属性调用都会储存在这个VAO中，一个VAO可以有多个VBO
 
     QSizeF size;
     QRectF frameRect;
-    QScopedPointer<Frame> frame;
+    QSharedPointer<Frame> framePtr;
+    QVector<AVPixelFormat> supportFormats = {AV_PIX_FMT_YUV420P, AV_PIX_FMT_NV12, AV_PIX_FMT_RGB32};
+    QScopedPointer<FrameConverter> frameConverterPtr;
 
     QColor backgroundColor = Qt::black;
 };
@@ -59,10 +63,37 @@ OpenglRender::~OpenglRender()
     glDeleteTextures(1, &d_ptr->textureUV);
 }
 
-void OpenglRender::setFrame(Frame *frame)
+bool OpenglRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
+{
+    return d_ptr->supportFormats.contains(pix_fmt);
+}
+
+void OpenglRender::convertSupported_pix_fmt(QSharedPointer<Frame> frame)
+{
+    auto avframe = frame->avFrame();
+    auto size = QSize(avframe->width, avframe->height);
+    if (d_ptr->frameConverterPtr.isNull()) {
+        d_ptr->frameConverterPtr.reset(new FrameConverter(frame.data()));
+    } else {
+        d_ptr->frameConverterPtr->flush(frame.data(), size);
+    }
+    QSharedPointer<Frame> frameRgbPtr(new Frame);
+    frameRgbPtr->imageAlloc(size);
+    d_ptr->frameConverterPtr->scaleToQImage(frame.data(), frameRgbPtr.data(), size);
+    //    qDebug() << frameRgbPtr->avFrame()->width << frameRgbPtr->avFrame()->height
+    //             << frameRgbPtr->avFrame()->format;
+    frame = frameRgbPtr;
+}
+
+QVector<AVPixelFormat> OpenglRender::supportedOutput_pix_fmt()
+{
+    return d_ptr->supportFormats;
+}
+
+void OpenglRender::updateFrame(QSharedPointer<Frame> frame)
 {
     QMetaObject::invokeMethod(
-        this, [=] { updateFrame(frame); }, Qt::QueuedConnection);
+        this, [=] { displayFrame(frame); }, Qt::QueuedConnection);
 }
 
 void OpenglRender::initTexture()
@@ -72,6 +103,7 @@ void OpenglRender::initTexture()
     d_ptr->programPtr->setUniformValue("tex_u", 1);
     d_ptr->programPtr->setUniformValue("tex_v", 2);
     d_ptr->programPtr->setUniformValue("tex_uv", 3);
+    d_ptr->programPtr->setUniformValue("tex_rgb32", 4);
 
     glGenTextures(1, &d_ptr->textureY);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureY);
@@ -100,11 +132,18 @@ void OpenglRender::initTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glGenTextures(1, &d_ptr->textureRGB32);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureRGB32);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
 void OpenglRender::updateYUV420P()
 {
-    auto frame = d_ptr->frame->avFrame();
+    auto frame = d_ptr->framePtr->avFrame();
     // Y
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureY);
@@ -148,7 +187,7 @@ void OpenglRender::updateYUV420P()
 
 void OpenglRender::updateNV12()
 {
-    auto frame = d_ptr->frame->avFrame();
+    auto frame = d_ptr->framePtr->avFrame();
     // Y
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureY);
@@ -177,14 +216,31 @@ void OpenglRender::updateNV12()
     d_ptr->programPtr->setUniformValue("tex_uv", 3);
 }
 
-void OpenglRender::updateFrame(Frame *frame)
+void OpenglRender::updateRGB32()
 {
-    auto avFrame = frame->avFrame();
+    auto frame = d_ptr->framePtr->avFrame();
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureRGB32);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_BGRA,
+                 frame->width,
+                 frame->height,
+                 0,
+                 GL_BGRA,
+                 GL_UNSIGNED_BYTE,
+                 frame->data[0]);
+    d_ptr->programPtr->setUniformValue("tex_rgb32", 4);
+}
+
+void OpenglRender::displayFrame(QSharedPointer<Frame> framePtr)
+{
+    auto avFrame = framePtr->avFrame();
     // 如果帧长宽为0则不需要绘制
     if (avFrame->width <= 0 || avFrame->height <= 0) {
         return;
     }
-    d_ptr->frame.reset(frame);
+    d_ptr->framePtr = framePtr;
     if (d_ptr->size.width() != avFrame->width || d_ptr->size.height() != avFrame->height) {
         d_ptr->size = QSize(avFrame->width, avFrame->height);
         resizeGL(width(), height());
@@ -230,7 +286,7 @@ void OpenglRender::paintGL()
                  d_ptr->backgroundColor.alphaF());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (d_ptr->frame.isNull()) {
+    if (d_ptr->framePtr.isNull()) {
         return;
     }
 
@@ -239,7 +295,7 @@ void OpenglRender::paintGL()
                d_ptr->frameRect.y() * devicePixelRatio(),
                d_ptr->frameRect.width() * devicePixelRatio(),
                d_ptr->frameRect.height() * devicePixelRatio());
-    auto format = d_ptr->frame->avFrame()->format;
+    auto format = d_ptr->framePtr->avFrame()->format;
 
     d_ptr->programPtr->bind(); // 绑定着色器
     d_ptr->programPtr->setUniformValue("format", format);
@@ -247,6 +303,7 @@ void OpenglRender::paintGL()
     switch (format) {
     case AV_PIX_FMT_YUV420P: updateYUV420P(); break;
     case AV_PIX_FMT_NV12: updateNV12(); break;
+    case AV_PIX_FMT_RGB32: updateRGB32(); break; // 28
     default: break;
     }
 
