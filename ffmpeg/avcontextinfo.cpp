@@ -1,5 +1,6 @@
 #include "avcontextinfo.h"
 #include "codeccontext.h"
+#include "frame.hpp"
 #include "hardwaredecode.hpp"
 
 #include <QDebug>
@@ -131,6 +132,25 @@ bool AVContextInfo::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
     return d_ptr->codecCtx->decodeSubtitle2(subtitle, packet);
 }
 
+Frame *AVContextInfo::decodeFrame(Packet *packet)
+{
+    if (!sendPacket(packet)) {
+        return nullptr;
+    }
+    std::unique_ptr<Frame> framePtr(new Frame);
+    if (!receiveFrame(framePtr.get())) { // 一个packet一个视频帧
+        return nullptr;
+    }
+    if (d_ptr->gpuDecode && d_ptr->mediaType == Video) {
+        bool ok = false;
+        framePtr.reset(d_ptr->hardWareDecode->transforFrame(framePtr.get(), ok));
+        if (!ok) {
+            return nullptr;
+        }
+    }
+    return framePtr.release();
+}
+
 void AVContextInfo::flush()
 {
     d_ptr->codecCtx->flush();
@@ -144,11 +164,6 @@ double AVContextInfo::timebase()
 bool AVContextInfo::isGpuDecode()
 {
     return d_ptr->gpuDecode;
-}
-
-HardWareDecode *AVContextInfo::hardWareDecode()
-{
-    return d_ptr->hardWareDecode.data();
 }
 
 } // namespace Ffmpeg

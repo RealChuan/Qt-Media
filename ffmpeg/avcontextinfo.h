@@ -8,7 +8,6 @@ struct AVStream;
 
 namespace Ffmpeg {
 
-class HardWareDecode;
 class AVError;
 class Subtitle;
 class Packet;
@@ -41,14 +40,14 @@ public:
     bool sendPacket(Packet *packet);
     bool receiveFrame(Frame *frame);
     bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
+    // sendPacket and receiveFrame
+    Frame *decodeFrame(Packet *packet);
 
     void flush();
 
     double timebase();
 
     bool isGpuDecode();
-
-    HardWareDecode *hardWareDecode();
 
 signals:
     void error(const Ffmpeg::AVError &avError);

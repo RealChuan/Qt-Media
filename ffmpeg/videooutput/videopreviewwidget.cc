@@ -61,17 +61,9 @@ private:
             if (formatContext->checkPktPlayRange(packetPtr.get()) <= 0) {
             } else if (packetPtr->avPacket()->stream_index == videoInfo->index()
                        && !(videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
-                if (!videoInfo->sendPacket(packetPtr.data())) {
+                QScopedPointer<Frame> framePtr(videoInfo->decodeFrame(packetPtr.data()));
+                if (framePtr.isNull()) {
                     continue;
-                }
-                QScopedPointer<Frame> framePtr(new Frame);
-                if (!videoInfo->receiveFrame(framePtr.data())) { // 一个packet一个视频帧
-                    continue;
-                }
-                if (videoInfo->isGpuDecode()) {
-                    bool ok = false;
-                    framePtr.reset(videoInfo->hardWareDecode()->transforFrame(framePtr.get(), ok));
-                    //qDebug() << framePtr->avFrame()->format;
                 }
                 double duration = 0;
                 double pts = 0;
