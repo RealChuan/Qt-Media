@@ -65,10 +65,6 @@ void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoRender *> videoRender
 
 void DecoderVideoFrame::runDecoder()
 {
-    //    QScopedPointer<FrameConverter> frameConverterPtr(new FrameConverter(m_contextInfo->codecCtx()));
-    //    QScopedPointer<Frame> frameRgbPtr(new Frame);
-    //    m_contextInfo->imageAlloc(*frameRgbPtr.data());
-
     quint64 dropNum = 0;
     while (m_runing) {
         checkPause();
@@ -86,10 +82,6 @@ void DecoderVideoFrame::runDecoder()
             continue;
         }
 
-        //        frameConverterPtr->flush(framePtr.data());
-        //        QImage image(frameConverterPtr->scaleToImageRgb32(framePtr.data(),
-        //                                                          frameRgbPtr.data(),
-        //                                                          m_contextInfo->codecCtx()));
         double diff = (pts - clock()) * 1000;
         if (diff <= 0) {
             dropNum++;
@@ -100,9 +92,6 @@ void DecoderVideoFrame::runDecoder()
             //msleep(diff);
         }
         // 略慢于音频
-        //        for (auto render : d_ptr->videoOutputRenders) {
-        //            render->setDisplayImage(image);
-        //        }
         for (auto render : d_ptr->videoRenders) {
             render->setFrame(framePtr);
         }

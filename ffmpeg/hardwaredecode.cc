@@ -128,7 +128,7 @@ Frame *HardWareDecode::transforFrame(Frame *in, bool &ok)
     }
     auto out = new Frame;
     int ret = av_hwframe_transfer_data(out->avFrame(), in->avFrame(), 0);
-    //int ret = av_hwframe_map(out->avFrame(), playFrame->avFrame(), 0);
+    //int ret = av_hwframe_map(out->avFrame(), in->avFrame(), 0);
     if (ret < 0) {
         qWarning() << "Error transferring the data to system memory";
         setError(ret);

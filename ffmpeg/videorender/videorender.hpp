@@ -22,7 +22,7 @@ public:
 
     virtual bool isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) = 0;
     virtual QVector<AVPixelFormat> supportedOutput_pix_fmt() = 0;
-    virtual void convertSupported_pix_fmt(QSharedPointer<Frame> frame) = 0;
+    virtual QSharedPointer<Frame> convertSupported_pix_fmt(QSharedPointer<Frame> frame) = 0;
     void setFrame(QSharedPointer<Frame> frame);
 
 protected:

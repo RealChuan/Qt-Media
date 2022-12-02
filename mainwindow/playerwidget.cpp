@@ -64,8 +64,9 @@ void PlayerWidget::onOpenLocalMedia()
                                        tr("Open File"),
                                        path,
                                        tr("Audio Video (*.mp3 *.mp4 *.mkv *.rmvb)"));
-    if (fileName.isEmpty())
+    if (fileName.isEmpty()) {
         return;
+    }
 
     emit openFile(fileName);
 }

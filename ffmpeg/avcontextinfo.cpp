@@ -67,7 +67,10 @@ bool AVContextInfo::isIndexVaild()
 void AVContextInfo::setStream(AVStream *stream)
 {
     d_ptr->stream = stream;
-    qDebug() << av_q2d(stream->avg_frame_rate);
+    qDebug() << "FPS: " << av_q2d(stream->avg_frame_rate);
+    qDebug() << "Total number of frames: " << stream->nb_frames;
+    qDebug() << "Resolution of resolution: " << stream->codecpar->width << " x "
+             << stream->codecpar->height;
 }
 
 AVStream *AVContextInfo::stream()

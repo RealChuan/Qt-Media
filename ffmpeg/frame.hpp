@@ -22,7 +22,7 @@ public:
     Frame &operator=(const Frame &other);
     ~Frame();
 
-    bool imageAlloc(const QSize &size, AVPixelFormat pix_fmt = AV_PIX_FMT_RGB32);
+    bool imageAlloc(const QSize &size, AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA);
     void freeimageAlloc();
 
     void clear();

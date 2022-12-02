@@ -19,7 +19,7 @@ public:
     ~OpenglRender() override;
 
     bool isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) override;
-    void convertSupported_pix_fmt(QSharedPointer<Frame> frame) override;
+    QSharedPointer<Frame> convertSupported_pix_fmt(QSharedPointer<Frame> frame) override;
     QVector<AVPixelFormat> supportedOutput_pix_fmt() override;
 
 protected:
@@ -34,7 +34,7 @@ private:
     void initTexture();
     void updateYUV420P();
     void updateNV12();
-    void updateRGB32();
+    void updateRGBA();
     void displayFrame(QSharedPointer<Frame> framePtr);
 
     class OpenglRenderPrivate;

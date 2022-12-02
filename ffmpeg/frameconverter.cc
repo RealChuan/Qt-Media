@@ -30,10 +30,7 @@ FrameConverter::FrameConverter(CodecContext *codecCtx,
     auto ctx = codecCtx->avCodecCtx();
     d_ptr->src_pix_fmt = ctx->pix_fmt;
     d_ptr->dst_pix_fmt = pix_fmt;
-    qInfo() << d_ptr->src_pix_fmt;
-    if (sws_isSupportedInput(d_ptr->src_pix_fmt) <= 0) {
-        d_ptr->src_pix_fmt = AV_PIX_FMT_NV12;
-    }
+    debugMessage();
     int width = ctx->width;
     int height = ctx->height;
     if (size.isValid()) {
@@ -63,7 +60,7 @@ FrameConverter::FrameConverter(Frame *frame,
     auto avFrame = frame->avFrame();
     d_ptr->src_pix_fmt = AVPixelFormat(avFrame->format);
     d_ptr->dst_pix_fmt = pix_fmt;
-    qInfo() << d_ptr->src_pix_fmt;
+    debugMessage();
     if (sws_isSupportedInput(d_ptr->src_pix_fmt) <= 0) {
         d_ptr->src_pix_fmt = AV_PIX_FMT_NV12;
     }
@@ -97,6 +94,7 @@ void FrameConverter::flush(Frame *frame, const QSize &dstSize, AVPixelFormat pix
     auto avFrame = frame->avFrame();
     d_ptr->src_pix_fmt = static_cast<AVPixelFormat>(avFrame->format);
     d_ptr->dst_pix_fmt = pix_fmt;
+    debugMessage();
     int width = avFrame->width;
     int height = avFrame->height;
     if (dstSize.isValid()) {
@@ -164,6 +162,18 @@ bool FrameConverter::isSupportedInput_pix_fmt(AVPixelFormat pix_fmt)
 bool FrameConverter::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
 {
     return sws_isSupportedOutput(pix_fmt);
+}
+
+void FrameConverter::debugMessage()
+{
+#ifndef QT_NO_DEBUG
+    auto support_in = sws_isSupportedInput(d_ptr->src_pix_fmt);
+    auto support_out = sws_isSupportedOutput(d_ptr->dst_pix_fmt);
+    qInfo() << QString("support src_pix_fmt: %1 %2")
+                   .arg(QString::number(d_ptr->src_pix_fmt), QString::number(support_in));
+    qInfo() << QString("support dst_pix_fmt: %1 %2")
+                   .arg(QString::number(d_ptr->dst_pix_fmt), QString::number(support_out));
+#endif
 }
 
 } // namespace Ffmpeg
