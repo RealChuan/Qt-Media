@@ -40,8 +40,9 @@ AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_f
     Q_UNUSED(ctx)
     const enum AVPixelFormat *p;
     for (p = pix_fmts; *p != -1; p++) {
-        if (*p == hw_pix_fmt)
+        if (*p == hw_pix_fmt) {
             return *p;
+        }
     }
     qWarning() << "Failed to get HW surface format.";
     return AV_PIX_FMT_NONE;
@@ -127,7 +128,10 @@ Frame *HardWareDecode::transforFrame(Frame *in, bool &ok)
         return in;
     }
     auto out = new Frame;
+    // 超级吃CPU
     int ret = av_hwframe_transfer_data(out->avFrame(), in->avFrame(), 0);
+    // 如果把映射后的帧存起来，接下去解码会出问题；
+    // 相当于解码出来的帧要在下一次解码前必须清除。
     //int ret = av_hwframe_map(out->avFrame(), in->avFrame(), 0);
     if (ret < 0) {
         qWarning() << "Error transferring the data to system memory";

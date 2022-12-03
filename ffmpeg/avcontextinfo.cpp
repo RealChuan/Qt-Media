@@ -91,23 +91,21 @@ bool AVContextInfo::findDecoder(bool useGpu)
         qWarning() << tr("%1 Codec not found.").arg(typeStr);
         return false;
     }
-    if (d_ptr->mediaType == Video && d_ptr->gpuDecode) {
-        d_ptr->hardWareDecode.reset(new HardWareDecode);
-        d_ptr->hardWareDecode->initPixelFormat(codec);
-    }
     d_ptr->codecCtx.reset(new CodecContext(codec));
+    if (!d_ptr->codecCtx->setParameters(d_ptr->stream->codecpar)) {
+        return false;
+    }
+    d_ptr->codecCtx->setTimebase(d_ptr->stream->time_base);
     connect(d_ptr->codecCtx.data(),
             &CodecContext::error,
             this,
             &AVContextInfo::error,
             Qt::UniqueConnection);
     if (d_ptr->mediaType == Video && d_ptr->gpuDecode) {
+        d_ptr->hardWareDecode.reset(new HardWareDecode);
+        d_ptr->hardWareDecode->initPixelFormat(codec);
         d_ptr->hardWareDecode->initHardWareDevice(d_ptr->codecCtx.data());
     }
-    if (!d_ptr->codecCtx->setParameters(d_ptr->stream->codecpar)) {
-        return false;
-    }
-    d_ptr->codecCtx->setTimebase(d_ptr->stream->time_base);
 
     //用于初始化pCodecCtx结构
     if (!d_ptr->codecCtx->open(codec)) {

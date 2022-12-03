@@ -204,8 +204,9 @@ bool FormatContext::readFrame(Packet *packet)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     int ret = av_read_frame(d_ptr->formatCtx, packet->avPacket());
-    if (ret >= 0)
+    if (ret >= 0) {
         return true;
+    }
     setError(ret);
     return false;
 }
