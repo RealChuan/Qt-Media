@@ -27,11 +27,19 @@ public:
 
     void clear();
 
+    void setPts(double pts);
+    double pts();
+
+    void setDuration(double duration);
+    double duration();
+
     AVFrame *avFrame();
 
 private:
     AVFrame *m_frame;
     bool m_imageAlloc = false;
+    double m_pts = 0;
+    double m_duration = 0;
 };
 
 } // namespace Ffmpeg

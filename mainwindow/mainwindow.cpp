@@ -76,7 +76,7 @@ void MainWindow::onPositionChanged(qint64 position)
 void MainWindow::onStarted()
 {
     auto fps = d_ptr->playerPtr->fps();
-    auto fpsStr = QString("FPS:%1->").arg(QString::number(fps, 'f', 2));
+    auto fpsStr = QString("FPS: %1->").arg(QString::number(fps, 'f', 2));
     d_ptr->sourceFPSLabel->setText(fpsStr);
     d_ptr->sourceFPSLabel->setToolTip(fpsStr);
 

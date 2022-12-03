@@ -141,10 +141,7 @@ void DecoderAudioFrame::runDecoder()
             }
 
             QScopedPointer<Frame> framePtr(m_queue.dequeue());
-            double duration = 0;
-            double pts = 0;
-            calculateTime(framePtr->avFrame(), duration, pts);
-            //qDebug() << "DecoderAudioFrame pts:" << pts;
+            double pts = framePtr->pts();
             if (m_seekTime > pts) {
                 continue;
             }
@@ -187,9 +184,7 @@ void DecoderAudioFrame::runDecoder()
             }
 
             QScopedPointer<Frame> framePtr(m_queue.dequeue());
-            double duration = 0;
-            double pts = 0;
-            calculateTime(framePtr->avFrame(), duration, pts);
+            double pts = framePtr->pts();
             if (m_seekTime > pts) {
                 continue;
             }

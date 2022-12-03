@@ -56,6 +56,26 @@ void Frame::clear()
     av_frame_unref(m_frame);
 }
 
+void Frame::setPts(double pts)
+{
+    m_pts = pts;
+}
+
+double Frame::pts()
+{
+    return m_pts;
+}
+
+void Frame::setDuration(double duration)
+{
+    m_duration = duration;
+}
+
+double Frame::duration()
+{
+    return m_duration;
+}
+
 AVFrame *Frame::avFrame()
 {
     Q_ASSERT(m_frame != nullptr);

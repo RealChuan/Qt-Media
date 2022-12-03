@@ -74,6 +74,7 @@ void VideoDecoder::runDecoder()
         if (!framePtr) {
             continue;
         }
+        Ffmpeg::calculateTime(framePtr.get(), m_contextInfo, m_formatContext);
 
         d_ptr->decoderVideoFrame->append(framePtr.release());
 

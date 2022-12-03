@@ -65,9 +65,8 @@ private:
                 if (framePtr.isNull()) {
                     continue;
                 }
-                double duration = 0;
-                double pts = 0;
-                Ffmpeg::calculateTime(framePtr->avFrame(), duration, pts, videoInfo, formatContext);
+                Ffmpeg::calculateTime(framePtr.data(), videoInfo, formatContext);
+                double pts = framePtr->pts();
                 if (m_timestamp > pts) {
                     continue;
                 }

@@ -22,11 +22,7 @@ extern "C" {
 
 namespace Ffmpeg {
 
-void calculateTime(AVFrame *frame,
-                   double &duration,
-                   double &pts,
-                   AVContextInfo *contextInfo,
-                   FormatContext *formatContext);
+void calculateTime(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext);
 
 template<typename T>
 class Decoder : public QThread
@@ -101,11 +97,6 @@ protected:
             return;
         }
         runDecoder();
-    }
-
-    void calculateTime(AVFrame *frame, double &duration, double &pts)
-    {
-        Ffmpeg::calculateTime(frame, duration, pts, m_contextInfo, m_formatContext);
     }
 
     void calculateTime(AVPacket *packet, double &duration, double &pts)

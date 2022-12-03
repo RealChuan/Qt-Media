@@ -1,7 +1,4 @@
 #include "decodervideoframe.h"
-#include "avcontextinfo.h"
-#include "codeccontext.h"
-#include "frameconverter.hpp"
 
 #include <videooutput/videooutputrender.hpp>
 #include <videorender/videorender.hpp>
@@ -80,21 +77,20 @@ void DecoderVideoFrame::runDecoder()
         }
 
         QSharedPointer<Frame> framePtr(m_queue.dequeue());
-        double duration = 0;
-        double pts = 0;
-        calculateTime(framePtr->avFrame(), duration, pts);
+        double pts = framePtr->pts();
         if (m_seekTime > pts) {
             continue;
         }
 
         double diff = (pts - clock()) * 1000;
-        if (diff <= 0) {
-            dropNum++;
-            continue;
+        if (qAbs(diff) < UnWait_Milliseconds) {
         } else if (diff > UnWait_Milliseconds && !m_seek && !d_ptr->pause) {
             QMutexLocker locker(&d_ptr->mutex);
             d_ptr->waitCondition.wait(&d_ptr->mutex, diff);
             //msleep(diff);
+        } else {
+            dropNum++;
+            continue;
         }
         // 略慢于音频
         for (auto render : d_ptr->videoRenders) {

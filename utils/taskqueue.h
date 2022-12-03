@@ -24,8 +24,9 @@ public:
     bool enqueue(const T &t)
     {
         QMutexLocker locker(&m_mutex);
-        if (m_T.size() >= m_maxSize)
+        if (m_T.size() >= m_maxSize) {
             return false;
+        }
         m_T.enqueue(t);
         return true;
     }
@@ -33,8 +34,9 @@ public:
     bool enqueue(T &&t)
     {
         QMutexLocker locker(&m_mutex);
-        if (m_T.size() >= m_maxSize)
+        if (m_T.size() >= m_maxSize) {
             return false;
+        }
         m_T.enqueue(t);
         return true;
     }
@@ -42,24 +44,27 @@ public:
     T dequeue()
     {
         QMutexLocker locker(&m_mutex);
-        if (!m_T.isEmpty())
+        if (!m_T.isEmpty()) {
             return m_T.dequeue();
-        return T();
+        }
+        return nullptr;
     }
 
     bool isEmpty()
     {
         QMutexLocker locker(&m_mutex);
-        if (m_T.isEmpty())
+        if (m_T.isEmpty()) {
             return true;
+        }
         return false;
     }
 
     void clearPoints()
     {
         QMutexLocker locker(&m_mutex);
-        if (m_T.isEmpty())
+        if (m_T.isEmpty()) {
             return;
+        }
         qDeleteAll(m_T);
         m_T.clear();
     }

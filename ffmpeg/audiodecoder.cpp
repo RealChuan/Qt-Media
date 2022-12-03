@@ -73,6 +73,7 @@ void AudioDecoder::runDecoder()
 
         std::unique_ptr<Frame> framePtr(new Frame);
         while (m_contextInfo->receiveFrame(framePtr.get())) { // 一个packet 一个或多个音频帧
+            Ffmpeg::calculateTime(framePtr.get(), m_contextInfo, m_formatContext);
             d_ptr->decoderAudioFrame->append(framePtr.release());
             framePtr.reset(new Frame);
         }
