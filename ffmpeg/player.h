@@ -40,6 +40,9 @@ public:
 
     qint64 duration() const; // ms
     qint64 position() const; // ms
+    qint64 fames() const;
+    QSize resolutionRatio() const;
+    double fps() const;
 
     int audioIndex() const;
     int videoIndex() const;
@@ -47,6 +50,7 @@ public:
 
     void setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRenders);
     void setVideoOutputWidget(QVector<VideoRender *> videoOutputRenders);
+    QVector<VideoRender *> videoRenders();
 
 public slots:
     void onSetFilePath(const QString &filepath);

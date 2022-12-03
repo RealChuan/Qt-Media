@@ -176,12 +176,14 @@ void Player::onSetSubtitleStream(const QString &text)
     onStop();
     initAvCode();
     if (audioIndex >= 0) {
-        if (!setMediaIndex(d_ptr->audioInfo, audioIndex))
+        if (!setMediaIndex(d_ptr->audioInfo, audioIndex)) {
             return;
+        }
         emit audioTrackChanged(d_ptr->formatCtx->audioMap().value(audioIndex));
     }
-    if (!setMediaIndex(d_ptr->subtitleInfo, index))
+    if (!setMediaIndex(d_ptr->subtitleInfo, index)) {
         return;
+    }
     emit subtitleStreamChanged(text);
     onSeek(d_ptr->audioDecoder->clock());
     onPlay();
@@ -420,6 +422,21 @@ qint64 Player::position() const
     return d_ptr->audioDecoder->clock() * 1000;
 }
 
+qint64 Player::fames() const
+{
+    return d_ptr->videoInfo->isIndexVaild() ? d_ptr->videoInfo->fames() : 0;
+}
+
+QSize Player::resolutionRatio() const
+{
+    return d_ptr->videoInfo->isIndexVaild() ? d_ptr->videoInfo->resolutionRatio() : QSize();
+}
+
+double Player::fps() const
+{
+    return d_ptr->videoInfo->isIndexVaild() ? d_ptr->videoInfo->fps() : 0;
+}
+
 int Player::audioIndex() const
 {
     return d_ptr->audioInfo->index();
@@ -452,6 +469,11 @@ void Player::setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRender
 void Player::setVideoOutputWidget(QVector<VideoRender *> videoOutputRenders)
 {
     d_ptr->videoDecoder->setVideoOutputRenders(videoOutputRenders);
+}
+
+QVector<VideoRender *> Player::videoRenders()
+{
+    return d_ptr->videoDecoder->videoRenders();
 }
 
 void Player::run()

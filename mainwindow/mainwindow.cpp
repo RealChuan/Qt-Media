@@ -18,8 +18,12 @@ public:
         slider = new Slider(owner);
         positionLabel = new QLabel("00:00:00", owner);
         durationLabel = new QLabel("/ 00:00:00", owner);
+        sourceFPSLabel = new QLabel(owner);
+        currentFPSLabel = new QLabel(owner);
         playButton = new QPushButton(QObject::tr("play", "MainWindow"), owner);
         playButton->setCheckable(true);
+
+        fpsTimer = new QTimer(owner);
     }
     ~MainWindowPrivate() {}
 
@@ -30,7 +34,10 @@ public:
     Slider *slider;
     QLabel *positionLabel;
     QLabel *durationLabel;
+    QLabel *sourceFPSLabel;
+    QLabel *currentFPSLabel;
     QPushButton *playButton;
+    QTimer *fpsTimer;
 };
 
 MainWindow::MainWindow(QWidget *parent)
@@ -66,6 +73,29 @@ void MainWindow::onPositionChanged(qint64 position)
     d_ptr->slider->setValue(position / 1000);
 }
 
+void MainWindow::onStarted()
+{
+    auto fps = d_ptr->playerPtr->fps();
+    auto fpsStr = QString("FPS:%1->").arg(QString::number(fps, 'f', 2));
+    d_ptr->sourceFPSLabel->setText(fpsStr);
+    d_ptr->sourceFPSLabel->setToolTip(fpsStr);
+
+    auto size = d_ptr->playerPtr->resolutionRatio();
+    auto filename = QFileInfo(d_ptr->playerPtr->filePath()).fileName();
+    setWindowTitle(
+        QString("%1[%2x%3]")
+            .arg(filename, QString::number(size.width()), QString::number(size.height())));
+
+    d_ptr->fpsTimer->start(1000);
+}
+
+void MainWindow::onFinished()
+{
+    d_ptr->fpsTimer->stop();
+    onDurationChanged(0);
+    onPositionChanged(0);
+}
+
 void MainWindow::onHoverSlider(int pos, int value)
 {
     auto index = d_ptr->playerPtr->videoIndex();
@@ -95,6 +125,18 @@ void MainWindow::onHoverSlider(int pos, int value)
 void MainWindow::onLeaveSlider()
 {
     d_ptr->videoPreviewWidgetPtr.reset();
+}
+
+void MainWindow::onShowCurrentFPS()
+{
+    auto renders = d_ptr->playerPtr->videoRenders();
+    if (renders.isEmpty()) {
+        d_ptr->fpsTimer->stop();
+    }
+    auto fps = renders[0]->fps();
+    auto fpsStr = QString::number(fps, 'f', 2);
+    d_ptr->currentFPSLabel->setText(fpsStr);
+    d_ptr->currentFPSLabel->setToolTip(fpsStr);
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *ev)
@@ -207,6 +249,8 @@ void MainWindow::setupUI()
     processLayout->addWidget(d_ptr->slider);
     processLayout->addWidget(d_ptr->positionLabel);
     processLayout->addWidget(d_ptr->durationLabel);
+    processLayout->addWidget(d_ptr->sourceFPSLabel);
+    processLayout->addWidget(d_ptr->currentFPSLabel);
 
     QHBoxLayout *controlLayout = new QHBoxLayout;
     controlLayout->addWidget(d_ptr->playButton);
@@ -239,10 +283,8 @@ void MainWindow::buildConnect()
             &Ffmpeg::Player::positionChanged,
             this,
             &MainWindow::onPositionChanged);
-    connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::finished, this, [this] {
-        onDurationChanged(0);
-        onPositionChanged(0);
-    });
+    connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::playStarted, this, &MainWindow::onStarted);
+    connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::finished, this, &MainWindow::onFinished);
 
     connect(d_ptr->slider, &Slider::sliderMoved, d_ptr->playerPtr.data(), &Ffmpeg::Player::onSeek);
     connect(d_ptr->slider, &Slider::onHover, this, &MainWindow::onHoverSlider);
@@ -281,4 +323,6 @@ void MainWindow::buildConnect()
         }
         d_ptr->playerPtr->onSeek(value);
     });
+
+    connect(d_ptr->fpsTimer, &QTimer::timeout, this, &MainWindow::onShowCurrentFPS);
 }

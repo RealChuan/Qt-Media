@@ -11,23 +11,19 @@ extern "C" {
 
 namespace Ffmpeg {
 
-int fps(int deltaTime) // ms
+float fps(int deltaTime) // ms
 {
     static float avgDuration = 0.f;
     static float alpha = 1.f / 100.f; // 采样数设置为100
     static int frameCount = 0;
 
     ++frameCount;
-
-    int fps = 0;
     if (1 == frameCount) {
         avgDuration = static_cast<float>(deltaTime);
     } else {
         avgDuration = avgDuration * (1 - alpha) + deltaTime * alpha;
     }
-
-    fps = static_cast<int>(1.f / avgDuration * 1000);
-    return fps;
+    return (1.f / avgDuration * 1000);
 }
 
 void printFps()
@@ -39,7 +35,26 @@ void printFps()
     timer.restart();
 }
 
-VideoRender::VideoRender() {}
+class VideoRender::VideoRenderPrivate
+{
+public:
+    VideoRenderPrivate() {}
+
+    void flushFPS()
+    {
+        if (timer.isValid()) {
+            fps = Ffmpeg::fps(timer.elapsed());
+        }
+        timer.restart();
+    }
+
+    float fps = 0;
+    QElapsedTimer timer;
+};
+
+VideoRender::VideoRender()
+    : d_ptr(new VideoRenderPrivate)
+{}
 
 VideoRender::~VideoRender() {}
 
@@ -51,7 +66,12 @@ void VideoRender::setFrame(QSharedPointer<Frame> frame)
     updateFrame(frame);
     //qDebug() << frame->avFrame()->format;
 
-    //printFps();
+    d_ptr->flushFPS();
+}
+
+float VideoRender::fps()
+{
+    return d_ptr->fps;
 }
 
 } // namespace Ffmpeg

@@ -25,9 +25,15 @@ public:
     virtual QSharedPointer<Frame> convertSupported_pix_fmt(QSharedPointer<Frame> frame) = 0;
     void setFrame(QSharedPointer<Frame> frame);
 
+    float fps();
+
 protected:
     // may use in anthoer thread, suggest use QMetaObject::invokeMethod(Qt::QueuedConnection)
     virtual void updateFrame(QSharedPointer<Frame> frame) = 0;
+
+private:
+    class VideoRenderPrivate;
+    QScopedPointer<VideoRenderPrivate> d_ptr;
 };
 
 } // namespace Ffmpeg

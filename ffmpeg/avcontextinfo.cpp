@@ -68,10 +68,12 @@ bool AVContextInfo::isIndexVaild()
 void AVContextInfo::setStream(AVStream *stream)
 {
     d_ptr->stream = stream;
-    qDebug() << "FPS: " << av_q2d(stream->avg_frame_rate);
-    qDebug() << "Total number of frames: " << stream->nb_frames;
-    qDebug() << "Resolution of resolution: " << stream->codecpar->width << " x "
-             << stream->codecpar->height;
+    if (d_ptr->mediaType == Video) {
+        qDebug() << "FPS: " << av_q2d(stream->avg_frame_rate);
+        qDebug() << "Total number of frames: " << stream->nb_frames;
+        qDebug() << "Resolution of resolution: " << stream->codecpar->width << "x"
+                 << stream->codecpar->height;
+    }
 }
 
 AVStream *AVContextInfo::stream()
@@ -159,6 +161,21 @@ void AVContextInfo::flush()
 double AVContextInfo::timebase()
 {
     return av_q2d(d_ptr->stream->time_base);
+}
+
+double AVContextInfo::fps()
+{
+    return av_q2d(d_ptr->stream->avg_frame_rate);
+}
+
+qint64 AVContextInfo::fames()
+{
+    return d_ptr->stream->nb_frames;
+}
+
+QSize AVContextInfo::resolutionRatio()
+{
+    return {d_ptr->stream->codecpar->width, d_ptr->stream->codecpar->height};
 }
 
 bool AVContextInfo::isGpuDecode()

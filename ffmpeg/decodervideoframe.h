@@ -26,6 +26,7 @@ public:
 
     void setVideoOutputRenders(QVector<VideoOutputRender *> videoOutputRenders);
     void setVideoOutputRenders(QVector<VideoRender *> videoRenders);
+    QVector<VideoRender *> videoRenders();
 
 protected:
     void runDecoder() override;

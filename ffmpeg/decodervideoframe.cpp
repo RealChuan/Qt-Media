@@ -63,6 +63,11 @@ void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoRender *> videoRender
     d_ptr->videoRenders = videoRenders;
 }
 
+QVector<VideoRender *> DecoderVideoFrame::videoRenders()
+{
+    return d_ptr->videoRenders;
+}
+
 void DecoderVideoFrame::runDecoder()
 {
     quint64 dropNum = 0;

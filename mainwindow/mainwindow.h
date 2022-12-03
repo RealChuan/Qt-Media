@@ -20,8 +20,11 @@ private slots:
     void onError(const Ffmpeg::AVError &averror);
     void onDurationChanged(qint64 duration);
     void onPositionChanged(qint64 position);
+    void onStarted();
+    void onFinished();
     void onHoverSlider(int pos, int value);
     void onLeaveSlider();
+    void onShowCurrentFPS();
 
 protected:
     void keyPressEvent(QKeyEvent *ev) override;

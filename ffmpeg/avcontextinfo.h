@@ -46,6 +46,9 @@ public:
     void flush();
 
     double timebase();
+    double fps();
+    qint64 fames();
+    QSize resolutionRatio();
 
     bool isGpuDecode();
 
