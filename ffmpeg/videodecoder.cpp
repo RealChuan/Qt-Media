@@ -49,11 +49,6 @@ void VideoDecoder::setVideoOutputRenders(QVector<VideoRender *> videoOutputRende
     d_ptr->decoderVideoFrame->setVideoOutputRenders(videoOutputRenders);
 }
 
-QVector<VideoRender *> VideoDecoder::videoRenders()
-{
-    return d_ptr->decoderVideoFrame->videoRenders();
-}
-
 void VideoDecoder::runDecoder()
 {
     d_ptr->decoderVideoFrame->startDecoder(m_formatContext, m_contextInfo);
@@ -64,12 +59,12 @@ void VideoDecoder::runDecoder()
             d_ptr->decoderVideoFrame->seek(m_seekTime, m_latchPtr.lock());
             seekFinish();
         }
-        if (m_queue.isEmpty()) {
+
+        QScopedPointer<Packet> packetPtr(m_queue.dequeue());
+        if (packetPtr.isNull()) {
             msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
-
-        QScopedPointer<Packet> packetPtr(m_queue.dequeue());
         std::unique_ptr<Frame> framePtr(m_contextInfo->decodeFrame(packetPtr.data()));
         if (!framePtr) {
             continue;

@@ -61,12 +61,12 @@ void AudioDecoder::runDecoder()
             d_ptr->decoderAudioFrame->seek(m_seekTime, m_latchPtr.lock());
             seekFinish();
         }
-        if (m_queue.isEmpty()) {
+
+        QScopedPointer<Packet> packetPtr(m_queue.dequeue());
+        if (packetPtr.isNull()) {
             msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
-
-        QScopedPointer<Packet> packetPtr(m_queue.dequeue());
         if (!m_contextInfo->sendPacket(packetPtr.data())) {
             continue;
         }

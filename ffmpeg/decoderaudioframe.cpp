@@ -135,12 +135,12 @@ void DecoderAudioFrame::runDecoder()
             checkPause(pauseTime);
             checkSeek(timer, pauseTime);
             checkSpeed(timer, pauseTime);
-            if (m_queue.isEmpty()) {
+
+            QScopedPointer<Frame> framePtr(m_queue.dequeue());
+            if (framePtr.isNull()) {
                 msleep(Sleep_Queue_Empty_Milliseconds);
                 continue;
             }
-
-            QScopedPointer<Frame> framePtr(m_queue.dequeue());
             double pts = framePtr->pts();
             if (m_seekTime > pts) {
                 continue;

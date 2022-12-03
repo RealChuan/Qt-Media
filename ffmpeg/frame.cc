@@ -1,7 +1,6 @@
 #include "frame.hpp"
 
-#include <QSize>
-#include <QtGlobal>
+#include <QImage>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -14,6 +13,19 @@ Frame::Frame()
 {
     m_frame = av_frame_alloc();
     Q_ASSERT(m_frame != nullptr);
+}
+
+Frame::Frame(const QImage &image)
+{
+    m_frame = av_frame_alloc();
+    Q_ASSERT(m_frame != nullptr);
+    auto img = image;
+    img.convertTo(QImage::Format_RGBA8888);
+    m_frame->width = img.width();
+    m_frame->height = img.height();
+    m_frame->format = AV_PIX_FMT_RGBA;
+    av_frame_get_buffer(m_frame, 0);
+    memcpy(m_frame->data[0], img.bits(), m_frame->width * m_frame->height * 4);
 }
 
 Frame::Frame(const Frame &other)

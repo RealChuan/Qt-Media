@@ -2,22 +2,23 @@
 
 #include "ffmepg_global.h"
 
-#include <QEnableSharedFromThis>
-
 extern "C" {
 #include <libavutil/pixfmt.h>
 }
 
 class QSize;
+class QImage;
 
 struct AVFrame;
 
 namespace Ffmpeg {
 
-class FFMPEG_EXPORT Frame : public QEnableSharedFromThis<Frame>
+class FFMPEG_EXPORT Frame
 {
 public:
     explicit Frame();
+    Frame(const QImage &image);
+
     Frame(const Frame &other);
     Frame &operator=(const Frame &other);
     ~Frame();

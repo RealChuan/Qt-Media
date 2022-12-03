@@ -24,6 +24,7 @@ public:
     virtual QVector<AVPixelFormat> supportedOutput_pix_fmt() = 0;
     virtual QSharedPointer<Frame> convertSupported_pix_fmt(QSharedPointer<Frame> frame) = 0;
     void setFrame(QSharedPointer<Frame> frame);
+    void setImage(const QImage &image);
 
     float fps();
 

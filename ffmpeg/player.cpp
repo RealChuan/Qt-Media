@@ -9,6 +9,7 @@
 
 #include <utils/utils.h>
 #include <videooutput/videooutputrender.hpp>
+#include <videorender/videorender.hpp>
 
 #include <QDateTime>
 #include <QDebug>
@@ -59,6 +60,7 @@ public:
     volatile Player::MediaState mediaState = Player::MediaState::StoppedState;
 
     QVector<VideoOutputRender *> videoOutputRenders;
+    QVector<VideoRender *> videoRenders;
 };
 
 Player::Player(QObject *parent)
@@ -247,8 +249,8 @@ bool Player::initAvCode()
     }
 
     if (!d_ptr->formatCtx->coverImage().isNull()) {
-        for (auto render : d_ptr->videoOutputRenders) {
-            render->setDisplayImage(d_ptr->formatCtx->coverImage());
+        for (auto render : d_ptr->videoRenders) {
+            render->setImage(d_ptr->formatCtx->coverImage());
         }
     }
 
@@ -468,12 +470,13 @@ void Player::setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRender
 
 void Player::setVideoOutputWidget(QVector<VideoRender *> videoOutputRenders)
 {
+    d_ptr->videoRenders = videoOutputRenders;
     d_ptr->videoDecoder->setVideoOutputRenders(videoOutputRenders);
 }
 
 QVector<VideoRender *> Player::videoRenders()
 {
-    return d_ptr->videoDecoder->videoRenders();
+    return d_ptr->videoRenders;
 }
 
 void Player::run()

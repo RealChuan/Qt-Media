@@ -69,6 +69,12 @@ void VideoRender::setFrame(QSharedPointer<Frame> frame)
     d_ptr->flushFPS();
 }
 
+void VideoRender::setImage(const QImage &image)
+{
+    QSharedPointer<Frame> frame(new Frame(image));
+    setFrame(frame);
+}
+
 float VideoRender::fps()
 {
     return d_ptr->fps;
