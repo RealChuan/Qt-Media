@@ -161,7 +161,7 @@ void FormatContext::findStreamIndex()
         }
 
         if (d_ptr->formatCtx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) {
-            AVPacket pkt = d_ptr->formatCtx->streams[i]->attached_pic;
+            AVPacket &pkt = d_ptr->formatCtx->streams[i]->attached_pic;
             d_ptr->coverImage = QImage::fromData((uchar *) pkt.data, pkt.size);
         }
     }

@@ -80,11 +80,12 @@ void DecoderAudioFrame::setIsLocalFile(bool isLocalFile)
 
 void DecoderAudioFrame::onStateChanged(QAudio::State state)
 {
+    Q_UNUSED(state)
     if (d_ptr->audioSinkPtr.isNull()) {
         return;
     }
     if (d_ptr->audioSinkPtr->error() != QAudio::NoError) {
-        qWarning() << tr("QAudioSink Error:") << d_ptr->audioSinkPtr->error();
+        qWarning() << tr("QAudioSink Error:") << state << d_ptr->audioSinkPtr->error();
     }
     //    switch (state) {
     //    case QAudio::StoppedState:
@@ -258,6 +259,7 @@ void DecoderAudioFrame::checkPause(qint64 &pauseTime)
 
 void DecoderAudioFrame::checkSeek(QElapsedTimer &timer, qint64 &pauseTime)
 {
+    Q_UNUSED(timer)
     if (!m_seek) {
         return;
     }
