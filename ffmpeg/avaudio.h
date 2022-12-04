@@ -1,13 +1,7 @@
 #ifndef AVAUDIO_H
 #define AVAUDIO_H
 
-#include <QtCore>
-
-extern "C" {
-#include <libavutil/samplefmt.h>
-}
-
-struct SwrContext;
+#include <QAudioFormat>
 
 namespace Ffmpeg {
 
@@ -15,18 +9,19 @@ class CodecContext;
 class Frame;
 class AVAudio
 {
+    Q_DISABLE_COPY_MOVE(AVAudio)
 public:
-    explicit AVAudio(CodecContext *codecCtx, AVSampleFormat format);
+    explicit AVAudio(CodecContext *codecCtx, QAudioFormat &format);
     ~AVAudio();
 
     QByteArray convert(Frame *frame);
 
 private:
-    Q_DISABLE_COPY(AVAudio)
-
-    SwrContext *m_swrContext;
-    AVSampleFormat m_format;
+    class AVAudioPrivate;
+    QScopedPointer<AVAudioPrivate> d_ptr;
 };
+
+QAudioFormat geAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize);
 
 } // namespace Ffmpeg
 

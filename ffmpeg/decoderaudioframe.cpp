@@ -4,8 +4,10 @@
 
 #include <QAudioDevice>
 #include <QAudioSink>
+#include <QCoreApplication>
 #include <QMediaDevices>
 #include <QMediaFormat>
+#include <QWaitCondition>
 
 namespace Ffmpeg {
 
@@ -105,28 +107,13 @@ void DecoderAudioFrame::onAudioOutputsChanged()
     d_ptr->audioOutputsChanged = true;
 }
 
-AVSampleFormat converSampleFormat(QAudioFormat::SampleFormat format)
-{
-    AVSampleFormat type = AV_SAMPLE_FMT_NONE;
-    switch (format) {
-    case QAudioFormat::Unknown: type = AV_SAMPLE_FMT_NONE; break;
-    case QAudioFormat::UInt8: type = AV_SAMPLE_FMT_U8; break;
-    case QAudioFormat::Int16: type = AV_SAMPLE_FMT_S16; break;
-    case QAudioFormat::Int32: type = AV_SAMPLE_FMT_S32; break;
-    case QAudioFormat::Float: type = AV_SAMPLE_FMT_FLT; break;
-    default: break;
-    }
-    return type;
-}
-
 void DecoderAudioFrame::runDecoder()
 {
     QAudioDevice audioDevice(QMediaDevices::defaultAudioOutput());
-    QAudioFormat format = resetAudioOutput();
-    AVSampleFormat fmt = converSampleFormat(format.sampleFormat());
+    auto format = resetAudioOutput();
     d_ptr->seekTime = 0;
     setClock(0);
-    AVAudio avAudio(m_contextInfo->codecCtx(), fmt);
+    AVAudio avAudio(m_contextInfo->codecCtx(), format);
     QElapsedTimer timer;
     if (d_ptr->isLocalFile) { // 音频播放依赖外部时钟，适用于本地文件播放
         qint64 pauseTime = 0;
@@ -311,37 +298,10 @@ void printAudioOuputDevice()
 
 QAudioFormat DecoderAudioFrame::resetAudioOutput()
 {
-    AVCodecContext *ctx = m_contextInfo->codecCtx()->avCodecCtx();
-    int sampleSzie = 0;
-    QAudioFormat format;
-    //format.setCodec("audio/pcm");
-    format.setSampleRate(ctx->sample_rate);
-    format.setChannelCount(ctx->channels);
-    //format.setByteOrder(QAudioFormat::LittleEndian);
-    if (ctx->sample_fmt == AV_SAMPLE_FMT_U8) {
-        format.setSampleFormat(QAudioFormat::UInt8);
-        sampleSzie = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_U8);
-    } else if (ctx->sample_fmt == AV_SAMPLE_FMT_S16) {
-        format.setSampleFormat(QAudioFormat::Int16);
-        sampleSzie = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
-    } /*else if (ctx->sample_fmt == AV_SAMPLE_FMT_S32) {
-        format.setSampleFormat(QAudioFormat::Int32);
-        sampleSzie = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_S32);
-    } */
-    else if (ctx->sample_fmt == AV_SAMPLE_FMT_FLT) {
-        format.setSampleFormat(QAudioFormat::Float);
-        sampleSzie = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT);
-    } else {
-        format.setSampleFormat(QAudioFormat::Int16);
-        sampleSzie = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
-    }
     printAudioOuputDevice();
-    QAudioDevice audioDevice(QMediaDevices::defaultAudioOutput());
-    qInfo() << audioDevice.supportedSampleFormats();
-    if (!audioDevice.isFormatSupported(format)) {
-        qWarning() << "Raw audio format not supported by backend, cannot play audio.";
-    }
 
+    int sampleSzie = 0;
+    auto format = geAudioFormatFromCodecCtx(m_contextInfo->codecCtx(), sampleSzie);
     d_ptr->audioSinkPtr.reset(new QAudioSink(format));
     d_ptr->audioSinkPtr->setBufferSize(format.sampleRate() * sampleSzie / 8);
     d_ptr->audioSinkPtr->setVolume(d_ptr->volume);
