@@ -96,6 +96,7 @@ bool AVContextInfo::findDecoder(bool useGpu)
         return false;
     }
     d_ptr->codecCtx->setTimebase(d_ptr->stream->time_base);
+    d_ptr->codecCtx->setDecodeThreadCount(4);
     connect(d_ptr->codecCtx.data(),
             &CodecContext::error,
             this,

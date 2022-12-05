@@ -12,7 +12,7 @@ LIBS += -l$$replaceLibName(utils)
 
 SOURCES += \
     audiodecoder.cpp \
-    avaudio.cpp \
+    audioframeconverter.cpp \
     avcontextinfo.cpp \
     averror.cpp \
     codeccontext.cpp \
@@ -21,17 +21,17 @@ SOURCES += \
     decodervideoframe.cpp \
     formatcontext.cpp \
     frame.cc \
-    frameconverter.cc \
     hardwaredecode.cc \
     packet.cpp \
     player.cpp \
     subtitle.cpp \
     subtitledecoder.cpp \
-    videodecoder.cpp
+    videodecoder.cpp \
+    videoframeconverter.cc
 
 HEADERS += \
     audiodecoder.h \
-    avaudio.h \
+    audioframeconverter.h \
     avcontextinfo.h \
     averror.h \
     codeccontext.h \
@@ -41,10 +41,10 @@ HEADERS += \
     ffmepg_global.h \
     formatcontext.h \
     frame.hpp \
-    frameconverter.hpp \
     hardwaredecode.hpp \
     packet.h \
     player.h \
     subtitle.h \
     subtitledecoder.h \
-    videodecoder.h
+    videodecoder.h \
+    videoframeconverter.hpp

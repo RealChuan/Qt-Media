@@ -3,7 +3,7 @@
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/decoder.h>
 #include <ffmpeg/frame.hpp>
-#include <ffmpeg/frameconverter.hpp>
+#include <ffmpeg/videoframeconverter.hpp>
 #include <ffmpeg/hardwaredecode.hpp>
 #include <ffmpeg/videodecoder.h>
 
@@ -78,8 +78,8 @@ private:
                                   m_videoPreviewWidgetPtr->height(),
                                   Qt::KeepAspectRatio);
                 }
-                QScopedPointer<FrameConverter> frameConverterPtr(
-                    new FrameConverter(videoInfo->codecCtx(), dstSize));
+                QScopedPointer<VideoFrameConverter> frameConverterPtr(
+                    new VideoFrameConverter(videoInfo->codecCtx(), dstSize));
                 QSharedPointer<Frame> frameRgbPtr(new Frame);
                 frameRgbPtr->imageAlloc(dstSize);
                 //frameConverterPtr->flush(framePtr.data(), dstSize);

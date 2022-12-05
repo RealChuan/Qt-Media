@@ -1,5 +1,4 @@
-#ifndef FRAMECONVERTER_HPP
-#define FRAMECONVERTER_HPP
+#pragma once
 
 #include <QImage>
 #include <QObject>
@@ -13,18 +12,18 @@ namespace Ffmpeg {
 class Frame;
 class CodecContext;
 
-class FrameConverter : public QObject
+class VideoFrameConverter : public QObject
 {
 public:
-    explicit FrameConverter(CodecContext *codecCtx,
-                            const QSize &size = QSize(-1, -1),
-                            AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA,
-                            QObject *parent = nullptr);
-    FrameConverter(Frame *frame,
-                   const QSize &size = QSize(-1, -1),
-                   AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA,
-                   QObject *parent = nullptr);
-    ~FrameConverter();
+    explicit VideoFrameConverter(CodecContext *codecCtx,
+                                 const QSize &size = QSize(-1, -1),
+                                 AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA,
+                                 QObject *parent = nullptr);
+    VideoFrameConverter(Frame *frame,
+                        const QSize &size = QSize(-1, -1),
+                        AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA,
+                        QObject *parent = nullptr);
+    ~VideoFrameConverter();
 
     void flush(Frame *frame,
                const QSize &dstSize = QSize(-1, -1),
@@ -43,10 +42,8 @@ public:
 private:
     inline void debugMessage();
 
-    struct FrameConverterPrivate;
-    QScopedPointer<FrameConverterPrivate> d_ptr;
+    struct VideoFrameConverterPrivate;
+    QScopedPointer<VideoFrameConverterPrivate> d_ptr;
 };
 
 } // namespace Ffmpeg
-
-#endif // FRAMECONVERTER_HPP

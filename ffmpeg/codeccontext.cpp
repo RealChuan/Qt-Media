@@ -56,8 +56,15 @@ void CodecContext::setTimebase(const AVRational &timebase)
     d_ptr->codecCtx->pkt_timebase = timebase;
 }
 
+void CodecContext::setDecodeThreadCount(int threadCount)
+{
+    Q_ASSERT(d_ptr->codecCtx != nullptr);
+    d_ptr->codecCtx->thread_count = threadCount;
+}
+
 bool CodecContext::open(AVCodec *codec)
 {
+    Q_ASSERT(d_ptr->codecCtx != nullptr);
     int ret = avcodec_open2(d_ptr->codecCtx, codec, NULL);
     if (ret < 0) {
         setError(ret);

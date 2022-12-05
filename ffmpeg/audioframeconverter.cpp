@@ -1,4 +1,4 @@
-#include "avaudio.h"
+#include "audioframeconverter.h"
 #include "averror.h"
 #include "codeccontext.h"
 #include "frame.hpp"
@@ -98,18 +98,18 @@ QAudioFormat::SampleFormat getSampleFormat(AVSampleFormat format)
     return sampleFormat;
 }
 
-class AVAudio::AVAudioPrivate
+class AudioFrameConverter::AudioFrameConverterPrivate
 {
 public:
-    AVAudioPrivate() {}
+    AudioFrameConverterPrivate() {}
 
     SwrContext *swrContext;
     QAudioFormat format;
     AVSampleFormat avSampleFormat;
 };
 
-AVAudio::AVAudio(CodecContext *codecCtx, QAudioFormat &format)
-    : d_ptr(new AVAudioPrivate)
+AudioFrameConverter::AudioFrameConverter(CodecContext *codecCtx, QAudioFormat &format)
+    : d_ptr(new AudioFrameConverterPrivate)
 {
     d_ptr->format = format;
     d_ptr->avSampleFormat = getAVSampleFormat(d_ptr->format.sampleFormat());
@@ -136,13 +136,13 @@ AVAudio::AVAudio(CodecContext *codecCtx, QAudioFormat &format)
     Q_ASSERT(d_ptr->swrContext != nullptr);
 }
 
-AVAudio::~AVAudio()
+AudioFrameConverter::~AudioFrameConverter()
 {
     Q_ASSERT(d_ptr->swrContext != nullptr);
     swr_free(&d_ptr->swrContext);
 }
 
-QByteArray AVAudio::convert(Frame *frame)
+QByteArray AudioFrameConverter::convert(Frame *frame)
 {
     QByteArray data;
     int size = av_samples_get_buffer_size(nullptr,
@@ -168,7 +168,7 @@ QByteArray AVAudio::convert(Frame *frame)
     return data;
 }
 
-QAudioFormat geAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize)
+QAudioFormat getAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize)
 {
     auto ctx = codecCtx->avCodecCtx();
     QAudioFormat autioFormat;
@@ -195,7 +195,11 @@ QAudioFormat geAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize)
     autioFormat.setSampleFormat(sampleFormat);
 
     QAudioDevice audioDevice(QMediaDevices::defaultAudioOutput());
-    qInfo() << audioDevice.supportedSampleFormats();
+    qInfo() << "AudioDevice Support SampleFormats" << audioDevice.supportedSampleFormats();
+    qInfo() << "AudioDevice Support SampleRate" << audioDevice.minimumSampleRate() << "~"
+            << audioDevice.maximumSampleRate();
+    qInfo() << "AudioDevice Support ChannelCount" << audioDevice.minimumChannelCount() << "~"
+            << audioDevice.maximumChannelCount();
     if (!audioDevice.isFormatSupported(autioFormat)) {
         qWarning() << autioFormat << " is not supported by backend, cannot play audio.";
         Q_ASSERT(48000 >= audioDevice.minimumSampleRate()
@@ -208,7 +212,8 @@ QAudioFormat geAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize)
         sampleSize = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
     }
 
-    qInfo() << ctx->sample_rate << ctx->channels << ctx->channel_layout << ctx->sample_fmt;
+    qInfo() << "Current Audio parameters:" << ctx->sample_rate << ctx->channels
+            << ctx->channel_layout << ctx->sample_fmt;
     qInfo() << autioFormat << autioFormat.channelConfig();
 
     return autioFormat;

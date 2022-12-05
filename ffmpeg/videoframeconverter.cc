@@ -1,7 +1,7 @@
-#include "frameconverter.hpp"
 #include "averror.h"
 #include "codeccontext.h"
 #include "frame.hpp"
+#include "videoframeconverter.hpp"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -13,19 +13,19 @@ extern "C" {
 
 namespace Ffmpeg {
 
-struct FrameConverter::FrameConverterPrivate
+struct VideoFrameConverter::VideoFrameConverterPrivate
 {
     struct SwsContext *swsContext = nullptr;
     AVPixelFormat src_pix_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
     AVPixelFormat dst_pix_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
 };
 
-FrameConverter::FrameConverter(CodecContext *codecCtx,
-                               const QSize &size,
-                               AVPixelFormat pix_fmt,
-                               QObject *parent)
+VideoFrameConverter::VideoFrameConverter(CodecContext *codecCtx,
+                                         const QSize &size,
+                                         AVPixelFormat pix_fmt,
+                                         QObject *parent)
     : QObject(parent)
-    , d_ptr(new FrameConverterPrivate)
+    , d_ptr(new VideoFrameConverterPrivate)
 {
     auto ctx = codecCtx->avCodecCtx();
     d_ptr->src_pix_fmt = ctx->pix_fmt;
@@ -50,12 +50,12 @@ FrameConverter::FrameConverter(CodecContext *codecCtx,
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 
-FrameConverter::FrameConverter(Frame *frame,
-                               const QSize &size,
-                               AVPixelFormat pix_fmt,
-                               QObject *parent)
+VideoFrameConverter::VideoFrameConverter(Frame *frame,
+                                         const QSize &size,
+                                         AVPixelFormat pix_fmt,
+                                         QObject *parent)
     : QObject(parent)
-    , d_ptr(new FrameConverterPrivate)
+    , d_ptr(new VideoFrameConverterPrivate)
 {
     auto avFrame = frame->avFrame();
     d_ptr->src_pix_fmt = AVPixelFormat(avFrame->format);
@@ -83,13 +83,13 @@ FrameConverter::FrameConverter(Frame *frame,
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 
-FrameConverter::~FrameConverter()
+VideoFrameConverter::~VideoFrameConverter()
 {
     Q_ASSERT(d_ptr->swsContext != nullptr);
     sws_freeContext(d_ptr->swsContext);
 }
 
-void FrameConverter::flush(Frame *frame, const QSize &dstSize, AVPixelFormat pix_fmt)
+void VideoFrameConverter::flush(Frame *frame, const QSize &dstSize, AVPixelFormat pix_fmt)
 {
     auto avFrame = frame->avFrame();
     d_ptr->src_pix_fmt = static_cast<AVPixelFormat>(avFrame->format);
@@ -115,7 +115,7 @@ void FrameConverter::flush(Frame *frame, const QSize &dstSize, AVPixelFormat pix
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 
-int FrameConverter::scale(Frame *in, Frame *out, int height)
+int VideoFrameConverter::scale(Frame *in, Frame *out, int height)
 {
     Q_ASSERT(d_ptr->swsContext != nullptr);
     auto inFrame = in->avFrame();
@@ -136,10 +136,10 @@ int FrameConverter::scale(Frame *in, Frame *out, int height)
     return ret;
 }
 
-QImage FrameConverter::scaleToQImage(Frame *in,
-                                     Frame *out,
-                                     const QSize &dstSize,
-                                     QImage::Format format)
+QImage VideoFrameConverter::scaleToQImage(Frame *in,
+                                          Frame *out,
+                                          const QSize &dstSize,
+                                          QImage::Format format)
 {
     Q_ASSERT(d_ptr->swsContext != nullptr);
     auto inFrame = in->avFrame();
@@ -154,17 +154,17 @@ QImage FrameConverter::scaleToQImage(Frame *in,
     return QImage((uchar *) out->avFrame()->data[0], width, height, format);
 }
 
-bool FrameConverter::isSupportedInput_pix_fmt(AVPixelFormat pix_fmt)
+bool VideoFrameConverter::isSupportedInput_pix_fmt(AVPixelFormat pix_fmt)
 {
     return sws_isSupportedInput(pix_fmt);
 }
 
-bool FrameConverter::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
+bool VideoFrameConverter::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
 {
     return sws_isSupportedOutput(pix_fmt);
 }
 
-void FrameConverter::debugMessage()
+void VideoFrameConverter::debugMessage()
 {
 #ifndef QT_NO_DEBUG
     auto support_in = sws_isSupportedInput(d_ptr->src_pix_fmt);

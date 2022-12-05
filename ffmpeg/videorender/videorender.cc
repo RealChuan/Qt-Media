@@ -11,12 +11,12 @@ extern "C" {
 
 namespace Ffmpeg {
 
+static float avgDuration = 0.f;
+static float alpha = 1.f / 100.f; // 采样数设置为100
+static int frameCount = 0;
+
 float fps(int deltaTime) // ms
 {
-    static float avgDuration = 0.f;
-    static float alpha = 1.f / 100.f; // 采样数设置为100
-    static int frameCount = 0;
-
     ++frameCount;
     if (1 == frameCount) {
         avgDuration = static_cast<float>(deltaTime);
@@ -78,6 +78,13 @@ void VideoRender::setImage(const QImage &image)
 float VideoRender::fps()
 {
     return d_ptr->fps;
+}
+
+void VideoRender::resetFps()
+{
+    avgDuration = 0.f;
+    alpha = 1.f / 100.f; // 采样数设置为100
+    frameCount = 0;
 }
 
 } // namespace Ffmpeg

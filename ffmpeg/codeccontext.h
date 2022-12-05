@@ -26,6 +26,8 @@ public:
 
     bool setParameters(const AVCodecParameters *par);
     void setTimebase(const AVRational &timebase);
+    // Set before open, Soft solution is effective
+    void setDecodeThreadCount(int threadCount);
     bool open(AVCodec *codec);
 
     bool sendPacket(Packet *packet);

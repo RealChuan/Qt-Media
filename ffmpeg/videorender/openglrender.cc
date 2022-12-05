@@ -1,7 +1,7 @@
 #include "openglrender.hpp"
 
 #include <ffmpeg/frame.hpp>
-#include <ffmpeg/frameconverter.hpp>
+#include <ffmpeg/videoframeconverter.hpp>
 
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
@@ -36,6 +36,11 @@ public:
     QRectF frameRect;
     QSharedPointer<Frame> framePtr;
     QVector<AVPixelFormat> supportFormats = {AV_PIX_FMT_YUV420P,
+                                             AV_PIX_FMT_YUYV422,
+                                             AV_PIX_FMT_RGB24,
+                                             AV_PIX_FMT_BGR24,
+                                             AV_PIX_FMT_YUV422P,
+                                             AV_PIX_FMT_YUV444P,
                                              AV_PIX_FMT_NV12,
                                              AV_PIX_FMT_ARGB,
                                              AV_PIX_FMT_RGBA,
@@ -45,7 +50,7 @@ public:
                                              AV_PIX_FMT_RGB0,
                                              AV_PIX_FMT_0BGR,
                                              AV_PIX_FMT_BGR0};
-    QScopedPointer<FrameConverter> frameConverterPtr;
+    QScopedPointer<VideoFrameConverter> frameConverterPtr;
 
     QColor backgroundColor = Qt::black;
 };
@@ -82,7 +87,7 @@ QSharedPointer<Frame> OpenglRender::convertSupported_pix_fmt(QSharedPointer<Fram
     auto avframe = frame->avFrame();
     auto size = QSize(avframe->width, avframe->height);
     if (d_ptr->frameConverterPtr.isNull()) {
-        d_ptr->frameConverterPtr.reset(new FrameConverter(frame.data(), size, AV_PIX_FMT_RGBA));
+        d_ptr->frameConverterPtr.reset(new VideoFrameConverter(frame.data(), size, AV_PIX_FMT_RGBA));
     } else {
         d_ptr->frameConverterPtr->flush(frame.data(), size, AV_PIX_FMT_RGBA);
     }
@@ -194,6 +199,111 @@ void OpenglRender::updateYUV420P()
     d_ptr->programPtr->setUniformValue("tex_v", 2);
 }
 
+void OpenglRender::updateYUYV422()
+{
+    auto frame = d_ptr->framePtr->avFrame();
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureRGBA);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RGBA,
+                 frame->width / 2,
+                 frame->height,
+                 0,
+                 GL_RGBA,
+                 GL_UNSIGNED_BYTE,
+                 frame->data[0]);
+    d_ptr->programPtr->setUniformValue("tex_rgba", 4);
+}
+
+void OpenglRender::updateYUV422P()
+{
+    auto frame = d_ptr->framePtr->avFrame();
+    // Y
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureY);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RED,
+                 frame->width,
+                 frame->height,
+                 0,
+                 GL_RED,
+                 GL_UNSIGNED_BYTE,
+                 frame->data[0]);
+    d_ptr->programPtr->setUniformValue("tex_y", 0);
+    // U
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureU);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RED,
+                 frame->width / 2,
+                 frame->height,
+                 0,
+                 GL_RED,
+                 GL_UNSIGNED_BYTE,
+                 frame->data[1]);
+    d_ptr->programPtr->setUniformValue("tex_u", 1);
+    // V
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureV);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RED,
+                 frame->width / 2,
+                 frame->height,
+                 0,
+                 GL_RED,
+                 GL_UNSIGNED_BYTE,
+                 frame->data[2]);
+    d_ptr->programPtr->setUniformValue("tex_v", 2);
+}
+
+void OpenglRender::updateYUV444P()
+{
+    auto frame = d_ptr->framePtr->avFrame();
+    // Y
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureY);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RED,
+                 frame->width,
+                 frame->height,
+                 0,
+                 GL_RED,
+                 GL_UNSIGNED_BYTE,
+                 frame->data[0]);
+    d_ptr->programPtr->setUniformValue("tex_y", 0);
+    // U
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureU);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RED,
+                 frame->width,
+                 frame->height,
+                 0,
+                 GL_RED,
+                 GL_UNSIGNED_BYTE,
+                 frame->data[1]);
+    d_ptr->programPtr->setUniformValue("tex_u", 1);
+    // V
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureV);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RED,
+                 frame->width,
+                 frame->height,
+                 0,
+                 GL_RED,
+                 GL_UNSIGNED_BYTE,
+                 frame->data[2]);
+    d_ptr->programPtr->setUniformValue("tex_v", 2);
+}
+
 void OpenglRender::updateNV12()
 {
     auto frame = d_ptr->framePtr->avFrame();
@@ -215,14 +325,31 @@ void OpenglRender::updateNV12()
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureUV);
     glTexImage2D(GL_TEXTURE_2D,
                  0,
-                 GL_LUMINANCE_ALPHA, //GL_RG,
+                 GL_LUMINANCE_ALPHA, //GL_RG, GL_LUMINANCE_ALPHA
                  frame->width / 2,
                  frame->height / 2,
                  0,
-                 GL_LUMINANCE_ALPHA, //GL_RG,
+                 GL_LUMINANCE_ALPHA, //GL_RG, GL_LUMINANCE_ALPHA
                  GL_UNSIGNED_BYTE,
                  frame->data[1]);
     d_ptr->programPtr->setUniformValue("tex_uv", 3);
+}
+
+void OpenglRender::updateRGB()
+{
+    auto frame = d_ptr->framePtr->avFrame();
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureRGBA);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RGB,
+                 frame->width,
+                 frame->height,
+                 0,
+                 GL_RGB,
+                 GL_UNSIGNED_BYTE,
+                 frame->data[0]);
+    d_ptr->programPtr->setUniformValue("tex_rgba", 4);
 }
 
 void OpenglRender::updateRGBA()
@@ -314,6 +441,11 @@ void OpenglRender::paintGL()
     // 绑定纹理
     switch (format) {
     case AV_PIX_FMT_YUV420P: updateYUV420P(); break;
+    case AV_PIX_FMT_YUYV422: updateYUYV422(); break;
+    case AV_PIX_FMT_RGB24:
+    case AV_PIX_FMT_BGR24: updateRGB(); break;
+    case AV_PIX_FMT_YUV422P: updateYUV422P(); break;
+    case AV_PIX_FMT_YUV444P: updateYUV444P(); break;
     case AV_PIX_FMT_NV12: updateNV12(); break;
     case AV_PIX_FMT_ARGB:
     case AV_PIX_FMT_RGBA:

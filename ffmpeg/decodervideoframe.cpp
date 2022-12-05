@@ -62,6 +62,9 @@ void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoRender *> videoRender
 
 void DecoderVideoFrame::runDecoder()
 {
+    for (auto render : d_ptr->videoRenders) {
+        render->resetFps();
+    }
     quint64 dropNum = 0;
     while (m_runing) {
         checkPause();

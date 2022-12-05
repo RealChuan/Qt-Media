@@ -27,6 +27,7 @@ public:
     void setImage(const QImage &image);
 
     float fps();
+    void resetFps();
 
 protected:
     // may use in anthoer thread, suggest use QMetaObject::invokeMethod(Qt::QueuedConnection)

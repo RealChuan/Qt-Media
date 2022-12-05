@@ -1,5 +1,5 @@
 #include "decoderaudioframe.h"
-#include "avaudio.h"
+#include "audioframeconverter.h"
 #include "codeccontext.h"
 
 #include <QAudioDevice>
@@ -113,7 +113,7 @@ void DecoderAudioFrame::runDecoder()
     auto format = resetAudioOutput();
     d_ptr->seekTime = 0;
     setClock(0);
-    AVAudio avAudio(m_contextInfo->codecCtx(), format);
+    AudioFrameConverter audioConverter(m_contextInfo->codecCtx(), format);
     QElapsedTimer timer;
     if (d_ptr->isLocalFile) { // 音频播放依赖外部时钟，适用于本地文件播放
         qint64 pauseTime = 0;
@@ -139,7 +139,7 @@ void DecoderAudioFrame::runDecoder()
                 timer.restart();
             }
 
-            QByteArray audioBuf = avAudio.convert(framePtr.data());
+            QByteArray audioBuf = audioConverter.convert(framePtr.data());
             double speed_ = speed();
             double diff = pts * 1000 - d_ptr->seekTime - (timer.elapsed() - pauseTime) * speed_;
             {
@@ -177,7 +177,7 @@ void DecoderAudioFrame::runDecoder()
                 continue;
             }
 
-            QByteArray audioBuf = avAudio.convert(framePtr.data());
+            QByteArray audioBuf = audioConverter.convert(framePtr.data());
             double speed_ = speed();
             double diff = 0;
             auto pts_ = pts * 1000;
@@ -301,7 +301,7 @@ QAudioFormat DecoderAudioFrame::resetAudioOutput()
     printAudioOuputDevice();
 
     int sampleSzie = 0;
-    auto format = geAudioFormatFromCodecCtx(m_contextInfo->codecCtx(), sampleSzie);
+    auto format = getAudioFormatFromCodecCtx(m_contextInfo->codecCtx(), sampleSzie);
     d_ptr->audioSinkPtr.reset(new QAudioSink(format));
     d_ptr->audioSinkPtr->setBufferSize(format.sampleRate() * sampleSzie / 8);
     d_ptr->audioSinkPtr->setVolume(d_ptr->volume);

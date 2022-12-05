@@ -8,7 +8,7 @@ set(PROJECT_SOURCES
         videorender/videorender.cc videorender/videorender.hpp
 
         audiodecoder.cpp audiodecoder.h
-        avaudio.cpp avaudio.h
+        audioframeconverter.cpp audioframeconverter.h
         avcontextinfo.cpp avcontextinfo.h
         averror.cpp averror.h
         codeccontext.cpp codeccontext.h
@@ -18,13 +18,13 @@ set(PROJECT_SOURCES
         ffmepg_global.h
         formatcontext.cpp formatcontext.h
         frame.cc frame.hpp
-        frameconverter.cc frameconverter.hpp
         hardwaredecode.cc hardwaredecode.hpp
         packet.cpp packet.h
         player.cpp player.h
         subtitle.cpp subtitle.h
         subtitledecoder.cpp subtitledecoder.h
-        videodecoder.cpp videodecoder.h)
+        videodecoder.cpp videodecoder.h
+        videoframeconverter.cc videoframeconverter.hpp)
 
 qt_add_resources(SOURCES videooutput/shader/shader.qrc)
 qt_add_resources(SOURCES videorender/shaders.qrc)

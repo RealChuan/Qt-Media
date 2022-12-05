@@ -33,7 +33,11 @@ private:
     void initVbo();
     void initTexture();
     void updateYUV420P();
+    void updateYUYV422();
+    void updateYUV422P();
+    void updateYUV444P();
     void updateNV12();
+    void updateRGB();
     void updateRGBA();
     void displayFrame(QSharedPointer<Frame> framePtr);
 
