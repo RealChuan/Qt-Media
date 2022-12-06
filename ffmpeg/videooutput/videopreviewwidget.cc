@@ -3,9 +3,9 @@
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/decoder.h>
 #include <ffmpeg/frame.hpp>
-#include <ffmpeg/videoframeconverter.hpp>
 #include <ffmpeg/hardwaredecode.hpp>
 #include <ffmpeg/videodecoder.h>
+#include <ffmpeg/videoframeconverter.hpp>
 
 #include <QPainter>
 #include <QRunnable>
@@ -146,11 +146,15 @@ void VideoPreviewWidget::setDisplayImage(QSharedPointer<Frame> frame,
                                          const QImage &image,
                                          qint64 pts)
 {
-    d_ptr->frame = frame;
     d_ptr->timestamp = pts;
     d_ptr->image = image.scaled(width(), height(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
     QMetaObject::invokeMethod(
-        this, [this] { update(); }, Qt::QueuedConnection);
+        this,
+        [=] {
+            d_ptr->frame = frame;
+            update();
+        },
+        Qt::QueuedConnection);
 }
 
 void VideoPreviewWidget::paintEvent(QPaintEvent *event)

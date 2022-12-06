@@ -41,24 +41,39 @@ void main()
     vec3 yuv;
     vec3 rgb;
 
-    if (format == 0 || format == 4 || format == 5) { // YUV420P
-        yuv.x = texture2D(tex_y, TexCord).r - 16. / 256;
-        yuv.y = texture2D(tex_u, TexCord).r - 0.5;
-        yuv.z = texture2D(tex_v, TexCord).r - 0.5;
+    if (format == 0 || format == 4 || format == 5 || format == 6 || format == 7) { // YUV420P
+        yuv.x = texture2D(tex_y, TexCord).r;
+        yuv.y = texture2D(tex_u, TexCord).r;
+        yuv.z = texture2D(tex_v, TexCord).r;
     } else if (format == 1) { // YUYV422
-        yuv.x = texture(tex_rgba, TexCord).r - 16. / 256;
-        yuv.y = texture(tex_rgba, TexCord).g - 0.5;
-        yuv.z = texture(tex_rgba, TexCord).a - 0.5;
-    } else if (format == 2) { // RGB24
+        yuv.x = texture(tex_rgba, TexCord).r;
+        yuv.y = texture(tex_rgba, TexCord).g;
+        yuv.z = texture(tex_rgba, TexCord).a;
+    } else if (format == 2 || format == 17 || format == 20) { // RGB24
         gl_FragColor = vec4(texture(tex_rgba, TexCord).rgb, 1);
         return;
     } else if (format == 3) { // BGR24
         gl_FragColor = vec4(texture(tex_rgba, TexCord).bgr, 1);
         return;
+    } else if (format == 15) { // UYVY422
+        int width = textureSize(tex_rgba, 0).x * 2;
+        float tex_x = TexCord.x;
+        int pixel = int(floor(width * tex_x)) % 2;
+        vec4 tc = texture(tex_rgba, TexCord).rgba;
+        float cb = tc.r;
+        float y1 = tc.g;
+        float cr = tc.b;
+        float y2 = tc.a;
+        float y = (pixel == 1) ? y2 : y1;
+        yuv = vec3(y, cb, cr);
     } else if (format == 23) { // NV12
-        yuv.x = texture2D(tex_y, TexCord.st).r - 16. / 256;
-        yuv.y = texture2D(tex_uv, TexCord.st).r - 0.5;
-        yuv.z = texture2D(tex_uv, TexCord.st).a - 0.5;
+        yuv.x = texture2D(tex_y, TexCord.st).r;
+        yuv.y = texture2D(tex_uv, TexCord.st).r;
+        yuv.z = texture2D(tex_uv, TexCord.st).a;
+    } else if (format == 24) { // NV21
+        yuv.x = texture2D(tex_y, TexCord.st).r;
+        yuv.y = texture2D(tex_uv, TexCord.st).a;
+        yuv.z = texture2D(tex_uv, TexCord.st).r;
     } else if (format == 25) { // ARGB
         gl_FragColor = texture(tex_rgba, TexCord).gbar;
         return;
@@ -86,9 +101,7 @@ void main()
     } else {
     }
 
-    //rgb = mat3(1, 1, 1, 0, -0.39465, 2.03211, 1.13983, -0.58060, 0) * yuv;
-
-    //yuv += offset;
+    yuv += offset;
     rgb.r = dot(yuv, Rcoeff);
     rgb.g = dot(yuv, Gcoeff);
     rgb.b = dot(yuv, Bcoeff);

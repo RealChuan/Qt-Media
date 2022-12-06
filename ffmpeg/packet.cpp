@@ -36,6 +36,26 @@ void Packet::clear()
     av_packet_unref(m_packet);
 }
 
+void Packet::setPts(double pts)
+{
+    m_pts = pts;
+}
+
+double Packet::pts()
+{
+    return m_pts;
+}
+
+void Packet::setDuration(double duration)
+{
+    m_duration = duration;
+}
+
+double Packet::duration()
+{
+    return m_duration;
+}
+
 AVPacket *Packet::avPacket()
 {
     Q_ASSERT(nullptr != m_packet);

@@ -3,6 +3,10 @@
 
 #include <QObject>
 
+extern "C" {
+#include <libavutil/avutil.h>
+}
+
 #define Seek_Offset 2 // S
 
 struct AVStream;
@@ -29,6 +33,8 @@ public:
     QMap<int, QString> audioMap() const;
     QVector<int> videoIndexs() const;
     QMap<int, QString> subtitleMap() const;
+
+    int findBestStreamIndex(AVMediaType type) const;
 
     AVStream *stream(int index); //音频流
 

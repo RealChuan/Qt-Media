@@ -17,10 +17,18 @@ public:
 
     void clear();
 
+    void setPts(double pts);
+    double pts();
+
+    void setDuration(double duration);
+    double duration();
+
     AVPacket *avPacket();
 
 private:
     AVPacket *m_packet;
+    double m_pts = 0;
+    double m_duration = 0;
 };
 
 } // namespace Ffmpeg

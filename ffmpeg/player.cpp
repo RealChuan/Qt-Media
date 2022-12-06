@@ -89,7 +89,7 @@ void Player::onSetFilePath(const QString &filepath)
     onStop();
     d_ptr->filepath = filepath;
     d_ptr->audioDecoder->setIsLocalFile(QFile::exists(filepath));
-    initAvCode();
+    initAvCodec();
     if (!d_ptr->isopen) {
         qWarning() << "initAvCode Error";
         return;
@@ -133,7 +133,9 @@ void Player::onSeek(int timestamp)
     if (d_ptr->seek) {
         return;
     }
-    blockSignals(true);
+    if (isRunning()) {
+        blockSignals(true);
+    }
     d_ptr->seek = true;
     d_ptr->seekTime = timestamp;
 }
@@ -149,7 +151,7 @@ void Player::onSetAudioTracks(const QString &text) // 停止再播放最简单 �
     int subtitleIndex = d_ptr->subtitleInfo->index();
 
     onStop();
-    initAvCode();
+    initAvCodec();
     if (subtitleIndex >= 0) {
         if (!setMediaIndex(d_ptr->subtitleInfo, subtitleIndex)) {
             return;
@@ -176,7 +178,7 @@ void Player::onSetSubtitleStream(const QString &text)
     int audioIndex = d_ptr->audioInfo->index();
 
     onStop();
-    initAvCode();
+    initAvCodec();
     if (audioIndex >= 0) {
         if (!setMediaIndex(d_ptr->audioInfo, audioIndex)) {
             return;
@@ -220,7 +222,7 @@ double Player::speed()
     return d_ptr->audioDecoder->speed();
 }
 
-bool Player::initAvCode()
+bool Player::initAvCodec()
 {
     d_ptr->isopen = false;
 
@@ -240,7 +242,7 @@ bool Player::initAvCode()
     d_ptr->audioInfo->resetIndex();
     QMap<int, QString> audioTracks = d_ptr->formatCtx->audioMap();
     if (!audioTracks.isEmpty()) {
-        int audioIndex = audioTracks.firstKey();
+        int audioIndex = d_ptr->formatCtx->findBestStreamIndex(AVMEDIA_TYPE_AUDIO);
         if (!setMediaIndex(d_ptr->audioInfo, audioIndex)) {
             return false;
         }
@@ -255,8 +257,9 @@ bool Player::initAvCode()
     }
 
     d_ptr->videoInfo->resetIndex();
-    if (!d_ptr->formatCtx->videoIndexs().isEmpty()) {
-        int videoIndex = d_ptr->formatCtx->videoIndexs().at(0);
+    auto videoIndexs = d_ptr->formatCtx->videoIndexs();
+    if (!videoIndexs.isEmpty()) {
+        int videoIndex = videoIndexs.first();
         if (!setMediaIndex(d_ptr->videoInfo, videoIndex)) {
             d_ptr->videoInfo->resetIndex();
         }
@@ -265,7 +268,7 @@ bool Player::initAvCode()
     d_ptr->subtitleInfo->resetIndex();
     QMap<int, QString> subtitleTracks = d_ptr->formatCtx->subtitleMap();
     if (!subtitleTracks.isEmpty()) {
-        int subtitleIndex = subtitleTracks.firstKey();
+        int subtitleIndex = d_ptr->formatCtx->findBestStreamIndex(AVMEDIA_TYPE_SUBTITLE);
         if (!setMediaIndex(d_ptr->subtitleInfo, subtitleIndex)) {
             return false;
         }

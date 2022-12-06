@@ -36,6 +36,10 @@ private:
     void updateYUYV422();
     void updateYUV422P();
     void updateYUV444P();
+    void updateYUV410P();
+    void updateYUV411P();
+    void updateUYVY422();
+    void updateRGB8(int dataType);
     void updateNV12();
     void updateRGB();
     void updateRGBA();

@@ -79,7 +79,7 @@ protected:
 
 private:
     void buildConnect(bool state = true);
-    bool initAvCode();
+    bool initAvCodec();
     void playVideo();
     void checkSeek();
     void setMediaState(MediaState mediaState);

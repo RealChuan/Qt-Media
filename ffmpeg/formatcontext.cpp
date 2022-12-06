@@ -120,6 +120,11 @@ QMap<int, QString> FormatContext::subtitleMap() const
     return d_ptr->subtitleMap;
 }
 
+int FormatContext::findBestStreamIndex(AVMediaType type) const
+{
+    return av_find_best_stream(d_ptr->formatCtx, type, -1, -1, nullptr, 0);
+}
+
 void FormatContext::findStreamIndex()
 {
     d_ptr->videoIndexs.clear();

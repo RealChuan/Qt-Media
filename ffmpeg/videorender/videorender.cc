@@ -48,6 +48,14 @@ public:
         timer.restart();
     }
 
+    void resetFps()
+    {
+        avgDuration = 0.f;
+        frameCount = 0;
+        fps = 0;
+        timer.invalidate();
+    }
+
     float fps = 0;
     QElapsedTimer timer;
 };
@@ -82,9 +90,7 @@ float VideoRender::fps()
 
 void VideoRender::resetFps()
 {
-    avgDuration = 0.f;
-    alpha = 1.f / 100.f; // 采样数设置为100
-    frameCount = 0;
+    d_ptr->resetFps();
 }
 
 } // namespace Ffmpeg

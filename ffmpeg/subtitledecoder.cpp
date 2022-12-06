@@ -50,20 +50,20 @@ void SubtitleDecoder::runDecoder()
     while (m_runing) {
         checkPause();
         checkSeek();
-        if (m_queue.isEmpty()) {
+
+        QScopedPointer<Packet> packetPtr(m_queue.dequeue());
+        if (packetPtr.isNull()) {
             msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
-
-        QScopedPointer<Packet> packetPtr(m_queue.dequeue());
         if (!m_contextInfo->decodeSubtitle2(&subtitle, packetPtr.data())) {
             continue;
         }
 
-        double duration = 0;
-        double pts = 0;
-        calculateTime(packetPtr->avPacket(), duration, pts);
-        subtitle.setDefault(pts, duration, (const char *) packetPtr->avPacket()->data);
+        Ffmpeg::calculateTime(packetPtr.data(), m_contextInfo);
+        subtitle.setDefault(packetPtr->pts(),
+                            packetPtr->duration(),
+                            (const char *) packetPtr->avPacket()->data);
         QVector<SubtitleImage> subtitles = subtitle.subtitleImages();
         subtitle.clear();
         if (subtitles.isEmpty()) {

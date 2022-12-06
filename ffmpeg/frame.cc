@@ -46,12 +46,16 @@ Frame::~Frame()
     av_frame_free(&m_frame);
 }
 
-bool Frame::imageAlloc(const QSize &size, AVPixelFormat pix_fmt)
+bool Frame::imageAlloc(const QSize &size, AVPixelFormat pix_fmt, int align)
 {
     Q_ASSERT(size.isValid());
     m_imageAlloc = true;
-    int ret
-        = av_image_alloc(m_frame->data, m_frame->linesize, size.width(), size.height(), pix_fmt, 1);
+    int ret = av_image_alloc(m_frame->data,
+                             m_frame->linesize,
+                             size.width(),
+                             size.height(),
+                             pix_fmt,
+                             align);
     return ret >= 0;
 }
 
