@@ -36,12 +36,12 @@ public:
     QRectF frameRect;
     QSharedPointer<Frame> framePtr;
     QVector<AVPixelFormat> supportFormats
-        = {AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUYV422, AV_PIX_FMT_RGB24,   AV_PIX_FMT_BGR24,
-           AV_PIX_FMT_YUV422P, AV_PIX_FMT_YUV444P, AV_PIX_FMT_YUV410P, AV_PIX_FMT_YUV411P,
-           AV_PIX_FMT_UYVY422, AV_PIX_FMT_BGR8,    AV_PIX_FMT_RGB8,    AV_PIX_FMT_NV12,
-           AV_PIX_FMT_NV21,    AV_PIX_FMT_ARGB,    AV_PIX_FMT_RGBA,    AV_PIX_FMT_ABGR,
-           AV_PIX_FMT_BGRA,    AV_PIX_FMT_0RGB,    AV_PIX_FMT_RGB0,    AV_PIX_FMT_0BGR,
-           AV_PIX_FMT_BGR0};
+        = {AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUYV422,     AV_PIX_FMT_RGB24,   AV_PIX_FMT_BGR24,
+           AV_PIX_FMT_YUV422P, AV_PIX_FMT_YUV444P,     AV_PIX_FMT_YUV410P, AV_PIX_FMT_YUV411P,
+           AV_PIX_FMT_UYVY422, AV_PIX_FMT_BGR8,        AV_PIX_FMT_RGB8,    AV_PIX_FMT_NV12,
+           AV_PIX_FMT_NV21,    AV_PIX_FMT_ARGB,        AV_PIX_FMT_RGBA,    AV_PIX_FMT_ABGR,
+           AV_PIX_FMT_BGRA,    AV_PIX_FMT_YUV420P10LE, AV_PIX_FMT_0RGB,    AV_PIX_FMT_RGB0,
+           AV_PIX_FMT_0BGR,    AV_PIX_FMT_BGR0,        AV_PIX_FMT_P010LE};
     QScopedPointer<VideoFrameConverter> frameConverterPtr;
 
     QColor backgroundColor = Qt::black;
@@ -483,6 +483,81 @@ void OpenglRender::updateRGBA()
     d_ptr->programPtr->setUniformValue("tex_rgba", 4);
 }
 
+void OpenglRender::updateYUV420P10LE()
+{
+    auto frame = d_ptr->framePtr->avFrame();
+    // Y
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureY);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_LUMINANCE_ALPHA,
+                 frame->width,
+                 frame->height,
+                 0,
+                 GL_LUMINANCE_ALPHA,
+                 GL_UNSIGNED_BYTE,
+                 frame->data[0]);
+    d_ptr->programPtr->setUniformValue("tex_y", 0);
+    // U
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureU);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_LUMINANCE_ALPHA,
+                 frame->width / 2,
+                 frame->height / 2,
+                 0,
+                 GL_LUMINANCE_ALPHA,
+                 GL_UNSIGNED_BYTE,
+                 frame->data[1]);
+    d_ptr->programPtr->setUniformValue("tex_u", 1);
+    // V
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureV);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_LUMINANCE_ALPHA,
+                 frame->width / 2,
+                 frame->height / 2,
+                 0,
+                 GL_LUMINANCE_ALPHA,
+                 GL_UNSIGNED_BYTE,
+                 frame->data[2]);
+    d_ptr->programPtr->setUniformValue("tex_v", 2);
+}
+
+void OpenglRender::updateP010LE()
+{
+    auto frame = d_ptr->framePtr->avFrame();
+    // Y
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureY);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RED,
+                 frame->width,
+                 frame->height,
+                 0,
+                 GL_RED,
+                 GL_UNSIGNED_SHORT,
+                 frame->data[0]);
+    d_ptr->programPtr->setUniformValue("tex_y", 0);
+    // UV
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureUV);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_LUMINANCE_ALPHA,
+                 frame->width / 2,
+                 frame->height / 2,
+                 0,
+                 GL_LUMINANCE_ALPHA,
+                 GL_UNSIGNED_SHORT,
+                 frame->data[1]);
+    d_ptr->programPtr->setUniformValue("tex_uv", 3);
+}
+
 void OpenglRender::displayFrame(QSharedPointer<Frame> framePtr)
 {
     auto avFrame = framePtr->avFrame();
@@ -575,6 +650,8 @@ void OpenglRender::paintGL()
     case AV_PIX_FMT_RGB0:
     case AV_PIX_FMT_0BGR:
     case AV_PIX_FMT_BGR0: updateRGBA(); break;
+    case AV_PIX_FMT_YUV420P10LE: updateYUV420P10LE(); break;
+    case AV_PIX_FMT_P010LE: updateP010LE(); break;
     default: break;
     }
 

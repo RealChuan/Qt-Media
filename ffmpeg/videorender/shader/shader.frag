@@ -66,14 +66,14 @@ void main()
         float y2 = tc.a;
         float y = (pixel == 1) ? y2 : y1;
         yuv = vec3(y, cb, cr);
-    } else if (format == 23) { // NV12
-        yuv.x = texture2D(tex_y, TexCord.st).r;
-        yuv.y = texture2D(tex_uv, TexCord.st).r;
-        yuv.z = texture2D(tex_uv, TexCord.st).a;
+    } else if (format == 23 || format == 161) { // NV12
+        yuv.x = texture2D(tex_y, TexCord).r;
+        yuv.y = texture2D(tex_uv, TexCord).r;
+        yuv.z = texture2D(tex_uv, TexCord).a;
     } else if (format == 24) { // NV21
-        yuv.x = texture2D(tex_y, TexCord.st).r;
-        yuv.y = texture2D(tex_uv, TexCord.st).a;
-        yuv.z = texture2D(tex_uv, TexCord.st).r;
+        yuv.x = texture2D(tex_y, TexCord).r;
+        yuv.y = texture2D(tex_uv, TexCord).a;
+        yuv.z = texture2D(tex_uv, TexCord).r;
     } else if (format == 25) { // ARGB
         gl_FragColor = texture(tex_rgba, TexCord).gbar;
         return;
@@ -86,6 +86,16 @@ void main()
     } else if (format == 28) { // BGRA
         gl_FragColor = texture(tex_rgba, TexCord).bgra;
         return;
+    } else if (format == 64) { // YUV420P10LE
+        vec3 yuv_l;
+        vec3 yuv_h;
+        yuv_l.x = texture2D(tex_y, TexCord).r;
+        yuv_h.x = texture2D(tex_y, TexCord).a;
+        yuv_l.y = texture2D(tex_u, TexCord).r;
+        yuv_h.y = texture2D(tex_u, TexCord).a;
+        yuv_l.z = texture2D(tex_v, TexCord).r;
+        yuv_h.z = texture2D(tex_v, TexCord).a;
+        yuv = (yuv_l * 255.0 + yuv_h * 255.0 * 256.0) / (1023.0);
     } else if (format == 120) { // 0RGB
         gl_FragColor = vec4(texture(tex_rgba, TexCord).gba, 1);
         return;

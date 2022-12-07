@@ -43,6 +43,8 @@ private:
     void updateNV12();
     void updateRGB();
     void updateRGBA();
+    void updateYUV420P10LE();
+    void updateP010LE();
     void displayFrame(QSharedPointer<Frame> framePtr);
 
     class OpenglRenderPrivate;
