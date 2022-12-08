@@ -7,34 +7,8 @@ uniform sampler2D tex_v;
 uniform sampler2D tex_uv;
 uniform sampler2D tex_rgba;
 
-//******************************code form SDL***********************
-//#define JPEG_SHADER_CONSTANTS
-// YUV offset \n"
-// const vec3 offset = vec3(0, -0.501960814, -0.501960814);
-
-// // RGB coefficients \n"
-// const vec3 Rcoeff = vec3(1, 0.000, 1.402);
-// const vec3 Gcoeff = vec3(1, -0.3441, -0.7141);
-// const vec3 Bcoeff = vec3(1, 1.772, 0.000);
-
-//#define BT601_SHADER_CONSTANTS
-// YUV offset \n"
-// const vec3 offset = vec3(-0.0627451017, -0.501960814, -0.501960814);
-
-// // RGB coefficients \n"
-// const vec3 Rcoeff = vec3(1.1644, 0.000, 1.596);
-// const vec3 Gcoeff = vec3(1.1644, -0.3918, -0.813);
-// const vec3 Bcoeff = vec3(1.1644, 2.0172, 0.000);
-
-//#define BT709_SHADER_CONSTANTS
-// YUV offset \n"
-const vec3 offset = vec3(-0.0627451017, -0.501960814, -0.501960814);
-
-// RGB coefficients \n"
-const vec3 Rcoeff = vec3(1.1644, 0.000, 1.7927);
-const vec3 Gcoeff = vec3(1.1644, -0.2132, -0.5329);
-const vec3 Bcoeff = vec3(1.1644, 2.1124, 0.000);
-//**************************************************************
+uniform vec3 offset;
+uniform mat3 colorConversion;
 
 void main()
 {
@@ -112,9 +86,7 @@ void main()
     }
 
     yuv += offset;
-    rgb.r = dot(yuv, Rcoeff);
-    rgb.g = dot(yuv, Gcoeff);
-    rgb.b = dot(yuv, Bcoeff);
+    rgb = yuv * colorConversion;
 
     gl_FragColor = vec4(rgb, 1.0);
 }

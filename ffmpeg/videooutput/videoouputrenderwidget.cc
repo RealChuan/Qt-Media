@@ -21,17 +21,13 @@ void VideoOuputRenderWidget::setDisplayImage(const QImage &image)
         qWarning() << "image is null!";
         return;
     }
-    m_image = image;
-    checkSubtitle();
     QMetaObject::invokeMethod(
-        this, [this] { update(); }, Qt::QueuedConnection);
-}
-
-void VideoOuputRenderWidget::onSubtitleImages(const QVector<SubtitleImage> &subtitleImages)
-{
-    m_subtitleImages = subtitleImages;
-    checkSubtitle();
-    update();
+        this,
+        [&] {
+            m_image = image;
+            update();
+        },
+        Qt::QueuedConnection);
 }
 
 void VideoOuputRenderWidget::paintEvent(QPaintEvent *event)

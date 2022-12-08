@@ -4,10 +4,6 @@
 #include "decoder.h"
 #include "frame.hpp"
 
-#include <utils/taskqueue.h>
-
-struct AVFrame;
-
 namespace Ffmpeg {
 
 class VideoOutputRender;

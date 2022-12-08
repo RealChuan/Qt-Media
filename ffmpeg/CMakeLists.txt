@@ -12,8 +12,10 @@ set(PROJECT_SOURCES
         avcontextinfo.cpp avcontextinfo.h
         averror.cpp averror.h
         codeccontext.cpp codeccontext.h
+        colorspace.hpp
         decoder.cc decoder.h
         decoderaudioframe.cpp decoderaudioframe.h
+        decodersubtitleframe.cc decodersubtitleframe.hpp
         decodervideoframe.cpp decodervideoframe.h
         ffmepg_global.h
         formatcontext.cpp formatcontext.h

@@ -17,7 +17,6 @@ public:
     ~VideoOutputRenderOpenGLRender();
 
     void setDisplayImage(const QImage &image) override;
-    void onSubtitleImages(const QVector<Ffmpeg::SubtitleImage> &) override;
 
 protected:
     void initializeGL() override;

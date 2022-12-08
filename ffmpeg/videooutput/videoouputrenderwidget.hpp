@@ -13,7 +13,6 @@ public:
     explicit VideoOuputRenderWidget(QWidget *parent = nullptr);
 
     void setDisplayImage(const QImage &image) override;
-    void onSubtitleImages(const QVector<Ffmpeg::SubtitleImage> &) override;
 
 protected:
     void paintEvent(QPaintEvent *event) override;

@@ -1,5 +1,6 @@
 #include "openglrender.hpp"
 
+#include <ffmpeg/colorspace.hpp>
 #include <ffmpeg/frame.hpp>
 #include <ffmpeg/videoframeconverter.hpp>
 
@@ -558,6 +559,23 @@ void OpenglRender::updateP010LE()
     d_ptr->programPtr->setUniformValue("tex_uv", 3);
 }
 
+void OpenglRender::setColorSpace()
+{
+    auto avFrame = d_ptr->framePtr->avFrame();
+    switch (avFrame->colorspace) {
+    case AVCOL_SPC_BT470BG:
+    case AVCOL_SPC_SMPTE170M:
+        d_ptr->programPtr->setUniformValue("offset", ColorSpace::kBT601Offset);
+        d_ptr->programPtr->setUniformValue("colorConversion", QMatrix3x3(ColorSpace::kBT601Matrix));
+        break;
+    //case AVCOL_SPC_BT709:
+    default:
+        d_ptr->programPtr->setUniformValue("offset", ColorSpace::kBT7090ffset);
+        d_ptr->programPtr->setUniformValue("colorConversion", QMatrix3x3(ColorSpace::kBT709Matrix));
+        break;
+    }
+}
+
 void OpenglRender::displayFrame(QSharedPointer<Frame> framePtr)
 {
     auto avFrame = framePtr->avFrame();
@@ -625,7 +643,7 @@ void OpenglRender::paintGL()
     d_ptr->programPtr->bind(); // 绑定着色器
     d_ptr->programPtr->setUniformValue("format", format);
 #ifndef QT_NO_DEBUG
-    qDebug() << format;
+    //qDebug() << format;
 #endif
     // 绑定纹理
     switch (format) {
@@ -654,6 +672,8 @@ void OpenglRender::paintGL()
     case AV_PIX_FMT_P010LE: updateP010LE(); break;
     default: break;
     }
+
+    setColorSpace();
 
     glBindVertexArray(d_ptr->vao); // 绑定VAO
     glDrawElements(

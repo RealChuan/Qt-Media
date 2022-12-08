@@ -5,17 +5,9 @@
 #include <QObject>
 
 struct AVSubtitle;
+struct SwsContext;
 
 namespace Ffmpeg {
-
-struct SubtitleImage
-{
-    QRectF rectF;
-    QImage image;
-    QString text;
-    qint64 startDisplayTime; // ms
-    qint64 endDisplayTime;   // ms
-};
 
 class Subtitle : public QObject
 {
@@ -26,15 +18,17 @@ public:
 
     void setDefault(double pts, double duration, const QString &text);
 
-    QVector<SubtitleImage> subtitleImages();
+    void parse(SwsContext *swsContext);
 
     AVSubtitle *avSubtitle();
 
     void clear();
 
+    quint64 pts();
+
 private:
-    QVector<SubtitleImage> scale();
-    QVector<SubtitleImage> text();
+    void parseImage(SwsContext *swsContext);
+    void parseText();
 
     class SubtitlePrivate;
     QScopedPointer<SubtitlePrivate> d_ptr;

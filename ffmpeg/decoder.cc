@@ -37,4 +37,16 @@ void calculateTime(Packet *packet, AVContextInfo *contextInfo)
     //qDebug() << duration << pts;}
 }
 
+static std::atomic<double> g_meidaClock;
+
+void setMediaClock(double value)
+{
+    g_meidaClock.store(value);
+}
+
+double mediaClock()
+{
+    return g_meidaClock.load();
+}
+
 } // namespace Ffmpeg

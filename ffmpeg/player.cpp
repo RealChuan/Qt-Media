@@ -163,7 +163,7 @@ void Player::onSetAudioTracks(const QString &text) // 停止再播放最简单 �
         return;
     }
     emit audioTrackChanged(text);
-    onSeek(d_ptr->audioDecoder->clock());
+    onSeek(mediaClock());
     onPlay();
 }
 
@@ -189,7 +189,7 @@ void Player::onSetSubtitleStream(const QString &text)
         return;
     }
     emit subtitleStreamChanged(text);
-    onSeek(d_ptr->audioDecoder->clock());
+    onSeek(mediaClock());
     onPlay();
 }
 
@@ -424,7 +424,7 @@ qint64 Player::duration() const
 
 qint64 Player::position() const
 {
-    return d_ptr->audioDecoder->clock() * 1000;
+    return mediaClock() * 1000;
 }
 
 qint64 Player::fames() const
@@ -460,14 +460,6 @@ int Player::subtitleIndex() const
 void Player::setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRenders)
 {
     d_ptr->videoOutputRenders = videoOutputRenders;
-    connect(this,
-            &Player::subtitleImages,
-            this,
-            [this](const QVector<Ffmpeg::SubtitleImage> &SubtitleImages) {
-                for (auto render : d_ptr->videoOutputRenders) {
-                    render->onSubtitleImages(SubtitleImages);
-                }
-            });
     d_ptr->videoDecoder->setVideoOutputRenders(videoOutputRenders);
 }
 
@@ -498,20 +490,11 @@ void Player::buildConnect(bool state)
                 this,
                 &Player::positionChanged,
                 Qt::UniqueConnection);
-        connect(d_ptr->subtitleDecoder,
-                &SubtitleDecoder::subtitleImages,
-                this,
-                &Player::subtitleImages,
-                Qt::UniqueConnection);
     } else {
         disconnect(d_ptr->audioDecoder,
                    &AudioDecoder::positionChanged,
                    this,
                    &Player::positionChanged);
-        disconnect(d_ptr->subtitleDecoder,
-                   &SubtitleDecoder::subtitleImages,
-                   this,
-                   &Player::subtitleImages);
     }
 }
 

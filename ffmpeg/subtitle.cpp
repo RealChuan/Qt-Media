@@ -16,7 +16,7 @@ public:
     SubtitlePrivate(QObject *parent)
         : owner(parent)
     {}
-    ~SubtitlePrivate() {}
+    ~SubtitlePrivate() { freeSubtitle(); }
 
     void freeSubtitle() { avsubtitle_free(&subtitle); }
 
@@ -25,6 +25,13 @@ public:
     double pts = 0;
     double duration = 0;
     QString text;
+
+    SwsContext *swsContext;
+    bool isText;
+
+    QVector<QImage> images;
+    QVector<QRect> rect;
+    QStringList texts;
 };
 
 Subtitle::Subtitle(QObject *parent)
@@ -41,59 +48,60 @@ void Subtitle::setDefault(double pts, double duration, const QString &text)
     d_ptr->text = text;
 }
 
-QVector<SubtitleImage> Subtitle::subtitleImages()
+void Subtitle::parse(SwsContext *swsContext)
 {
     switch (d_ptr->subtitle.format) {
-    case 0: return scale();
-    default: return text();
+    case 0:
+        d_ptr->isText = true;
+        parseImage(swsContext);
+        break;
+    default:
+        d_ptr->isText = false;
+        parseText();
+        break;
     }
 }
 
-QVector<SubtitleImage> Subtitle::scale()
+void Subtitle::parseImage(SwsContext *swsContext)
 {
-    QVector<SubtitleImage> subtitleImages;
     for (size_t i = 0; i < d_ptr->subtitle.num_rects; i++) {
-        AVSubtitleRect *sub_rect = d_ptr->subtitle.rects[i];
+        auto sub_rect = d_ptr->subtitle.rects[i];
 
-        int dst_linesize[4];
-        uint8_t *dst_data[4];
+        uint8_t *pixels[4];
+        int pitch[4];
         //注意，这里是RGBA格式，需要Alpha
-        av_image_alloc(dst_data, dst_linesize, sub_rect->w, sub_rect->h, AV_PIX_FMT_RGBA, 1);
-        SwsContext *swsContext = sws_getContext(sub_rect->w,
-                                                sub_rect->h,
-                                                AV_PIX_FMT_PAL8,
-                                                sub_rect->w,
-                                                sub_rect->h,
-                                                AV_PIX_FMT_RGBA,
-                                                SWS_BILINEAR,
-                                                nullptr,
-                                                nullptr,
-                                                nullptr);
-        sws_scale(swsContext,
+        av_image_alloc(pixels, pitch, sub_rect->w, sub_rect->h, AV_PIX_FMT_RGBA, 1);
+        swsContext = sws_getCachedContext(swsContext,
+                                          sub_rect->w,
+                                          sub_rect->h,
+                                          AV_PIX_FMT_PAL8,
+                                          sub_rect->w,
+                                          sub_rect->h,
+                                          AV_PIX_FMT_RGBA,
+                                          SWS_BILINEAR,
+                                          nullptr,
+                                          nullptr,
+                                          nullptr);
+        sws_scale(d_ptr->swsContext,
                   sub_rect->data,
                   sub_rect->linesize,
                   0,
                   sub_rect->h,
-                  dst_data,
-                  dst_linesize);
-        sws_freeContext(swsContext);
+                  pixels,
+                  pitch);
         //这里也使用RGBA
-        QImage image = QImage(dst_data[0], sub_rect->w, sub_rect->h, QImage::Format_RGBA8888).copy();
-        av_freep(&dst_data[0]);
+        auto image = QImage(pixels[0], sub_rect->w, sub_rect->h, QImage::Format_RGBA8888).copy();
+        av_freep(&pixels[0]);
 
-        subtitleImages.append(
-            SubtitleImage{QRectF(sub_rect->x, sub_rect->y, sub_rect->w, sub_rect->h),
-                          image,
-                          "",
-                          d_ptr->subtitle.start_display_time,
-                          d_ptr->subtitle.end_display_time});
+        d_ptr->images.append(image);
+        d_ptr->rect.append({sub_rect->x, sub_rect->y, sub_rect->w, sub_rect->h});
     }
-    return subtitleImages;
+    d_ptr->subtitle.start_display_time /= 1000;
+    d_ptr->subtitle.end_display_time /= 1000;
 }
 
-QVector<SubtitleImage> Subtitle::text()
+void Subtitle::parseText()
 {
-    QVector<SubtitleImage> subtitleImages;
     for (size_t i = 0; i < d_ptr->subtitle.num_rects; i++) {
         AVSubtitleRect *sub_rect = d_ptr->subtitle.rects[i];
         QString str;
@@ -102,20 +110,11 @@ QVector<SubtitleImage> Subtitle::text()
         case AVSubtitleType::SUBTITLE_ASS: str = sub_rect->ass; break;
         default: continue;
         }
-        qDebug() << "Subtitle::text" << str;
-        //    subtitleImages.append(SubtitleImage{QRectF(sub_rect->x, sub_rect->y, sub_rect->w, sub_rect->h),
-        //                                        QImage(),
-        //                                        str,
-        //                                        qint64(d_ptr->pts * 1000),
-        //                                        qint64((d_ptr->pts + d_ptr->duration) * 1000)});
-        //}
+        qDebug() << "Subtitle Type:" << sub_rect->type << str;
+        d_ptr->texts.append(str);
     }
-    subtitleImages.append(SubtitleImage{QRectF(),
-                                        QImage(),
-                                        d_ptr->text,
-                                        qint64(d_ptr->pts * 1000),
-                                        qint64((d_ptr->pts + d_ptr->duration) * 1000)});
-    return subtitleImages;
+    d_ptr->subtitle.start_display_time = d_ptr->pts;
+    d_ptr->subtitle.end_display_time = d_ptr->pts + d_ptr->duration;
 }
 
 AVSubtitle *Subtitle::avSubtitle()
@@ -126,6 +125,11 @@ AVSubtitle *Subtitle::avSubtitle()
 void Subtitle::clear()
 {
     return d_ptr->freeSubtitle();
+}
+
+quint64 Subtitle::pts()
+{
+    return d_ptr->subtitle.start_display_time;
 }
 
 } // namespace Ffmpeg

@@ -1,17 +1,17 @@
-#include "decodervideoframe.h"
+#include "decodersubtitleframe.hpp"
 
-#include <videooutput/videooutputrender.hpp>
-#include <videorender/videorender.hpp>
-
-#include <QDebug>
 #include <QWaitCondition>
+
+extern "C" {
+#include <libswscale/swscale.h>
+}
 
 namespace Ffmpeg {
 
-class DecoderVideoFrame::DecoderVideoFramePrivate
+class DecoderSubtitleFrame::DecoderSubtitleFramePrivate
 {
 public:
-    DecoderVideoFramePrivate(QObject *parent)
+    DecoderSubtitleFramePrivate(QObject *parent)
         : owner(parent)
     {}
 
@@ -19,25 +19,22 @@ public:
     bool pause = false;
     QMutex mutex;
     QWaitCondition waitCondition;
-
-    QVector<VideoOutputRender *> videoOutputRenders;
-    QVector<VideoRender *> videoRenders;
 };
 
-DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
-    : Decoder<Frame *>(parent)
-    , d_ptr(new DecoderVideoFramePrivate(this))
+DecoderSubtitleFrame::DecoderSubtitleFrame(QObject *parent)
+    : Decoder<Subtitle *>(parent)
+    , d_ptr(new DecoderSubtitleFramePrivate(this))
 {}
 
-DecoderVideoFrame::~DecoderVideoFrame() {}
+DecoderSubtitleFrame::~DecoderSubtitleFrame() {}
 
-void DecoderVideoFrame::stopDecoder()
+void DecoderSubtitleFrame::stopDecoder()
 {
     pause(false);
-    Decoder<Frame *>::stopDecoder();
+    Decoder<Subtitle *>::stopDecoder();
 }
 
-void DecoderVideoFrame::pause(bool state)
+void DecoderSubtitleFrame::pause(bool state)
 {
     if (!isRunning()) {
         return;
@@ -49,35 +46,25 @@ void DecoderVideoFrame::pause(bool state)
     d_ptr->waitCondition.wakeOne();
 }
 
-void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoOutputRender *> videoOutputRenders)
+void DecoderSubtitleFrame::runDecoder()
 {
-    d_ptr->videoOutputRenders = videoOutputRenders;
-}
-
-void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoRender *> videoRenders)
-{
-    d_ptr->videoRenders = videoRenders;
-}
-
-void DecoderVideoFrame::runDecoder()
-{
-    for (auto render : d_ptr->videoRenders) {
-        render->resetFps();
-    }
+    SwsContext *swsContext = nullptr;
     quint64 dropNum = 0;
     while (m_runing) {
         checkPause();
         checkSeek();
 
-        QSharedPointer<Frame> framePtr(m_queue.dequeue());
-        if (framePtr.isNull()) {
+        QSharedPointer<Subtitle> subtitlePtr(m_queue.dequeue());
+        if (subtitlePtr.isNull()) {
             msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
-        double pts = framePtr->pts();
+        subtitlePtr->parse(swsContext);
+        double pts = subtitlePtr->pts();
         if (m_seekTime > pts) {
             continue;
         }
+
         double diff = (pts - mediaClock()) * 1000;
         if (qAbs(diff) < UnWait_Milliseconds) {
         } else if (diff > UnWait_Milliseconds && !m_seek && !d_ptr->pause) {
@@ -88,15 +75,12 @@ void DecoderVideoFrame::runDecoder()
             dropNum++;
             continue;
         }
-        // 略慢于音频
-        for (auto render : d_ptr->videoRenders) {
-            render->setFrame(framePtr);
-        }
     }
+    sws_freeContext(swsContext);
     qInfo() << dropNum;
 }
 
-void DecoderVideoFrame::checkPause()
+void DecoderSubtitleFrame::checkPause()
 {
     while (d_ptr->pause) {
         QMutexLocker locker(&d_ptr->mutex);
@@ -104,7 +88,7 @@ void DecoderVideoFrame::checkPause()
     }
 }
 
-void DecoderVideoFrame::checkSeek()
+void DecoderSubtitleFrame::checkSeek()
 {
     if (!m_seek) {
         return;

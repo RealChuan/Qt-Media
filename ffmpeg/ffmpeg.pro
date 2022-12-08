@@ -18,6 +18,7 @@ SOURCES += \
     codeccontext.cpp \
     decoder.cc \
     decoderaudioframe.cpp \
+    decodersubtitleframe.cc \
     decodervideoframe.cpp \
     formatcontext.cpp \
     frame.cc \
@@ -35,8 +36,10 @@ HEADERS += \
     avcontextinfo.h \
     averror.h \
     codeccontext.h \
+    colorspace.hpp \
     decoder.h \
     decoderaudioframe.h \
+    decodersubtitleframe.hpp \
     decodervideoframe.h \
     ffmepg_global.h \
     formatcontext.h \

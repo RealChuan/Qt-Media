@@ -25,6 +25,9 @@ namespace Ffmpeg {
 void calculateTime(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext);
 void calculateTime(Packet *packet, AVContextInfo *contextInfo);
 
+void setMediaClock(double value);
+double mediaClock();
+
 template<typename T>
 class Decoder : public QThread
 {
@@ -85,9 +88,6 @@ public:
 
     double speed() { return m_speed.load(); }
 
-    static void setClock(double value) { m_clock.store(value); }
-    static double clock() { return m_clock.load(); }
-
 protected:
     virtual void runDecoder() = 0;
 
@@ -122,13 +122,7 @@ protected:
     qint64 m_seekTime = 0; // seconds
     std::atomic<double> m_speed = 1.0;
     QWeakPointer<Utils::CountDownLatch> m_latchPtr;
-
-private:
-    static std::atomic<double> m_clock;
 };
-
-template<typename T>
-std::atomic<double> Decoder<T>::m_clock = 0;
 
 } // namespace Ffmpeg
 

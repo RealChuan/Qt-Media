@@ -8,7 +8,6 @@
 
 extern "C" {
 #include <libavcodec/avcodec.h>
-#include <libavutil/pixdesc.h>
 }
 
 namespace Ffmpeg {
@@ -65,19 +64,6 @@ bool CodecContext::open(AVCodec *codec)
         setError(ret);
         return false;
     }
-    qInfo() << d_ptr->codecCtx->framerate.num;
-    qInfo() << "Width: " << d_ptr->codecCtx->width << " Height: " << d_ptr->codecCtx->height;
-    qInfo() << "Channels: " << d_ptr->codecCtx->channels;
-    qInfo() << "sample_fmt: " << av_get_sample_fmt_name(d_ptr->codecCtx->sample_fmt);
-    qInfo() << "sample_rate: " << d_ptr->codecCtx->sample_rate;
-    qInfo() << "channel_layout: " << d_ptr->codecCtx->channel_layout;
-    qInfo() << "Color Range: " << av_color_range_name(d_ptr->codecCtx->color_range);
-    qInfo() << "Color Primaries: " << av_color_primaries_name(d_ptr->codecCtx->color_primaries);
-    qInfo() << "Color TransferCharacteristic: "
-            << av_color_transfer_name(d_ptr->codecCtx->color_trc);
-    qInfo() << "Color Space: " << av_color_space_name(d_ptr->codecCtx->colorspace);
-    qInfo() << "ChromaLocation: "
-            << av_chroma_location_name(d_ptr->codecCtx->chroma_sample_location);
     return true;
 }
 

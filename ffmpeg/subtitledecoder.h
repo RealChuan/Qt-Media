@@ -3,7 +3,6 @@
 
 #include "decoder.h"
 #include "packet.h"
-#include "subtitle.h"
 
 namespace Ffmpeg {
 
@@ -14,20 +13,14 @@ public:
     explicit SubtitleDecoder(QObject *parent = nullptr);
     ~SubtitleDecoder();
 
-    void stopDecoder() override;
-
     void pause(bool state) override;
 
-signals:
-    void subtitleImages(const QVector<Ffmpeg::SubtitleImage> &);
+    void setSpeed(double speed) override;
 
 protected:
     void runDecoder() override;
 
 private:
-    void checkPause();
-    void checkSeek();
-
     class SubtitleDecoderPrivate;
     QScopedPointer<SubtitleDecoderPrivate> d_ptr;
 };

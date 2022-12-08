@@ -43,22 +43,17 @@ void VideoOutputRenderOpenGLRender::setDisplayImage(const QImage &image)
         qWarning() << "image is null!";
         return;
     }
-    auto lastSize = m_image.size();
-    m_image = image;
-    checkSubtitle();
-    if (lastSize != m_image.size()) {
-        resizeGL(width(), height());
-    }
     QMetaObject::invokeMethod(
-        this, [this] { update(); }, Qt::QueuedConnection);
-    //update();
-}
-
-void VideoOutputRenderOpenGLRender::onSubtitleImages(const QVector<SubtitleImage> &subtitleImages)
-{
-    m_subtitleImages = subtitleImages;
-    checkSubtitle();
-    update();
+        this,
+        [&] {
+            auto lastSize = m_image.size();
+            m_image = image;
+            if (lastSize != m_image.size()) {
+                resizeGL(width(), height());
+            }
+            update();
+        },
+        Qt::QueuedConnection);
 }
 
 void VideoOutputRenderOpenGLRender::initializeGL()

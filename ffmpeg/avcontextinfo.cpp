@@ -10,6 +10,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/pixdesc.h>
 }
 
 #define Error_Index -1
@@ -68,11 +69,32 @@ bool AVContextInfo::isIndexVaild()
 void AVContextInfo::setStream(AVStream *stream)
 {
     d_ptr->stream = stream;
-    if (d_ptr->mediaType == Video) {
-        qDebug() << "FPS: " << av_q2d(stream->avg_frame_rate);
-        qDebug() << "Total number of frames: " << stream->nb_frames;
-        qDebug() << "Resolution of resolution: " << stream->codecpar->width << "x"
-                 << stream->codecpar->height;
+    auto codecpar = stream->codecpar;
+    qInfo() << "start_time: " << stream->start_time;
+    qInfo() << "duration: " << stream->duration;
+    qInfo() << "nb_frames: " << stream->nb_frames;
+    qInfo() << "index_entries_allocated_size: " << stream->index_entries_allocated_size;
+    qInfo() << "format: " << codecpar->format;
+    qInfo() << "bit_rate: " << codecpar->bit_rate;
+    switch (d_ptr->mediaType) {
+    case Video:
+        qInfo() << "avg_frame_rate: " << av_q2d(stream->avg_frame_rate);
+        qInfo() << "sample_aspect_ratio: " << av_q2d(stream->sample_aspect_ratio);
+        qInfo() << "Resolution of resolution: " << codecpar->width << "x" << codecpar->height;
+        qInfo() << "color_range: " << av_color_range_name(codecpar->color_range);
+        qInfo() << "color_primaries: " << av_color_primaries_name(codecpar->color_primaries);
+        qInfo() << "color_trc: " << av_color_transfer_name(codecpar->color_trc);
+        qInfo() << "color_space: " << av_color_space_name(codecpar->color_space);
+        qInfo() << "chroma_location: " << av_chroma_location_name(codecpar->chroma_location);
+        qInfo() << "video_delay: " << codecpar->video_delay;
+        break;
+    case Audio:
+        qInfo() << "channels: " << codecpar->channels;
+        qInfo() << "channel_layout: " << codecpar->channel_layout;
+        qInfo() << "sample_rate: " << codecpar->sample_rate;
+        qInfo() << "frame_size: " << codecpar->frame_size;
+        break;
+    default: break;
     }
 }
 

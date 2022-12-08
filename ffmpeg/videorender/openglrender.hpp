@@ -32,6 +32,9 @@ protected:
 private:
     void initVbo();
     void initTexture();
+    void setColorSpace();
+    void displayFrame(QSharedPointer<Frame> framePtr);
+
     void updateYUV420P();
     void updateYUYV422();
     void updateYUV422P();
@@ -45,7 +48,6 @@ private:
     void updateRGBA();
     void updateYUV420P10LE();
     void updateP010LE();
-    void displayFrame(QSharedPointer<Frame> framePtr);
 
     class OpenglRenderPrivate;
     QScopedPointer<OpenglRenderPrivate> d_ptr;

@@ -68,7 +68,6 @@ signals:
     void audioTrackChanged(const QString &track);
     void subtitleStreamsChanged(const QStringList &streams);
     void subtitleStreamChanged(const QString &stream);
-    void subtitleImages(const QVector<Ffmpeg::SubtitleImage> &);
     void error(const Ffmpeg::AVError &avError);
 
     void playStarted();
