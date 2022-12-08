@@ -42,13 +42,6 @@ CONFIG(debug, debug|release) {
             -llibbreakpad
 }
 
-win32{
-LIBS += -lavutil -lavformat -lavcodec -lavdevice -lavfilter -lswresample -lswscale
-}
-
-unix{
-# 这个顺序在Linux下非常重要！！！！！！！！！！！！！！！！！！
-LIBS += -lswscale -lavdevice -lavformat -lavcodec -lavutil -lavfilter -lswresample
-}
+LIBS += -lavdevice -lavfilter -lavformat -lavcodec -lswresample -lswscale -lavutil
 
 INCLUDEPATH += $$vcpkg_path/installed/$$arch/include
