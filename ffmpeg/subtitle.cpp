@@ -101,8 +101,9 @@ void Subtitle::parseImage(SwsContext *swsContext)
         d_ptr->images.append(image);
         d_ptr->rect.append({sub_rect->x, sub_rect->y, sub_rect->w, sub_rect->h});
     }
-    d_ptr->subtitle.start_display_time /= 1000;
-    d_ptr->subtitle.end_display_time /= 1000;
+    d_ptr->pts = d_ptr->subtitle.start_display_time / 1000;
+    d_ptr->duration = (d_ptr->subtitle.end_display_time - d_ptr->subtitle.start_display_time)
+                      / 1000;
 }
 
 void Subtitle::parseText()
@@ -118,8 +119,6 @@ void Subtitle::parseText()
         //qDebug() << "Subtitle Type:" << sub_rect->type << QString::fromUtf8(text);
         d_ptr->texts.append(text);
     }
-    d_ptr->subtitle.start_display_time = d_ptr->pts;
-    d_ptr->subtitle.end_display_time = d_ptr->pts + d_ptr->duration;
 }
 
 AVSubtitle *Subtitle::avSubtitle()
@@ -132,14 +131,14 @@ void Subtitle::clear()
     return d_ptr->freeSubtitle();
 }
 
-quint64 Subtitle::pts()
+double Subtitle::pts()
 {
-    return d_ptr->subtitle.start_display_time;
+    return d_ptr->pts;
 }
 
-quint64 Subtitle::duration()
+double Subtitle::duration()
 {
-    return d_ptr->subtitle.end_display_time - d_ptr->subtitle.start_display_time;
+    return d_ptr->duration;
 }
 
 } // namespace Ffmpeg

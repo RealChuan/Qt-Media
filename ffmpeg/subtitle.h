@@ -25,8 +25,8 @@ public:
 
     void clear();
 
-    quint64 pts();
-    quint64 duration();
+    double pts();
+    double duration();
 
 private:
     void parseImage(SwsContext *swsContext);
