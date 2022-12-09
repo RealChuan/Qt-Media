@@ -147,10 +147,13 @@ void VideoPreviewWidget::setDisplayImage(QSharedPointer<Frame> frame,
                                          qint64 pts)
 {
     d_ptr->timestamp = pts;
-    d_ptr->image = image.scaled(width(), height(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
     QMetaObject::invokeMethod(
         this,
         [=] {
+            d_ptr->image = image.scaled(width(),
+                                        height(),
+                                        Qt::KeepAspectRatio,
+                                        Qt::SmoothTransformation);
             d_ptr->frame = frame;
             update();
         },

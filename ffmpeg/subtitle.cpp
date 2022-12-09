@@ -31,7 +31,7 @@ public:
 
     QVector<QImage> images;
     QVector<QRect> rect;
-    QStringList texts;
+    QByteArrayList texts;
 };
 
 Subtitle::Subtitle(QObject *parent)
@@ -60,6 +60,11 @@ void Subtitle::parse(SwsContext *swsContext)
         parseText();
         break;
     }
+}
+
+QByteArrayList Subtitle::texts() const
+{
+    return d_ptr->texts;
 }
 
 void Subtitle::parseImage(SwsContext *swsContext)
@@ -104,14 +109,14 @@ void Subtitle::parseText()
 {
     for (size_t i = 0; i < d_ptr->subtitle.num_rects; i++) {
         AVSubtitleRect *sub_rect = d_ptr->subtitle.rects[i];
-        QString str;
+        QByteArray text;
         switch (sub_rect->type) {
-        case AVSubtitleType::SUBTITLE_TEXT: str = QString::fromUtf8(sub_rect->text); break;
-        case AVSubtitleType::SUBTITLE_ASS: str = sub_rect->ass; break;
+        case AVSubtitleType::SUBTITLE_TEXT: text = sub_rect->text; break;
+        case AVSubtitleType::SUBTITLE_ASS: text = sub_rect->ass; break;
         default: continue;
         }
-        qDebug() << "Subtitle Type:" << sub_rect->type << str;
-        d_ptr->texts.append(str);
+        //qDebug() << "Subtitle Type:" << sub_rect->type << QString::fromUtf8(text);
+        d_ptr->texts.append(text);
     }
     d_ptr->subtitle.start_display_time = d_ptr->pts;
     d_ptr->subtitle.end_display_time = d_ptr->pts + d_ptr->duration;
@@ -130,6 +135,11 @@ void Subtitle::clear()
 quint64 Subtitle::pts()
 {
     return d_ptr->subtitle.start_display_time;
+}
+
+quint64 Subtitle::duration()
+{
+    return d_ptr->subtitle.end_display_time - d_ptr->subtitle.start_display_time;
 }
 
 } // namespace Ffmpeg

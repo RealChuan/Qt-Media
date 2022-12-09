@@ -15,10 +15,11 @@ extern "C" {
 #include <libavutil/time.h>
 }
 
-#define Sleep_Queue_Full_Milliseconds 100
+#define Sleep_Queue_Full_Milliseconds 50
 #define Sleep_Queue_Empty_Milliseconds 10
 #define Max_Frame_Size 25
 #define UnWait_Milliseconds 50
+#define Drop_Milliseconds -100
 
 namespace Ffmpeg {
 

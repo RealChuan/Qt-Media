@@ -19,12 +19,14 @@ public:
     void setDefault(double pts, double duration, const QString &text);
 
     void parse(SwsContext *swsContext);
+    QByteArrayList texts() const;
 
     AVSubtitle *avSubtitle();
 
     void clear();
 
     quint64 pts();
+    quint64 duration();
 
 private:
     void parseImage(SwsContext *swsContext);

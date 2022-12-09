@@ -1,4 +1,7 @@
 #include "decodersubtitleframe.hpp"
+#include "codeccontext.h"
+
+#include <subtitle/ass.hpp>
 
 #include <QWaitCondition>
 
@@ -48,6 +51,13 @@ void DecoderSubtitleFrame::pause(bool state)
 
 void DecoderSubtitleFrame::runDecoder()
 {
+    //--------------------------test-------------------------------------------------------
+    int num = 0;
+    auto ctx = m_contextInfo->codecCtx()->avCodecCtx();
+    QScopedPointer<Ass> assPtr(new Ass);
+    assPtr->init(ctx->extradata, ctx->extradata_size);
+    assPtr->setWindowSize(QSize(1280, 720));
+    //--------------------------test-------------------------------------------------------
     SwsContext *swsContext = nullptr;
     quint64 dropNum = 0;
     while (m_runing) {
@@ -64,16 +74,34 @@ void DecoderSubtitleFrame::runDecoder()
         if (m_seekTime > pts) {
             continue;
         }
-
+        //--------------------------test-------------------------------------------------------
+        auto list = subtitlePtr->texts();
+        for (const auto &data : qAsConst(list)) {
+            assPtr->addSubtitleData(data);
+        }
+        AssDataInfoList assDataInfoList;
+        assPtr->getRGBAData(assDataInfoList, pts);
+        qDebug() << assDataInfoList.size() << pts;
+        for (const auto &data : qAsConst(assDataInfoList)) {
+            auto rect = data.rect();
+            QImage image((uchar *) data.rgba().constData(),
+                         rect.width(),
+                         rect.height(),
+                         QImage::Format_RGBA8888);
+            if (image.isNull()) {
+                qWarning() << "image is null";
+            }
+            const QString path = QString("C:/Users/Administrator/Pictures/zzz/%1.png").arg(++num);
+            qDebug() << rect << image.save(path);
+        }
+        //--------------------------test-------------------------------------------------------
         double diff = (pts - mediaClock()) * 1000;
-        if (qAbs(diff) < UnWait_Milliseconds) {
+        if (diff < Drop_Milliseconds || (m_speed > 1.0 && qAbs(diff) > UnWait_Milliseconds)) {
+            dropNum++;
+            continue;
         } else if (diff > UnWait_Milliseconds && !m_seek && !d_ptr->pause) {
             QMutexLocker locker(&d_ptr->mutex);
             d_ptr->waitCondition.wait(&d_ptr->mutex, diff);
-            //msleep(diff);
-        } else {
-            dropNum++;
-            continue;
         }
     }
     sws_freeContext(swsContext);

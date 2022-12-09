@@ -1,4 +1,7 @@
 set(PROJECT_SOURCES
+        subtitle/ass.cc subtitle/ass.hpp
+        subtitle/assdata.cc subtitle/assdata.hpp
+        
         videooutput/videoouputrenderwidget.cc videooutput/videoouputrenderwidget.hpp
         videooutput/videooutputrender.cc videooutput/videooutputrender.hpp
         videooutput/videooutputrenderopenglrender.cc videooutput/videooutputrenderopenglrender.hpp
@@ -37,8 +40,10 @@ else ()
   add_library(ffmpeg ${PROJECT_SOURCES} ${SOURCES})
 endif ()
 target_include_directories(ffmpeg PRIVATE ${AVDEVICE_INCLUDE_DIR} ${AVFILTER_INCLUDE_DIR} ${AVFORMAT_INCLUDE_DIR} ${AVCODEC_INCLUDE_DIR} ${SWRESAMPLE_INCLUDE_DIR} ${SWSCALE_INCLUDE_DIR} ${AVUTIL_INCLUDE_DIR})
+target_include_directories(ffmpeg PRIVATE ${LIBASS_INCLUDE_DIR})
 target_link_libraries(ffmpeg PRIVATE Qt6::Widgets Qt6::Multimedia Qt6::OpenGLWidgets utils)
 target_link_libraries(ffmpeg PRIVATE ${AVDEVICE_LIBRARY} ${AVFILTER_LIBRARY} ${AVFORMAT_LIBRARY} ${AVCODEC_LIBRARY} ${SWRESAMPLE_LIBRARY} ${SWSCALE_LIBRARY} ${AVUTIL_LIBRARY})
+target_link_libraries(ffmpeg PRIVATE ${LIBASS_LIBRARY})
 
 if (CMAKE_HOST_APPLE)
   target_link_libraries(ffmpeg PRIVATE ${Security_LIBRARY} ${AudioToolBox_LIBRARY} ${VideoToolBox_LIBRARY} ${CoreVideo_LIBRARY} ${CoreMedia_LIBRARY})

@@ -42,6 +42,6 @@ CONFIG(debug, debug|release) {
             -llibbreakpad
 }
 
-LIBS += -lavdevice -lavfilter -lavformat -lavcodec -lswresample -lswscale -lavutil
+LIBS += -lavdevice -lavfilter -lavformat -lavcodec -lswresample -lswscale -lavutil -lass
 
 INCLUDEPATH += $$vcpkg_path/installed/$$arch/include

@@ -568,6 +568,11 @@ void OpenglRender::setColorSpace()
         d_ptr->programPtr->setUniformValue("offset", ColorSpace::kBT601Offset);
         d_ptr->programPtr->setUniformValue("colorConversion", QMatrix3x3(ColorSpace::kBT601Matrix));
         break;
+    case AVCOL_SPC_BT2020_NCL:
+    case AVCOL_SPC_BT2020_CL:
+        d_ptr->programPtr->setUniformValue("offset", ColorSpace::kBT2020ffset);
+        d_ptr->programPtr->setUniformValue("colorConversion", QMatrix3x3(ColorSpace::kBT2020Matrix));
+        break;
     //case AVCOL_SPC_BT709:
     default:
         d_ptr->programPtr->setUniformValue("offset", ColorSpace::kBT7090ffset);

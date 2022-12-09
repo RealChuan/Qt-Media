@@ -79,6 +79,9 @@ find_library(SWSCALE_LIBRARY swscale)
 find_path(AVUTIL_INCLUDE_DIR libavutil/avutil.h)
 find_library(AVUTIL_LIBRARY avutil)
 
+find_path(LIBASS_INCLUDE_DIR ass/ass.h)
+find_library(LIBASS_LIBRARY ass)
+
 IF (CMAKE_HOST_APPLE)
     find_library(Security_LIBRARY Security)
     find_library(AudioToolBox_LIBRARY AudioToolBox)
