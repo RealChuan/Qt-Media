@@ -34,14 +34,19 @@ unix:!macx{
 
 CONFIG(debug, debug|release) {
     LIBS += -L$$vcpkg_path/installed/$$arch/debug/lib \
-            -llibbreakpad_clientd \
-            -llibbreakpadd
+            -llibbreakpad_clientd -llibbreakpadd
 }else{
     LIBS += -L$$vcpkg_path/installed/$$arch/lib \
-            -llibbreakpad_client \
-            -llibbreakpad
+            -llibbreakpad_client -llibbreakpad
 }
 
-LIBS += -lavdevice -lavfilter -lavformat -lavcodec -lswresample -lswscale -lavutil -lass
+LIBS += -lavdevice -lavfilter -lavformat -lavcodec -lswresample -lswscale -lavutil \
+        -lass -lharfbuzz -lfribidi
+
+CONFIG(debug, debug|release) {
+    LIBS += -lfreetyped -llibpng16d -lzlibd -lbz2d -lbrotlidec -lbrotlicommon
+}else{
+    LIBS += -lfreetype -llibpng16 -lzlib -lbz2 -lbrotlidec -lbrotlicommon
+}
 
 INCLUDEPATH += $$vcpkg_path/installed/$$arch/include
