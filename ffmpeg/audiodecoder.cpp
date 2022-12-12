@@ -40,12 +40,6 @@ void AudioDecoder::setVolume(qreal volume)
     d_ptr->decoderAudioFrame->setVolume(volume);
 }
 
-void AudioDecoder::setSpeed(double speed)
-{
-    Decoder<Packet *>::setSpeed(speed);
-    d_ptr->decoderAudioFrame->setSpeed(speed);
-}
-
 void AudioDecoder::setIsLocalFile(bool isLocalFile)
 {
     d_ptr->decoderAudioFrame->setIsLocalFile(isLocalFile);

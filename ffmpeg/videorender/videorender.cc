@@ -83,6 +83,11 @@ void VideoRender::setImage(const QImage &image)
     setFrame(frame);
 }
 
+void VideoRender::setSubTitleFrame(QSharedPointer<Subtitle> frame)
+{
+    updateSubTitleFrame(frame);
+}
+
 float VideoRender::fps()
 {
     return d_ptr->fps;

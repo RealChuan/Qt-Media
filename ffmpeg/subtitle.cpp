@@ -1,6 +1,9 @@
 #include "subtitle.h"
 
+#include <subtitle/ass.hpp>
+
 #include <QDebug>
+#include <QImage>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -27,11 +30,14 @@ public:
     QString text;
 
     SwsContext *swsContext;
-    bool isText;
+    Subtitle::Type type = Subtitle::Unknown;
+    QSize videoResolutionRatio = QSize(1280, 720);
 
     QVector<QImage> images;
     QVector<QRect> rect;
     QByteArrayList texts;
+
+    AssDataInfoList assList;
 };
 
 Subtitle::Subtitle(QObject *parent)
@@ -52,13 +58,10 @@ void Subtitle::parse(SwsContext *swsContext)
 {
     switch (d_ptr->subtitle.format) {
     case 0:
-        d_ptr->isText = true;
+        d_ptr->type = Subtitle::Graphics;
         parseImage(swsContext);
         break;
-    default:
-        d_ptr->isText = false;
-        parseText();
-        break;
+    default: parseText(); break;
     }
 }
 
@@ -112,8 +115,14 @@ void Subtitle::parseText()
         AVSubtitleRect *sub_rect = d_ptr->subtitle.rects[i];
         QByteArray text;
         switch (sub_rect->type) {
-        case AVSubtitleType::SUBTITLE_TEXT: text = sub_rect->text; break;
-        case AVSubtitleType::SUBTITLE_ASS: text = sub_rect->ass; break;
+        case AVSubtitleType::SUBTITLE_TEXT:
+            d_ptr->type = Subtitle::TEXT;
+            text = sub_rect->text;
+            break;
+        case AVSubtitleType::SUBTITLE_ASS:
+            d_ptr->type = Subtitle::ASS;
+            text = sub_rect->ass;
+            break;
         default: continue;
         }
         //qDebug() << "Subtitle Type:" << sub_rect->type << QString::fromUtf8(text);
@@ -139,6 +148,46 @@ double Subtitle::pts()
 double Subtitle::duration()
 {
     return d_ptr->duration;
+}
+
+Subtitle::Type Subtitle::type() const
+{
+    return d_ptr->type;
+}
+
+void Subtitle::setVideoResolutionRatio(const QSize &size)
+{
+    if (!size.isValid()) {
+        return;
+    }
+    d_ptr->videoResolutionRatio = size;
+}
+
+QSize Subtitle::videoResolutionRatio() const
+{
+    return d_ptr->videoResolutionRatio;
+}
+
+bool Subtitle::resolveAss(Ass *ass)
+{
+    if (d_ptr->type != Type::ASS) {
+        return false;
+    }
+    for (const auto &data : qAsConst(d_ptr->texts)) {
+        ass->addSubtitleData(data);
+    }
+    ass->getRGBAData(d_ptr->assList, d_ptr->pts);
+    return true;
+}
+
+void Subtitle::setAssDataInfoList(const AssDataInfoList &list)
+{
+    d_ptr->assList = list;
+}
+
+AssDataInfoList Subtitle::list() const
+{
+    return d_ptr->assList;
 }
 
 } // namespace Ffmpeg

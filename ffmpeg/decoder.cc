@@ -49,4 +49,17 @@ double mediaClock()
     return g_meidaClock.load();
 }
 
+std::atomic<double> g_mediaSpeed = 1.0;
+
+void setMediaSpeed(double speed)
+{
+    Q_ASSERT(speed > 0);
+    g_mediaSpeed.store(speed);
+}
+
+double mediaSpeed()
+{
+    return g_mediaSpeed.load();
+}
+
 } // namespace Ffmpeg

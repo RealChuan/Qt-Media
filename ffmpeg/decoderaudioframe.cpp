@@ -18,7 +18,7 @@ struct DecoderAudioFrame::DecoderAudioFramePrivate
     qreal volume = 0.5;
 
     volatile bool pause = false;
-    volatile bool speedChanged = false;
+    double speed;
     QMutex mutex;
     QWaitCondition waitCondition;
 
@@ -67,12 +67,6 @@ void DecoderAudioFrame::setVolume(qreal volume)
     if (d_ptr->audioSinkPtr) {
         d_ptr->audioSinkPtr->setVolume(volume);
     }
-}
-
-void DecoderAudioFrame::setSpeed(double speed)
-{
-    Decoder<Frame *>::setSpeed(speed);
-    d_ptr->speedChanged = true;
 }
 
 void DecoderAudioFrame::setIsLocalFile(bool isLocalFile)
@@ -140,8 +134,8 @@ void DecoderAudioFrame::runDecoder()
             }
 
             QByteArray audioBuf = audioConverter.convert(framePtr.data());
-            double speed_ = speed();
-            double diff = pts * 1000 - d_ptr->seekTime - (timer.elapsed() - pauseTime) * speed_;
+            double diff = pts * 1000 - d_ptr->seekTime
+                          - (timer.elapsed() - pauseTime) * d_ptr->speed;
             {
                 auto cleanup = qScopeGuard([&] {
                     setMediaClock(pts);
@@ -151,7 +145,7 @@ void DecoderAudioFrame::runDecoder()
                     QMutexLocker locker(&d_ptr->mutex);
                     d_ptr->waitCondition.wait(&d_ptr->mutex, diff);
                     //msleep(diff);
-                } else if (speed_ > 1.0) {
+                } else if (d_ptr->speed > 1.0) {
                     continue; // speed > 1.0 drop
                 }
             }
@@ -178,11 +172,10 @@ void DecoderAudioFrame::runDecoder()
             }
 
             QByteArray audioBuf = audioConverter.convert(framePtr.data());
-            double speed_ = speed();
             double diff = 0;
             auto pts_ = pts * 1000;
             if (lastPts > 0) {
-                diff = pts_ - lastPts - (timer_.elapsed() - pauseTime) * speed_;
+                diff = pts_ - lastPts - (timer_.elapsed() - pauseTime) * d_ptr->speed;
             }
             lastPts = pts_;
             {
@@ -195,7 +188,7 @@ void DecoderAudioFrame::runDecoder()
                     QMutexLocker locker(&d_ptr->mutex);
                     d_ptr->waitCondition.wait(&d_ptr->mutex, diff);
                     //msleep(diff);
-                } else if (speed_ > 1.0) {
+                } else if (d_ptr->speed > 1.0) {
                     continue; // speed > 1.0 drop
                 }
             }
@@ -264,12 +257,13 @@ void DecoderAudioFrame::checkSeek(QElapsedTimer &timer, qint64 &pauseTime)
 
 void DecoderAudioFrame::checkSpeed(QElapsedTimer &timer, qint64 &pauseTime)
 {
-    if (!d_ptr->speedChanged) {
+    auto speed = mediaSpeed();
+    if (d_ptr->speed == speed) {
         return;
     }
+    d_ptr->speed = speed;
     d_ptr->seekTime = mediaClock() * 1000;
     pauseTime = 0;
-    d_ptr->speedChanged = false;
     timer.restart();
 }
 

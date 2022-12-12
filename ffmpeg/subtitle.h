@@ -1,18 +1,23 @@
 #ifndef SUBTITLE_H
 #define SUBTITLE_H
 
-#include <QImage>
 #include <QObject>
+
+#include <subtitle/assdata.hpp>
 
 struct AVSubtitle;
 struct SwsContext;
 
 namespace Ffmpeg {
 
+class Ass;
+
 class Subtitle : public QObject
 {
     Q_OBJECT
 public:
+    enum Type { Unknown, Graphics, TEXT, ASS };
+
     explicit Subtitle(QObject *parent = nullptr);
     ~Subtitle();
 
@@ -27,6 +32,15 @@ public:
 
     double pts();
     double duration();
+
+    Type type() const;
+
+    void setVideoResolutionRatio(const QSize &size);
+    QSize videoResolutionRatio() const;
+
+    bool resolveAss(Ass *ass);
+    void setAssDataInfoList(const AssDataInfoList &list);
+    AssDataInfoList list() const;
 
 private:
     void parseImage(SwsContext *swsContext);

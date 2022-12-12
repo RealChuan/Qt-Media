@@ -29,6 +29,9 @@ void calculateTime(Packet *packet, AVContextInfo *contextInfo);
 void setMediaClock(double value);
 double mediaClock();
 
+void setMediaSpeed(double speed);
+double mediaSpeed();
+
 template<typename T>
 class Decoder : public QThread
 {
@@ -81,14 +84,6 @@ public:
 
     bool isSeek() { return m_seek; }
 
-    virtual void setSpeed(double speed)
-    {
-        Q_ASSERT(speed > 0);
-        m_speed.store(speed);
-    }
-
-    double speed() { return m_speed.load(); }
-
 protected:
     virtual void runDecoder() = 0;
 
@@ -121,7 +116,6 @@ protected:
     volatile bool m_runing = true;
     volatile bool m_seek = false;
     qint64 m_seekTime = 0; // seconds
-    std::atomic<double> m_speed = 1.0;
     QWeakPointer<Utils::CountDownLatch> m_latchPtr;
 };
 

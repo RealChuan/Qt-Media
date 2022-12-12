@@ -2,7 +2,11 @@
 #include "codeccontext.h"
 
 #include <subtitle/ass.hpp>
+#include <videorender/videorender.hpp>
 
+#include <QDir>
+#include <QImage>
+#include <QStandardPaths>
 #include <QWaitCondition>
 
 extern "C" {
@@ -19,9 +23,13 @@ public:
     {}
 
     QObject *owner;
+
     bool pause = false;
     QMutex mutex;
     QWaitCondition waitCondition;
+    QSize videoResolutionRatio = QSize(1280, 720);
+
+    QVector<VideoRender *> videoRenders;
 };
 
 DecoderSubtitleFrame::DecoderSubtitleFrame(QObject *parent)
@@ -49,14 +57,26 @@ void DecoderSubtitleFrame::pause(bool state)
     d_ptr->waitCondition.wakeOne();
 }
 
+void DecoderSubtitleFrame::setVideoResolutionRatio(const QSize &size)
+{
+    if (!size.isValid()) {
+        return;
+    }
+    d_ptr->videoResolutionRatio = size;
+}
+
+void DecoderSubtitleFrame::setVideoOutputRenders(QVector<VideoRender *> videoRenders)
+{
+    d_ptr->videoRenders = videoRenders;
+}
+
 void DecoderSubtitleFrame::runDecoder()
 {
     //--------------------------test-------------------------------------------------------
-    int num = 0;
     auto ctx = m_contextInfo->codecCtx()->avCodecCtx();
     QScopedPointer<Ass> assPtr(new Ass);
     assPtr->init(ctx->extradata, ctx->extradata_size);
-    assPtr->setWindowSize(QSize(1280, 720));
+    assPtr->setWindowSize(d_ptr->videoResolutionRatio);
     //--------------------------test-------------------------------------------------------
     SwsContext *swsContext = nullptr;
     quint64 dropNum = 0;
@@ -69,39 +89,44 @@ void DecoderSubtitleFrame::runDecoder()
             msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
+        subtitlePtr->setVideoResolutionRatio(d_ptr->videoResolutionRatio);
         subtitlePtr->parse(swsContext);
         double pts = subtitlePtr->pts();
         if (m_seekTime > pts) {
             continue;
         }
         //--------------------------test-------------------------------------------------------
-        auto list = subtitlePtr->texts();
-        for (const auto &data : qAsConst(list)) {
-            assPtr->addSubtitleData(data);
-        }
-        AssDataInfoList assDataInfoList;
-        assPtr->getRGBAData(assDataInfoList, pts);
-        qDebug() << assDataInfoList.size() << pts;
-        for (const auto &data : qAsConst(assDataInfoList)) {
-            auto rect = data.rect();
-            QImage image((uchar *) data.rgba().constData(),
-                         rect.width(),
-                         rect.height(),
-                         QImage::Format_RGBA8888);
-            if (image.isNull()) {
-                qWarning() << "image is null";
-            }
-            const QString path = QString("C:/Users/Administrator/Pictures/zzz/%1.png").arg(++num);
-            qDebug() << rect << image.save(path);
+        if (subtitlePtr->type() == Subtitle::Type::ASS) {
+            subtitlePtr->resolveAss(assPtr.data());
+            //            auto list = subtitlePtr->list();
+            //            for (const auto &data : qAsConst(list)) {
+            //                auto rect = data.rect();
+            //                QImage image((uchar *) data.rgba().constData(),
+            //                             rect.width(),
+            //                             rect.height(),
+            //                             QImage::Format_RGBA8888);
+            //                if (image.isNull()) {
+            //                    qWarning() << "image is null";
+            //                }
+            //                auto path = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation)
+            //                                .value(0, QDir::homePath());
+            //                static int num = 0;
+            //                path = QString("%1/1/%2.png").arg(path, QString::number(++num));
+            //                qDebug() << rect << image.save(path);
+            //            }
         }
         //--------------------------test-------------------------------------------------------
         double diff = (pts - mediaClock()) * 1000;
-        if (diff < Drop_Milliseconds || (m_speed > 1.0 && qAbs(diff) > UnWait_Milliseconds)) {
+        if (diff < Drop_Milliseconds || (mediaSpeed() > 1.0 && qAbs(diff) > UnWait_Milliseconds)) {
             dropNum++;
             continue;
         } else if (diff > UnWait_Milliseconds && !m_seek && !d_ptr->pause) {
             QMutexLocker locker(&d_ptr->mutex);
             d_ptr->waitCondition.wait(&d_ptr->mutex, diff);
+        }
+        // 略慢于音频
+        for (auto render : d_ptr->videoRenders) {
+            render->setSubTitleFrame(subtitlePtr);
         }
     }
     sws_freeContext(swsContext);

@@ -12,6 +12,7 @@ extern "C" {
 namespace Ffmpeg {
 
 class Frame;
+class Subtitle;
 
 class FFMPEG_EXPORT VideoRender
 {
@@ -26,12 +27,15 @@ public:
     void setFrame(QSharedPointer<Frame> frame);
     void setImage(const QImage &image);
 
+    void setSubTitleFrame(QSharedPointer<Subtitle> frame);
+
     float fps();
     void resetFps();
 
 protected:
     // may use in anthoer thread, suggest use QMetaObject::invokeMethod(Qt::QueuedConnection)
     virtual void updateFrame(QSharedPointer<Frame> frame) = 0;
+    virtual void updateSubTitleFrame(QSharedPointer<Subtitle> frame) = 0;
 
 private:
     class VideoRenderPrivate;

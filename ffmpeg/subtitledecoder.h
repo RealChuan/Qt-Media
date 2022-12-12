@@ -6,6 +6,8 @@
 
 namespace Ffmpeg {
 
+class VideoRender;
+
 class SubtitleDecoder : public Decoder<Packet *>
 {
     Q_OBJECT
@@ -15,7 +17,9 @@ public:
 
     void pause(bool state) override;
 
-    void setSpeed(double speed) override;
+    void setVideoResolutionRatio(const QSize &size);
+
+    void setVideoOutputRenders(QVector<VideoRender *> videoOutputRenders);
 
 protected:
     void runDecoder() override;

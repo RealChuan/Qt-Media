@@ -1,16 +1,57 @@
 win32{
-    vcpkg_path = C:/vcpkg
     contains(QT_ARCH, i386) {
-        arch = x86-windows
+        vcpkg_path = C:/vcpkg/installed/x86-windows
     }else{
-        arch = x64-windows
+        vcpkg_path = C:/vcpkg/installed/x64-windows
     }
 }
 
 macx{
-    vcpkg_path = /usr/local/share/vcpkg
-    arch = x64-osx
+    vcpkg_path = /usr/local/share/vcpkg/installed/x64-osx
+}
 
+unix:!macx{
+    vcpkg_path = /usr/local/share/vcpkg/installed/x64-linux
+}
+
+CONFIG(debug, debug|release) {
+    LIBS += -L$$vcpkg_path/debug/lib \
+            -llibbreakpad_clientd -llibbreakpadd
+}else{
+    LIBS += -L$$vcpkg_path/lib \
+            -llibbreakpad_client -llibbreakpad
+}
+
+LIBS += -lavdevice -lavfilter -lavformat -lavcodec -lswresample -lswscale -lavutil \
+        -lass -lharfbuzz -lfribidi
+
+win32{
+
+CONFIG(debug, debug|release) {
+    LIBS += -lfreetyped -llibpng16d -lzlibd -lbz2d -lbrotlidec -lbrotlienc -lbrotlicommon
+}else{
+    LIBS += -lfreetype -llibpng16 -lzlib -lbz2 -lbrotlidec -lbrotlienc -lbrotlicommon
+}
+
+}
+
+unix:!macx{
+LIBS += -lfontconfig -lexpat
+}
+
+unix{
+
+CONFIG(debug, debug|release) {
+    LIBS += -lfreetyped -lpng -lz -lbz2d -lbrotlidec-static -lbrotlienc-static -lbrotlicommon-static
+}else{
+    LIBS += -lfreetype -lpng -lz -lbz2 -lbrotlidec-static -lbrotlienc-static -lbrotlicommon-static
+}
+
+}
+
+INCLUDEPATH += $$vcpkg_path/include
+
+macx{
 LIBS += \
 #    -framework Foundation \
 #    -framework CoreFoundation \
@@ -26,27 +67,3 @@ LIBS += \
     -framework CoreVideo \
     -framework CoreMedia
 }
-
-unix:!macx{
-    vcpkg_path = /usr/local/share/vcpkg
-    arch = x64-linux
-}
-
-CONFIG(debug, debug|release) {
-    LIBS += -L$$vcpkg_path/installed/$$arch/debug/lib \
-            -llibbreakpad_clientd -llibbreakpadd
-}else{
-    LIBS += -L$$vcpkg_path/installed/$$arch/lib \
-            -llibbreakpad_client -llibbreakpad
-}
-
-LIBS += -lavdevice -lavfilter -lavformat -lavcodec -lswresample -lswscale -lavutil \
-        -lass -lharfbuzz -lfribidi
-
-CONFIG(debug, debug|release) {
-    LIBS += -lfreetyped -llibpng16d -lzlibd -lbz2d -lbrotlidec -lbrotlicommon
-}else{
-    LIBS += -lfreetype -llibpng16 -lzlib -lbz2 -lbrotlidec -lbrotlicommon
-}
-
-INCLUDEPATH += $$vcpkg_path/installed/$$arch/include

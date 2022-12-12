@@ -4,7 +4,6 @@
 #include <QThread>
 
 #include "ffmepg_global.h"
-#include "subtitle.h"
 
 namespace Ffmpeg {
 

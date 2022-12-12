@@ -1,7 +1,8 @@
 #ifndef VIDEOOUTPUTRENDER_HPP
 #define VIDEOOUTPUTRENDER_HPP
 
-#include <QtCore/QObject>
+#include <QImage>
+#include <QObject>
 
 #include <ffmpeg/ffmepg_global.h>
 #include <ffmpeg/subtitle.h>
@@ -10,7 +11,7 @@ namespace Ffmpeg {
 
 class FFMPEG_EXPORT VideoOutputRender
 {
-    Q_DISABLE_COPY(VideoOutputRender)
+    Q_DISABLE_COPY_MOVE(VideoOutputRender)
 public:
     explicit VideoOutputRender() {}
 

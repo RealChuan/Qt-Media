@@ -212,14 +212,12 @@ void Player::setSpeed(double speed)
         qWarning() << tr("Speed cannot be less than or equal to 0!");
         return;
     }
-    d_ptr->audioDecoder->setSpeed(speed);
-    d_ptr->videoDecoder->setSpeed(speed);
-    d_ptr->subtitleDecoder->setSpeed(speed);
+    setMediaSpeed(speed);
 }
 
 double Player::speed()
 {
-    return d_ptr->audioDecoder->speed();
+    return mediaSpeed();
 }
 
 bool Player::initAvCodec()
@@ -272,6 +270,7 @@ bool Player::initAvCodec()
         if (!setMediaIndex(d_ptr->subtitleInfo, subtitleIndex)) {
             return false;
         }
+        d_ptr->subtitleDecoder->setVideoResolutionRatio(resolutionRatio());
         emit subtitleStreamsChanged(subtitleTracks.values());
         emit subtitleStreamChanged(subtitleTracks.value(subtitleIndex));
     }
@@ -467,6 +466,7 @@ void Player::setVideoOutputWidget(QVector<VideoRender *> videoOutputRenders)
 {
     d_ptr->videoRenders = videoOutputRenders;
     d_ptr->videoDecoder->setVideoOutputRenders(videoOutputRenders);
+    d_ptr->subtitleDecoder->setVideoOutputRenders(videoOutputRenders);
 }
 
 QVector<VideoRender *> Player::videoRenders()

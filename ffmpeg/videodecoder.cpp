@@ -33,12 +33,6 @@ void VideoDecoder::pause(bool state)
     d_ptr->decoderVideoFrame->pause(state);
 }
 
-void VideoDecoder::setSpeed(double speed)
-{
-    Decoder<Packet *>::setSpeed(speed);
-    d_ptr->decoderVideoFrame->setSpeed(speed);
-}
-
 void VideoDecoder::setVideoOutputRenders(QVector<VideoOutputRender *> videoOutputRenders)
 {
     d_ptr->decoderVideoFrame->setVideoOutputRenders(videoOutputRenders);

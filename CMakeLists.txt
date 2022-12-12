@@ -81,6 +81,16 @@ find_library(AVUTIL_LIBRARY avutil)
 
 find_path(LIBASS_INCLUDE_DIR ass/ass.h)
 find_library(LIBASS_LIBRARY ass)
+
+IF (CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
+  find_path(FONTCONFIG_INCLUDE_DIR fontconfig/fontconfig.h)
+  find_library(FONTCONFIG_LIBRARY fontconfig)
+  find_package(expat CONFIG REQUIRED)
+  if(expat_FOUND)
+    message(STATUS "found expat")
+  endif()
+ENDIF ()
+
 find_package(harfbuzz CONFIG REQUIRED)
 if(harfbuzz_FOUND)
   message(STATUS "found harfbuzz")

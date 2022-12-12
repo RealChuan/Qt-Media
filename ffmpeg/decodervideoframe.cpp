@@ -79,7 +79,7 @@ void DecoderVideoFrame::runDecoder()
             continue;
         }
         double diff = (pts - mediaClock()) * 1000;
-        if (diff < Drop_Milliseconds || (m_speed > 1.0 && qAbs(diff) > UnWait_Milliseconds)) {
+        if (diff < Drop_Milliseconds || (mediaSpeed() > 1.0 && qAbs(diff) > UnWait_Milliseconds)) {
             dropNum++;
             continue;
         } else if (diff > UnWait_Milliseconds && !m_seek && !d_ptr->pause) {

@@ -24,6 +24,7 @@ public:
 
 protected:
     void updateFrame(QSharedPointer<Frame> frame) override;
+    void updateSubTitleFrame(QSharedPointer<Subtitle> frame) override;
 
     void initializeGL() override;
     void resizeGL(int w, int h) override;
@@ -33,7 +34,10 @@ private:
     void initVbo();
     void initTexture();
     void setColorSpace();
+
     void displayFrame(QSharedPointer<Frame> framePtr);
+    void displaySubTitleFrame(QSharedPointer<Subtitle> frame);
+    void paintSubTitleFrame();
 
     void updateYUV420P();
     void updateYUYV422();

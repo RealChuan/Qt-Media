@@ -20,8 +20,6 @@ public:
 
     void pause(bool state) override;
 
-    void setSpeed(double speed) override;
-
     void setVideoOutputRenders(QVector<VideoOutputRender *> videoOutputRenders);
     void setVideoOutputRenders(QVector<VideoRender *> videoOutputRenders);
 

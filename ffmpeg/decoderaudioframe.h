@@ -25,8 +25,6 @@ public:
 
     void setVolume(qreal volume);
 
-    void setSpeed(double speed) override;
-
     void setIsLocalFile(bool isLocalFile);
 
 signals:

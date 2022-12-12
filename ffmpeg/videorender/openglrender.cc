@@ -2,6 +2,7 @@
 
 #include <ffmpeg/colorspace.hpp>
 #include <ffmpeg/frame.hpp>
+#include <ffmpeg/subtitle.h>
 #include <ffmpeg/videoframeconverter.hpp>
 
 #include <QOpenGLBuffer>
@@ -44,6 +45,8 @@ public:
            AV_PIX_FMT_BGRA,    AV_PIX_FMT_YUV420P10LE, AV_PIX_FMT_0RGB,    AV_PIX_FMT_RGB0,
            AV_PIX_FMT_0BGR,    AV_PIX_FMT_BGR0,        AV_PIX_FMT_P010LE};
     QScopedPointer<VideoFrameConverter> frameConverterPtr;
+
+    QSharedPointer<Subtitle> subTitleFramePtr;
 
     QColor backgroundColor = Qt::black;
 };
@@ -101,6 +104,12 @@ void OpenglRender::updateFrame(QSharedPointer<Frame> frame)
 {
     QMetaObject::invokeMethod(
         this, [=] { displayFrame(frame); }, Qt::QueuedConnection);
+}
+
+void OpenglRender::updateSubTitleFrame(QSharedPointer<Subtitle> frame)
+{
+    QMetaObject::invokeMethod(
+        this, [=] { displaySubTitleFrame(frame); }, Qt::QueuedConnection);
 }
 
 void OpenglRender::initTexture()
@@ -597,9 +606,84 @@ void OpenglRender::displayFrame(QSharedPointer<Frame> framePtr)
     update();
 }
 
+void OpenglRender::displaySubTitleFrame(QSharedPointer<Subtitle> frame)
+{
+    d_ptr->subTitleFramePtr = frame;
+    if (d_ptr->subTitleFramePtr->list().isEmpty()) {
+        return;
+    }
+
+    //update();
+}
+
+void OpenglRender::paintSubTitleFrame()
+{
+    if (d_ptr->subTitleFramePtr.isNull() || d_ptr->framePtr.isNull()) {
+        return;
+    }
+    if (d_ptr->subTitleFramePtr->pts() > d_ptr->framePtr->pts()
+        || (d_ptr->subTitleFramePtr->pts() + d_ptr->subTitleFramePtr->duration())
+               < d_ptr->framePtr->pts()) {
+        return;
+    }
+
+    // test-------无法覆盖上一次的纹理-------------------
+    static QImage img(10, 10, QImage::Format_RGBA8888);
+    img.fill(Qt::red);
+
+    //auto frame = d_ptr->framePtr->avFrame();
+
+    d_ptr->programPtr->setUniformValue("format", 26);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureRGBA);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 10, 10, 0, GL_RGBA, GL_UNSIGNED_BYTE, img.constBits());
+    d_ptr->programPtr->setUniformValue("tex_rgba", 4);
+
+    glDrawElements(
+        GL_TRIANGLES,    // 绘制的图元类型
+        6,               // 指定要渲染的元素数(点数)
+        GL_UNSIGNED_INT, // 指定索引中值的类型(indices)
+        nullptr); // 指定当前绑定到GL_ELEMENT_array_buffer目标的缓冲区的数据存储中数组中第一个索引的偏移量。
+
+    //return;
+
+    auto avFrame = d_ptr->framePtr->avFrame();
+    auto center = d_ptr->frameRect.center().toPoint();
+    auto frameRectSize = d_ptr->frameRect.size();
+    double scaleFactor1 = qMax(frameRectSize.width() * 1.0 / avFrame->width,
+                               frameRectSize.height() * 1.0 / avFrame->height);
+    auto list = d_ptr->subTitleFramePtr->list();
+    for (const auto &data : qAsConst(list)) {
+        auto rect = data.rect();
+        QRect r;
+        r.setTopLeft(center * qAbs(1 - scaleFactor1));
+        r.setSize(rect.size() / scaleFactor1);
+
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, d_ptr->textureRGBA);
+        glTexSubImage2D(GL_TEXTURE_2D,
+                        0,
+                        r.x() * devicePixelRatio(),
+                        r.y() * devicePixelRatio(),
+                        r.width() * devicePixelRatio(),
+                        r.height() * devicePixelRatio(),
+                        GL_RGBA,
+                        GL_UNSIGNED_BYTE,
+                        (uchar *) data.rgba().constData());
+        d_ptr->programPtr->setUniformValue("tex_rgba", 4);
+        glDrawElements(
+            GL_TRIANGLES,    // 绘制的图元类型
+            6,               // 指定要渲染的元素数(点数)
+            GL_UNSIGNED_INT, // 指定索引中值的类型(indices)
+            nullptr); // 指定当前绑定到GL_ELEMENT_array_buffer目标的缓冲区的数据存储中数组中第一个索引的偏移量。
+    }
+}
+
 void OpenglRender::initializeGL()
 {
     initializeOpenGLFunctions();
+
+    glEnable(GL_DEPTH_TEST);
 
     // 加载shader脚本程序
     d_ptr->programPtr.reset(new QOpenGLShaderProgram(this));

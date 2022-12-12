@@ -30,10 +30,14 @@ void SubtitleDecoder::pause(bool state)
     d_ptr->decoderSubtitleFrame->pause(state);
 }
 
-void SubtitleDecoder::setSpeed(double speed)
+void SubtitleDecoder::setVideoResolutionRatio(const QSize &size)
 {
-    Decoder<Packet *>::setSpeed(speed);
-    d_ptr->decoderSubtitleFrame->setSpeed(speed);
+    d_ptr->decoderSubtitleFrame->setVideoResolutionRatio(size);
+}
+
+void SubtitleDecoder::setVideoOutputRenders(QVector<VideoRender *> videoOutputRenders)
+{
+    d_ptr->decoderSubtitleFrame->setVideoOutputRenders(videoOutputRenders);
 }
 
 void SubtitleDecoder::runDecoder()
