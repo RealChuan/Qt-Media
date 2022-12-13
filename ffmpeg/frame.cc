@@ -92,6 +92,11 @@ double Frame::duration()
     return m_duration;
 }
 
+bool Frame::isKey()
+{
+    return m_frame->key_frame == 1;
+}
+
 AVFrame *Frame::avFrame()
 {
     Q_ASSERT(m_frame != nullptr);

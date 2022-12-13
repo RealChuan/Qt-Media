@@ -31,6 +31,11 @@ Packet::~Packet()
     av_packet_free(&m_packet);
 }
 
+bool Packet::isKey()
+{
+    return m_packet->flags & AV_PKT_FLAG_KEY;
+}
+
 void Packet::clear()
 {
     av_packet_unref(m_packet);

@@ -23,6 +23,8 @@ public:
     Frame &operator=(const Frame &other);
     ~Frame();
 
+    bool isKey();
+
     bool imageAlloc(const QSize &size, AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA, int align = 1);
     void freeimageAlloc();
 

@@ -15,6 +15,8 @@ public:
     Packet &operator=(const Packet &other);
     ~Packet();
 
+    bool isKey();
+
     void clear();
 
     void setPts(double pts);

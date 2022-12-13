@@ -60,9 +60,10 @@ private:
             }
             if (formatContext->checkPktPlayRange(packetPtr.get()) <= 0) {
             } else if (packetPtr->avPacket()->stream_index == videoInfo->index()
-                       && !(videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
+                       && !(videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC)
+                       && packetPtr->isKey()) {
                 QScopedPointer<Frame> framePtr(videoInfo->decodeFrame(packetPtr.data()));
-                if (framePtr.isNull()) {
+                if (framePtr.isNull() || !framePtr->isKey()) {
                     continue;
                 }
                 Ffmpeg::calculateTime(framePtr.data(), videoInfo, formatContext);
