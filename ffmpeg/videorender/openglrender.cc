@@ -5,6 +5,7 @@
 #include <ffmpeg/subtitle.h>
 #include <ffmpeg/videoframeconverter.hpp>
 
+#include <QImage>
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 
@@ -32,7 +33,7 @@ public:
     GLuint textureRGBA;
     QOpenGLBuffer vbo = QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
     QOpenGLBuffer ebo = QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-    GLuint vao = 0; // 顶点数组对象,任何随后的顶点属性调用都会储存在这个VAO中，一个VAO可以有多个VBO
+    //GLuint vao = 0; // 顶点数组对象,任何随后的顶点属性调用都会储存在这个VAO中，一个VAO可以有多个VBO
 
     QSizeF size;
     QRectF frameRect;
@@ -66,7 +67,7 @@ OpenglRender::~OpenglRender()
     d_ptr->vbo.destroy();
     d_ptr->ebo.destroy();
     doneCurrent();
-    glDeleteVertexArrays(1, &d_ptr->vao);
+    //glDeleteVertexArrays(1, &d_ptr->vao);
     glDeleteTextures(1, &d_ptr->textureY);
     glDeleteTextures(1, &d_ptr->textureU);
     glDeleteTextures(1, &d_ptr->textureV);
@@ -98,6 +99,12 @@ QSharedPointer<Frame> OpenglRender::convertSupported_pix_fmt(QSharedPointer<Fram
 QVector<AVPixelFormat> OpenglRender::supportedOutput_pix_fmt()
 {
     return d_ptr->supportFormats;
+}
+
+void OpenglRender::resetAllFrame()
+{
+    d_ptr->framePtr.reset();
+    d_ptr->subTitleFramePtr.reset();
 }
 
 void OpenglRender::updateFrame(QSharedPointer<Frame> frame)
@@ -172,7 +179,6 @@ void OpenglRender::updateYUV420P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_y", 0);
     // U
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureU);
@@ -185,7 +191,6 @@ void OpenglRender::updateYUV420P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[1]);
-    d_ptr->programPtr->setUniformValue("tex_u", 1);
     // V
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureV);
@@ -198,7 +203,6 @@ void OpenglRender::updateYUV420P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[2]);
-    d_ptr->programPtr->setUniformValue("tex_v", 2);
 }
 
 void OpenglRender::updateYUYV422()
@@ -215,7 +219,6 @@ void OpenglRender::updateYUYV422()
                  GL_RGBA,
                  GL_UNSIGNED_BYTE,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_rgba", 4);
 }
 
 void OpenglRender::updateYUV422P()
@@ -233,7 +236,6 @@ void OpenglRender::updateYUV422P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_y", 0);
     // U
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureU);
@@ -246,7 +248,6 @@ void OpenglRender::updateYUV422P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[1]);
-    d_ptr->programPtr->setUniformValue("tex_u", 1);
     // V
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureV);
@@ -259,7 +260,6 @@ void OpenglRender::updateYUV422P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[2]);
-    d_ptr->programPtr->setUniformValue("tex_v", 2);
 }
 
 void OpenglRender::updateYUV444P()
@@ -277,7 +277,6 @@ void OpenglRender::updateYUV444P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_y", 0);
     // U
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureU);
@@ -290,7 +289,6 @@ void OpenglRender::updateYUV444P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[1]);
-    d_ptr->programPtr->setUniformValue("tex_u", 1);
     // V
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureV);
@@ -303,7 +301,6 @@ void OpenglRender::updateYUV444P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[2]);
-    d_ptr->programPtr->setUniformValue("tex_v", 2);
 }
 
 void OpenglRender::updateYUV410P()
@@ -321,7 +318,6 @@ void OpenglRender::updateYUV410P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_y", 0);
     // U
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureU);
@@ -334,7 +330,6 @@ void OpenglRender::updateYUV410P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[1]);
-    d_ptr->programPtr->setUniformValue("tex_u", 1);
     // V
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureV);
@@ -347,7 +342,6 @@ void OpenglRender::updateYUV410P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[2]);
-    d_ptr->programPtr->setUniformValue("tex_v", 2);
 }
 
 void OpenglRender::updateYUV411P()
@@ -365,7 +359,6 @@ void OpenglRender::updateYUV411P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_y", 0);
     // U
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureU);
@@ -378,7 +371,6 @@ void OpenglRender::updateYUV411P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[1]);
-    d_ptr->programPtr->setUniformValue("tex_u", 1);
     // V
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureV);
@@ -391,7 +383,6 @@ void OpenglRender::updateYUV411P()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[2]);
-    d_ptr->programPtr->setUniformValue("tex_v", 2);
 }
 
 void OpenglRender::updateUYVY422()
@@ -408,7 +399,6 @@ void OpenglRender::updateUYVY422()
                  GL_RGBA,
                  GL_UNSIGNED_BYTE,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_rgba", 4);
 }
 
 void OpenglRender::updateRGB8(int dataType)
@@ -425,7 +415,6 @@ void OpenglRender::updateRGB8(int dataType)
                  GL_RGB,
                  dataType,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_rgba", 4);
 }
 
 void OpenglRender::updateNV12()
@@ -443,7 +432,6 @@ void OpenglRender::updateNV12()
                  GL_RED,
                  GL_UNSIGNED_BYTE,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_y", 0);
     // UV
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureUV);
@@ -456,7 +444,6 @@ void OpenglRender::updateNV12()
                  GL_LUMINANCE_ALPHA, //GL_RG, GL_LUMINANCE_ALPHA
                  GL_UNSIGNED_BYTE,
                  frame->data[1]);
-    d_ptr->programPtr->setUniformValue("tex_uv", 3);
 }
 
 void OpenglRender::updateRGB()
@@ -473,7 +460,6 @@ void OpenglRender::updateRGB()
                  GL_RGB,
                  GL_UNSIGNED_BYTE,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_rgba", 4);
 }
 
 void OpenglRender::updateRGBA()
@@ -490,7 +476,6 @@ void OpenglRender::updateRGBA()
                  GL_RGBA,
                  GL_UNSIGNED_BYTE,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_rgba", 4);
 }
 
 void OpenglRender::updateYUV420P10LE()
@@ -508,7 +493,6 @@ void OpenglRender::updateYUV420P10LE()
                  GL_LUMINANCE_ALPHA,
                  GL_UNSIGNED_BYTE,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_y", 0);
     // U
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureU);
@@ -521,7 +505,6 @@ void OpenglRender::updateYUV420P10LE()
                  GL_LUMINANCE_ALPHA,
                  GL_UNSIGNED_BYTE,
                  frame->data[1]);
-    d_ptr->programPtr->setUniformValue("tex_u", 1);
     // V
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureV);
@@ -534,7 +517,6 @@ void OpenglRender::updateYUV420P10LE()
                  GL_LUMINANCE_ALPHA,
                  GL_UNSIGNED_BYTE,
                  frame->data[2]);
-    d_ptr->programPtr->setUniformValue("tex_v", 2);
 }
 
 void OpenglRender::updateP010LE()
@@ -552,7 +534,6 @@ void OpenglRender::updateP010LE()
                  GL_RED,
                  GL_UNSIGNED_SHORT,
                  frame->data[0]);
-    d_ptr->programPtr->setUniformValue("tex_y", 0);
     // UV
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureUV);
@@ -565,7 +546,6 @@ void OpenglRender::updateP010LE()
                  GL_LUMINANCE_ALPHA,
                  GL_UNSIGNED_SHORT,
                  frame->data[1]);
-    d_ptr->programPtr->setUniformValue("tex_uv", 3);
 }
 
 void OpenglRender::setColorSpace()
@@ -613,6 +593,7 @@ void OpenglRender::displaySubTitleFrame(QSharedPointer<Subtitle> frame)
         return;
     }
 
+    // need update?
     //update();
 }
 
@@ -626,74 +607,48 @@ void OpenglRender::paintSubTitleFrame()
                < d_ptr->framePtr->pts()) {
         return;
     }
-
-    // test-------无法覆盖上一次的纹理-------------------
-    static QImage img(10, 10, QImage::Format_RGBA8888);
-    img.fill(Qt::red);
-
-    //auto frame = d_ptr->framePtr->avFrame();
-
-    d_ptr->programPtr->setUniformValue("format", 26);
+    auto img = d_ptr->subTitleFramePtr->image();
     glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureRGBA);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 10, 10, 0, GL_RGBA, GL_UNSIGNED_BYTE, img.constBits());
-    d_ptr->programPtr->setUniformValue("tex_rgba", 4);
-
-    glDrawElements(
-        GL_TRIANGLES,    // 绘制的图元类型
-        6,               // 指定要渲染的元素数(点数)
-        GL_UNSIGNED_INT, // 指定索引中值的类型(indices)
-        nullptr); // 指定当前绑定到GL_ELEMENT_array_buffer目标的缓冲区的数据存储中数组中第一个索引的偏移量。
-
-    //return;
-
-    auto avFrame = d_ptr->framePtr->avFrame();
-    auto center = d_ptr->frameRect.center().toPoint();
-    auto frameRectSize = d_ptr->frameRect.size();
-    double scaleFactor1 = qMax(frameRectSize.width() * 1.0 / avFrame->width,
-                               frameRectSize.height() * 1.0 / avFrame->height);
-    auto list = d_ptr->subTitleFramePtr->list();
-    for (const auto &data : qAsConst(list)) {
-        auto rect = data.rect();
-        QRect r;
-        r.setTopLeft(center * qAbs(1 - scaleFactor1));
-        r.setSize(rect.size() / scaleFactor1);
-
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, d_ptr->textureRGBA);
-        glTexSubImage2D(GL_TEXTURE_2D,
-                        0,
-                        r.x() * devicePixelRatio(),
-                        r.y() * devicePixelRatio(),
-                        r.width() * devicePixelRatio(),
-                        r.height() * devicePixelRatio(),
-                        GL_RGBA,
-                        GL_UNSIGNED_BYTE,
-                        (uchar *) data.rgba().constData());
-        d_ptr->programPtr->setUniformValue("tex_rgba", 4);
-        glDrawElements(
-            GL_TRIANGLES,    // 绘制的图元类型
-            6,               // 指定要渲染的元素数(点数)
-            GL_UNSIGNED_INT, // 指定索引中值的类型(indices)
-            nullptr); // 指定当前绑定到GL_ELEMENT_array_buffer目标的缓冲区的数据存储中数组中第一个索引的偏移量。
-    }
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RGBA,
+                 img.width(),
+                 img.height(),
+                 0,
+                 GL_RGBA,
+                 GL_UNSIGNED_BYTE,
+                 img.constBits());
+    glEnable(GL_BLEND);
+    d_ptr->programPtr->bind();
+    d_ptr->programPtr->setUniformValue("format", 26);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+    d_ptr->programPtr->release();
+    glDisable(GL_BLEND);
 }
 
 void OpenglRender::initializeGL()
 {
     initializeOpenGLFunctions();
 
-    glEnable(GL_DEPTH_TEST);
-
+    //glEnable(GL_DEPTH_TEST);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_DITHER);
     // 加载shader脚本程序
     d_ptr->programPtr.reset(new QOpenGLShaderProgram(this));
-    d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shader/shader.vert");
-    d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shader/shader.frag");
+    d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shader/video.vert");
+    d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shader/video.frag");
     d_ptr->programPtr->link();
     d_ptr->programPtr->bind();
 
     initVbo();
     initTexture();
+
+    d_ptr->programPtr->release();
 }
 
 void OpenglRender::resizeGL(int w, int h)
@@ -728,12 +683,7 @@ void OpenglRender::paintGL()
                d_ptr->frameRect.width() * devicePixelRatio(),
                d_ptr->frameRect.height() * devicePixelRatio());
     auto format = d_ptr->framePtr->avFrame()->format;
-
-    d_ptr->programPtr->bind(); // 绑定着色器
-    d_ptr->programPtr->setUniformValue("format", format);
-#ifndef QT_NO_DEBUG
     //qDebug() << format;
-#endif
     // 绑定纹理
     switch (format) {
     case AV_PIX_FMT_YUV420P: updateYUV420P(); break;
@@ -761,27 +711,30 @@ void OpenglRender::paintGL()
     case AV_PIX_FMT_P010LE: updateP010LE(); break;
     default: break;
     }
+    d_ptr->programPtr->bind(); // 绑定着色器
+    d_ptr->programPtr->setUniformValue("format", format);
 
     setColorSpace();
 
-    glBindVertexArray(d_ptr->vao); // 绑定VAO
+    //glBindVertexArray(d_ptr->vao); // 绑定VAO
     glDrawElements(
         GL_TRIANGLES,    // 绘制的图元类型
         6,               // 指定要渲染的元素数(点数)
         GL_UNSIGNED_INT, // 指定索引中值的类型(indices)
         nullptr); // 指定当前绑定到GL_ELEMENT_array_buffer目标的缓冲区的数据存储中数组中第一个索引的偏移量。
-    glBindVertexArray(0);
+    //glBindVertexArray(0);
 
     d_ptr->programPtr->release();
+
+    paintSubTitleFrame();
 }
 
 void OpenglRender::initVbo()
 {
-    // 返回属性名称在此着色器程序的参数列表中的位置。如果名称不是此着色器程序的有效属性，则返回-1。
     GLuint posAttr = GLuint(d_ptr->programPtr->attributeLocation("aPos"));
     GLuint texCord = GLuint(d_ptr->programPtr->attributeLocation("aTexCord"));
 
-    glBindVertexArray(d_ptr->vao);
+    //glBindVertexArray(d_ptr->vao);
 
     float vertices[] = {
         // positions             // texture coords
@@ -803,17 +756,17 @@ void OpenglRender::initVbo()
     d_ptr->ebo.allocate(indices, sizeof(indices));
 
     d_ptr->programPtr->setAttributeBuffer(posAttr, GL_FLOAT, 0, 3, sizeof(float) * 5);
-    d_ptr->programPtr->enableAttributeArray(0);
+    d_ptr->programPtr->enableAttributeArray(posAttr);
     d_ptr->programPtr->setAttributeBuffer(texCord, GL_FLOAT, 3 * sizeof(float), 2, sizeof(float) * 5);
-    d_ptr->programPtr->enableAttributeArray(1);
+    d_ptr->programPtr->enableAttributeArray(texCord);
 
     // 启用通用顶点属性数组
-    glEnableVertexAttribArray(
-        texCord); // 属性索引是从调用glGetAttribLocation接收的，或者传递给glBindAttribLocation。
+    // 属性索引是从调用glGetAttribLocation接收的，或者传递给glBindAttribLocation。
+    //glEnableVertexAttribArray(texCord);
 
     // 释放
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0); // 设置为零以破坏现有的顶点数组对象绑定}
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //glBindVertexArray(0); // 设置为零以破坏现有的顶点数组对象绑定}
 }
 
 } // namespace Ffmpeg

@@ -145,6 +145,7 @@ void FormatContext::findStreamIndex()
                                          tag,
                                          AV_DICT_IGNORE_SUFFIX))) {
                 str = str + tag->key + ":" + QString::fromUtf8(tag->value) + " ";
+                //qDebug() << tag->key << ":" << QString::fromUtf8(tag->value);
             }
             str.chop(1);
             d_ptr->audioMap.insert(i, str);
@@ -158,6 +159,7 @@ void FormatContext::findStreamIndex()
                                          tag,
                                          AV_DICT_IGNORE_SUFFIX))) {
                 str = str + tag->key + ":" + QString::fromUtf8(tag->value) + " ";
+                //qDebug() << tag->key << ":" << QString::fromUtf8(tag->value);
             }
             str.chop(1);
             d_ptr->subtitleMap.insert(i, str);

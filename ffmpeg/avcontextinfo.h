@@ -56,6 +56,9 @@ signals:
     void error(const Ffmpeg::AVError &avError);
 
 private:
+    void showCodecpar();
+    void showMetaData();
+
     struct AVContextInfoPrivate;
     QScopedPointer<AVContextInfoPrivate> d_ptr;
 };

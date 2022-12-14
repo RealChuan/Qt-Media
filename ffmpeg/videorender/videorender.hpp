@@ -26,8 +26,8 @@ public:
     virtual QSharedPointer<Frame> convertSupported_pix_fmt(QSharedPointer<Frame> frame) = 0;
     void setFrame(QSharedPointer<Frame> frame);
     void setImage(const QImage &image);
-
     void setSubTitleFrame(QSharedPointer<Subtitle> frame);
+    virtual void resetAllFrame() = 0;
 
     float fps();
     void resetFps();

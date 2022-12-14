@@ -7,6 +7,7 @@
 namespace Ffmpeg {
 
 class VideoRender;
+class Ass;
 
 class DecoderSubtitleFrame : public Decoder<Subtitle *>
 {
@@ -27,7 +28,7 @@ protected:
 
 private:
     void checkPause();
-    void checkSeek();
+    void checkSeek(Ass *ass);
 
     class DecoderSubtitleFramePrivate;
     QScopedPointer<DecoderSubtitleFramePrivate> d_ptr;

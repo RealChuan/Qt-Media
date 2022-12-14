@@ -69,33 +69,8 @@ bool AVContextInfo::isIndexVaild()
 void AVContextInfo::setStream(AVStream *stream)
 {
     d_ptr->stream = stream;
-    auto codecpar = stream->codecpar;
-    qInfo() << "start_time: " << stream->start_time;
-    qInfo() << "duration: " << stream->duration;
-    qInfo() << "nb_frames: " << stream->nb_frames;
-    qInfo() << "index_entries_allocated_size: " << stream->index_entries_allocated_size;
-    qInfo() << "format: " << codecpar->format;
-    qInfo() << "bit_rate: " << codecpar->bit_rate;
-    switch (d_ptr->mediaType) {
-    case Video:
-        qInfo() << "avg_frame_rate: " << av_q2d(stream->avg_frame_rate);
-        qInfo() << "sample_aspect_ratio: " << av_q2d(stream->sample_aspect_ratio);
-        qInfo() << "Resolution of resolution: " << codecpar->width << "x" << codecpar->height;
-        qInfo() << "color_range: " << av_color_range_name(codecpar->color_range);
-        qInfo() << "color_primaries: " << av_color_primaries_name(codecpar->color_primaries);
-        qInfo() << "color_trc: " << av_color_transfer_name(codecpar->color_trc);
-        qInfo() << "color_space: " << av_color_space_name(codecpar->color_space);
-        qInfo() << "chroma_location: " << av_chroma_location_name(codecpar->chroma_location);
-        qInfo() << "video_delay: " << codecpar->video_delay;
-        break;
-    case Audio:
-        qInfo() << "channels: " << codecpar->channels;
-        qInfo() << "channel_layout: " << codecpar->channel_layout;
-        qInfo() << "sample_rate: " << codecpar->sample_rate;
-        qInfo() << "frame_size: " << codecpar->frame_size;
-        break;
-    default: break;
-    }
+    showCodecpar();
+    showMetaData();
 }
 
 AVStream *AVContextInfo::stream()
@@ -202,6 +177,47 @@ QSize AVContextInfo::resolutionRatio()
 bool AVContextInfo::isGpuDecode()
 {
     return d_ptr->gpuDecode;
+}
+
+void AVContextInfo::showCodecpar()
+{
+    auto codecpar = d_ptr->stream->codecpar;
+    qInfo() << "start_time: " << d_ptr->stream->start_time;
+    qInfo() << "duration: " << d_ptr->stream->duration;
+    qInfo() << "nb_frames: " << d_ptr->stream->nb_frames;
+    qInfo() << "index_entries_allocated_size: " << d_ptr->stream->index_entries_allocated_size;
+    qInfo() << "format: " << codecpar->format;
+    qInfo() << "bit_rate: " << codecpar->bit_rate;
+    switch (d_ptr->mediaType) {
+    case Video:
+        qInfo() << "avg_frame_rate: " << av_q2d(d_ptr->stream->avg_frame_rate);
+        qInfo() << "sample_aspect_ratio: " << av_q2d(d_ptr->stream->sample_aspect_ratio);
+        qInfo() << "Resolution of resolution: " << codecpar->width << "x" << codecpar->height;
+        qInfo() << "color_range: " << av_color_range_name(codecpar->color_range);
+        qInfo() << "color_primaries: " << av_color_primaries_name(codecpar->color_primaries);
+        qInfo() << "color_trc: " << av_color_transfer_name(codecpar->color_trc);
+        qInfo() << "color_space: " << av_color_space_name(codecpar->color_space);
+        qInfo() << "chroma_location: " << av_chroma_location_name(codecpar->chroma_location);
+        qInfo() << "video_delay: " << codecpar->video_delay;
+        break;
+    case Audio:
+        qInfo() << "channels: " << codecpar->channels;
+        qInfo() << "channel_layout: " << codecpar->channel_layout;
+        qInfo() << "sample_rate: " << codecpar->sample_rate;
+        qInfo() << "frame_size: " << codecpar->frame_size;
+        break;
+    default: break;
+    }
+}
+
+void AVContextInfo::showMetaData()
+{
+    QMap<QString, QString> maps;
+    AVDictionaryEntry *tag = nullptr;
+    while (nullptr != (tag = av_dict_get(d_ptr->stream->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
+        maps.insert(tag->key, QString::fromUtf8(tag->value));
+    }
+    qDebug() << maps;
 }
 
 } // namespace Ffmpeg

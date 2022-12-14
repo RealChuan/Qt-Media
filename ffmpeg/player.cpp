@@ -119,8 +119,8 @@ void Player::onStop()
     while (count-- > 0) {
         qApp->processEvents(); // just for signal finished
     }
-    for (auto render : d_ptr->videoOutputRenders) {
-        render->onFinish();
+    for (auto render : d_ptr->videoRenders) {
+        render->resetAllFrame();
     }
     d_ptr->formatCtx->close();
     setMediaState(MediaState::StoppedState);

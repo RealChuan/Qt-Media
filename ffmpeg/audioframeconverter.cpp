@@ -144,24 +144,22 @@ AudioFrameConverter::~AudioFrameConverter()
 
 QByteArray AudioFrameConverter::convert(Frame *frame)
 {
-    QByteArray data;
     int size = av_samples_get_buffer_size(nullptr,
                                           d_ptr->format.channelCount(),
                                           frame->avFrame()->nb_samples,
                                           d_ptr->avSampleFormat,
                                           0);
 
-    std::unique_ptr<quint8[]> bufPtr(new quint8[size]);
-    quint8 *bufPointer = bufPtr.get();
+    QByteArray data(size, Qt::Uninitialized);
+    quint8 *bufPointer[] = {(quint8 *) data.data()};
+
     int len = swr_convert(d_ptr->swrContext,
-                          &bufPointer,
+                          bufPointer,
                           frame->avFrame()->nb_samples,
                           const_cast<const uint8_t **>(frame->avFrame()->data),
                           frame->avFrame()->nb_samples);
-    //data += QByteArray::fromRawData((const char *) (bufPtr.get()), size);
-    data += QByteArray((const char *) (bufPtr.get()), size);
-
     if (len <= 0) {
+        data.clear();
         qWarning() << AVError::avErrorString(len);
     }
 

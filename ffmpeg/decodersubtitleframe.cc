@@ -72,17 +72,15 @@ void DecoderSubtitleFrame::setVideoOutputRenders(QVector<VideoRender *> videoRen
 
 void DecoderSubtitleFrame::runDecoder()
 {
-    //--------------------------test-------------------------------------------------------
     auto ctx = m_contextInfo->codecCtx()->avCodecCtx();
     QScopedPointer<Ass> assPtr(new Ass);
     assPtr->init(ctx->extradata, ctx->extradata_size);
     assPtr->setWindowSize(d_ptr->videoResolutionRatio);
-    //--------------------------test-------------------------------------------------------
     SwsContext *swsContext = nullptr;
     quint64 dropNum = 0;
     while (m_runing) {
         checkPause();
-        checkSeek();
+        checkSeek(assPtr.data());
 
         QSharedPointer<Subtitle> subtitlePtr(m_queue.dequeue());
         if (subtitlePtr.isNull()) {
@@ -95,27 +93,10 @@ void DecoderSubtitleFrame::runDecoder()
         if (m_seekTime > pts) {
             continue;
         }
-        //--------------------------test-------------------------------------------------------
         if (subtitlePtr->type() == Subtitle::Type::ASS) {
             subtitlePtr->resolveAss(assPtr.data());
-            //            auto list = subtitlePtr->list();
-            //            for (const auto &data : qAsConst(list)) {
-            //                auto rect = data.rect();
-            //                QImage image((uchar *) data.rgba().constData(),
-            //                             rect.width(),
-            //                             rect.height(),
-            //                             QImage::Format_RGBA8888);
-            //                if (image.isNull()) {
-            //                    qWarning() << "image is null";
-            //                }
-            //                auto path = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation)
-            //                                .value(0, QDir::homePath());
-            //                static int num = 0;
-            //                path = QString("%1/1/%2.png").arg(path, QString::number(++num));
-            //                qDebug() << rect << image.save(path);
-            //            }
+            subtitlePtr->generateImage();
         }
-        //--------------------------test-------------------------------------------------------
         double diff = (pts - mediaClock()) * 1000;
         if (diff < Drop_Milliseconds || (mediaSpeed() > 1.0 && qAbs(diff) > UnWait_Milliseconds)) {
             dropNum++;
@@ -141,12 +122,13 @@ void DecoderSubtitleFrame::checkPause()
     }
 }
 
-void DecoderSubtitleFrame::checkSeek()
+void DecoderSubtitleFrame::checkSeek(Ass *ass)
 {
     if (!m_seek) {
         return;
     }
     clear();
+    ass->flushASSEvents();
     auto latchPtr = m_latchPtr.lock();
     if (latchPtr) {
         latchPtr->countDown();

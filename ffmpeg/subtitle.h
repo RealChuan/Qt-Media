@@ -26,21 +26,23 @@ public:
     void parse(SwsContext *swsContext);
     QByteArrayList texts() const;
 
-    AVSubtitle *avSubtitle();
-
-    void clear();
-
-    double pts();
-    double duration();
-
-    Type type() const;
-
     void setVideoResolutionRatio(const QSize &size);
     QSize videoResolutionRatio() const;
 
     bool resolveAss(Ass *ass);
     void setAssDataInfoList(const AssDataInfoList &list);
     AssDataInfoList list() const;
+
+    QImage generateImage() const;
+    QImage image() const;
+
+    AVSubtitle *avSubtitle();
+    void clear();
+
+    Type type() const;
+
+    double pts();
+    double duration();
 
 private:
     void parseImage(SwsContext *swsContext);

@@ -4,6 +4,7 @@
 
 #include <QDebug>
 #include <QImage>
+#include <QPainter>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -33,11 +34,9 @@ public:
     Subtitle::Type type = Subtitle::Unknown;
     QSize videoResolutionRatio = QSize(1280, 720);
 
-    QVector<QImage> images;
-    QVector<QRect> rect;
     QByteArrayList texts;
-
     AssDataInfoList assList;
+    QImage image;
 };
 
 Subtitle::Subtitle(QObject *parent)
@@ -72,6 +71,9 @@ QByteArrayList Subtitle::texts() const
 
 void Subtitle::parseImage(SwsContext *swsContext)
 {
+    d_ptr->image = QImage(d_ptr->videoResolutionRatio, QImage::Format_RGBA8888);
+    d_ptr->image.fill(Qt::transparent);
+    QPainter painter(&d_ptr->image);
     for (size_t i = 0; i < d_ptr->subtitle.num_rects; i++) {
         auto sub_rect = d_ptr->subtitle.rects[i];
 
@@ -98,11 +100,11 @@ void Subtitle::parseImage(SwsContext *swsContext)
                   pixels,
                   pitch);
         //这里也使用RGBA
-        auto image = QImage(pixels[0], sub_rect->w, sub_rect->h, QImage::Format_RGBA8888).copy();
+        auto image = QImage(pixels[0], sub_rect->w, sub_rect->h, QImage::Format_RGBA8888);
+        if (!image.isNull()) {
+            painter.drawImage(QRect(sub_rect->x, sub_rect->y, sub_rect->w, sub_rect->h), image);
+        }
         av_freep(&pixels[0]);
-
-        d_ptr->images.append(image);
-        d_ptr->rect.append({sub_rect->x, sub_rect->y, sub_rect->w, sub_rect->h});
     }
     d_ptr->pts = d_ptr->subtitle.start_display_time / 1000;
     d_ptr->duration = (d_ptr->subtitle.end_display_time - d_ptr->subtitle.start_display_time)
@@ -125,8 +127,8 @@ void Subtitle::parseText()
             break;
         default: continue;
         }
-        //qDebug() << "Subtitle Type:" << sub_rect->type << QString::fromUtf8(text);
         d_ptr->texts.append(text);
+        //qDebug() << "Subtitle Type:" << sub_rect->type << QString::fromUtf8(text);
     }
 }
 
@@ -188,6 +190,35 @@ void Subtitle::setAssDataInfoList(const AssDataInfoList &list)
 AssDataInfoList Subtitle::list() const
 {
     return d_ptr->assList;
+}
+
+QImage Subtitle::generateImage() const
+{
+    if (d_ptr->type != Type::ASS) {
+        return QImage();
+    }
+    d_ptr->image = QImage(d_ptr->videoResolutionRatio, QImage::Format_RGBA8888);
+    d_ptr->image.fill(Qt::transparent);
+    QPainter painter(&d_ptr->image);
+    for (const auto &data : qAsConst(d_ptr->assList)) {
+        auto rect = data.rect();
+        QImage image((uchar *) data.rgba().constData(),
+                     rect.width(),
+                     rect.height(),
+                     QImage::Format_RGBA8888);
+        if (image.isNull()) {
+            qWarning() << "image is null";
+            continue;
+        }
+        painter.drawImage(rect, image);
+    }
+
+    return d_ptr->image;
+}
+
+QImage Subtitle::image() const
+{
+    return d_ptr->image;
 }
 
 } // namespace Ffmpeg
