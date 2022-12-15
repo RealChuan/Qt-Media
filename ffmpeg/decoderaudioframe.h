@@ -42,7 +42,7 @@ private:
 
     void checkDefaultAudioOutput(QAudioDevice &audioDevice);
     void checkPause(qint64 &pauseTime);
-    void checkSeek(QElapsedTimer &timer, qint64 &pauseTime);
+    void checkSeek(qint64 &pauseTime);
     void checkSpeed(QElapsedTimer &timer, qint64 &pauseTime);
 
     void writeToDevice(QByteArray &audioBuf);

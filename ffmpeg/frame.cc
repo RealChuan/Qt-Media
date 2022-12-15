@@ -9,49 +9,72 @@ extern "C" {
 
 namespace Ffmpeg {
 
-Frame::Frame()
+struct Frame::FramePrivate
 {
-    m_frame = av_frame_alloc();
-    Q_ASSERT(m_frame != nullptr);
+    ~FramePrivate()
+    {
+        Q_ASSERT(frame != nullptr);
+        freeImageAlloc();
+        av_frame_free(&frame);
+    }
+
+    void freeImageAlloc()
+    {
+        if (imageAlloc) {
+            av_freep(&frame->data[0]);
+            imageAlloc = false;
+        }
+    }
+
+    AVFrame *frame;
+    bool imageAlloc = false;
+    double pts = 0;
+    double duration = 0;
+
+    QImage::Format format = QImage::Format_Invalid;
+};
+
+Frame::Frame()
+    : d_ptr(new FramePrivate)
+{
+    d_ptr->frame = av_frame_alloc();
+    Q_ASSERT(d_ptr->frame != nullptr);
 }
 
 Frame::Frame(const QImage &image)
+    : d_ptr(new FramePrivate)
 {
-    m_frame = av_frame_alloc();
-    Q_ASSERT(m_frame != nullptr);
+    d_ptr->frame = av_frame_alloc();
+    Q_ASSERT(d_ptr->frame != nullptr);
     auto img = image;
     img.convertTo(QImage::Format_RGBA8888);
-    m_frame->width = img.width();
-    m_frame->height = img.height();
-    m_frame->format = AV_PIX_FMT_RGBA;
-    av_frame_get_buffer(m_frame, 0);
-    memcpy(m_frame->data[0], img.bits(), m_frame->width * m_frame->height * 4);
+    d_ptr->frame->width = img.width();
+    d_ptr->frame->height = img.height();
+    d_ptr->frame->format = AV_PIX_FMT_RGBA;
+    av_frame_get_buffer(d_ptr->frame, 0);
+    memcpy(d_ptr->frame->data[0], img.bits(), d_ptr->frame->width * d_ptr->frame->height * 4);
 }
 
 Frame::Frame(const Frame &other)
+    : d_ptr(new FramePrivate)
 {
-    m_frame = av_frame_clone(other.m_frame);
+    d_ptr->frame = av_frame_clone(other.d_ptr->frame);
 }
 
 Frame &Frame::operator=(const Frame &other)
 {
-    m_frame = av_frame_clone(other.m_frame);
+    d_ptr->frame = av_frame_clone(other.d_ptr->frame);
     return *this;
 }
 
-Frame::~Frame()
-{
-    Q_ASSERT(m_frame != nullptr);
-    freeimageAlloc();
-    av_frame_free(&m_frame);
-}
+Frame::~Frame() {}
 
 bool Frame::imageAlloc(const QSize &size, AVPixelFormat pix_fmt, int align)
 {
     Q_ASSERT(size.isValid());
-    m_imageAlloc = true;
-    int ret = av_image_alloc(m_frame->data,
-                             m_frame->linesize,
+    d_ptr->imageAlloc = true;
+    int ret = av_image_alloc(d_ptr->frame->data,
+                             d_ptr->frame->linesize,
                              size.width(),
                              size.height(),
                              pix_fmt,
@@ -59,48 +82,77 @@ bool Frame::imageAlloc(const QSize &size, AVPixelFormat pix_fmt, int align)
     return ret >= 0;
 }
 
-void Frame::freeimageAlloc()
+void Frame::freeImageAlloc()
 {
-    if (m_imageAlloc) {
-        av_freep(&m_frame->data[0]);
-        m_imageAlloc = false;
-    }
+    d_ptr->freeImageAlloc();
 }
 
 void Frame::clear()
 {
-    av_frame_unref(m_frame);
+    av_frame_unref(d_ptr->frame);
 }
 
 void Frame::setPts(double pts)
 {
-    m_pts = pts;
+    d_ptr->pts = pts;
 }
 
 double Frame::pts()
 {
-    return m_pts;
+    return d_ptr->pts;
 }
 
 void Frame::setDuration(double duration)
 {
-    m_duration = duration;
+    d_ptr->duration = duration;
 }
 
 double Frame::duration()
 {
-    return m_duration;
+    return d_ptr->duration;
+}
+
+void Frame::setQImageFormat(QImage::Format format)
+{
+    d_ptr->format = format;
+}
+
+QImage::Format Frame::format() const
+{
+    return d_ptr->format;
+}
+
+QImage Frame::convertToImage() const
+{
+    if (d_ptr->format == QImage::Format_Invalid) {
+        return QImage();
+    }
+
+    return QImage((uchar *) d_ptr->frame->data[0],
+                  d_ptr->frame->width,
+                  d_ptr->frame->height,
+                  d_ptr->frame->linesize[0],
+                  d_ptr->format);
+}
+
+QImage Frame::convertToImage(QImage::Format format) const
+{
+    return QImage((uchar *) d_ptr->frame->data[0],
+                  d_ptr->frame->width,
+                  d_ptr->frame->height,
+                  d_ptr->frame->linesize[0],
+                  format);
 }
 
 bool Frame::isKey()
 {
-    return m_frame->key_frame == 1;
+    return d_ptr->frame->key_frame == 1;
 }
 
 AVFrame *Frame::avFrame()
 {
-    Q_ASSERT(m_frame != nullptr);
-    return m_frame;
+    Q_ASSERT(d_ptr->frame != nullptr);
+    return d_ptr->frame;
 }
 
 } // namespace Ffmpeg

@@ -36,7 +36,6 @@ private:
     void setColorSpace();
 
     void displayFrame(QSharedPointer<Frame> framePtr);
-    void displaySubTitleFrame(QSharedPointer<Subtitle> frame);
     void paintSubTitleFrame();
 
     void updateYUV420P();

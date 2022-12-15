@@ -106,22 +106,23 @@ void DecoderAudioFrame::runDecoder()
     QAudioDevice audioDevice(QMediaDevices::defaultAudioOutput());
     auto format = resetAudioOutput();
     d_ptr->seekTime = 0;
-    setMediaClock(0);
     AudioFrameConverter audioConverter(m_contextInfo->codecCtx(), format);
     QElapsedTimer timer;
     if (d_ptr->isLocalFile) { // 音频播放依赖外部时钟，适用于本地文件播放
         qint64 pauseTime = 0;
-        timer.start();
         while (m_runing) {
             checkDefaultAudioOutput(audioDevice);
             checkPause(pauseTime);
-            checkSeek(timer, pauseTime);
+            checkSeek(pauseTime);
             checkSpeed(timer, pauseTime);
 
             QScopedPointer<Frame> framePtr(m_queue.dequeue());
             if (framePtr.isNull()) {
                 msleep(Sleep_Queue_Empty_Milliseconds);
                 continue;
+            }
+            if (!timer.isValid()) {
+                timer.start();
             }
             double pts = framePtr->pts();
             if (m_seekTime > pts) {
@@ -158,7 +159,7 @@ void DecoderAudioFrame::runDecoder()
             checkDefaultAudioOutput(audioDevice);
             qint64 pauseTime = 0;
             checkPause(pauseTime);
-            checkSeek(timer, lastPts);
+            checkSeek(lastPts);
             checkSpeed(timer, lastPts);
             if (m_queue.isEmpty()) {
                 msleep(Sleep_Queue_Empty_Milliseconds);
@@ -237,9 +238,8 @@ void DecoderAudioFrame::checkPause(qint64 &pauseTime)
     }
 }
 
-void DecoderAudioFrame::checkSeek(QElapsedTimer &timer, qint64 &pauseTime)
+void DecoderAudioFrame::checkSeek(qint64 &pauseTime)
 {
-    Q_UNUSED(timer)
     if (!m_seek) {
         return;
     }

@@ -2,12 +2,11 @@
 
 #include "ffmepg_global.h"
 
+#include <QImage>
+
 extern "C" {
 #include <libavutil/pixfmt.h>
 }
-
-class QSize;
-class QImage;
 
 struct AVFrame;
 
@@ -18,7 +17,6 @@ class FFMPEG_EXPORT Frame
 public:
     explicit Frame();
     Frame(const QImage &image);
-
     Frame(const Frame &other);
     Frame &operator=(const Frame &other);
     ~Frame();
@@ -26,9 +24,7 @@ public:
     bool isKey();
 
     bool imageAlloc(const QSize &size, AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA, int align = 1);
-    void freeimageAlloc();
-
-    void clear();
+    void freeImageAlloc();
 
     void setPts(double pts);
     double pts();
@@ -36,13 +32,22 @@ public:
     void setDuration(double duration);
     double duration();
 
+    void setQImageFormat(QImage::Format format);
+    QImage::Format format() const;
+    QImage convertToImage() const; // maybe null
+
+    /// The frame is destroyed and the QImage is invalid
+    /// Use VideoFrameConverter first to ensure that the image can be converted to QImage
+    /// maybe null
+    QImage convertToImage(QImage::Format format) const;
+
+    void clear();
+
     AVFrame *avFrame();
 
 private:
-    AVFrame *m_frame;
-    bool m_imageAlloc = false;
-    double m_pts = 0;
-    double m_duration = 0;
+    struct FramePrivate;
+    QScopedPointer<FramePrivate> d_ptr;
 };
 
 } // namespace Ffmpeg

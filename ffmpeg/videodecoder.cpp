@@ -1,6 +1,7 @@
 #include "videodecoder.h"
 #include "avcontextinfo.h"
 #include "decodervideoframe.h"
+#include "videoformat.hpp"
 
 #include <QDebug>
 #include <QPixmap>
@@ -64,6 +65,9 @@ void VideoDecoder::runDecoder()
             continue;
         }
         Ffmpeg::calculateTime(framePtr.get(), m_contextInfo, m_formatContext);
+        framePtr->setQImageFormat(
+            VideoFormat::qFormatMaps.value(AVPixelFormat(framePtr->avFrame()->format),
+                                           QImage::Format_Invalid));
 
         d_ptr->decoderVideoFrame->append(framePtr.release());
 

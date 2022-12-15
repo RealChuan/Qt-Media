@@ -9,6 +9,7 @@ set(PROJECT_SOURCES
 
         videorender/openglrender.cc videorender/openglrender.hpp
         videorender/videorender.cc videorender/videorender.hpp
+        videorender/widgetrender.cc videorender/widgetrender.hpp
 
         audiodecoder.cpp audiodecoder.h
         audioframeconverter.cpp audioframeconverter.h
@@ -29,6 +30,7 @@ set(PROJECT_SOURCES
         subtitle.cpp subtitle.h
         subtitledecoder.cpp subtitledecoder.h
         videodecoder.cpp videodecoder.h
+        videoformat.cc videoformat.hpp
         videoframeconverter.cc videoframeconverter.hpp)
 
 qt_add_resources(SOURCES videooutput/shader/shader.qrc)

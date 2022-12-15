@@ -1,7 +1,8 @@
+#include "videoframeconverter.hpp"
 #include "averror.h"
 #include "codeccontext.h"
 #include "frame.hpp"
-#include "videoframeconverter.hpp"
+#include "videoformat.hpp"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -18,6 +19,7 @@ struct VideoFrameConverter::VideoFrameConverterPrivate
     struct SwsContext *swsContext = nullptr;
     AVPixelFormat src_pix_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
     AVPixelFormat dst_pix_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
+    QSize dstSize;
 };
 
 VideoFrameConverter::VideoFrameConverter(CodecContext *codecCtx,
@@ -31,22 +33,19 @@ VideoFrameConverter::VideoFrameConverter(CodecContext *codecCtx,
     d_ptr->src_pix_fmt = ctx->pix_fmt;
     d_ptr->dst_pix_fmt = pix_fmt;
     debugMessage();
-    int width = ctx->width;
-    int height = ctx->height;
-    if (size.isValid()) {
-        width = size.width();
-        height = size.height();
-    }
-    d_ptr->swsContext = sws_getContext(ctx->width,
-                                       ctx->height,
-                                       d_ptr->src_pix_fmt,
-                                       width,
-                                       height,
-                                       d_ptr->dst_pix_fmt,
-                                       size.width() > ctx->width ? SWS_BICUBIC : SWS_BILINEAR,
-                                       NULL,
-                                       NULL,
-                                       NULL);
+    size.isValid() ? d_ptr->dstSize = size : d_ptr->dstSize = QSize(ctx->width, ctx->height);
+    d_ptr->swsContext = sws_getCachedContext(d_ptr->swsContext,
+                                             ctx->width,
+                                             ctx->height,
+                                             d_ptr->src_pix_fmt,
+                                             d_ptr->dstSize.width(),
+                                             d_ptr->dstSize.height(),
+                                             d_ptr->dst_pix_fmt,
+                                             d_ptr->dstSize.width() > ctx->width ? SWS_BICUBIC
+                                                                                 : SWS_BILINEAR,
+                                             NULL,
+                                             NULL,
+                                             NULL);
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 
@@ -64,22 +63,20 @@ VideoFrameConverter::VideoFrameConverter(Frame *frame,
     if (sws_isSupportedInput(d_ptr->src_pix_fmt) <= 0) {
         d_ptr->src_pix_fmt = AV_PIX_FMT_NV12;
     }
-    int width = avFrame->width;
-    int height = avFrame->height;
-    if (size.isValid()) {
-        width = size.width();
-        height = size.height();
-    }
-    d_ptr->swsContext = sws_getContext(avFrame->width,
-                                       avFrame->height,
-                                       d_ptr->src_pix_fmt,
-                                       width,
-                                       height,
-                                       d_ptr->dst_pix_fmt,
-                                       size.width() > avFrame->width ? SWS_BICUBIC : SWS_BILINEAR,
-                                       NULL,
-                                       NULL,
-                                       NULL);
+    size.isValid() ? d_ptr->dstSize = size
+                   : d_ptr->dstSize = QSize(avFrame->width, avFrame->height);
+    d_ptr->swsContext = sws_getCachedContext(d_ptr->swsContext,
+                                             avFrame->width,
+                                             avFrame->height,
+                                             d_ptr->src_pix_fmt,
+                                             d_ptr->dstSize.width(),
+                                             d_ptr->dstSize.height(),
+                                             d_ptr->dst_pix_fmt,
+                                             d_ptr->dstSize.width() > avFrame->width ? SWS_BICUBIC
+                                                                                     : SWS_BILINEAR,
+                                             NULL,
+                                             NULL,
+                                             NULL);
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 
@@ -95,27 +92,24 @@ void VideoFrameConverter::flush(Frame *frame, const QSize &dstSize, AVPixelForma
     d_ptr->src_pix_fmt = static_cast<AVPixelFormat>(avFrame->format);
     d_ptr->dst_pix_fmt = pix_fmt;
     debugMessage();
-    int width = avFrame->width;
-    int height = avFrame->height;
-    if (dstSize.isValid()) {
-        width = dstSize.width();
-        height = dstSize.height();
-    }
-    sws_getCachedContext(d_ptr->swsContext,
-                         avFrame->width,
-                         avFrame->height,
-                         d_ptr->src_pix_fmt,
-                         width,
-                         height,
-                         d_ptr->dst_pix_fmt,
-                         dstSize.width() > avFrame->width ? SWS_BICUBIC : SWS_BILINEAR,
-                         NULL,
-                         NULL,
-                         NULL);
+    dstSize.isValid() ? d_ptr->dstSize = dstSize
+                      : d_ptr->dstSize = QSize(avFrame->width, avFrame->height);
+    d_ptr->swsContext = sws_getCachedContext(d_ptr->swsContext,
+                                             avFrame->width,
+                                             avFrame->height,
+                                             d_ptr->src_pix_fmt,
+                                             d_ptr->dstSize.width(),
+                                             d_ptr->dstSize.height(),
+                                             d_ptr->dst_pix_fmt,
+                                             d_ptr->dstSize.width() > avFrame->width ? SWS_BICUBIC
+                                                                                     : SWS_BILINEAR,
+                                             NULL,
+                                             NULL,
+                                             NULL);
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 
-int VideoFrameConverter::scale(Frame *in, Frame *out, int height)
+int VideoFrameConverter::scale(Frame *in, Frame *out)
 {
     Q_ASSERT(d_ptr->swsContext != nullptr);
     auto inFrame = in->avFrame();
@@ -124,34 +118,21 @@ int VideoFrameConverter::scale(Frame *in, Frame *out, int height)
                         static_cast<const unsigned char *const *>(inFrame->data),
                         inFrame->linesize,
                         0,
-                        height,
+                        inFrame->height,
                         outFrame->data,
                         outFrame->linesize);
     if (ret < 0) {
         qWarning() << AVError::avErrorString(ret);
     }
-    outFrame->width = inFrame->width;
-    outFrame->height = inFrame->height;
+    outFrame->width = d_ptr->dstSize.width();
+    outFrame->height = d_ptr->dstSize.height();
     outFrame->format = d_ptr->dst_pix_fmt;
+    outFrame->pts = inFrame->pts;
+    out->setPts(in->pts());
+    out->setDuration(in->duration());
+    out->setQImageFormat(
+        VideoFormat::qFormatMaps.value(AVPixelFormat(outFrame->format), QImage::Format_Invalid));
     return ret;
-}
-
-QImage VideoFrameConverter::scaleToQImage(Frame *in,
-                                          Frame *out,
-                                          const QSize &dstSize,
-                                          QImage::Format format)
-{
-    Q_ASSERT(d_ptr->swsContext != nullptr);
-    auto inFrame = in->avFrame();
-    scale(in, out, inFrame->height);
-
-    int width = inFrame->width;
-    int height = inFrame->height;
-    if (dstSize.isValid()) {
-        width = dstSize.width();
-        height = dstSize.height();
-    }
-    return QImage((uchar *) out->avFrame()->data[0], width, height, format);
 }
 
 bool VideoFrameConverter::isSupportedInput_pix_fmt(AVPixelFormat pix_fmt)
@@ -169,10 +150,14 @@ void VideoFrameConverter::debugMessage()
 #ifndef QT_NO_DEBUG
     auto support_in = sws_isSupportedInput(d_ptr->src_pix_fmt);
     auto support_out = sws_isSupportedOutput(d_ptr->dst_pix_fmt);
-    qInfo() << QString("support src_pix_fmt: %1 %2")
-                   .arg(QString::number(d_ptr->src_pix_fmt), QString::number(support_in));
-    qInfo() << QString("support dst_pix_fmt: %1 %2")
-                   .arg(QString::number(d_ptr->dst_pix_fmt), QString::number(support_out));
+    if (!support_in) {
+        qInfo() << QString("support src_pix_fmt: %1 %2")
+                       .arg(QString::number(d_ptr->src_pix_fmt), QString::number(support_in));
+    }
+    if (!support_out) {
+        qInfo() << QString("support dst_pix_fmt: %1 %2")
+                       .arg(QString::number(d_ptr->dst_pix_fmt), QString::number(support_out));
+    }
 #endif
 }
 

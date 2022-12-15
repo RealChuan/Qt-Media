@@ -1,6 +1,7 @@
 #include "videorender.hpp"
 
 #include <ffmpeg/frame.hpp>
+#include <ffmpeg/subtitle.h>
 
 #include <QDebug>
 #include <QElapsedTimer>
@@ -68,6 +69,11 @@ VideoRender::~VideoRender() {}
 
 void VideoRender::setFrame(QSharedPointer<Frame> frame)
 {
+    auto avFrame = frame->avFrame();
+    if (avFrame->width <= 0 || avFrame->height <= 0) {
+        return;
+    }
+
     if (!isSupportedOutput_pix_fmt(AVPixelFormat(frame->avFrame()->format))) {
         frame = convertSupported_pix_fmt(frame);
     }
@@ -79,12 +85,18 @@ void VideoRender::setFrame(QSharedPointer<Frame> frame)
 
 void VideoRender::setImage(const QImage &image)
 {
+    if (image.isNull()) {
+        return;
+    }
     QSharedPointer<Frame> frame(new Frame(image));
     setFrame(frame);
 }
 
 void VideoRender::setSubTitleFrame(QSharedPointer<Subtitle> frame)
 {
+    if (frame->image().isNull()) {
+        return;
+    }
     updateSubTitleFrame(frame);
 }
 

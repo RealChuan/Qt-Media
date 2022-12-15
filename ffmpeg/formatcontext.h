@@ -35,6 +35,8 @@ public:
     QMap<int, QString> subtitleMap() const;
 
     int findBestStreamIndex(AVMediaType type) const;
+    // 丢弃除指定3个stream的音视频流，优化av_read_frame性能
+    void discardStreamExcluded(int audioIndex, int videoIndex, int subtitleIndex);
 
     AVStream *stream(int index); //音频流
 
@@ -48,13 +50,13 @@ public:
 
     void dumpFormat();
 
-    AVFormatContext *avFormatContext();
-
-    qint64 duration(); // ms
+    qint64 duration() const; // ms
 
     QImage &coverImage() const;
 
-    AVError avError();
+    AVError avError() const;
+
+    AVFormatContext *avFormatContext();
 
 signals:
     void error(const Ffmpeg::AVError &avError);

@@ -84,8 +84,8 @@ private:
                 QSharedPointer<Frame> frameRgbPtr(new Frame);
                 frameRgbPtr->imageAlloc(dstSize);
                 //frameConverterPtr->flush(framePtr.data(), dstSize);
-                auto image(
-                    frameConverterPtr->scaleToQImage(framePtr.data(), frameRgbPtr.data(), dstSize));
+                frameConverterPtr->scale(framePtr.data(), frameRgbPtr.data());
+                auto image = frameRgbPtr->convertToImage(QImage::Format_RGBA8888);
                 if (!m_videoPreviewWidgetPtr.isNull()) {
                     m_videoPreviewWidgetPtr->setDisplayImage(frameRgbPtr, image, pts);
                 }

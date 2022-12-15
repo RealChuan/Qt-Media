@@ -288,11 +288,16 @@ bool Player::initAvCodec()
 
 void Player::playVideo()
 {
+    d_ptr->formatCtx->discardStreamExcluded(d_ptr->audioInfo->index(),
+                                            d_ptr->videoInfo->index(),
+                                            d_ptr->subtitleInfo->index());
     d_ptr->formatCtx->seekFirstFrame();
 
     d_ptr->videoDecoder->startDecoder(d_ptr->formatCtx, d_ptr->videoInfo);
     d_ptr->subtitleDecoder->startDecoder(d_ptr->formatCtx, d_ptr->subtitleInfo);
     d_ptr->audioDecoder->startDecoder(d_ptr->formatCtx, d_ptr->audioInfo);
+
+    setMediaClock(0);
     emit playStarted();
 
     while (d_ptr->runing) {
@@ -302,19 +307,17 @@ void Player::playVideo()
         if (!d_ptr->formatCtx->readFrame(packetPtr.get())) {
             break;
         }
-
+        auto stream_index = packetPtr->avPacket()->stream_index;
         if (d_ptr->formatCtx->checkPktPlayRange(packetPtr.get()) <= 0) {
         } else if (d_ptr->audioInfo->isIndexVaild()
-                   && packetPtr->avPacket()->stream_index
-                          == d_ptr->audioInfo->index()) { // 如果是音频数据
+                   && stream_index == d_ptr->audioInfo->index()) { // 如果是音频数据
             d_ptr->audioDecoder->append(packetPtr.release());
-        } else if (d_ptr->videoInfo->isIndexVaild()
-                   && packetPtr->avPacket()->stream_index == d_ptr->videoInfo->index()
+        } else if (d_ptr->videoInfo->isIndexVaild() && stream_index == d_ptr->videoInfo->index()
                    && !(d_ptr->videoInfo->stream()->disposition
                         & AV_DISPOSITION_ATTACHED_PIC)) { // 如果是视频数据
             d_ptr->videoDecoder->append(packetPtr.release());
         } else if (d_ptr->subtitleInfo->isIndexVaild()
-                   && packetPtr->avPacket()->stream_index == d_ptr->subtitleInfo->index()) {
+                   && stream_index == d_ptr->subtitleInfo->index()) {
             d_ptr->subtitleDecoder->append(packetPtr.release());
         }
         while (d_ptr->runing && !d_ptr->seek

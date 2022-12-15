@@ -125,6 +125,16 @@ int FormatContext::findBestStreamIndex(AVMediaType type) const
     return av_find_best_stream(d_ptr->formatCtx, type, -1, -1, nullptr, 0);
 }
 
+void FormatContext::discardStreamExcluded(int audioIndex, int videoIndex, int subtitleIndex)
+{
+    for (uint i = 0; i < d_ptr->formatCtx->nb_streams; i++) {
+        if (i == audioIndex || i == videoIndex || i == subtitleIndex) {
+            continue;
+        }
+        d_ptr->formatCtx->streams[i]->discard = AVDISCARD_ALL;
+    }
+}
+
 void FormatContext::findStreamIndex()
 {
     d_ptr->videoIndexs.clear();
@@ -300,7 +310,7 @@ AVFormatContext *FormatContext::avFormatContext()
     return d_ptr->formatCtx;
 }
 
-qint64 FormatContext::duration()
+qint64 FormatContext::duration() const
 {
     return d_ptr->isOpen ? (d_ptr->formatCtx->duration / 1000) : 0;
 }
@@ -310,7 +320,7 @@ QImage &FormatContext::coverImage() const
     return d_ptr->coverImage;
 }
 
-AVError FormatContext::avError()
+AVError FormatContext::avError() const
 {
     return d_ptr->error;
 }

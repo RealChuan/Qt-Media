@@ -2,8 +2,9 @@
 #define PLAYERWIDGET_H
 
 #include <ffmpeg/videorender/openglrender.hpp>
+#include <ffmpeg/videorender/widgetrender.hpp>
 
-class PlayerWidget : public Ffmpeg::OpenglRender
+class PlayerWidget : public Ffmpeg::WidgetRender
 {
     Q_OBJECT
 public:

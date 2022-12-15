@@ -38,7 +38,7 @@ public:
     QSizeF size;
     QRectF frameRect;
     QSharedPointer<Frame> framePtr;
-    QVector<AVPixelFormat> supportFormats
+    const QVector<AVPixelFormat> supportFormats
         = {AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUYV422,     AV_PIX_FMT_RGB24,   AV_PIX_FMT_BGR24,
            AV_PIX_FMT_YUV422P, AV_PIX_FMT_YUV444P,     AV_PIX_FMT_YUV410P, AV_PIX_FMT_YUV411P,
            AV_PIX_FMT_UYVY422, AV_PIX_FMT_BGR8,        AV_PIX_FMT_RGB8,    AV_PIX_FMT_NV12,
@@ -90,7 +90,7 @@ QSharedPointer<Frame> OpenglRender::convertSupported_pix_fmt(QSharedPointer<Fram
     }
     QSharedPointer<Frame> frameRgbPtr(new Frame);
     frameRgbPtr->imageAlloc(size, AV_PIX_FMT_RGBA);
-    d_ptr->frameConverterPtr->scaleToQImage(frame.data(), frameRgbPtr.data(), size);
+    d_ptr->frameConverterPtr->scale(frame.data(), frameRgbPtr.data());
     //    qDebug() << frameRgbPtr->avFrame()->width << frameRgbPtr->avFrame()->height
     //             << frameRgbPtr->avFrame()->format;
     return frameRgbPtr;
@@ -116,7 +116,13 @@ void OpenglRender::updateFrame(QSharedPointer<Frame> frame)
 void OpenglRender::updateSubTitleFrame(QSharedPointer<Subtitle> frame)
 {
     QMetaObject::invokeMethod(
-        this, [=] { displaySubTitleFrame(frame); }, Qt::QueuedConnection);
+        this,
+        [=] {
+            d_ptr->subTitleFramePtr = frame;
+            // need update?
+            //update();
+        },
+        Qt::QueuedConnection);
 }
 
 void OpenglRender::initTexture()
@@ -572,11 +578,8 @@ void OpenglRender::setColorSpace()
 
 void OpenglRender::displayFrame(QSharedPointer<Frame> framePtr)
 {
-    auto avFrame = framePtr->avFrame();
-    // 如果帧长宽为0则不需要绘制
-    if (avFrame->width <= 0 || avFrame->height <= 0) {
-        return;
-    }
+    d_ptr->framePtr = framePtr;
+    auto avFrame = d_ptr->framePtr->avFrame();
     d_ptr->framePtr = framePtr;
     if (d_ptr->size.width() != avFrame->width || d_ptr->size.height() != avFrame->height) {
         d_ptr->size = QSize(avFrame->width, avFrame->height);
@@ -584,17 +587,6 @@ void OpenglRender::displayFrame(QSharedPointer<Frame> framePtr)
     }
 
     update();
-}
-
-void OpenglRender::displaySubTitleFrame(QSharedPointer<Subtitle> frame)
-{
-    d_ptr->subTitleFramePtr = frame;
-    if (d_ptr->subTitleFramePtr->list().isEmpty()) {
-        return;
-    }
-
-    // need update?
-    //update();
 }
 
 void OpenglRender::paintSubTitleFrame()
