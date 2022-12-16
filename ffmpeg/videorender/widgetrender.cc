@@ -5,7 +5,6 @@
 #include <ffmpeg/videoformat.hpp>
 #include <ffmpeg/videoframeconverter.hpp>
 
-#include <QElapsedTimer>
 #include <QPainter>
 
 extern "C" {
@@ -27,7 +26,9 @@ public:
     QSizeF size;
     QRectF frameRect;
     QSharedPointer<Frame> framePtr;
-    QList<AVPixelFormat> supportFormats = VideoFormat::qFormatMaps.keys();
+    // Rendering is best optimized to the Format_RGB32 and Format_ARGB32_Premultiplied formats
+    //QList<AVPixelFormat> supportFormats = VideoFormat::qFormatMaps.keys();
+    QList<AVPixelFormat> supportFormats = {AV_PIX_FMT_RGB32};
     QScopedPointer<VideoFrameConverter> frameConverterPtr;
     QSharedPointer<Subtitle> subTitleFramePtr;
     QImage videoImage;
@@ -52,13 +53,15 @@ QSharedPointer<Frame> WidgetRender::convertSupported_pix_fmt(QSharedPointer<Fram
 {
     auto avframe = frame->avFrame();
     auto size = QSize(avframe->width, avframe->height);
+    size.scale(this->size() * devicePixelRatio(), Qt::KeepAspectRatio);
     if (d_ptr->frameConverterPtr.isNull()) {
-        d_ptr->frameConverterPtr.reset(new VideoFrameConverter(frame.data(), size, AV_PIX_FMT_RGBA));
+        d_ptr->frameConverterPtr.reset(
+            new VideoFrameConverter(frame.data(), size, AV_PIX_FMT_RGB32));
     } else {
-        d_ptr->frameConverterPtr->flush(frame.data(), size, AV_PIX_FMT_RGBA);
+        d_ptr->frameConverterPtr->flush(frame.data(), size, AV_PIX_FMT_RGB32);
     }
     QSharedPointer<Frame> frameRgbPtr(new Frame);
-    frameRgbPtr->imageAlloc(size, AV_PIX_FMT_RGBA);
+    frameRgbPtr->imageAlloc(size, AV_PIX_FMT_RGB32);
     d_ptr->frameConverterPtr->scale(frame.data(), frameRgbPtr.data());
     //    qDebug() << frameRgbPtr->avFrame()->width << frameRgbPtr->avFrame()->height
     //             << frameRgbPtr->avFrame()->format;
@@ -99,7 +102,7 @@ void WidgetRender::paintEvent(QPaintEvent *event)
                       size.height());
     painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     // draw VideoImage
-    painter.drawImage(rect, d_ptr->videoImage); // 15% cpu , i5-7300
+    painter.drawImage(rect, d_ptr->videoImage);
     // draw SubTitlImage
     paintSubTitleFrame(rect, &painter);
 }
@@ -112,11 +115,15 @@ void WidgetRender::updateFrame(QSharedPointer<Frame> frame)
 
 void WidgetRender::updateSubTitleFrame(QSharedPointer<Subtitle> frame)
 {
+    // Rendering is best optimized to the Format_RGB32 and Format_ARGB32_Premultiplied formats
+    auto img = frame->image().convertedTo(QImage::Format_ARGB32_Premultiplied);
+    img = img.scaled(size() * devicePixelRatio(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    img.setDevicePixelRatio(devicePixelRatio());
     QMetaObject::invokeMethod(
         this,
         [=] {
             d_ptr->subTitleFramePtr = frame;
-            d_ptr->subTitleImage = d_ptr->subTitleFramePtr->image();
+            d_ptr->subTitleImage = img;
             // need update?
             //update();
         },
@@ -127,6 +134,7 @@ void WidgetRender::displayFrame(QSharedPointer<Frame> framePtr)
 {
     d_ptr->framePtr = framePtr;
     d_ptr->videoImage = framePtr->convertToImage();
+    d_ptr->videoImage.setDevicePixelRatio(devicePixelRatio());
     update();
 }
 

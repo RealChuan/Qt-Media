@@ -34,14 +34,9 @@ void VideoDecoder::pause(bool state)
     d_ptr->decoderVideoFrame->pause(state);
 }
 
-void VideoDecoder::setVideoOutputRenders(QVector<VideoOutputRender *> videoOutputRenders)
+void VideoDecoder::setVideoRenders(QVector<VideoRender *> videoRenders)
 {
-    d_ptr->decoderVideoFrame->setVideoOutputRenders(videoOutputRenders);
-}
-
-void VideoDecoder::setVideoOutputRenders(QVector<VideoRender *> videoOutputRenders)
-{
-    d_ptr->decoderVideoFrame->setVideoOutputRenders(videoOutputRenders);
+    d_ptr->decoderVideoFrame->setVideoRenders(videoRenders);
 }
 
 void VideoDecoder::runDecoder()

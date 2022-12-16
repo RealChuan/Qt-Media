@@ -8,7 +8,6 @@ struct AVFrame;
 
 namespace Ffmpeg {
 
-class VideoOutputRender;
 class VideoRender;
 
 class VideoDecoder : public Decoder<Packet *>
@@ -20,8 +19,7 @@ public:
 
     void pause(bool state) override;
 
-    void setVideoOutputRenders(QVector<VideoOutputRender *> videoOutputRenders);
-    void setVideoOutputRenders(QVector<VideoRender *> videoOutputRenders);
+    void setVideoRenders(QVector<VideoRender *> videoRenders);
 
 protected:
     void runDecoder() override;

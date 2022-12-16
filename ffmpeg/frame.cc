@@ -135,15 +135,6 @@ QImage Frame::convertToImage() const
                   d_ptr->format);
 }
 
-QImage Frame::convertToImage(QImage::Format format) const
-{
-    return QImage((uchar *) d_ptr->frame->data[0],
-                  d_ptr->frame->width,
-                  d_ptr->frame->height,
-                  d_ptr->frame->linesize[0],
-                  format);
-}
-
 bool Frame::isKey()
 {
     return d_ptr->frame->key_frame == 1;

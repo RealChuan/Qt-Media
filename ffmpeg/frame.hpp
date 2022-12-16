@@ -36,11 +36,6 @@ public:
     QImage::Format format() const;
     QImage convertToImage() const; // maybe null
 
-    /// The frame is destroyed and the QImage is invalid
-    /// Use VideoFrameConverter first to ensure that the image can be converted to QImage
-    /// maybe null
-    QImage convertToImage(QImage::Format format) const;
-
     void clear();
 
     AVFrame *avFrame();

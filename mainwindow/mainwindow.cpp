@@ -4,7 +4,7 @@
 
 #include <ffmpeg/averror.h>
 #include <ffmpeg/player.h>
-#include <ffmpeg/videooutput/videopreviewwidget.hpp>
+#include <ffmpeg/videorender/videopreviewwidget.hpp>
 
 #include <QtWidgets>
 
@@ -109,11 +109,15 @@ void MainWindow::onHoverSlider(int pos, int value)
     if (d_ptr->playerPtr->isFinished()) {
         return;
     }
-    d_ptr->videoPreviewWidgetPtr.reset(
-        new Ffmpeg::VideoPreviewWidget(filePath, index, value, d_ptr->slider->maximum()));
-    d_ptr->videoPreviewWidgetPtr->setWindowFlags(d_ptr->videoPreviewWidgetPtr->windowFlags()
-                                                 | Qt::Tool | Qt::FramelessWindowHint
-                                                 | Qt::WindowStaysOnTopHint);
+    if (d_ptr->videoPreviewWidgetPtr.isNull()) {
+        d_ptr->videoPreviewWidgetPtr.reset(
+            new Ffmpeg::VideoPreviewWidget(filePath, index, value, d_ptr->slider->maximum()));
+        d_ptr->videoPreviewWidgetPtr->setWindowFlags(d_ptr->videoPreviewWidgetPtr->windowFlags()
+                                                     | Qt::Tool | Qt::FramelessWindowHint
+                                                     | Qt::WindowStaysOnTopHint);
+    } else {
+        d_ptr->videoPreviewWidgetPtr->startPreview(filePath, index, value, d_ptr->slider->maximum());
+    }
     int w = 320;
     int h = 200;
     d_ptr->videoPreviewWidgetPtr->setFixedSize(w, h);
@@ -124,7 +128,9 @@ void MainWindow::onHoverSlider(int pos, int value)
 
 void MainWindow::onLeaveSlider()
 {
-    d_ptr->videoPreviewWidgetPtr.reset();
+    if (!d_ptr->videoPreviewWidgetPtr.isNull()) {
+        d_ptr->videoPreviewWidgetPtr->hide();
+    }
 }
 
 void MainWindow::onShowCurrentFPS()
@@ -160,7 +166,7 @@ void MainWindow::setupUI()
 {
     auto playWidget = new PlayerWidget(this);
     playWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    d_ptr->playerPtr->setVideoOutputWidget(QVector<Ffmpeg::VideoRender *>{playWidget});
+    d_ptr->playerPtr->setVideoRenders(QVector<Ffmpeg::VideoRender *>{playWidget});
     connect(playWidget,
             &PlayerWidget::openFile,
             d_ptr->playerPtr.data(),

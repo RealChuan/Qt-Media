@@ -56,28 +56,7 @@ VideoFrameConverter::VideoFrameConverter(Frame *frame,
     : QObject(parent)
     , d_ptr(new VideoFrameConverterPrivate)
 {
-    auto avFrame = frame->avFrame();
-    d_ptr->src_pix_fmt = AVPixelFormat(avFrame->format);
-    d_ptr->dst_pix_fmt = pix_fmt;
-    debugMessage();
-    if (sws_isSupportedInput(d_ptr->src_pix_fmt) <= 0) {
-        d_ptr->src_pix_fmt = AV_PIX_FMT_NV12;
-    }
-    size.isValid() ? d_ptr->dstSize = size
-                   : d_ptr->dstSize = QSize(avFrame->width, avFrame->height);
-    d_ptr->swsContext = sws_getCachedContext(d_ptr->swsContext,
-                                             avFrame->width,
-                                             avFrame->height,
-                                             d_ptr->src_pix_fmt,
-                                             d_ptr->dstSize.width(),
-                                             d_ptr->dstSize.height(),
-                                             d_ptr->dst_pix_fmt,
-                                             d_ptr->dstSize.width() > avFrame->width ? SWS_BICUBIC
-                                                                                     : SWS_BILINEAR,
-                                             NULL,
-                                             NULL,
-                                             NULL);
-    Q_ASSERT(d_ptr->swsContext != nullptr);
+    flush(frame, size, pix_fmt);
 }
 
 VideoFrameConverter::~VideoFrameConverter()

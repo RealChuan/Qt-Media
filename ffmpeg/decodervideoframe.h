@@ -6,7 +6,6 @@
 
 namespace Ffmpeg {
 
-class VideoOutputRender;
 class VideoRender;
 
 class DecoderVideoFrame : public Decoder<Frame *>
@@ -20,8 +19,7 @@ public:
 
     void pause(bool state) override;
 
-    void setVideoOutputRenders(QVector<VideoOutputRender *> videoOutputRenders);
-    void setVideoOutputRenders(QVector<VideoRender *> videoRenders);
+    void setVideoRenders(QVector<VideoRender *> videoRenders);
 
 protected:
     void runDecoder() override;

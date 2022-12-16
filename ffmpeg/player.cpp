@@ -8,7 +8,6 @@
 #include "videodecoder.h"
 
 #include <utils/utils.h>
-#include <videooutput/videooutputrender.hpp>
 #include <videorender/videorender.hpp>
 
 #include <QDateTime>
@@ -59,7 +58,6 @@ public:
 
     volatile Player::MediaState mediaState = Player::MediaState::StoppedState;
 
-    QVector<VideoOutputRender *> videoOutputRenders;
     QVector<VideoRender *> videoRenders;
 };
 
@@ -459,17 +457,11 @@ int Player::subtitleIndex() const
     return d_ptr->subtitleInfo->index();
 }
 
-void Player::setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRenders)
+void Player::setVideoRenders(QVector<VideoRender *> videoRenders)
 {
-    d_ptr->videoOutputRenders = videoOutputRenders;
-    d_ptr->videoDecoder->setVideoOutputRenders(videoOutputRenders);
-}
-
-void Player::setVideoOutputWidget(QVector<VideoRender *> videoOutputRenders)
-{
-    d_ptr->videoRenders = videoOutputRenders;
-    d_ptr->videoDecoder->setVideoOutputRenders(videoOutputRenders);
-    d_ptr->subtitleDecoder->setVideoOutputRenders(videoOutputRenders);
+    d_ptr->videoRenders = videoRenders;
+    d_ptr->videoDecoder->setVideoRenders(videoRenders);
+    d_ptr->subtitleDecoder->setVideoRenders(videoRenders);
 }
 
 QVector<VideoRender *> Player::videoRenders()

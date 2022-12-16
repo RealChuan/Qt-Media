@@ -1,6 +1,5 @@
 #include "decodervideoframe.h"
 
-#include <videooutput/videooutputrender.hpp>
 #include <videorender/videorender.hpp>
 
 #include <QDebug>
@@ -20,7 +19,6 @@ public:
     QMutex mutex;
     QWaitCondition waitCondition;
 
-    QVector<VideoOutputRender *> videoOutputRenders;
     QVector<VideoRender *> videoRenders;
 };
 
@@ -49,12 +47,7 @@ void DecoderVideoFrame::pause(bool state)
     d_ptr->waitCondition.wakeOne();
 }
 
-void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoOutputRender *> videoOutputRenders)
-{
-    d_ptr->videoOutputRenders = videoOutputRenders;
-}
-
-void DecoderVideoFrame::setVideoOutputRenders(QVector<VideoRender *> videoRenders)
+void DecoderVideoFrame::setVideoRenders(QVector<VideoRender *> videoRenders)
 {
     d_ptr->videoRenders = videoRenders;
 }

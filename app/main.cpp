@@ -39,7 +39,6 @@ int main(int argc, char *argv[])
         }
     }
 #ifndef Q_OS_WIN
-    Q_INIT_RESOURCE(shader);
     Q_INIT_RESOURCE(shaders);
 #endif
 #ifdef Q_OS_WIN

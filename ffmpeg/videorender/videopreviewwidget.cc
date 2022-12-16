@@ -18,11 +18,13 @@ public:
     PreviewTask(const QString &filepath,
                 int videoIndex,
                 qint64 timestamp,
+                int taskId,
                 VideoPreviewWidget *videoPreviewWidget)
         : QRunnable()
         , m_filepath(filepath)
         , m_videoIndex(videoIndex)
         , m_timestamp(timestamp)
+        , m_taskId(taskId)
         , m_videoPreviewWidgetPtr(videoPreviewWidget)
     {
         setAutoDelete(true);
@@ -53,7 +55,8 @@ public:
 private:
     void loop(FormatContext *formatContext, AVContextInfo *videoInfo)
     {
-        while (m_runing) {
+        while (m_runing && !m_videoPreviewWidgetPtr.isNull()
+               && m_taskId == m_videoPreviewWidgetPtr->currentTaskId()) {
             QScopedPointer<Packet> packetPtr(new Packet);
             if (!formatContext->readFrame(packetPtr.get()) || m_videoPreviewWidgetPtr.isNull()) {
                 return;
@@ -75,18 +78,20 @@ private:
                 if (m_videoPreviewWidgetPtr.isNull()) {
                     return;
                 } else {
-                    dstSize.scale(m_videoPreviewWidgetPtr->width(),
-                                  m_videoPreviewWidgetPtr->height(),
+                    dstSize.scale(m_videoPreviewWidgetPtr->size()
+                                      * m_videoPreviewWidgetPtr->devicePixelRatio(),
                                   Qt::KeepAspectRatio);
                 }
                 QScopedPointer<VideoFrameConverter> frameConverterPtr(
-                    new VideoFrameConverter(videoInfo->codecCtx(), dstSize));
+                    new VideoFrameConverter(videoInfo->codecCtx(), dstSize, AV_PIX_FMT_RGB32));
                 QSharedPointer<Frame> frameRgbPtr(new Frame);
-                frameRgbPtr->imageAlloc(dstSize);
+                frameRgbPtr->imageAlloc(dstSize, AV_PIX_FMT_RGB32);
                 //frameConverterPtr->flush(framePtr.data(), dstSize);
                 frameConverterPtr->scale(framePtr.data(), frameRgbPtr.data());
-                auto image = frameRgbPtr->convertToImage(QImage::Format_RGBA8888);
-                if (!m_videoPreviewWidgetPtr.isNull()) {
+                auto image = frameRgbPtr->convertToImage();
+                if (!m_videoPreviewWidgetPtr.isNull()
+                    && m_taskId == m_videoPreviewWidgetPtr->currentTaskId()) {
+                    image.setDevicePixelRatio(m_videoPreviewWidgetPtr->devicePixelRatio());
                     m_videoPreviewWidgetPtr->setDisplayImage(frameRgbPtr, image, pts);
                 }
                 return;
@@ -97,17 +102,21 @@ private:
     QString m_filepath;
     int m_videoIndex;
     qint64 m_timestamp;
+    int m_taskId = 0;
     QPointer<VideoPreviewWidget> m_videoPreviewWidgetPtr;
     volatile bool m_runing = true;
 };
 
 struct VideoPreviewWidget::VideoPreviewWidgetPrivate
 {
-    ~VideoPreviewWidgetPrivate() {}
+    ~VideoPreviewWidgetPrivate() { qDebug() << "Task ID: " << taskId.loadRelaxed(); }
+
     QImage image;
     qint64 timestamp;
     qint64 duration;
     QSharedPointer<Frame> frame;
+
+    QAtomicInt taskId = 0;
 };
 
 VideoPreviewWidget::VideoPreviewWidget(QWidget *parent)
@@ -124,9 +133,7 @@ VideoPreviewWidget::VideoPreviewWidget(
 {
     Q_ASSERT(videoIndex >= 0);
     setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
-    QThreadPool::globalInstance()->start(new PreviewTask(filepath, videoIndex, timestamp, this));
-    d_ptr->timestamp = timestamp;
-    d_ptr->duration = duration;
+    startPreview(filepath, videoIndex, timestamp, duration);
 }
 
 VideoPreviewWidget::~VideoPreviewWidget() {}
@@ -137,63 +144,90 @@ void VideoPreviewWidget::startPreview(const QString &filepath,
                                       qint64 duration)
 {
     Q_ASSERT(videoIndex >= 0);
-    QThreadPool::globalInstance()->start(new PreviewTask(filepath, videoIndex, timestamp, this));
+    d_ptr->taskId.ref();
+    QThreadPool::globalInstance()->start(
+        new PreviewTask(filepath, videoIndex, timestamp, d_ptr->taskId.loadRelaxed(), this));
     d_ptr->timestamp = timestamp;
     d_ptr->duration = duration;
     d_ptr->image = QImage();
+    d_ptr->frame.reset();
+    update();
 }
 
 void VideoPreviewWidget::setDisplayImage(QSharedPointer<Frame> frame,
                                          const QImage &image,
                                          qint64 pts)
 {
-    d_ptr->timestamp = pts;
+    auto img = image.scaled(size() * devicePixelRatio(),
+                            Qt::KeepAspectRatio,
+                            Qt::SmoothTransformation);
+    img.setDevicePixelRatio(devicePixelRatio());
     QMetaObject::invokeMethod(
         this,
         [=] {
-            d_ptr->image = image.scaled(width(),
-                                        height(),
-                                        Qt::KeepAspectRatio,
-                                        Qt::SmoothTransformation);
+            d_ptr->timestamp = pts;
+            d_ptr->image = img;
             d_ptr->frame = frame;
             update();
         },
         Qt::QueuedConnection);
 }
 
+int VideoPreviewWidget::currentTaskId() const
+{
+    return d_ptr->taskId.loadRelaxed();
+}
+
 void VideoPreviewWidget::paintEvent(QPaintEvent *event)
 {
     QWidget::paintEvent(event);
-    auto rect = this->rect();
+
     QPainter painter(this);
     painter.setPen(Qt::NoPen);
     painter.setBrush(Qt::black);
-    painter.drawRect(rect);
+    painter.drawRect(rect());
     painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform
                            | QPainter::TextAntialiasing);
     if (d_ptr->image.isNull()) {
-        QFont font;
-        font.setPixelSize(height() / 5);
-        painter.setFont(font);
-        painter.setPen(Qt::white);
-        painter.drawText(rect, tr("Waiting..."), QTextOption(Qt::AlignCenter));
+        paintWaiting(&painter);
         return;
     }
+    paintImage(&painter);
 
-    int x = (width() - d_ptr->image.width()) / 2;
-    int y = (height() - d_ptr->image.height()) / 2;
-    painter.drawImage(QRect(x, y, d_ptr->image.width(), d_ptr->image.height()), d_ptr->image);
+    paintTime(&painter);
+}
 
+void VideoPreviewWidget::paintWaiting(QPainter *painter)
+{
+    QFont font;
+    font.setPixelSize(height() / 5);
+    painter->setFont(font);
+    painter->setPen(Qt::white);
+    painter->drawText(rect(), tr("Waiting..."), QTextOption(Qt::AlignCenter));
+}
+
+void VideoPreviewWidget::paintImage(QPainter *painter)
+{
+    auto size = d_ptr->image.size().scaled(this->size(), Qt::KeepAspectRatio);
+    auto rect = QRect((width() - size.width()) / 2,
+                      (height() - size.height()) / 2,
+                      size.width(),
+                      size.height());
+    painter->drawImage(rect, d_ptr->image);
+}
+
+void VideoPreviewWidget::paintTime(QPainter *painter)
+{
     QFont font;
     font.setPixelSize(height() / 9);
     font.setBold(true);
-    painter.setFont(font);
-    painter.setPen(Qt::white);
-    painter.setOpacity(0.8);
+    painter->setFont(font);
+    painter->setPen(Qt::white);
+    painter->setOpacity(0.8);
     auto timeStr = QString("%1/%2").arg(
         QTime::fromMSecsSinceStartOfDay(d_ptr->timestamp * 1000).toString("hh:mm:ss"),
         QTime::fromMSecsSinceStartOfDay(d_ptr->duration * 1000).toString("hh:mm:ss"));
-    painter.drawText(rect.adjusted(0, 5, 0, 0), timeStr, Qt::AlignTop | Qt::AlignHCenter);
+    painter->drawText(rect().adjusted(0, 5, 0, 0), timeStr, Qt::AlignTop | Qt::AlignHCenter);
 }
 
 } // namespace Ffmpeg

@@ -21,7 +21,7 @@ public:
 
     void setVideoResolutionRatio(const QSize &size);
 
-    void setVideoOutputRenders(QVector<VideoRender *> videoRenders);
+    void setVideoRenders(QVector<VideoRender *> videoRenders);
 
 protected:
     void runDecoder() override;

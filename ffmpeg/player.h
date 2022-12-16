@@ -9,7 +9,6 @@ namespace Ffmpeg {
 
 class AVError;
 class AVContextInfo;
-class VideoOutputRender;
 class VideoRender;
 
 class FFMPEG_EXPORT Player : public QThread
@@ -47,8 +46,7 @@ public:
     int videoIndex() const;
     int subtitleIndex() const;
 
-    void setVideoOutputWidget(QVector<VideoOutputRender *> videoOutputRenders);
-    void setVideoOutputWidget(QVector<VideoRender *> videoOutputRenders);
+    void setVideoRenders(QVector<VideoRender *> videoRenders);
     QVector<VideoRender *> videoRenders();
 
 public slots:

@@ -35,9 +35,9 @@ void SubtitleDecoder::setVideoResolutionRatio(const QSize &size)
     d_ptr->decoderSubtitleFrame->setVideoResolutionRatio(size);
 }
 
-void SubtitleDecoder::setVideoOutputRenders(QVector<VideoRender *> videoOutputRenders)
+void SubtitleDecoder::setVideoRenders(QVector<VideoRender *> videoRenders)
 {
-    d_ptr->decoderSubtitleFrame->setVideoOutputRenders(videoOutputRenders);
+    d_ptr->decoderSubtitleFrame->setVideoRenders(videoRenders);
 }
 
 void SubtitleDecoder::runDecoder()

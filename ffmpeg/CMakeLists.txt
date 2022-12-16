@@ -1,13 +1,9 @@
 set(PROJECT_SOURCES
         subtitle/ass.cc subtitle/ass.hpp
         subtitle/assdata.cc subtitle/assdata.hpp
-        
-        videooutput/videoouputrenderwidget.cc videooutput/videoouputrenderwidget.hpp
-        videooutput/videooutputrender.cc videooutput/videooutputrender.hpp
-        videooutput/videooutputrenderopenglrender.cc videooutput/videooutputrenderopenglrender.hpp
-        videooutput/videopreviewwidget.cc videooutput/videopreviewwidget.hpp
 
         videorender/openglrender.cc videorender/openglrender.hpp
+        videorender/videopreviewwidget.cc videorender/videopreviewwidget.hpp
         videorender/videorender.cc videorender/videorender.hpp
         videorender/widgetrender.cc videorender/widgetrender.hpp
 
@@ -33,7 +29,6 @@ set(PROJECT_SOURCES
         videoformat.cc videoformat.hpp
         videoframeconverter.cc videoframeconverter.hpp)
 
-qt_add_resources(SOURCES videooutput/shader/shader.qrc)
 qt_add_resources(SOURCES videorender/shaders.qrc)
 
 if (CMAKE_HOST_WIN32)

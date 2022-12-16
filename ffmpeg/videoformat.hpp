@@ -16,7 +16,7 @@ static const QMap<AVPixelFormat, QImage::Format> qFormatMaps = {
     {AV_PIX_FMT_NONE, QImage::Format_Invalid},
     {AV_PIX_FMT_RGB24, QImage::Format_RGB888},
     {AV_PIX_FMT_BGR24, QImage::Format_BGR888},
-    {AV_PIX_FMT_ARGB, QImage::Format_ARGB32},
+    {AV_PIX_FMT_RGB32, QImage::Format_RGB32},
     {AV_PIX_FMT_RGBA, QImage::Format_RGBA8888},
     {AV_PIX_FMT_RGB565BE, QImage::Format_RGB16},
     {AV_PIX_FMT_RGB565LE, QImage::Format_RGB16},
