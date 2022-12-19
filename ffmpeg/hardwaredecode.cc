@@ -128,7 +128,7 @@ Frame *HardWareDecode::transforFrame(Frame *in, bool &ok)
         return in;
     }
     auto out = new Frame;
-    // 超级吃CPU
+    // 超级吃CPU 巨慢
     int ret = av_hwframe_transfer_data(out->avFrame(), in->avFrame(), 0);
     // 如果把映射后的帧存起来，接下去解码会出问题；
     // 相当于解码出来的帧要在下一次解码前必须清除。

@@ -19,7 +19,7 @@ class CodecContext : public QObject
 {
     Q_OBJECT
 public:
-    explicit CodecContext(const AVCodec *codec, QObject *parent = nullptr);
+    explicit CodecContext(AVCodec *codec, QObject *parent = nullptr);
     ~CodecContext();
 
     AVCodecContext *avCodecCtx();

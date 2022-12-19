@@ -15,14 +15,16 @@ namespace Ffmpeg {
 struct CodecContext::CodecContextPrivate
 {
     ~CodecContextPrivate() { avcodec_free_context(&codecCtx); }
-    AVCodecContext *codecCtx; //解码器上下文
+    AVCodec *codec = nullptr;
+    AVCodecContext *codecCtx = nullptr; //解码器上下文
     AVError error;
 };
 
-CodecContext::CodecContext(const AVCodec *codec, QObject *parent)
+CodecContext::CodecContext(AVCodec *codec, QObject *parent)
     : QObject(parent)
     , d_ptr(new CodecContextPrivate)
 {
+    d_ptr->codec = codec;
     d_ptr->codecCtx = avcodec_alloc_context3(codec);
     Q_ASSERT(d_ptr->codecCtx != nullptr);
 }
@@ -52,7 +54,12 @@ void CodecContext::setTimebase(const AVRational &timebase)
 
 void CodecContext::setDecodeThreadCount(int threadCount)
 {
-    Q_ASSERT(d_ptr->codecCtx != nullptr);
+    Q_ASSERT(d_ptr->codecCtx != nullptr && d_ptr->codec != nullptr);
+    if (d_ptr->codec->capabilities & AV_CODEC_CAP_FRAME_THREADS) {
+        d_ptr->codecCtx->thread_type = FF_THREAD_FRAME;
+    } else if (d_ptr->codec->capabilities & AV_CODEC_CAP_SLICE_THREADS) {
+        d_ptr->codecCtx->thread_type = FF_THREAD_SLICE;
+    }
     d_ptr->codecCtx->thread_count = threadCount;
 }
 

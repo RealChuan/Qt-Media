@@ -4,7 +4,7 @@
 #include <ffmpeg/videorender/openglrender.hpp>
 #include <ffmpeg/videorender/widgetrender.hpp>
 
-class PlayerWidget : public Ffmpeg::WidgetRender
+class PlayerWidget : public Ffmpeg::OpenglRender
 {
     Q_OBJECT
 public:

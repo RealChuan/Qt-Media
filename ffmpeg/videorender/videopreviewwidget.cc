@@ -48,6 +48,7 @@ public:
         }
         formatCtxPtr->seek(m_timestamp);
         videoInfoPtr->flush();
+        formatCtxPtr->discardStreamExcluded(-1, m_videoIndex, -1);
 
         loop(formatCtxPtr.data(), videoInfoPtr.data());
     }
@@ -107,9 +108,18 @@ private:
     volatile bool m_runing = true;
 };
 
-struct VideoPreviewWidget::VideoPreviewWidgetPrivate
+class VideoPreviewWidget::VideoPreviewWidgetPrivate
 {
+public:
+    VideoPreviewWidgetPrivate(QWidget *parent)
+        : owner(parent)
+    {
+        threadPool = new QThreadPool(owner);
+        threadPool->setMaxThreadCount(3);
+    }
     ~VideoPreviewWidgetPrivate() { qDebug() << "Task ID: " << taskId.loadRelaxed(); }
+
+    QWidget *owner;
 
     QImage image;
     qint64 timestamp;
@@ -117,23 +127,14 @@ struct VideoPreviewWidget::VideoPreviewWidgetPrivate
     QSharedPointer<Frame> frame;
 
     QAtomicInt taskId = 0;
+    QThreadPool *threadPool;
 };
 
 VideoPreviewWidget::VideoPreviewWidget(QWidget *parent)
     : QWidget{parent}
-    , d_ptr(new VideoPreviewWidgetPrivate)
+    , d_ptr(new VideoPreviewWidgetPrivate(this))
 {
     setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
-}
-
-VideoPreviewWidget::VideoPreviewWidget(
-    const QString &filepath, int videoIndex, qint64 timestamp, qint64 duration, QWidget *parent)
-    : QWidget{parent}
-    , d_ptr(new VideoPreviewWidgetPrivate)
-{
-    Q_ASSERT(videoIndex >= 0);
-    setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
-    startPreview(filepath, videoIndex, timestamp, duration);
 }
 
 VideoPreviewWidget::~VideoPreviewWidget() {}
@@ -145,7 +146,8 @@ void VideoPreviewWidget::startPreview(const QString &filepath,
 {
     Q_ASSERT(videoIndex >= 0);
     d_ptr->taskId.ref();
-    QThreadPool::globalInstance()->start(
+    d_ptr->threadPool->clear();
+    d_ptr->threadPool->start(
         new PreviewTask(filepath, videoIndex, timestamp, d_ptr->taskId.loadRelaxed(), this));
     d_ptr->timestamp = timestamp;
     d_ptr->duration = duration;

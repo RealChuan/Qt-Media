@@ -110,14 +110,13 @@ void MainWindow::onHoverSlider(int pos, int value)
         return;
     }
     if (d_ptr->videoPreviewWidgetPtr.isNull()) {
-        d_ptr->videoPreviewWidgetPtr.reset(
-            new Ffmpeg::VideoPreviewWidget(filePath, index, value, d_ptr->slider->maximum()));
+        d_ptr->videoPreviewWidgetPtr.reset(new Ffmpeg::VideoPreviewWidget);
         d_ptr->videoPreviewWidgetPtr->setWindowFlags(d_ptr->videoPreviewWidgetPtr->windowFlags()
                                                      | Qt::Tool | Qt::FramelessWindowHint
                                                      | Qt::WindowStaysOnTopHint);
-    } else {
-        d_ptr->videoPreviewWidgetPtr->startPreview(filePath, index, value, d_ptr->slider->maximum());
     }
+    d_ptr->videoPreviewWidgetPtr->startPreview(filePath, index, value, d_ptr->slider->maximum());
+
     int w = 320;
     int h = 200;
     d_ptr->videoPreviewWidgetPtr->setFixedSize(w, h);
@@ -203,6 +202,10 @@ void MainWindow::setupUI()
 
     auto audioTracksComboBox = new QComboBox(this);
     audioTracksComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    auto audioTracksView = new QListView(audioTracksComboBox);
+    audioTracksView->setTextElideMode(Qt::ElideRight);
+    audioTracksView->setAlternatingRowColors(true);
+    audioTracksComboBox->setView(audioTracksView);
     connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::audioTracksChanged,
             this,
@@ -227,6 +230,10 @@ void MainWindow::setupUI()
 
     QComboBox *subtitleStreamsComboBox = new QComboBox(this);
     subtitleStreamsComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    auto subtitleStreamsView = new QListView(subtitleStreamsComboBox);
+    subtitleStreamsView->setTextElideMode(Qt::ElideRight);
+    subtitleStreamsView->setAlternatingRowColors(true);
+    subtitleStreamsComboBox->setView(subtitleStreamsView);
     connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::subtitleStreamsChanged,
             this,

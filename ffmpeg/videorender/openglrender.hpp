@@ -24,7 +24,6 @@ public:
 
 protected:
     void initializeGL() override;
-    void resizeGL(int w, int h) override;
     void paintGL() override;
 
     void updateFrame(QSharedPointer<Frame> frame) override;
@@ -33,6 +32,7 @@ protected:
 private:
     void initVbo();
     void initTexture();
+    void resizeViewport();
     void setColorSpace();
 
     void displayFrame(QSharedPointer<Frame> framePtr);

@@ -14,11 +14,6 @@ class FFMPEG_EXPORT VideoPreviewWidget : public QWidget
     Q_OBJECT
 public:
     explicit VideoPreviewWidget(QWidget *parent = nullptr);
-    VideoPreviewWidget(const QString &filepath,
-                       int videoIndex,
-                       qint64 timestamp,
-                       qint64 duration,
-                       QWidget *parent = nullptr);
     ~VideoPreviewWidget();
 
     void startPreview(const QString &filepath, int videoIndex, qint64 timestamp, qint64 duration);
@@ -35,7 +30,7 @@ private:
     void paintImage(QPainter *painter);
     void paintTime(QPainter *painter);
 
-    struct VideoPreviewWidgetPrivate;
+    class VideoPreviewWidgetPrivate;
     QScopedPointer<VideoPreviewWidgetPrivate> d_ptr;
 };
 

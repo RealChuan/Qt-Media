@@ -35,8 +35,6 @@ public:
     QOpenGLBuffer ebo = QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
     //GLuint vao = 0; // 顶点数组对象,任何随后的顶点属性调用都会储存在这个VAO中，一个VAO可以有多个VBO
 
-    QSizeF size;
-    QRectF frameRect;
     QSharedPointer<Frame> framePtr;
     const QVector<AVPixelFormat> supportFormats
         = {AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUYV422,     AV_PIX_FMT_RGB24,   AV_PIX_FMT_BGR24,
@@ -55,7 +53,10 @@ public:
 OpenglRender::OpenglRender(QWidget *parent)
     : QOpenGLWidget(parent)
     , d_ptr(new OpenglRenderPrivate(this))
-{}
+{
+    auto format = this->format();
+    qInfo() << "OpenGL Version:" << format.minorVersion() << "~" << format.majorVersion();
+}
 
 OpenglRender::~OpenglRender()
 {
@@ -168,6 +169,23 @@ void OpenglRender::initTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+}
+
+void OpenglRender::resizeViewport()
+{
+    auto avframe = d_ptr->framePtr->avFrame();
+    auto size = QSize(avframe->width, avframe->height);
+    size.scale(this->size(), Qt::KeepAspectRatio);
+    auto rect = QRectF((width() - size.width()) / 2.0,
+                       (height() - size.height()) / 2.0,
+                       size.width(),
+                       size.height());
+    // 设置视图大小实现图片自适应
+    auto devicePixelRatio = this->devicePixelRatio();
+    glViewport(rect.x() * devicePixelRatio,
+               rect.y() * devicePixelRatio,
+               rect.width() * devicePixelRatio,
+               rect.height() * devicePixelRatio);
 }
 
 void OpenglRender::updateYUV420P()
@@ -581,10 +599,6 @@ void OpenglRender::displayFrame(QSharedPointer<Frame> framePtr)
     d_ptr->framePtr = framePtr;
     auto avFrame = d_ptr->framePtr->avFrame();
     d_ptr->framePtr = framePtr;
-    if (d_ptr->size.width() != avFrame->width || d_ptr->size.height() != avFrame->height) {
-        d_ptr->size = QSize(avFrame->width, avFrame->height);
-        resizeGL(width(), height());
-    }
 
     update();
 }
@@ -643,19 +657,6 @@ void OpenglRender::initializeGL()
     d_ptr->programPtr->release();
 }
 
-void OpenglRender::resizeGL(int w, int h)
-{
-    if (d_ptr->size.width() < 0 || d_ptr->size.height() < 0) {
-        return;
-    }
-
-    auto size = d_ptr->size.scaled(w, h, Qt::KeepAspectRatio);
-    d_ptr->frameRect = QRectF((w - size.width()) / 2,
-                              (h - size.height()) / 2,
-                              size.width(),
-                              size.height());
-}
-
 void OpenglRender::paintGL()
 {
     // 将窗口的位平面区域（背景）设置为先前由glClearColor、glClearDepth和选择的值
@@ -669,11 +670,8 @@ void OpenglRender::paintGL()
         return;
     }
 
-    // 设置视图大小实现图片自适应
-    glViewport(d_ptr->frameRect.x() * devicePixelRatio(),
-               d_ptr->frameRect.y() * devicePixelRatio(),
-               d_ptr->frameRect.width() * devicePixelRatio(),
-               d_ptr->frameRect.height() * devicePixelRatio());
+    resizeViewport();
+
     auto format = d_ptr->framePtr->avFrame()->format;
     //qDebug() << format;
     // 绑定纹理
