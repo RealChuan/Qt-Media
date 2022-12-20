@@ -35,7 +35,6 @@ public:
     QOpenGLBuffer ebo = QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
     //GLuint vao = 0; // 顶点数组对象,任何随后的顶点属性调用都会储存在这个VAO中，一个VAO可以有多个VBO
 
-    QSharedPointer<Frame> framePtr;
     const QVector<AVPixelFormat> supportFormats
         = {AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUYV422,     AV_PIX_FMT_RGB24,   AV_PIX_FMT_BGR24,
            AV_PIX_FMT_YUV422P, AV_PIX_FMT_YUV444P,     AV_PIX_FMT_YUV410P, AV_PIX_FMT_YUV411P,
@@ -45,6 +44,7 @@ public:
            AV_PIX_FMT_0BGR,    AV_PIX_FMT_BGR0,        AV_PIX_FMT_P010LE};
     QScopedPointer<VideoFrameConverter> frameConverterPtr;
 
+    QSharedPointer<Frame> framePtr;
     QSharedPointer<Subtitle> subTitleFramePtr;
 
     QColor backgroundColor = Qt::black;
@@ -67,12 +67,12 @@ OpenglRender::~OpenglRender()
     d_ptr->programPtr.reset();
     d_ptr->vbo.destroy();
     d_ptr->ebo.destroy();
-    doneCurrent();
     //glDeleteVertexArrays(1, &d_ptr->vao);
     glDeleteTextures(1, &d_ptr->textureY);
     glDeleteTextures(1, &d_ptr->textureU);
     glDeleteTextures(1, &d_ptr->textureV);
     glDeleteTextures(1, &d_ptr->textureUV);
+    doneCurrent();
 }
 
 bool OpenglRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
@@ -82,15 +82,16 @@ bool OpenglRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
 
 QSharedPointer<Frame> OpenglRender::convertSupported_pix_fmt(QSharedPointer<Frame> frame)
 {
+    auto dst_pix_fmt = AV_PIX_FMT_RGBA;
     auto avframe = frame->avFrame();
     auto size = QSize(avframe->width, avframe->height);
     if (d_ptr->frameConverterPtr.isNull()) {
-        d_ptr->frameConverterPtr.reset(new VideoFrameConverter(frame.data(), size, AV_PIX_FMT_RGBA));
+        d_ptr->frameConverterPtr.reset(new VideoFrameConverter(frame.data(), size, dst_pix_fmt));
     } else {
-        d_ptr->frameConverterPtr->flush(frame.data(), size, AV_PIX_FMT_RGBA);
+        d_ptr->frameConverterPtr->flush(frame.data(), size, dst_pix_fmt);
     }
     QSharedPointer<Frame> frameRgbPtr(new Frame);
-    frameRgbPtr->imageAlloc(size, AV_PIX_FMT_RGBA);
+    frameRgbPtr->imageAlloc(size, dst_pix_fmt);
     d_ptr->frameConverterPtr->scale(frame.data(), frameRgbPtr.data());
     //    qDebug() << frameRgbPtr->avFrame()->width << frameRgbPtr->avFrame()->height
     //             << frameRgbPtr->avFrame()->format;
@@ -108,10 +109,20 @@ void OpenglRender::resetAllFrame()
     d_ptr->subTitleFramePtr.reset();
 }
 
+QWidget *OpenglRender::widget()
+{
+    return this;
+}
+
 void OpenglRender::updateFrame(QSharedPointer<Frame> frame)
 {
     QMetaObject::invokeMethod(
-        this, [=] { displayFrame(frame); }, Qt::QueuedConnection);
+        this,
+        [=] {
+            d_ptr->framePtr = frame;
+            update();
+        },
+        Qt::QueuedConnection);
 }
 
 void OpenglRender::updateSubTitleFrame(QSharedPointer<Subtitle> frame)
@@ -592,15 +603,6 @@ void OpenglRender::setColorSpace()
         d_ptr->programPtr->setUniformValue("colorConversion", QMatrix3x3(ColorSpace::kBT709Matrix));
         break;
     }
-}
-
-void OpenglRender::displayFrame(QSharedPointer<Frame> framePtr)
-{
-    d_ptr->framePtr = framePtr;
-    auto avFrame = d_ptr->framePtr->avFrame();
-    d_ptr->framePtr = framePtr;
-
-    update();
 }
 
 void OpenglRender::paintSubTitleFrame()

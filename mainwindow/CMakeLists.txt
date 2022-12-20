@@ -1,11 +1,7 @@
 set(PROJECT_SOURCES
         mainwindow_global.h
-        mainwindow.cpp
-        mainwindow.h
-        playerwidget.cpp
-        playerwidget.h
-        slider.cpp
-        slider.h)
+        mainwindow.cpp mainwindow.h
+        slider.cpp slider.h)
 
 if (CMAKE_HOST_WIN32)
   add_library(mainwindow SHARED ${PROJECT_SOURCES} ${SOURCES})

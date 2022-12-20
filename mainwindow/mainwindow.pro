@@ -12,11 +12,9 @@ LIBS += \
 
 SOURCES += \
     mainwindow.cpp \
-    playerwidget.cpp \
     slider.cpp
 
 HEADERS += \
     mainwindow_global.h \
     mainwindow.h \
-    playerwidget.h \
     slider.h

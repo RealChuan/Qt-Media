@@ -26,12 +26,18 @@ private slots:
     void onLeaveSlider();
     void onShowCurrentFPS();
 
+    void onOpenLocalMedia();
+    void onOpenWebMedia();
+
 protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
     void keyPressEvent(QKeyEvent *ev) override;
 
 private:
     void setupUI();
     void buildConnect();
+    void initShortcut();
+    void initMenu();
 
     class MainWindowPrivate;
     QScopedPointer<MainWindowPrivate> d_ptr;

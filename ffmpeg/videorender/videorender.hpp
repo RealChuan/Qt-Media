@@ -9,6 +9,8 @@ extern "C" {
 #include <libavutil/pixfmt.h>
 }
 
+class QWidget;
+
 namespace Ffmpeg {
 
 class Frame;
@@ -28,6 +30,8 @@ public:
     void setImage(const QImage &image);
     void setSubTitleFrame(QSharedPointer<Subtitle> frame);
     virtual void resetAllFrame() = 0;
+
+    virtual QWidget *widget() = 0;
 
     float fps();
     void resetFps();

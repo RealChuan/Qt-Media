@@ -29,7 +29,7 @@ public:
     QWaitCondition waitCondition;
     QSize videoResolutionRatio = QSize(1280, 720);
 
-    QVector<VideoRender *> videoRenders;
+    QVector<VideoRender *> videoRenders = {};
 };
 
 DecoderSubtitleFrame::DecoderSubtitleFrame(QObject *parent)

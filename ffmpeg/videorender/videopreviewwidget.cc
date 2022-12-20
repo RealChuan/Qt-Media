@@ -83,10 +83,11 @@ private:
                                       * m_videoPreviewWidgetPtr->devicePixelRatio(),
                                   Qt::KeepAspectRatio);
                 }
+                auto dst_pix_fmt = AV_PIX_FMT_RGB32;
                 QScopedPointer<VideoFrameConverter> frameConverterPtr(
-                    new VideoFrameConverter(videoInfo->codecCtx(), dstSize, AV_PIX_FMT_RGB32));
+                    new VideoFrameConverter(videoInfo->codecCtx(), dstSize, dst_pix_fmt));
                 QSharedPointer<Frame> frameRgbPtr(new Frame);
-                frameRgbPtr->imageAlloc(dstSize, AV_PIX_FMT_RGB32);
+                frameRgbPtr->imageAlloc(dstSize, dst_pix_fmt);
                 //frameConverterPtr->flush(framePtr.data(), dstSize);
                 frameConverterPtr->scale(framePtr.data(), frameRgbPtr.data());
                 auto image = frameRgbPtr->convertToImage();
@@ -115,9 +116,12 @@ public:
         : owner(parent)
     {
         threadPool = new QThreadPool(owner);
-        threadPool->setMaxThreadCount(3);
+        threadPool->setMaxThreadCount(2);
     }
-    ~VideoPreviewWidgetPrivate() { qDebug() << "Task ID: " << taskId.loadRelaxed(); }
+    ~VideoPreviewWidgetPrivate()
+    {
+        qDebug() << "Task ID: " << taskId.loadRelaxed() << "Vaild Count: " << vaildCount;
+    }
 
     QWidget *owner;
 
@@ -127,6 +131,7 @@ public:
     QSharedPointer<Frame> frame;
 
     QAtomicInt taskId = 0;
+    qint64 vaildCount = 0;
     QThreadPool *threadPool;
 };
 
@@ -171,6 +176,7 @@ void VideoPreviewWidget::setDisplayImage(QSharedPointer<Frame> frame,
             d_ptr->image = img;
             d_ptr->frame = frame;
             update();
+            ++d_ptr->vaildCount;
         },
         Qt::QueuedConnection);
 }

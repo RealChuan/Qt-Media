@@ -19,7 +19,7 @@ public:
     QMutex mutex;
     QWaitCondition waitCondition;
 
-    QVector<VideoRender *> videoRenders;
+    QVector<VideoRender *> videoRenders = {};
 };
 
 DecoderVideoFrame::DecoderVideoFrame(QObject *parent)

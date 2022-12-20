@@ -19,6 +19,8 @@ public:
 
     void resetAllFrame() override;
 
+    QWidget *widget() override;
+
 protected:
     void paintEvent(QPaintEvent *event) override;
 

@@ -1,10 +1,10 @@
 #include "mainwindow.h"
-#include "playerwidget.h"
 #include "slider.h"
 
 #include <ffmpeg/averror.h>
 #include <ffmpeg/player.h>
 #include <ffmpeg/videorender/videopreviewwidget.hpp>
+#include <ffmpeg/videorender/videorendercreate.hpp>
 
 #include <QtWidgets>
 
@@ -14,7 +14,11 @@ public:
     MainWindowPrivate(QWidget *parent)
         : owner(parent)
         , playerPtr(new Ffmpeg::Player)
+        , videoRender(
+              Ffmpeg::VideoRenderCreate::create(Ffmpeg::VideoRenderCreate::RenderType::Opengl))
     {
+        menu = new QMenu(owner);
+
         slider = new Slider(owner);
         positionLabel = new QLabel("00:00:00", owner);
         durationLabel = new QLabel("/ 00:00:00", owner);
@@ -29,7 +33,10 @@ public:
 
     QWidget *owner;
     QScopedPointer<Ffmpeg::Player> playerPtr;
+    QScopedPointer<Ffmpeg::VideoRender> videoRender;
     QScopedPointer<Ffmpeg::VideoPreviewWidget> videoPreviewWidgetPtr;
+
+    QMenu *menu;
 
     Slider *slider;
     QLabel *positionLabel;
@@ -46,10 +53,16 @@ MainWindow::MainWindow(QWidget *parent)
 {
     setupUI();
     buildConnect();
+    initShortcut();
+    initMenu();
     resize(1000, 650);
 }
 
-MainWindow::~MainWindow() {}
+MainWindow::~MainWindow()
+{
+    d_ptr->playerPtr->onStop();
+    d_ptr->playerPtr->setVideoRenders({});
+}
 
 void MainWindow::onError(const Ffmpeg::AVError &avError)
 {
@@ -81,7 +94,9 @@ void MainWindow::onStarted()
     d_ptr->sourceFPSLabel->setToolTip(fpsStr);
 
     auto size = d_ptr->playerPtr->resolutionRatio();
-    auto filename = QFileInfo(d_ptr->playerPtr->filePath()).fileName();
+    auto url = d_ptr->playerPtr->filePath();
+    auto filename = QFile::exists(url) ? QFileInfo(url).fileName()
+                                       : QFileInfo(QUrl(url).toString()).fileName();
     setWindowTitle(
         QString("%1[%2x%3]")
             .arg(filename, QString::number(size.width()), QString::number(size.height())));
@@ -144,6 +159,79 @@ void MainWindow::onShowCurrentFPS()
     d_ptr->currentFPSLabel->setToolTip(fpsStr);
 }
 
+void MainWindow::onOpenLocalMedia()
+{
+    const QString path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation)
+                             .value(0, QDir::homePath());
+    const QString filePath
+        = QFileDialog::getOpenFileName(this,
+                                       tr("Open File"),
+                                       path,
+                                       tr("Audio Video (*.mp3 *.mp4 *.mkv *.rmvb)"));
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    d_ptr->playerPtr->onSetFilePath(filePath);
+}
+
+void MainWindow::onOpenWebMedia()
+{
+    QDialog dialog(this);
+    QLineEdit *lineEdit = new QLineEdit(&dialog);
+    connect(lineEdit, &QLineEdit::returnPressed, &dialog, &QDialog::accept);
+    lineEdit->setPlaceholderText("http://.....");
+    QHBoxLayout *layout = new QHBoxLayout(&dialog);
+    layout->setContentsMargins(QMargins());
+    layout->setSpacing(0);
+    layout->addWidget(lineEdit);
+    dialog.setMinimumWidth(width() / 2);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    const QString str(lineEdit->text().trimmed());
+    if (str.isEmpty()) {
+        return;
+    }
+    QUrl url(str);
+    if (!url.isValid()) {
+        qWarning("Invalid URL: %s", qUtf8Printable(url.toString()));
+        return;
+    }
+
+    d_ptr->playerPtr->onSetFilePath(url.toEncoded());
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == d_ptr->videoRender->widget()) {
+        switch (event->type()) {
+        case QEvent::DragEnter: {
+            auto e = static_cast<QDragEnterEvent *>(event);
+            e->acceptProposedAction();
+        } break;
+        case QEvent::DragMove: {
+            auto e = static_cast<QDragMoveEvent *>(event);
+            e->acceptProposedAction();
+        } break;
+        case QEvent::Drop: {
+            auto e = static_cast<QDropEvent *>(event);
+            QList<QUrl> urls = e->mimeData()->urls();
+            if (!urls.isEmpty()) {
+                d_ptr->playerPtr->onSetFilePath(urls.first().toLocalFile());
+            }
+        } break;
+        case QEvent::ContextMenu: {
+            auto e = static_cast<QContextMenuEvent *>(event);
+            d_ptr->menu->exec(e->globalPos());
+        } break;
+        default: break;
+        }
+    }
+    return QMainWindow::eventFilter(watched, event);
+}
+
 void MainWindow::keyPressEvent(QKeyEvent *ev)
 {
     QMainWindow::keyPressEvent(ev);
@@ -163,13 +251,10 @@ void MainWindow::keyPressEvent(QKeyEvent *ev)
 
 void MainWindow::setupUI()
 {
-    auto playWidget = new PlayerWidget(this);
-    playWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    d_ptr->playerPtr->setVideoRenders(QVector<Ffmpeg::VideoRender *>{playWidget});
-    connect(playWidget,
-            &PlayerWidget::openFile,
-            d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::onSetFilePath);
+    d_ptr->videoRender->widget()->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    d_ptr->videoRender->widget()->setAcceptDrops(true);
+    d_ptr->videoRender->widget()->installEventFilter(this);
+    d_ptr->playerPtr->setVideoRenders({d_ptr->videoRender.data()});
 
     auto useGpuCheckBox = new QCheckBox(tr("GPU Decode"), this);
     useGpuCheckBox->setToolTip(tr("The pre-play Settings are valid"));
@@ -279,7 +364,7 @@ void MainWindow::setupUI()
 
     QWidget *widget = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(widget);
-    layout->addWidget(playWidget);
+    layout->addWidget(d_ptr->videoRender->widget());
     layout->addWidget(processWidget);
     layout->addLayout(controlLayout);
     setCentralWidget(widget);
@@ -326,6 +411,11 @@ void MainWindow::buildConnect()
                 }
             });
 
+    connect(d_ptr->fpsTimer, &QTimer::timeout, this, &MainWindow::onShowCurrentFPS);
+}
+
+void MainWindow::initShortcut()
+{
     new QShortcut(QKeySequence::MoveToNextChar, this, this, [this] {
         d_ptr->playerPtr->onSeek(d_ptr->slider->value() + 5);
     });
@@ -336,6 +426,10 @@ void MainWindow::buildConnect()
         }
         d_ptr->playerPtr->onSeek(value);
     });
+}
 
-    connect(d_ptr->fpsTimer, &QTimer::timeout, this, &MainWindow::onShowCurrentFPS);
+void MainWindow::initMenu()
+{
+    d_ptr->menu->addAction(tr("Open Local Media"), this, &MainWindow::onOpenLocalMedia);
+    d_ptr->menu->addAction(tr("Open Web Media"), this, &MainWindow::onOpenWebMedia);
 }

@@ -22,6 +22,8 @@ public:
 
     void resetAllFrame() override;
 
+    QWidget *widget() override;
+
 protected:
     void initializeGL() override;
     void paintGL() override;
@@ -35,7 +37,6 @@ private:
     void resizeViewport();
     void setColorSpace();
 
-    void displayFrame(QSharedPointer<Frame> framePtr);
     void paintSubTitleFrame();
 
     void updateYUV420P();

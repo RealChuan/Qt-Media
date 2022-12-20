@@ -58,7 +58,7 @@ public:
 
     volatile Player::MediaState mediaState = Player::MediaState::StoppedState;
 
-    QVector<VideoRender *> videoRenders;
+    QVector<VideoRender *> videoRenders = {};
 };
 
 Player::Player(QObject *parent)

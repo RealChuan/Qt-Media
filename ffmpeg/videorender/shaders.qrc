@@ -2,5 +2,7 @@
     <qresource prefix="/">
         <file>shader/video.frag</file>
         <file>shader/video.vert</file>
+        <file>shader/video_vulkan.frag</file>
+        <file>shader/video_vulkan.vert</file>
     </qresource>
 </RCC>

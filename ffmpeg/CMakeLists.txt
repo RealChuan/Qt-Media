@@ -5,6 +5,7 @@ set(PROJECT_SOURCES
         videorender/openglrender.cc videorender/openglrender.hpp
         videorender/videopreviewwidget.cc videorender/videopreviewwidget.hpp
         videorender/videorender.cc videorender/videorender.hpp
+        videorender/videorendercreate.cc videorender/videorendercreate.hpp
         videorender/widgetrender.cc videorender/widgetrender.hpp
 
         audiodecoder.cpp audiodecoder.h

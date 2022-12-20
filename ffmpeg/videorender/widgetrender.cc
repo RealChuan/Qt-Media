@@ -51,17 +51,17 @@ bool WidgetRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
 
 QSharedPointer<Frame> WidgetRender::convertSupported_pix_fmt(QSharedPointer<Frame> frame)
 {
+    auto dst_pix_fmt = AV_PIX_FMT_RGB32;
     auto avframe = frame->avFrame();
     auto size = QSize(avframe->width, avframe->height);
     size.scale(this->size() * devicePixelRatio(), Qt::KeepAspectRatio);
     if (d_ptr->frameConverterPtr.isNull()) {
-        d_ptr->frameConverterPtr.reset(
-            new VideoFrameConverter(frame.data(), size, AV_PIX_FMT_RGB32));
+        d_ptr->frameConverterPtr.reset(new VideoFrameConverter(frame.data(), size, dst_pix_fmt));
     } else {
-        d_ptr->frameConverterPtr->flush(frame.data(), size, AV_PIX_FMT_RGB32);
+        d_ptr->frameConverterPtr->flush(frame.data(), size, dst_pix_fmt);
     }
     QSharedPointer<Frame> frameRgbPtr(new Frame);
-    frameRgbPtr->imageAlloc(size, AV_PIX_FMT_RGB32);
+    frameRgbPtr->imageAlloc(size, dst_pix_fmt);
     d_ptr->frameConverterPtr->scale(frame.data(), frameRgbPtr.data());
     //    qDebug() << frameRgbPtr->avFrame()->width << frameRgbPtr->avFrame()->height
     //             << frameRgbPtr->avFrame()->format;
@@ -79,6 +79,11 @@ void WidgetRender::resetAllFrame()
     d_ptr->subTitleImage = QImage();
     d_ptr->framePtr.reset();
     d_ptr->subTitleFramePtr.reset();
+}
+
+QWidget *WidgetRender::widget()
+{
+    return this;
 }
 
 void WidgetRender::paintEvent(QPaintEvent *event)
