@@ -15,9 +15,7 @@ void msg_callback(int level, const char *fmt, va_list va, void *data)
     if (level > 6) {
         return;
     }
-    printf("libass: ");
-    vprintf(fmt, va);
-    printf("\n");
+    qInfo() << "libass:" << QString::vasprintf(fmt, va);
 }
 
 void print_font_providers(ASS_Library *ass_library)

@@ -106,13 +106,14 @@ void Subtitle::parseImage(SwsContext *swsContext)
         }
         av_freep(&pixels[0]);
     }
-    d_ptr->pts = d_ptr->subtitle.start_display_time / 1000;
+    d_ptr->pts = d_ptr->subtitle.start_display_time / 1000.0;
     d_ptr->duration = (d_ptr->subtitle.end_display_time - d_ptr->subtitle.start_display_time)
-                      / 1000;
+                      / 1000.0;
 }
 
 void Subtitle::parseText()
 {
+    d_ptr->pts = QString::asprintf("%.2f", d_ptr->pts).toDouble(); // libass只支持0.01秒，还要四舍五入
     for (size_t i = 0; i < d_ptr->subtitle.num_rects; i++) {
         AVSubtitleRect *sub_rect = d_ptr->subtitle.rects[i];
         QByteArray text;
