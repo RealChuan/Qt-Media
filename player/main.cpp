@@ -1,6 +1,7 @@
+#include "mainwindow.h"
+
 #include <3rdparty/qtsingleapplication/qtsingleapplication.h>
 #include <crashhandler/breakpad.hpp>
-#include <mainwindow/mainwindow.h>
 #include <utils/logasync.h>
 #include <utils/utils.h>
 

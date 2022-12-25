@@ -22,8 +22,8 @@ public:
         slider = new Slider(owner);
         positionLabel = new QLabel("00:00:00", owner);
         durationLabel = new QLabel("/ 00:00:00", owner);
-        sourceFPSLabel = new QLabel(owner);
-        currentFPSLabel = new QLabel(owner);
+        sourceFPSLabel = new QLabel("FPS: 00.00->", owner);
+        currentFPSLabel = new QLabel("00.00", owner);
         playButton = new QPushButton(QObject::tr("play", "MainWindow"), owner);
         playButton->setCheckable(true);
 
@@ -257,7 +257,7 @@ void MainWindow::setupUI()
     d_ptr->playerPtr->setVideoRenders({d_ptr->videoRender.data()});
 
     auto useGpuCheckBox = new QCheckBox(tr("GPU Decode"), this);
-    useGpuCheckBox->setToolTip(tr("The pre-play Settings are valid"));
+    useGpuCheckBox->setToolTip(tr("GPU Decode"));
     useGpuCheckBox->setChecked(true);
     connect(useGpuCheckBox, &QCheckBox::clicked, this, [this, useGpuCheckBox] {
         d_ptr->playerPtr->setUseGpuDecode(useGpuCheckBox->isChecked());

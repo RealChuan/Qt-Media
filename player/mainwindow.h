@@ -1,15 +1,13 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "mainwindow_global.h"
-
 #include <QMainWindow>
 
 namespace Ffmpeg {
 class AVError;
 }
 
-class MAINWINDOW_EXPORT MainWindow : public QMainWindow
+class MainWindow : public QMainWindow
 {
     Q_OBJECT
 public:

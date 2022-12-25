@@ -156,7 +156,6 @@ void Player::onSetAudioTracks(const QString &text) // 停止再播放最简单 �
         }
         emit subtitleStreamChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
     }
-
     if (!setMediaIndex(d_ptr->audioInfo, index)) {
         return;
     }
@@ -405,6 +404,27 @@ void Player::pause(bool status)
 void Player::setUseGpuDecode(bool on)
 {
     d_ptr->gpuDecode = on;
+    if (isFinished()) {
+        return;
+    }
+    int audioIndex = d_ptr->audioInfo->index();
+    int subtitleIndex = d_ptr->subtitleInfo->index();
+    onStop();
+    initAvCodec();
+    if (audioIndex >= 0) {
+        if (!setMediaIndex(d_ptr->audioInfo, audioIndex)) {
+            return;
+        }
+        emit audioTrackChanged(d_ptr->formatCtx->audioMap().value(audioIndex));
+    }
+    if (subtitleIndex >= 0) {
+        if (!setMediaIndex(d_ptr->subtitleInfo, subtitleIndex)) {
+            return;
+        }
+        emit subtitleStreamChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
+    }
+    onSeek(mediaClock());
+    onPlay();
 }
 
 bool Player::isGpuDecode()

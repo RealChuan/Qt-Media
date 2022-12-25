@@ -9,21 +9,22 @@ TEMPLATE = app
 TARGET = QFfmpegPlayer
 
 LIBS += -L$$APP_OUTPUT_PATH/../libs \
-    -l$$replaceLibName(mainwindow) \
-    -l$$replaceLibName(crashhandler) \
     -l$$replaceLibName(ffmpeg) \
+    -l$$replaceLibName(crashhandler) \
     -l$$replaceLibName(thirdparty) \
     -l$$replaceLibName(utils)
 
 include(../3rdparty/3rdparty.pri)
 
-RC_ICONS = app.ico
-#ICON     = app.icns
+RC_ICONS = player.ico
+#ICON     = player.icns
 
 DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
-    main.cpp
+    main.cpp \
+    mainwindow.cpp \
+    slider.cpp
 
 OTHER_FILES += \
     app.ico
@@ -32,3 +33,7 @@ DESTDIR = $$APP_OUTPUT_PATH
 
 RESOURCES += \
     resource.qrc
+
+HEADERS += \
+    mainwindow.h \
+    slider.h

@@ -89,8 +89,9 @@ void DecoderSubtitleFrame::runDecoder()
         }
         subtitlePtr->setVideoResolutionRatio(d_ptr->videoResolutionRatio);
         subtitlePtr->parse(swsContext);
-        double pts = subtitlePtr->pts();
-        if (m_seekTime > pts) {
+        auto pts = subtitlePtr->pts();
+        auto duration = subtitlePtr->duration();
+        if (m_seekTime > (pts + duration)) {
             continue;
         }
         if (subtitlePtr->type() == Subtitle::Type::ASS) {
@@ -98,7 +99,7 @@ void DecoderSubtitleFrame::runDecoder()
             subtitlePtr->generateImage();
         }
         double diffPts = (pts - mediaClock()) * 1000;
-        double difDuration = diffPts + subtitlePtr->duration() * 1000;
+        double difDuration = diffPts + duration * 1000;
         if (difDuration < Drop_Milliseconds
             || (mediaSpeed() > 1.0 && qAbs(difDuration) > UnWait_Milliseconds)) {
             dropNum++;
