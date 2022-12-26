@@ -5,7 +5,6 @@
 
 #include <QDebug>
 #include <QMetaEnum>
-#include <QTime>
 
 extern "C" {
 #include <libavcodec/avcodec.h>

@@ -4,9 +4,7 @@
 #include <subtitle/ass.hpp>
 #include <videorender/videorender.hpp>
 
-#include <QDir>
 #include <QImage>
-#include <QStandardPaths>
 #include <QWaitCondition>
 
 extern "C" {

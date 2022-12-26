@@ -2,7 +2,6 @@
 #define AVCONTEXTINFO_H
 
 #include <QObject>
-#include <QSize>
 
 struct AVStream;
 

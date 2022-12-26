@@ -4,7 +4,6 @@
 #include "videoformat.hpp"
 
 #include <QDebug>
-#include <QPixmap>
 
 namespace Ffmpeg {
 

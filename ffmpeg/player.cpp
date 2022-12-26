@@ -10,13 +10,7 @@
 #include <utils/utils.h>
 #include <videorender/videorender.hpp>
 
-#include <QDateTime>
-#include <QDebug>
 #include <QImage>
-#include <QMutex>
-#include <QPixmap>
-#include <QThread>
-#include <QWaitCondition>
 
 #include <memory>
 
@@ -404,7 +398,7 @@ void Player::pause(bool status)
 void Player::setUseGpuDecode(bool on)
 {
     d_ptr->gpuDecode = on;
-    if (isFinished()) {
+    if (!isRunning()) {
         return;
     }
     int audioIndex = d_ptr->audioInfo->index();

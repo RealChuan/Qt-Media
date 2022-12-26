@@ -3,8 +3,6 @@
 #include "codeccontext.h"
 #include "frame.hpp"
 
-#include <functional>
-
 extern "C" {
 #include <libavformat/avformat.h>
 }

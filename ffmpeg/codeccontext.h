@@ -2,7 +2,6 @@
 #define CODECCONTEXT_H
 
 #include <QObject>
-#include <QSize>
 
 struct AVCodecContext;
 struct AVCodecParameters;
