@@ -179,10 +179,14 @@ void AVContextInfo::flush()
     d_ptr->codecCtx->flush();
 }
 
+double AVContextInfo::cal_timebase() const
+{
+    return av_q2d(d_ptr->stream->time_base);
+}
+
 AVRational AVContextInfo::timebase() const
 {
     return d_ptr->stream->time_base;
-    //return av_q2d(d_ptr->stream->time_base);
 }
 
 double AVContextInfo::fps() const

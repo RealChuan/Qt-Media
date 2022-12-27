@@ -98,7 +98,7 @@ protected:
 
     void seekCodec(qint64 seekTime)
     {
-        m_formatContext->seek(m_contextInfo->index(), seekTime / m_contextInfo->timebase());
+        m_formatContext->seek(m_contextInfo->index(), seekTime / m_contextInfo->cal_timebase());
         m_contextInfo->flush();
     }
 

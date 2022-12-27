@@ -49,6 +49,7 @@ public:
 
     void flush();
 
+    double cal_timebase() const;
     AVRational timebase() const;
     double fps() const;
     qint64 fames() const;
