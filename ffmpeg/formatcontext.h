@@ -20,15 +20,24 @@ class FormatContext : public QObject
 {
     Q_OBJECT
 public:
+    enum OpenMode { ReadOnly = 1, WriteOnly };
+
     explicit FormatContext(QObject *parent = nullptr);
     ~FormatContext();
 
     bool isOpen();
-
-    bool openFilePath(const QString &filepath);
+    bool openFilePath(const QString &filepath, OpenMode mode = ReadOnly);
     void close();
 
+    bool avio_open();
+    void avio_close();
+
+    bool writeHeader();
+
     bool findStream();
+    int streams() const;
+    AVStream *stream(int index); //音频流
+    AVStream *createStream();
 
     QMap<int, QString> audioMap() const;
     QVector<int> videoIndexs() const;
@@ -38,23 +47,24 @@ public:
     // 丢弃除指定3个stream的音视频流，优化av_read_frame性能
     void discardStreamExcluded(int audioIndex, int videoIndex, int subtitleIndex);
 
-    AVStream *stream(int index); //音频流
+    bool seekFirstFrame();
+    bool seek(int64_t timestamp);
+    bool seek(int index, int64_t timestamp); // s
 
     bool readFrame(Packet *packet);
 
     int checkPktPlayRange(Packet *packet);
 
-    bool seekFirstFrame();
-    bool seek(int64_t timestamp);
-    bool seek(int index, int64_t timestamp); // s
-
-    void dumpFormat();
+    AVRational guessFrameRate(int index) const;
+    AVRational guessFrameRate(AVStream *stream) const;
 
     qint64 duration() const; // ms
 
     QImage &coverImage() const;
 
     AVError avError() const;
+
+    void dumpFormat();
 
     AVFormatContext *avFormatContext();
 

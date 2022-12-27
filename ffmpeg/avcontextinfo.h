@@ -3,7 +3,13 @@
 
 #include <QObject>
 
+extern "C" {
+#include <libavcodec/codec_id.h>
+#include <libavutil/avutil.h>
+}
+
 struct AVStream;
+struct AVRational;
 
 namespace Ffmpeg {
 
@@ -16,14 +22,10 @@ class AVContextInfo : public QObject
 {
     Q_OBJECT
 public:
-    enum MediaType { Audio, Video, SubTiTle };
-    Q_ENUM(MediaType)
-    static QString mediaTypeString(MediaType type);
-
-    explicit AVContextInfo(MediaType mediaType, QObject *parent = nullptr);
+    explicit AVContextInfo(QObject *parent = nullptr);
     ~AVContextInfo();
 
-    CodecContext *codecCtx();
+    void copyToCodecParameters(AVContextInfo *dst);
 
     void resetIndex();
     void setIndex(int index);
@@ -34,7 +36,10 @@ public:
     void setStream(AVStream *stream);
     AVStream *stream();
 
-    bool findDecoder(bool useGpu = false);
+    bool initDecoder(const AVRational &frameRate);
+    bool initEncoder(AVCodecID codecId);
+    bool initEncoder(const QString &name);
+    bool openCodec(bool useGpu = false);
 
     bool sendPacket(Packet *packet);
     bool receiveFrame(Frame *frame);
@@ -44,12 +49,17 @@ public:
 
     void flush();
 
-    double timebase();
-    double fps();
-    qint64 fames();
-    QSize resolutionRatio();
+    AVRational timebase() const;
+    double fps() const;
+    qint64 fames() const;
+    QSize resolutionRatio() const;
+    AVMediaType mediaType() const;
+    QString mediaTypeString() const;
+    bool isDecoder() const;
 
     bool isGpuDecode();
+
+    CodecContext *codecCtx();
 
 signals:
     void error(const Ffmpeg::AVError &avError);

@@ -7,9 +7,7 @@ namespace Ffmpeg {
 void calculateTime(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext)
 {
     AVRational tb = contextInfo->stream()->time_base;
-    AVRational frame_rate = av_guess_frame_rate(formatContext->avFormatContext(),
-                                                contextInfo->stream(),
-                                                NULL);
+    AVRational frame_rate = formatContext->guessFrameRate(contextInfo->stream());
     // 当前帧播放时长
     double duration = (frame_rate.num && frame_rate.den
                            ? av_q2d(AVRational{frame_rate.den, frame_rate.num})
@@ -25,16 +23,14 @@ void calculateTime(Frame *frame, AVContextInfo *contextInfo, FormatContext *form
 void calculateTime(Packet *packet, AVContextInfo *contextInfo)
 {
     AVRational tb = contextInfo->stream()->time_base;
-    //AVRational frame_rate = av_guess_frame_rate(m_formatContext->avFormatContext(), m_contextInfo->stream(), NULL);
     // 当前帧播放时长
     auto avPacket = packet->avPacket();
-    //duration = (frame_rate.num && frame_rate.den ? av_q2d(AVRational{frame_rate.den, frame_rate.num}) : 0);
     double duration = avPacket->duration * av_q2d(tb);
     // 当前帧显示时间戳
     double pts = (avPacket->pts == AV_NOPTS_VALUE) ? NAN : avPacket->pts * av_q2d(tb);
     packet->setDuration(duration);
     packet->setPts(pts);
-    //qDebug() << duration << pts;}
+    //qDebug() << duration << pts;
 }
 
 static std::atomic<double> g_meidaClock;

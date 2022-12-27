@@ -23,19 +23,14 @@ public:
         avdevice_register_all();
 #endif
         avformat_network_init();
-        formatCtx = avformat_alloc_context();
-        Q_ASSERT(formatCtx != nullptr);
     }
 
-    ~FormatContextPrivate()
-    {
-        //Q_ASSERT(formatCtx != nullptr);
-        avformat_free_context(formatCtx);
-    }
+    ~FormatContextPrivate() {}
 
     QObject *owner;
-    AVFormatContext *formatCtx;
+    AVFormatContext *formatCtx = nullptr;
     QString filepath;
+    FormatContext::OpenMode mode = FormatContext::ReadOnly;
     bool isOpen = false;
 
     QVector<int> videoIndexs;
@@ -60,22 +55,36 @@ bool FormatContext::isOpen()
     return d_ptr->isOpen;
 }
 
-bool FormatContext::openFilePath(const QString &filepath)
+bool FormatContext::openFilePath(const QString &filepath, OpenMode mode)
 {
+    d_ptr->mode = mode;
     close();
     d_ptr->filepath = filepath;
     //初始化pFormatCtx结构
-    int ret = avformat_open_input(&d_ptr->formatCtx,
-                                  d_ptr->filepath.toLocal8Bit().constData(),
-                                  nullptr,
-                                  nullptr);
-    if (ret != 0) {
-        setError(ret);
-        return false;
+    if (mode == ReadOnly) {
+        auto ret = avformat_open_input(&d_ptr->formatCtx,
+                                       d_ptr->filepath.toLocal8Bit().constData(),
+                                       nullptr,
+                                       nullptr);
+        if (ret != 0) {
+            setError(ret);
+            return false;
+        }
+        av_format_inject_global_side_data(d_ptr->formatCtx);
+        d_ptr->isOpen = true;
+    } else if (mode == WriteOnly) {
+        avformat_free_context(d_ptr->formatCtx);
+        auto ret = avformat_alloc_output_context2(&d_ptr->formatCtx,
+                                                  nullptr,
+                                                  nullptr,
+                                                  d_ptr->filepath.toLocal8Bit().constData());
+        if (ret < 0) {
+            setError(ret);
+            return false;
+        }
+        d_ptr->isOpen = true;
     }
-    av_format_inject_global_side_data(d_ptr->formatCtx);
-    d_ptr->isOpen = true;
-    return true;
+    return d_ptr->isOpen;
 }
 
 void FormatContext::close()
@@ -83,10 +92,53 @@ void FormatContext::close()
     if (!d_ptr->isOpen) {
         return;
     }
-    avformat_close_input(&d_ptr->formatCtx);
-    //d_ptr->formatCtx = avformat_alloc_context();
-    //Q_ASSERT(d_ptr->formatCtx != nullptr);
+    switch (d_ptr->mode) {
+    case ReadOnly:
+        avformat_close_input(&d_ptr->formatCtx);
+        d_ptr->formatCtx = nullptr;
+        d_ptr->isOpen = false;
+        break;
+    case WriteOnly: avio_close(); break;
+    default: break;
+    }
+}
+
+bool FormatContext::avio_open()
+{
+    if (d_ptr->formatCtx->oformat->flags & AVFMT_NOFILE) {
+        return false;
+    }
+    auto ret = ::avio_open(&d_ptr->formatCtx->pb,
+                           d_ptr->filepath.toLocal8Bit().constData(),
+                           AVIO_FLAG_WRITE);
+    if (ret < 0) {
+        setError(ret);
+        return false;
+    }
+    return true;
+}
+
+void FormatContext::avio_close()
+{
+    if (!d_ptr->isOpen && d_ptr->mode != WriteOnly) {
+        return;
+    }
+    if (d_ptr->formatCtx && !(d_ptr->formatCtx->oformat->flags & AVFMT_NOFILE)) {
+        avio_closep(&d_ptr->formatCtx->pb);
+    }
+    avformat_free_context(d_ptr->formatCtx);
+    d_ptr->formatCtx = nullptr;
     d_ptr->isOpen = false;
+}
+
+bool FormatContext::writeHeader()
+{
+    auto ret = avformat_write_header(d_ptr->formatCtx, NULL);
+    if (ret < 0) {
+        setError(ret);
+        return false;
+    }
+    return true;
 }
 
 bool FormatContext::findStream()
@@ -103,6 +155,11 @@ bool FormatContext::findStream()
     initMetaData();
     findStreamIndex();
     return true;
+}
+
+int FormatContext::streams() const
+{
+    return d_ptr->formatCtx->nb_streams;
 }
 
 QMap<int, QString> FormatContext::audioMap() const
@@ -217,6 +274,15 @@ AVStream *FormatContext::stream(int index)
     return d_ptr->formatCtx->streams[index];
 }
 
+AVStream *FormatContext::createStream()
+{
+    auto stream = avformat_new_stream(d_ptr->formatCtx, nullptr);
+    if (!stream) {
+        qWarning() << "Failed allocating output stream\n";
+    }
+    return stream;
+}
+
 bool FormatContext::readFrame(Packet *packet)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
@@ -246,6 +312,16 @@ int FormatContext::checkPktPlayRange(Packet *packet)
                      - (double) (start_time != AV_NOPTS_VALUE ? start_time : 0) / 1000000
                  <= ((double) duration / 1000000);
     return pkt_in_play_range;
+}
+
+AVRational FormatContext::guessFrameRate(int index) const
+{
+    return guessFrameRate(d_ptr->formatCtx->streams[index]);
+}
+
+AVRational FormatContext::guessFrameRate(AVStream *stream) const
+{
+    return av_guess_frame_rate(d_ptr->formatCtx, stream, nullptr);
 }
 
 bool FormatContext::seekFirstFrame()
@@ -301,7 +377,7 @@ bool FormatContext::seek(int index, int64_t timestamp)
 void FormatContext::dumpFormat()
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
-    av_dump_format(d_ptr->formatCtx, 0, d_ptr->filepath.toLocal8Bit().constData(), 0);
+    av_dump_format(d_ptr->formatCtx, 0, d_ptr->filepath.toLocal8Bit().constData(), d_ptr->mode - 1);
 }
 
 AVFormatContext *FormatContext::avFormatContext()

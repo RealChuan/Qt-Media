@@ -3,6 +3,10 @@
 
 #include <QObject>
 
+extern "C" {
+#include <libavutil/avutil.h>
+}
+
 struct AVCodecContext;
 struct AVCodecParameters;
 struct AVRational;
@@ -21,24 +25,34 @@ public:
     explicit CodecContext(AVCodec *codec, QObject *parent = nullptr);
     ~CodecContext();
 
-    AVCodecContext *avCodecCtx();
+    void copyToCodecParameters(CodecContext *dst);
 
     bool setParameters(const AVCodecParameters *par);
     void setTimebase(const AVRational &timebase);
+    void setFrameRate(const AVRational &frameRate);
     // Set before open, Soft solution is effective
-    void setDecodeThreadCount(int threadCount);
-    bool open(AVCodec *codec);
+    void setThreadCount(int threadCount);
+    bool open();
+
+    void setFlags(int flags);
+    int flags() const;
 
     bool sendPacket(Packet *packet);
     bool receiveFrame(Frame *frame);
     bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
 
-    int width();
-    int height();
+    int width() const;
+    int height() const;
+    AVMediaType mediaType() const;
+    QString mediaTypeString() const;
+    bool isDecoder() const;
 
     void flush();
 
     AVError avError();
+
+    AVCodec *codec();
+    AVCodecContext *avCodecCtx();
 
 signals:
     void error(const Ffmpeg::AVError &avError);

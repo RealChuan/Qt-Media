@@ -26,6 +26,7 @@ set(PROJECT_SOURCES
         player.cpp player.h
         subtitle.cpp subtitle.h
         subtitledecoder.cpp subtitledecoder.h
+        transcode.cc transcode.hpp
         videodecoder.cpp videodecoder.h
         videoformat.cc videoformat.hpp
         videoframeconverter.cc videoframeconverter.hpp)

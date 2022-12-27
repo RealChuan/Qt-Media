@@ -27,6 +27,7 @@ SOURCES += \
     player.cpp \
     subtitle.cpp \
     subtitledecoder.cpp \
+    transcode.cc \
     videodecoder.cpp \
     videoformat.cc \
     videoframeconverter.cc
@@ -50,6 +51,7 @@ HEADERS += \
     player.h \
     subtitle.h \
     subtitledecoder.h \
+    transcode.hpp \
     videodecoder.h \
     videoformat.hpp \
     videoframeconverter.hpp

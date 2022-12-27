@@ -24,9 +24,9 @@ public:
     {
         formatCtx = new FormatContext(owner);
 
-        audioInfo = new AVContextInfo(AVContextInfo::Audio, owner);
-        videoInfo = new AVContextInfo(AVContextInfo::Video, owner);
-        subtitleInfo = new AVContextInfo(AVContextInfo::SubTiTle, owner);
+        audioInfo = new AVContextInfo(owner);
+        videoInfo = new AVContextInfo(owner);
+        subtitleInfo = new AVContextInfo(owner);
 
         audioDecoder = new AudioDecoder(owner);
         videoDecoder = new VideoDecoder(owner);
@@ -367,10 +367,10 @@ bool Player::setMediaIndex(AVContextInfo *contextInfo, int index)
 {
     contextInfo->setIndex(index);
     contextInfo->setStream(d_ptr->formatCtx->stream(index));
-    if (!contextInfo->findDecoder(d_ptr->gpuDecode)) {
+    if (!contextInfo->initDecoder(d_ptr->formatCtx->guessFrameRate(index))) {
         return false;
     }
-    return true;
+    return contextInfo->openCodec(d_ptr->gpuDecode);
 }
 
 void Player::buildErrorConnect()

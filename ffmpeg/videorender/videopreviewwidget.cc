@@ -40,12 +40,13 @@ public:
         if (!formatCtxPtr->findStream()) {
             return;
         }
-        QScopedPointer<AVContextInfo> videoInfoPtr(new AVContextInfo(AVContextInfo::Video));
+        QScopedPointer<AVContextInfo> videoInfoPtr(new AVContextInfo);
         videoInfoPtr->setIndex(m_videoIndex);
         videoInfoPtr->setStream(formatCtxPtr->stream(m_videoIndex));
-        if (!videoInfoPtr->findDecoder()) { // 软解
+        if (!videoInfoPtr->initDecoder(formatCtxPtr->guessFrameRate(m_videoIndex))) {
             return;
         }
+        videoInfoPtr->openCodec(); // 软解
         formatCtxPtr->seek(m_timestamp);
         videoInfoPtr->flush();
         formatCtxPtr->discardStreamExcluded(-1, m_videoIndex, -1);
