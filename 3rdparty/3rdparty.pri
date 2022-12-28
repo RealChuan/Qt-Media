@@ -53,17 +53,22 @@ INCLUDEPATH += $$vcpkg_path/include
 
 macx{
 LIBS += \
-#    -framework Foundation \
-#    -framework CoreFoundation \
-#    -framework AVFoundation \
-#    -framework OpenGL \
-#    -framework AppKit \
-#    -framework QuartzCore \
-#    -framework Cocoa \
-#    -framework VideoDecodeAcceleration \
+    -framework Foundation \
+    -framework CoreAudio \
+    -framework AVFoundation \
+    -framework CoreGraphics \
+    -framework OpenGL \
+    -framework CoreText \
+    -framework CoreImage \
+    -framework AppKit \
     -framework Security \
     -framework AudioToolBox \
     -framework VideoToolBox \
+    -framework CoreFoundation \
+    -framework CoreMedia \
     -framework CoreVideo \
-    -framework CoreMedia
+    -framework CoreServices
+#    -framework QuartzCore \
+#    -framework Cocoa \
+#    -framework VideoDecodeAcceleration
 }

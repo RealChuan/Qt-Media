@@ -53,7 +53,7 @@ ENDIF ()
 target_link_libraries(ffmpeg PRIVATE harfbuzz harfbuzz::harfbuzz ${FRIBIDI_LIBRARY} freetype PNG::PNG ZLIB::ZLIB BZip2::BZip2 unofficial::brotli::brotlidec unofficial::brotli::brotlienc)
 
 if (CMAKE_HOST_APPLE)
-  target_link_libraries(ffmpeg PRIVATE ${Security_LIBRARY} ${AudioToolBox_LIBRARY} ${VideoToolBox_LIBRARY} ${CoreVideo_LIBRARY} ${CoreMedia_LIBRARY})
+  target_link_libraries(ffmpeg PRIVATE ${Foundation_LIBRARY} ${CoreAudio_LIBRARY} ${AVFoundation_LIBRARY} ${CoreGraphics_LIBRARY} ${OpenGL_LIBRARY} ${CoreText_LIBRARY} ${CoreImage_LIBRARY} ${AppKit_LIBRARY} ${Security_LIBRARY} ${AudioToolBox_LIBRARY} ${VideoToolBox_LIBRARY} ${CoreFoundation_LIBRARY} ${CoreMedia_LIBRARY} ${CoreVideo_LIBRARY} ${CoreServices_LIBRARY})
 endif ()
 
 if (CMAKE_HOST_WIN32)
