@@ -14,8 +14,6 @@ public:
     MainWindowPrivate(QWidget *parent)
         : owner(parent)
         , playerPtr(new Ffmpeg::Player)
-        , videoRender(
-              Ffmpeg::VideoRenderCreate::create(Ffmpeg::VideoRenderCreate::RenderType::Opengl))
     {
         menu = new QMenu(owner);
 
@@ -45,6 +43,8 @@ public:
     QLabel *currentFPSLabel;
     QPushButton *playButton;
     QTimer *fpsTimer;
+
+    QVBoxLayout *layout;
 };
 
 MainWindow::MainWindow(QWidget *parent)
@@ -203,9 +203,32 @@ void MainWindow::onOpenWebMedia()
     d_ptr->playerPtr->onSetFilePath(url.toEncoded());
 }
 
+void MainWindow::onRenderChanged()
+{
+    auto action = qobject_cast<QAction *>(sender());
+    if (!action) {
+        return;
+    }
+
+    Ffmpeg::VideoRenderCreate::RenderType renderType = Ffmpeg::VideoRenderCreate::Opengl;
+    auto type = action->data().toInt();
+    switch (type) {
+    case 1: renderType = Ffmpeg::VideoRenderCreate::Widget; break;
+    default: renderType = Ffmpeg::VideoRenderCreate::Opengl; break;
+    }
+    auto videoRender = Ffmpeg::VideoRenderCreate::create(renderType);
+    videoRender->widget()->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    videoRender->widget()->setAcceptDrops(true);
+    videoRender->widget()->installEventFilter(this);
+    d_ptr->playerPtr->setVideoRenders({videoRender});
+    d_ptr->layout->insertWidget(0, videoRender->widget());
+    // 为什么切换成widget还是有使用GPU 0-3D，而且使用量是切换为opengl的两倍！！！
+    d_ptr->videoRender.reset(videoRender);
+}
+
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
-    if (watched == d_ptr->videoRender->widget()) {
+    if (!d_ptr->videoRender.isNull() && watched == d_ptr->videoRender->widget()) {
         switch (event->type()) {
         case QEvent::DragEnter: {
             auto e = static_cast<QDragEnterEvent *>(event);
@@ -251,11 +274,6 @@ void MainWindow::keyPressEvent(QKeyEvent *ev)
 
 void MainWindow::setupUI()
 {
-    d_ptr->videoRender->widget()->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    d_ptr->videoRender->widget()->setAcceptDrops(true);
-    d_ptr->videoRender->widget()->installEventFilter(this);
-    d_ptr->playerPtr->setVideoRenders({d_ptr->videoRender.data()});
-
     auto useGpuCheckBox = new QCheckBox(tr("GPU Decode"), this);
     useGpuCheckBox->setToolTip(tr("GPU Decode"));
     useGpuCheckBox->setChecked(true);
@@ -363,10 +381,9 @@ void MainWindow::setupUI()
     controlLayout->addWidget(subtitleStreamsComboBox);
 
     QWidget *widget = new QWidget(this);
-    QVBoxLayout *layout = new QVBoxLayout(widget);
-    layout->addWidget(d_ptr->videoRender->widget());
-    layout->addWidget(processWidget);
-    layout->addLayout(controlLayout);
+    d_ptr->layout = new QVBoxLayout(widget);
+    d_ptr->layout->addWidget(processWidget);
+    d_ptr->layout->addLayout(controlLayout);
     setCentralWidget(widget);
 }
 
@@ -432,4 +449,32 @@ void MainWindow::initMenu()
 {
     d_ptr->menu->addAction(tr("Open Local Media"), this, &MainWindow::onOpenLocalMedia);
     d_ptr->menu->addAction(tr("Open Web Media"), this, &MainWindow::onOpenWebMedia);
+
+    auto widgetAction = new QAction(tr("Widget"), this);
+    widgetAction->setCheckable(true);
+    widgetAction->setData(Ffmpeg::VideoRenderCreate::Widget);
+    connect(widgetAction,
+            &QAction::triggered,
+            this,
+            &MainWindow::onRenderChanged,
+            Qt::QueuedConnection);
+    auto openglAction = new QAction(tr("Opengl"), this);
+    openglAction->setCheckable(true);
+    openglAction->setData(Ffmpeg::VideoRenderCreate::Opengl);
+    connect(openglAction,
+            &QAction::triggered,
+            this,
+            &MainWindow::onRenderChanged,
+            Qt::QueuedConnection);
+    auto actionGroup = new QActionGroup(this);
+    actionGroup->setExclusive(true);
+    actionGroup->addAction(widgetAction);
+    actionGroup->addAction(openglAction);
+
+    auto renderMenu = new QMenu(tr("Video Render"), this);
+    renderMenu->addAction(widgetAction);
+    renderMenu->addAction(openglAction);
+    d_ptr->menu->addMenu(renderMenu);
+
+    openglAction->trigger();
 }

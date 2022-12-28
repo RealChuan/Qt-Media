@@ -27,6 +27,7 @@ protected:
 private:
     void checkPause();
     void checkSeek();
+    void renderFrame(const QSharedPointer<Frame> &framePtr);
 
     class DecoderVideoFramePrivate;
     QScopedPointer<DecoderVideoFramePrivate> d_ptr;

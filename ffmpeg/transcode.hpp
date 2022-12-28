@@ -16,10 +16,14 @@ public:
     bool openInputFile(const QString &filepath);
     bool openOutputFile(const QString &filepath);
 
+    void reset();
+
 signals:
     void error(const Ffmpeg::AVError &avError);
 
 private:
+    void initFilters();
+
     void setError(int errorCode);
 
     class TranscodePrivate;

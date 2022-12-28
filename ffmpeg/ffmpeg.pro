@@ -2,6 +2,7 @@ include(../libs.pri)
 include(../3rdparty/3rdparty.pri)
 include(videorender/videorender.pri)
 include(subtitle/subtitle.pri)
+include(filter/filter.pri)
 
 QT += widgets multimedia openglwidgets
 

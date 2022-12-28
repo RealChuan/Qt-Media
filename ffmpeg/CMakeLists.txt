@@ -1,4 +1,8 @@
 set(PROJECT_SOURCES
+        filter/filtercontext.cc filter/filtercontext.hpp
+        filter/filtergraph.cc filter/filtergraph.hpp
+        filter/filterinout.cc filter/filterinout.hpp
+
         subtitle/ass.cc subtitle/ass.hpp
         subtitle/assdata.cc subtitle/assdata.hpp
 

@@ -27,6 +27,7 @@ public:
     QWaitCondition waitCondition;
     QSize videoResolutionRatio = QSize(1280, 720);
 
+    QMutex mutex_render;
     QVector<VideoRender *> videoRenders = {};
 };
 
@@ -107,9 +108,7 @@ void DecoderSubtitleFrame::runDecoder()
             d_ptr->waitCondition.wait(&d_ptr->mutex, diffPts);
         }
         // 略慢于音频
-        for (auto render : d_ptr->videoRenders) {
-            render->setSubTitleFrame(subtitlePtr);
-        }
+        renderFrame(subtitlePtr);
     }
     sws_freeContext(swsContext);
     qInfo() << dropNum;
@@ -135,6 +134,14 @@ void DecoderSubtitleFrame::checkSeek(Ass *ass)
         latchPtr->countDown();
     }
     seekFinish();
+}
+
+void DecoderSubtitleFrame::renderFrame(const QSharedPointer<Subtitle> &subtitlePtr)
+{
+    QMutexLocker locker(&d_ptr->mutex_render);
+    for (auto render : d_ptr->videoRenders) {
+        render->setSubTitleFrame(subtitlePtr);
+    }
 }
 
 } // namespace Ffmpeg

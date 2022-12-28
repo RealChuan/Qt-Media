@@ -26,6 +26,7 @@ private slots:
 
     void onOpenLocalMedia();
     void onOpenWebMedia();
+    void onRenderChanged();
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;

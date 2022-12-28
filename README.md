@@ -16,6 +16,8 @@
 
 <div align=center><img src="doc/player.png"></div>
 
+### 动态切换Video Render，从opengl切换到widget，还是有GPU 0-3D占用，而且使用量是opengl的2倍！！！QT-BUG？
+
 ## QOpenGLWidget memory leak, move zoom-in and zoom-out window, code as follows:
 
 ```C++

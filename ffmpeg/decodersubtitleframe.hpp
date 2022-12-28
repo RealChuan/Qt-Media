@@ -29,6 +29,7 @@ protected:
 private:
     void checkPause();
     void checkSeek(Ass *ass);
+    void renderFrame(const QSharedPointer<Subtitle> &subtitlePtr);
 
     class DecoderSubtitleFramePrivate;
     QScopedPointer<DecoderSubtitleFramePrivate> d_ptr;

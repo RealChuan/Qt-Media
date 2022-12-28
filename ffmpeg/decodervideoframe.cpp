@@ -19,6 +19,7 @@ public:
     QMutex mutex;
     QWaitCondition waitCondition;
 
+    QMutex mutex_render;
     QVector<VideoRender *> videoRenders = {};
 };
 
@@ -49,6 +50,7 @@ void DecoderVideoFrame::pause(bool state)
 
 void DecoderVideoFrame::setVideoRenders(QVector<VideoRender *> videoRenders)
 {
+    QMutexLocker locker(&d_ptr->mutex_render);
     d_ptr->videoRenders = videoRenders;
 }
 
@@ -80,9 +82,7 @@ void DecoderVideoFrame::runDecoder()
             d_ptr->waitCondition.wait(&d_ptr->mutex, diff);
         }
         // 略慢于音频
-        for (auto render : d_ptr->videoRenders) {
-            render->setFrame(framePtr);
-        }
+        renderFrame(framePtr);
     }
     qInfo() << dropNum;
 }
@@ -106,6 +106,14 @@ void DecoderVideoFrame::checkSeek()
         latchPtr->countDown();
     }
     seekFinish();
+}
+
+void DecoderVideoFrame::renderFrame(const QSharedPointer<Frame> &framePtr)
+{
+    QMutexLocker locker(&d_ptr->mutex_render);
+    for (auto render : d_ptr->videoRenders) {
+        render->setFrame(framePtr);
+    }
 }
 
 } // namespace Ffmpeg
