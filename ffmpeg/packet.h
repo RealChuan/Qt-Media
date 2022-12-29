@@ -4,6 +4,7 @@
 #include <QtCore>
 
 struct AVPacket;
+struct AVRational;
 
 namespace Ffmpeg {
 
@@ -17,7 +18,7 @@ public:
 
     bool isKey();
 
-    void clear();
+    void unref();
 
     void setPts(double pts);
     double pts();
@@ -25,12 +26,13 @@ public:
     void setDuration(double duration);
     double duration();
 
+    void rescaleTs(const AVRational &srcTimeBase, const AVRational &dstTimeBase);
+
     AVPacket *avPacket();
 
 private:
-    AVPacket *m_packet;
-    double m_pts = 0;
-    double m_duration = 0;
+    class PacketPrivate;
+    QScopedPointer<PacketPrivate> d_ptr;
 };
 
 } // namespace Ffmpeg

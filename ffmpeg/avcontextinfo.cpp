@@ -2,6 +2,7 @@
 #include "codeccontext.h"
 #include "frame.hpp"
 #include "hardwaredecode.hpp"
+#include "packet.h"
 
 #include <QDebug>
 
@@ -140,38 +141,44 @@ bool AVContextInfo::openCodec(bool useGpu)
     return true;
 }
 
-bool AVContextInfo::sendPacket(Packet *packet)
-{
-    return d_ptr->codecCtx->sendPacket(packet);
-}
-
-bool AVContextInfo::receiveFrame(Frame *frame)
-{
-    return d_ptr->codecCtx->receiveFrame(frame);
-}
-
 bool AVContextInfo::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
 {
     return d_ptr->codecCtx->decodeSubtitle2(subtitle, packet);
 }
 
-Frame *AVContextInfo::decodeFrame(Packet *packet)
+QVector<Frame *> AVContextInfo::decodeFrame(Packet *packet)
 {
-    if (!sendPacket(packet)) {
-        return nullptr;
+    QVector<Frame *> frames{};
+    if (!d_ptr->codecCtx->sendPacket(packet)) {
+        return frames;
     }
     std::unique_ptr<Frame> framePtr(new Frame);
-    if (!receiveFrame(framePtr.get())) { // 一个packet一个视频帧
-        return nullptr;
-    }
-    if (d_ptr->gpuDecode && mediaType() == AVMEDIA_TYPE_VIDEO) {
-        bool ok = false;
-        framePtr.reset(d_ptr->hardWareDecode->transforFrame(framePtr.get(), ok));
-        if (!ok) {
-            return nullptr;
+    while (d_ptr->codecCtx->receiveFrame(framePtr.get())) {
+        if (d_ptr->gpuDecode && mediaType() == AVMEDIA_TYPE_VIDEO) {
+            bool ok = false;
+            framePtr.reset(d_ptr->hardWareDecode->transforFrame(framePtr.get(), ok));
+            if (!ok) {
+                return frames;
+            }
         }
+        frames.append(framePtr.release());
+        framePtr.reset(new Frame);
     }
-    return framePtr.release();
+    return frames;
+}
+
+QVector<Packet *> AVContextInfo::encodeFrame(Frame *frame)
+{
+    QVector<Packet *> packets;
+    if (!d_ptr->codecCtx->sendFrame(frame)) {
+        return packets;
+    }
+    std::unique_ptr<Packet> packetPtr(new Packet);
+    while (d_ptr->codecCtx->receivePacket(packetPtr.get())) {
+        packets.append(packetPtr.release());
+        packetPtr.reset(new Packet);
+    }
+    return packets;
 }
 
 void AVContextInfo::flush()

@@ -54,16 +54,14 @@ void VideoDecoder::runDecoder()
             msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
-        std::unique_ptr<Frame> framePtr(m_contextInfo->decodeFrame(packetPtr.data()));
-        if (!framePtr) {
-            continue;
+        auto frames(m_contextInfo->decodeFrame(packetPtr.data()));
+        for (auto frame : frames) {
+            Ffmpeg::calculateTime(frame, m_contextInfo, m_formatContext);
+            frame->setQImageFormat(
+                VideoFormat::qFormatMaps.value(AVPixelFormat(frame->avFrame()->format),
+                                               QImage::Format_Invalid));
+            d_ptr->decoderVideoFrame->append(frame);
         }
-        Ffmpeg::calculateTime(framePtr.get(), m_contextInfo, m_formatContext);
-        framePtr->setQImageFormat(
-            VideoFormat::qFormatMaps.value(AVPixelFormat(framePtr->avFrame()->format),
-                                           QImage::Format_Invalid));
-
-        d_ptr->decoderVideoFrame->append(framePtr.release());
 
         while (m_runing && d_ptr->decoderVideoFrame->size() > Max_Frame_Size && !m_seek) {
             msleep(Sleep_Queue_Full_Milliseconds);

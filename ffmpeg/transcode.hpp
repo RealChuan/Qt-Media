@@ -6,6 +6,7 @@
 namespace Ffmpeg {
 
 class AVError;
+class Frame;
 class Transcode : public QObject
 {
     Q_OBJECT
@@ -23,6 +24,9 @@ signals:
 
 private:
     void initFilters();
+    void loop();
+    bool filterEncodeWriteframe(Frame *frame, uint stream_index);
+    bool encodeWriteFrame(uint stream_index, int flush);
 
     void setError(int errorCode);
 

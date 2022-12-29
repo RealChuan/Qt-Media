@@ -11,8 +11,13 @@ namespace Ffmpeg {
 
 struct Frame::FramePrivate
 {
-    ~FramePrivate()
+    ~FramePrivate() { reset(); }
+
+    void reset()
     {
+        pts = 0;
+        duration = 0;
+        format = QImage::Format_Invalid;
         Q_ASSERT(frame != nullptr);
         freeImageAlloc();
         av_frame_free(&frame);
@@ -59,11 +64,18 @@ Frame::Frame(const Frame &other)
     : d_ptr(new FramePrivate)
 {
     d_ptr->frame = av_frame_clone(other.d_ptr->frame);
+    d_ptr->pts = other.d_ptr->pts;
+    d_ptr->duration = other.d_ptr->duration;
+    d_ptr->format = other.d_ptr->format;
 }
 
 Frame &Frame::operator=(const Frame &other)
 {
+    d_ptr->reset();
     d_ptr->frame = av_frame_clone(other.d_ptr->frame);
+    d_ptr->pts = other.d_ptr->pts;
+    d_ptr->duration = other.d_ptr->duration;
+    d_ptr->format = other.d_ptr->format;
     return *this;
 }
 
@@ -87,7 +99,12 @@ void Frame::freeImageAlloc()
     d_ptr->freeImageAlloc();
 }
 
-void Frame::clear()
+void Frame::setPictType(AVPictureType type)
+{
+    d_ptr->frame->pict_type = type;
+}
+
+void Frame::unref()
 {
     av_frame_unref(d_ptr->frame);
 }

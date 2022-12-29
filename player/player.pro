@@ -24,6 +24,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
+    openwebmediadialog.cc \
     slider.cpp
 
 OTHER_FILES += \
@@ -36,4 +37,5 @@ RESOURCES += \
 
 HEADERS += \
     mainwindow.h \
+    openwebmediadialog.hpp \
     slider.h

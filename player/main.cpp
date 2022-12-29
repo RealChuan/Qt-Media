@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     Utils::setGlobalThreadPoolMaxSize();
 
     setAppInfo();
-    app.setWindowIcon(QIcon(":/app.ico"));
+    app.setWindowIcon(QIcon(":/player.ico"));
 
     // Make sure we honor the system's proxy settings
     QNetworkProxyFactory::setUseSystemConfiguration(true);

@@ -41,11 +41,10 @@ public:
     bool initEncoder(const QString &name);
     bool openCodec(bool useGpu = false);
 
-    bool sendPacket(Packet *packet);
-    bool receiveFrame(Frame *frame);
     bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
     // sendPacket and receiveFrame
-    Frame *decodeFrame(Packet *packet);
+    QVector<Frame *> decodeFrame(Packet *packet);
+    QVector<Packet *> encodeFrame(Frame *frame);
 
     void flush();
 

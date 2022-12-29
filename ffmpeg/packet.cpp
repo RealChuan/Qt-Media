@@ -8,63 +8,90 @@ extern "C" {
 
 namespace Ffmpeg {
 
-Packet::Packet()
+class Packet::PacketPrivate
 {
-    m_packet = av_packet_alloc();
-    Q_ASSERT(nullptr != m_packet);
+public:
+    PacketPrivate() {}
+    ~PacketPrivate() { reset(); }
+
+    void reset()
+    {
+        pts = 0;
+        duration = 0;
+        Q_ASSERT(nullptr != packet);
+        av_packet_free(&packet);
+    }
+
+    AVPacket *packet = nullptr;
+    double pts = 0;
+    double duration = 0;
+};
+
+Packet::Packet()
+    : d_ptr(new PacketPrivate)
+{
+    d_ptr->packet = av_packet_alloc();
+    Q_ASSERT(nullptr != d_ptr->packet);
 }
 
 Packet::Packet(const Packet &other)
+    : d_ptr(new PacketPrivate)
 {
-    m_packet = av_packet_clone(other.m_packet);
+    d_ptr->packet = av_packet_clone(other.d_ptr->packet);
+    d_ptr->pts = other.d_ptr->pts;
+    d_ptr->duration = other.d_ptr->duration;
 }
 
 Packet &Packet::operator=(const Packet &other)
 {
-    m_packet = av_packet_clone(other.m_packet);
+    d_ptr->reset();
+    d_ptr->packet = av_packet_clone(other.d_ptr->packet);
+    d_ptr->pts = other.d_ptr->pts;
+    d_ptr->duration = other.d_ptr->duration;
     return *this;
 }
 
-Packet::~Packet()
-{
-    Q_ASSERT(nullptr != m_packet);
-    av_packet_free(&m_packet);
-}
+Packet::~Packet() {}
 
 bool Packet::isKey()
 {
-    return m_packet->flags & AV_PKT_FLAG_KEY;
+    return d_ptr->packet->flags & AV_PKT_FLAG_KEY;
 }
 
-void Packet::clear()
+void Packet::unref()
 {
-    av_packet_unref(m_packet);
+    av_packet_unref(d_ptr->packet);
 }
 
 void Packet::setPts(double pts)
 {
-    m_pts = pts;
+    d_ptr->pts = pts;
 }
 
 double Packet::pts()
 {
-    return m_pts;
+    return d_ptr->pts;
 }
 
 void Packet::setDuration(double duration)
 {
-    m_duration = duration;
+    d_ptr->duration = duration;
 }
 
 double Packet::duration()
 {
-    return m_duration;
+    return d_ptr->duration;
+}
+
+void Packet::rescaleTs(const AVRational &srcTimeBase, const AVRational &dstTimeBase)
+{
+    av_packet_rescale_ts(d_ptr->packet, srcTimeBase, dstTimeBase);
 }
 
 AVPacket *Packet::avPacket()
 {
-    Q_ASSERT(nullptr != m_packet);
-    return m_packet;
+    Q_ASSERT(nullptr != d_ptr->packet);
+    return d_ptr->packet;
 }
 
 } // namespace Ffmpeg

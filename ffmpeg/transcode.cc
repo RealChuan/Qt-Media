@@ -163,6 +163,8 @@ public:
     bool gpuDecode = false;
 
     AVError error;
+
+    volatile bool runing = true;
 };
 
 Transcode::Transcode(QObject *parent)
@@ -287,6 +289,48 @@ void Transcode::initFilters()
         filteringContext->encPacket.reset(new Packet);
         filteringContext->filteredFrame.reset(new Frame);
     }
+}
+
+void Transcode::loop()
+{
+    while (d_ptr->runing) {
+        std::unique_ptr<Packet> packetPtr(new Packet);
+        if (!d_ptr->inFormatContext->readFrame(packetPtr.get())) {
+            break;
+        }
+        auto stream_index = packetPtr->avPacket()->stream_index;
+        auto filter_graph = d_ptr->filteringContexts.at(stream_index)->filterGraph;
+        if (filter_graph.isNull()) {
+            packetPtr->rescaleTs(d_ptr->inFormatContext->stream(stream_index)->time_base,
+                                 d_ptr->outFormatContext->stream(stream_index)->time_base);
+            d_ptr->outFormatContext->writeFrame(packetPtr.get());
+        } else {
+            auto transcodeCtx = d_ptr->transcodeContexts.at(stream_index);
+            packetPtr->rescaleTs(d_ptr->inFormatContext->stream(stream_index)->time_base,
+                                 transcodeCtx->decContextInfo->timebase());
+            auto frames = transcodeCtx->decContextInfo->decodeFrame(packetPtr.get());
+        }
+    }
+}
+
+bool Transcode::filterEncodeWriteframe(Frame *frame, uint stream_index)
+{
+    auto filteringCtx = d_ptr->filteringContexts.at(stream_index);
+    if (!filteringCtx->buffersrcCtx->buffersrc_addFrameFlags(frame)) {
+        return false;
+    }
+    QScopedPointer<Frame> framePtr(new Frame);
+    while (filteringCtx->buffersinkCtx->buffersink_getFrame(framePtr.data())) {
+        framePtr->setPictType(AV_PICTURE_TYPE_NONE);
+    }
+    return true;
+}
+
+bool Transcode::encodeWriteFrame(uint stream_index, int flush)
+{
+    auto transcodeCtx = d_ptr->transcodeContexts.at(stream_index);
+    auto filteringCtx = d_ptr->filteringContexts.at(stream_index);
+    return true;
 }
 
 void Transcode::setError(int errorCode)

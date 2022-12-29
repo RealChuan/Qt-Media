@@ -33,6 +33,7 @@ public:
     void avio_close();
 
     bool writeHeader();
+    bool writeFrame(Packet *packet);
 
     bool findStream();
     int streams() const;

@@ -61,15 +61,10 @@ void AudioDecoder::runDecoder()
             msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
-        if (!m_contextInfo->sendPacket(packetPtr.data())) {
-            continue;
-        }
-
-        std::unique_ptr<Frame> framePtr(new Frame);
-        while (m_contextInfo->receiveFrame(framePtr.get())) { // 一个packet 一个或多个音频帧
-            Ffmpeg::calculateTime(framePtr.get(), m_contextInfo, m_formatContext);
-            d_ptr->decoderAudioFrame->append(framePtr.release());
-            framePtr.reset(new Frame);
+        auto frames(m_contextInfo->decodeFrame(packetPtr.data()));
+        for (auto frame : frames) {
+            Ffmpeg::calculateTime(frame, m_contextInfo, m_formatContext);
+            d_ptr->decoderAudioFrame->append(frame);
         }
 
         while (m_runing && d_ptr->decoderAudioFrame->size() > Max_Frame_Size && !m_seek) {

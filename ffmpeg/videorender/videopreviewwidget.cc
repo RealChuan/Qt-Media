@@ -59,47 +59,61 @@ private:
     {
         while (m_runing && !m_videoPreviewWidgetPtr.isNull()
                && m_taskId == m_videoPreviewWidgetPtr->currentTaskId()) {
-            QScopedPointer<Packet> packetPtr(new Packet);
-            if (!formatContext->readFrame(packetPtr.get()) || m_videoPreviewWidgetPtr.isNull()) {
-                return;
+            auto framePtr(getKeyFrame(formatContext, videoInfo));
+            if (framePtr.isNull()) {
+                continue;
             }
-            if (formatContext->checkPktPlayRange(packetPtr.get()) <= 0) {
-            } else if (packetPtr->avPacket()->stream_index == videoInfo->index()
-                       && !(videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC)
-                       && packetPtr->isKey()) {
-                QScopedPointer<Frame> framePtr(videoInfo->decodeFrame(packetPtr.data()));
-                if (framePtr.isNull() || !framePtr->isKey()) {
+            auto dstSize = QSize(framePtr->avFrame()->width, framePtr->avFrame()->height);
+            if (m_videoPreviewWidgetPtr.isNull()) {
+                return;
+            } else {
+                dstSize.scale(m_videoPreviewWidgetPtr->size()
+                                  * m_videoPreviewWidgetPtr->devicePixelRatio(),
+                              Qt::KeepAspectRatio);
+            }
+            auto dst_pix_fmt = AV_PIX_FMT_RGB32;
+            QScopedPointer<VideoFrameConverter> frameConverterPtr(
+                new VideoFrameConverter(videoInfo->codecCtx(), dstSize, dst_pix_fmt));
+            QSharedPointer<Frame> frameRgbPtr(new Frame);
+            frameRgbPtr->imageAlloc(dstSize, dst_pix_fmt);
+            //frameConverterPtr->flush(framePtr.data(), dstSize);
+            frameConverterPtr->scale(framePtr.data(), frameRgbPtr.data());
+            auto image = frameRgbPtr->convertToImage();
+            if (!m_videoPreviewWidgetPtr.isNull()
+                && m_taskId == m_videoPreviewWidgetPtr->currentTaskId()) {
+                image.setDevicePixelRatio(m_videoPreviewWidgetPtr->devicePixelRatio());
+                m_videoPreviewWidgetPtr->setDisplayImage(frameRgbPtr, image, framePtr->pts());
+            }
+            return;
+        }
+    }
+
+    QSharedPointer<Frame> getKeyFrame(FormatContext *formatContext, AVContextInfo *videoInfo)
+    {
+        QSharedPointer<Frame> framePtr;
+        QScopedPointer<Packet> packetPtr(new Packet);
+        if (!formatContext->readFrame(packetPtr.get()) || m_videoPreviewWidgetPtr.isNull()) {
+            return framePtr;
+        }
+        if (formatContext->checkPktPlayRange(packetPtr.get()) <= 0) {
+        } else if (packetPtr->avPacket()->stream_index == videoInfo->index()
+                   && !(videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC)
+                   && packetPtr->isKey()) {
+            auto frames(videoInfo->decodeFrame(packetPtr.data()));
+            for (auto frame : frames) {
+                QSharedPointer<Frame> ptr(frame);
+                if (!ptr->isKey() && framePtr.isNull()) {
                     continue;
                 }
-                Ffmpeg::calculateTime(framePtr.data(), videoInfo, formatContext);
-                double pts = framePtr->pts();
+                Ffmpeg::calculateTime(ptr.data(), videoInfo, formatContext);
+                auto pts = ptr->pts();
                 if (m_timestamp > pts) {
                     continue;
                 }
-                auto dstSize = QSize(framePtr->avFrame()->width, framePtr->avFrame()->height);
-                if (m_videoPreviewWidgetPtr.isNull()) {
-                    return;
-                } else {
-                    dstSize.scale(m_videoPreviewWidgetPtr->size()
-                                      * m_videoPreviewWidgetPtr->devicePixelRatio(),
-                                  Qt::KeepAspectRatio);
-                }
-                auto dst_pix_fmt = AV_PIX_FMT_RGB32;
-                QScopedPointer<VideoFrameConverter> frameConverterPtr(
-                    new VideoFrameConverter(videoInfo->codecCtx(), dstSize, dst_pix_fmt));
-                QSharedPointer<Frame> frameRgbPtr(new Frame);
-                frameRgbPtr->imageAlloc(dstSize, dst_pix_fmt);
-                //frameConverterPtr->flush(framePtr.data(), dstSize);
-                frameConverterPtr->scale(framePtr.data(), frameRgbPtr.data());
-                auto image = frameRgbPtr->convertToImage();
-                if (!m_videoPreviewWidgetPtr.isNull()
-                    && m_taskId == m_videoPreviewWidgetPtr->currentTaskId()) {
-                    image.setDevicePixelRatio(m_videoPreviewWidgetPtr->devicePixelRatio());
-                    m_videoPreviewWidgetPtr->setDisplayImage(frameRgbPtr, image, pts);
-                }
-                return;
+                framePtr = ptr;
             }
         }
+        return framePtr;
     }
 
     QString m_filepath;
@@ -143,7 +157,10 @@ VideoPreviewWidget::VideoPreviewWidget(QWidget *parent)
     setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
 }
 
-VideoPreviewWidget::~VideoPreviewWidget() {}
+VideoPreviewWidget::~VideoPreviewWidget()
+{
+    clearAllTask();
+}
 
 void VideoPreviewWidget::startPreview(const QString &filepath,
                                       int videoIndex,
@@ -152,7 +169,7 @@ void VideoPreviewWidget::startPreview(const QString &filepath,
 {
     Q_ASSERT(videoIndex >= 0);
     d_ptr->taskId.ref();
-    d_ptr->threadPool->clear();
+    clearAllTask();
     d_ptr->threadPool->start(
         new PreviewTask(filepath, videoIndex, timestamp, d_ptr->taskId.loadRelaxed(), this));
     d_ptr->timestamp = timestamp;
@@ -160,6 +177,11 @@ void VideoPreviewWidget::startPreview(const QString &filepath,
     d_ptr->image = QImage();
     d_ptr->frame.reset();
     update();
+}
+
+void VideoPreviewWidget::clearAllTask()
+{
+    d_ptr->threadPool->clear();
 }
 
 void VideoPreviewWidget::setDisplayImage(QSharedPointer<Frame> frame,

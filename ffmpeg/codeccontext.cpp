@@ -156,6 +156,26 @@ bool CodecContext::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
     return true;
 }
 
+bool CodecContext::sendFrame(Frame *frame)
+{
+    auto ret = avcodec_send_frame(d_ptr->codecCtx, frame->avFrame());
+    if (ret < 0) {
+        setError(ret);
+        return false;
+    }
+    return true;
+}
+
+bool CodecContext::receivePacket(Packet *packet)
+{
+    auto ret = avcodec_receive_packet(d_ptr->codecCtx, packet->avPacket());
+    if (ret < 0) {
+        setError(ret);
+        return false;
+    }
+    return true;
+}
+
 int CodecContext::width() const
 {
     return d_ptr->codecCtx->width;

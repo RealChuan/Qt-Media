@@ -2,11 +2,14 @@
 #include "filtergraph.hpp"
 
 #include <ffmpeg/averror.h>
+#include <ffmpeg/frame.hpp>
 
 #include <QDebug>
 
 extern "C" {
 #include <libavfilter/avfilter.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
 }
 
 namespace Ffmpeg {
@@ -47,6 +50,26 @@ bool FilterContext::create(const QString &name, const QString &args, FilterGraph
                                             args.toLocal8Bit().constData(),
                                             nullptr,
                                             filterGraph->avFilterGraph());
+    if (ret < 0) {
+        setError(ret);
+        return false;
+    }
+    return true;
+}
+
+bool FilterContext::buffersrc_addFrameFlags(Frame *frame)
+{
+    auto ret = av_buffersrc_add_frame_flags(d_ptr->filterContext, frame->avFrame(), 0);
+    if (ret < 0) {
+        setError(ret);
+        return false;
+    }
+    return true;
+}
+
+bool FilterContext::buffersink_getFrame(Frame *frame)
+{
+    auto ret = av_buffersink_get_frame(d_ptr->filterContext, frame->avFrame());
     if (ret < 0) {
         setError(ret);
         return false;

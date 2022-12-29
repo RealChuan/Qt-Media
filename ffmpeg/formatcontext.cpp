@@ -133,7 +133,17 @@ void FormatContext::avio_close()
 
 bool FormatContext::writeHeader()
 {
-    auto ret = avformat_write_header(d_ptr->formatCtx, NULL);
+    auto ret = avformat_write_header(d_ptr->formatCtx, nullptr);
+    if (ret < 0) {
+        setError(ret);
+        return false;
+    }
+    return true;
+}
+
+bool FormatContext::writeFrame(Packet *packet)
+{
+    auto ret = av_interleaved_write_frame(d_ptr->formatCtx, packet->avPacket());
     if (ret < 0) {
         setError(ret);
         return false;

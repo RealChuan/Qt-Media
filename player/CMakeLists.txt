@@ -1,6 +1,7 @@
 set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp mainwindow.h
+        openwebmediadialog.cc openwebmediadialog.hpp
         slider.cpp slider.h)
 
 qt_add_resources(SOURCES resource.qrc)

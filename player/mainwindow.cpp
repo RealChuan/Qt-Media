@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "openwebmediadialog.hpp"
 #include "slider.h"
 
 #include <ffmpeg/averror.h>
@@ -144,6 +145,7 @@ void MainWindow::onLeaveSlider()
 {
     if (!d_ptr->videoPreviewWidgetPtr.isNull()) {
         d_ptr->videoPreviewWidgetPtr->hide();
+        d_ptr->videoPreviewWidgetPtr->clearAllTask();
     }
 }
 
@@ -177,30 +179,12 @@ void MainWindow::onOpenLocalMedia()
 
 void MainWindow::onOpenWebMedia()
 {
-    QDialog dialog(this);
-    QLineEdit *lineEdit = new QLineEdit(&dialog);
-    connect(lineEdit, &QLineEdit::returnPressed, &dialog, &QDialog::accept);
-    lineEdit->setPlaceholderText("http://.....");
-    QHBoxLayout *layout = new QHBoxLayout(&dialog);
-    layout->setContentsMargins(QMargins());
-    layout->setSpacing(0);
-    layout->addWidget(lineEdit);
-    dialog.setMinimumWidth(width() / 2);
+    OpenWebMediaDialog dialog(this);
+    dialog.setMinimumSize(size() / 2.0);
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
-
-    const QString str(lineEdit->text().trimmed());
-    if (str.isEmpty()) {
-        return;
-    }
-    QUrl url(str);
-    if (!url.isValid()) {
-        qWarning("Invalid URL: %s", qUtf8Printable(url.toString()));
-        return;
-    }
-
-    d_ptr->playerPtr->onSetFilePath(url.toEncoded());
+    d_ptr->playerPtr->onSetFilePath(QUrl(dialog.url()).toEncoded());
 }
 
 void MainWindow::onRenderChanged()

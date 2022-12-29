@@ -41,6 +41,9 @@ public:
     bool receiveFrame(Frame *frame);
     bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
 
+    bool sendFrame(Frame *frame);
+    bool receivePacket(Packet *packet);
+
     int width() const;
     int height() const;
     AVMediaType mediaType() const;

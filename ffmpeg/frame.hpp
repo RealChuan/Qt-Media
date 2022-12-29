@@ -5,6 +5,7 @@
 #include <QImage>
 
 extern "C" {
+#include <libavutil/avutil.h>
 #include <libavutil/pixfmt.h>
 }
 
@@ -26,6 +27,8 @@ public:
     bool imageAlloc(const QSize &size, AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA, int align = 1);
     void freeImageAlloc();
 
+    void setPictType(AVPictureType type);
+
     void setPts(double pts);
     double pts();
 
@@ -36,7 +39,7 @@ public:
     QImage::Format format() const;
     QImage convertToImage() const; // maybe null
 
-    void clear();
+    void unref();
 
     AVFrame *avFrame();
 

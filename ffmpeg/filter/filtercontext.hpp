@@ -8,19 +8,24 @@ struct AVFilterContext;
 namespace Ffmpeg {
 
 class AVError;
+class Frame;
 class FilterGraph;
 class FilterContext : public QObject
 {
     Q_OBJECT
 public:
     // name list
-    // {buffer, buffersink, abuffer, abuffersink}
+    // Video: {buffer, buffersink}
+    // Audio: {abuffer, abuffersink}
     explicit FilterContext(const QString &name, QObject *parent = nullptr);
     ~FilterContext();
 
     bool isValid();
 
     bool create(const QString &name, const QString &args, FilterGraph *filterGraph);
+
+    bool buffersrc_addFrameFlags(Frame *frame);
+    bool buffersink_getFrame(Frame *frame);
 
     AVFilterContext *avFilterContext();
 
