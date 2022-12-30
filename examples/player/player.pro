@@ -1,4 +1,4 @@
-include(../Common.pri)
+include(../../Common.pri)
 
 QT       += core gui network multimedia openglwidgets core5compat
 
@@ -14,12 +14,7 @@ LIBS += -L$$APP_OUTPUT_PATH/../libs \
     -l$$replaceLibName(thirdparty) \
     -l$$replaceLibName(utils)
 
-include(../3rdparty/3rdparty.pri)
-
-RC_ICONS = player.ico
-#ICON     = player.icns
-
-DEFINES += QT_DEPRECATED_WARNINGS
+include(../../3rdparty/3rdparty.pri)
 
 SOURCES += \
     main.cpp \
@@ -27,15 +22,11 @@ SOURCES += \
     openwebmediadialog.cc \
     slider.cpp
 
-OTHER_FILES += \
-    app.ico
-
-DESTDIR = $$APP_OUTPUT_PATH
-
-RESOURCES += \
-    resource.qrc
-
 HEADERS += \
     mainwindow.h \
     openwebmediadialog.hpp \
     slider.h
+
+DESTDIR = $$APP_OUTPUT_PATH
+
+DEFINES += QT_DEPRECATED_WARNINGS

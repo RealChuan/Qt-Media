@@ -34,6 +34,7 @@ public:
 
     bool writeHeader();
     bool writeFrame(Packet *packet);
+    bool writeTrailer();
 
     bool findStream();
     int streams() const;

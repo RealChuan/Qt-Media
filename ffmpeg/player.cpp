@@ -59,8 +59,6 @@ Player::Player(QObject *parent)
     : QThread(parent)
     , d_ptr(new PlayerPrivate(this))
 {
-    qInfo() << avcodec_configuration();
-    qInfo() << avcodec_version();
     qRegisterMetaType<Ffmpeg::AVError>("Ffmpeg::AVError");
     buildConnect();
     buildErrorConnect();

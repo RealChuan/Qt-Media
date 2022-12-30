@@ -15,6 +15,7 @@ set(PROJECT_SOURCES
         audiodecoder.cpp audiodecoder.h
         audioframeconverter.cpp audioframeconverter.h
         avcontextinfo.cpp avcontextinfo.h
+        avversion.cc avversion.hpp
         averror.cpp averror.h
         codeccontext.cpp codeccontext.h
         colorspace.hpp

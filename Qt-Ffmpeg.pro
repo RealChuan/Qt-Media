@@ -6,7 +6,7 @@ SUBDIRS += \
     utils \
     crashhandler\
     ffmpeg \
-    player
+    examples
 
 TRANSLATIONS += \
     translations/language.zh_cn.ts \

@@ -13,8 +13,13 @@ public:
         : owner(parent)
     {
         inOut = avfilter_inout_alloc();
+        Q_ASSERT(nullptr != inOut);
     }
-    ~FilterInOutPrivate() { avfilter_inout_free(&inOut); }
+    ~FilterInOutPrivate()
+    {
+        Q_ASSERT(nullptr != inOut);
+        avfilter_inout_free(&inOut);
+    }
 
     QObject *owner;
     AVFilterInOut *inOut = nullptr;

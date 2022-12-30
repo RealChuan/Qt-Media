@@ -26,6 +26,8 @@ public:
     void setDuration(double duration);
     double duration();
 
+    void setStreamIndex(int index);
+
     void rescaleTs(const AVRational &srcTimeBase, const AVRational &dstTimeBase);
 
     AVPacket *avPacket();

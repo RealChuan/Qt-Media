@@ -19,9 +19,6 @@ public:
     FormatContextPrivate(QObject *parent)
         : owner(parent)
     {
-#if CONFIG_AVDEVICE
-        avdevice_register_all();
-#endif
         avformat_network_init();
     }
 
@@ -144,6 +141,16 @@ bool FormatContext::writeHeader()
 bool FormatContext::writeFrame(Packet *packet)
 {
     auto ret = av_interleaved_write_frame(d_ptr->formatCtx, packet->avPacket());
+    if (ret < 0) {
+        setError(ret);
+        return false;
+    }
+    return true;
+}
+
+bool FormatContext::writeTrailer()
+{
+    auto ret = av_write_trailer(d_ptr->formatCtx);
     if (ret < 0) {
         setError(ret);
         return false;

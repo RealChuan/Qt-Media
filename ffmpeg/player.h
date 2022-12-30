@@ -1,9 +1,9 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include <QThread>
-
 #include "ffmepg_global.h"
+
+#include <QThread>
 
 namespace Ffmpeg {
 

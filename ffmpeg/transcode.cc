@@ -2,6 +2,7 @@
 #include "avcontextinfo.h"
 #include "averror.h"
 #include "codeccontext.h"
+#include "decoder.h"
 #include "formatcontext.h"
 #include "frame.hpp"
 #include "packet.h"
@@ -24,17 +25,12 @@ struct FilteringContext
     QSharedPointer<FilterContext> buffersinkCtx;
     QSharedPointer<FilterContext> buffersrcCtx;
     QSharedPointer<FilterGraph> filterGraph;
-
-    QSharedPointer<Packet> encPacket;
-    QSharedPointer<Frame> filteredFrame;
 };
 
 struct TranscodeContext
 {
     QSharedPointer<AVContextInfo> decContextInfo;
     QSharedPointer<AVContextInfo> encContextInfo;
-
-    QSharedPointer<Frame> decFrame;
 };
 
 bool init_filter(FilteringContext *fctx,
@@ -154,10 +150,12 @@ public:
 
     QObject *owner;
 
+    QString inFilePath;
+    QString outFilepath;
     FormatContext *inFormatContext;
     FormatContext *outFormatContext;
     QVector<TranscodeContext *> transcodeContexts{};
-    AVCodecID enCodecId = AV_CODEC_ID_NONE;
+    AVCodecID videoEnCodecId = AV_CODEC_ID_NONE;
     QVector<FilteringContext *> filteringContexts{};
 
     bool gpuDecode = false;
@@ -168,15 +166,50 @@ public:
 };
 
 Transcode::Transcode(QObject *parent)
-    : QObject{parent}
+    : QThread{parent}
     , d_ptr(new TranscodePrivate(this))
 {}
 
-Transcode::~Transcode() {}
-
-bool Transcode::openInputFile(const QString &filepath)
+Transcode::~Transcode()
 {
-    auto ret = d_ptr->inFormatContext->openFilePath(filepath);
+    stopTranscode();
+}
+
+void Transcode::setInFilePath(const QString &filePath)
+{
+    d_ptr->inFilePath = filePath;
+}
+
+void Transcode::setOutFilePath(const QString &filepath)
+{
+    d_ptr->outFilepath = filepath;
+}
+
+void Transcode::setVideoEnCodecID(AVCodecID codecID)
+{
+    d_ptr->videoEnCodecId = codecID;
+}
+
+void Transcode::startTranscode()
+{
+    stopTranscode();
+    d_ptr->runing = true;
+    start();
+}
+
+void Transcode::stopTranscode()
+{
+    d_ptr->runing = false;
+    if (isRunning()) {
+        quit();
+        wait();
+    }
+}
+
+bool Transcode::openInputFile()
+{
+    Q_ASSERT(!d_ptr->inFilePath.isEmpty());
+    auto ret = d_ptr->inFormatContext->openFilePath(d_ptr->inFilePath);
     if (!ret) {
         return ret;
     }
@@ -202,7 +235,6 @@ bool Transcode::openInputFile(const QString &filepath)
         }
         auto transContext = new TranscodeContext;
         transContext->decContextInfo = contextInfoPtr;
-        transContext->decFrame.reset(new Frame);
         d_ptr->transcodeContexts.append(transContext);
     }
     d_ptr->inFormatContext->dumpFormat();
@@ -210,9 +242,10 @@ bool Transcode::openInputFile(const QString &filepath)
     return true;
 }
 
-bool Transcode::openOutputFile(const QString &filepath)
+bool Transcode::openOutputFile()
 {
-    auto ret = d_ptr->outFormatContext->openFilePath(filepath, FormatContext::WriteOnly);
+    Q_ASSERT(!d_ptr->outFilepath.isEmpty());
+    auto ret = d_ptr->outFormatContext->openFilePath(d_ptr->outFilepath, FormatContext::WriteOnly);
     if (!ret) {
         return ret;
     }
@@ -224,11 +257,17 @@ bool Transcode::openOutputFile(const QString &filepath)
         }
         auto transContext = d_ptr->transcodeContexts.at(i);
         auto decContextInfo = transContext->decContextInfo;
+        stream->codecpar->codec_type = decContextInfo->mediaType();
         switch (decContextInfo->mediaType()) {
         case AVMEDIA_TYPE_AUDIO:
         case AVMEDIA_TYPE_VIDEO: {
             QSharedPointer<AVContextInfo> contextInfoPtr(new AVContextInfo);
-            contextInfoPtr->initEncoder(d_ptr->enCodecId);
+            contextInfoPtr->setIndex(i);
+            contextInfoPtr->setStream(stream);
+            //            contextInfoPtr->initEncoder(decContextInfo->mediaType() == AVMEDIA_TYPE_VIDEO
+            //                                            ? d_ptr->videoEnCodecId
+            //                                            : decContextInfo->codecCtx()->avCodecCtx()->codec_id);
+            contextInfoPtr->initEncoder(decContextInfo->codecCtx()->avCodecCtx()->codec_id);
             decContextInfo->copyToCodecParameters(contextInfoPtr.data());
             if (d_ptr->outFormatContext->avFormatContext()->oformat->flags & AVFMT_GLOBALHEADER) {
                 contextInfoPtr->codecCtx()->setFlags(contextInfoPtr->codecCtx()->flags()
@@ -271,6 +310,22 @@ void Transcode::reset()
     d_ptr->reset();
 }
 
+void Transcode::run()
+{
+    qDebug() << "Start Transcoding";
+    reset();
+    if (!openInputFile()) {
+        return;
+    }
+    if (!openOutputFile()) {
+        return;
+    }
+    initFilters();
+    loop();
+    cleanup();
+    qDebug() << "Finish Transcoding";
+}
+
 void Transcode::initFilters()
 {
     auto stream_num = d_ptr->inFormatContext->streams();
@@ -286,15 +341,14 @@ void Transcode::initFilters()
                     d_ptr->transcodeContexts.at(i)->decContextInfo.data(),
                     d_ptr->transcodeContexts.at(i)->encContextInfo.data(),
                     codec_type == AVMEDIA_TYPE_VIDEO ? "null" : "anull");
-        filteringContext->encPacket.reset(new Packet);
-        filteringContext->filteredFrame.reset(new Frame);
     }
 }
 
 void Transcode::loop()
 {
+    auto duration = d_ptr->inFormatContext->duration();
     while (d_ptr->runing) {
-        std::unique_ptr<Packet> packetPtr(new Packet);
+        QScopedPointer<Packet> packetPtr(new Packet);
         if (!d_ptr->inFormatContext->readFrame(packetPtr.get())) {
             break;
         }
@@ -303,14 +357,38 @@ void Transcode::loop()
         if (filter_graph.isNull()) {
             packetPtr->rescaleTs(d_ptr->inFormatContext->stream(stream_index)->time_base,
                                  d_ptr->outFormatContext->stream(stream_index)->time_base);
-            d_ptr->outFormatContext->writeFrame(packetPtr.get());
+            d_ptr->outFormatContext->writeFrame(packetPtr.data());
         } else {
             auto transcodeCtx = d_ptr->transcodeContexts.at(stream_index);
             packetPtr->rescaleTs(d_ptr->inFormatContext->stream(stream_index)->time_base,
                                  transcodeCtx->decContextInfo->timebase());
-            auto frames = transcodeCtx->decContextInfo->decodeFrame(packetPtr.get());
+            auto frames = transcodeCtx->decContextInfo->decodeFrame(packetPtr.data());
+            for (auto frame : frames) {
+                QScopedPointer<Frame> framePtr(frame);
+                filterEncodeWriteframe(frame, stream_index);
+            }
         }
+        Ffmpeg::calculateTime(packetPtr.data(),
+                              d_ptr->transcodeContexts.at(stream_index)->decContextInfo.data());
+
+        auto progressStr = QString::asprintf("%.4f", packetPtr->pts() / duration);
+        qDebug() << "Progressing: " << progressStr;
+        emit progressChanged(progressStr.toDouble());
     }
+}
+
+void Transcode::cleanup()
+{
+    auto stream_num = d_ptr->inFormatContext->streams();
+    for (int i = 0; i < stream_num; i++) {
+        if (!d_ptr->filteringContexts.at(i)->filterGraph.isNull()) {
+            continue;
+        }
+        filterEncodeWriteframe(nullptr, i);
+        flushEncoder(i);
+    }
+    d_ptr->outFormatContext->writeTrailer();
+    d_ptr->reset();
 }
 
 bool Transcode::filterEncodeWriteframe(Frame *frame, uint stream_index)
@@ -322,15 +400,33 @@ bool Transcode::filterEncodeWriteframe(Frame *frame, uint stream_index)
     QScopedPointer<Frame> framePtr(new Frame);
     while (filteringCtx->buffersinkCtx->buffersink_getFrame(framePtr.data())) {
         framePtr->setPictType(AV_PICTURE_TYPE_NONE);
+        encodeWriteFrame(stream_index, 0, framePtr.data());
     }
     return true;
 }
 
-bool Transcode::encodeWriteFrame(uint stream_index, int flush)
+bool Transcode::encodeWriteFrame(uint stream_index, int flush, Frame *frame)
 {
     auto transcodeCtx = d_ptr->transcodeContexts.at(stream_index);
-    auto filteringCtx = d_ptr->filteringContexts.at(stream_index);
+
+    auto packets = transcodeCtx->encContextInfo->encodeFrame(flush ? nullptr : frame);
+    for (auto packet : packets) {
+        packet->setStreamIndex(stream_index);
+        packet->rescaleTs(transcodeCtx->encContextInfo->timebase(),
+                          d_ptr->outFormatContext->stream(stream_index)->time_base);
+        d_ptr->outFormatContext->writeFrame(packet);
+    }
     return true;
+}
+
+bool Transcode::flushEncoder(uint stream_index)
+{
+    auto codecCtx
+        = d_ptr->transcodeContexts.at(stream_index)->encContextInfo->codecCtx()->avCodecCtx();
+    if (!(codecCtx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
+        return true;
+    }
+    return encodeWriteFrame(stream_index, 1, nullptr);
 }
 
 void Transcode::setError(int errorCode)

@@ -85,6 +85,7 @@ QSharedPointer<Frame> OpenglRender::convertSupported_pix_fmt(QSharedPointer<Fram
     auto dst_pix_fmt = AV_PIX_FMT_RGBA;
     auto avframe = frame->avFrame();
     auto size = QSize(avframe->width, avframe->height);
+    size.scale(this->size() * devicePixelRatio(), Qt::KeepAspectRatio);
     if (d_ptr->frameConverterPtr.isNull()) {
         d_ptr->frameConverterPtr.reset(new VideoFrameConverter(frame.data(), size, dst_pix_fmt));
     } else {

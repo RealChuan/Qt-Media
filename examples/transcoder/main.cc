@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+#include "mainwindow.hpp"
 
 #include <3rdparty/qtsingleapplication/qtsingleapplication.h>
 #include <crashhandler/breakpad.hpp>
@@ -13,9 +13,9 @@
 void setAppInfo()
 {
     qApp->setApplicationVersion(QObject::tr("0.0.1"));
-    qApp->setApplicationDisplayName(QObject::tr("QFfmpegPlayer"));
-    qApp->setApplicationName(QObject::tr("QFfmpegPlayer"));
-    qApp->setDesktopFileName(QObject::tr("QFfmpegPlayer"));
+    qApp->setApplicationDisplayName(QObject::tr("QTranscoder"));
+    qApp->setApplicationName(QObject::tr("QTranscoder"));
+    qApp->setDesktopFileName(QObject::tr("QTranscoder"));
     qApp->setOrganizationDomain(QObject::tr("Youth"));
     qApp->setOrganizationName(QObject::tr("Youth"));
 }
@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 #endif
     Utils::setHighDpiEnvironmentVariable();
     SharedTools::QtSingleApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-    SharedTools::QtSingleApplication app("QFfmpegPlayer", argc, argv);
+    SharedTools::QtSingleApplication app("QTranscoder", argc, argv);
     if (app.isRunning()) {
         qWarning() << "This is already running";
         if (app.sendMessage("raise_window_noop", 5000)) {
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     Utils::setGlobalThreadPoolMaxSize();
 
     setAppInfo();
-    app.setWindowIcon(QIcon(":/player.ico"));
+    app.setWindowIcon(app.style()->standardIcon(QStyle::SP_DriveDVDIcon));
 
     // Make sure we honor the system's proxy settings
     QNetworkProxyFactory::setUseSystemConfiguration(true);
