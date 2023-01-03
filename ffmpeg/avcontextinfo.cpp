@@ -110,6 +110,15 @@ bool AVContextInfo::initEncoder(AVCodecID codecId)
         qWarning() << tr("%1 Encoder not found.").arg(avcodec_get_name(codecId));
         return false;
     }
+    if (encodec->pix_fmts) {
+        for (int i = 0; i < INT_MAX; i++) {
+            auto pix_fmt = encodec->pix_fmts[i];
+            if (pix_fmt == -1) {
+                break;
+            }
+            qDebug() << "Encoder Support pix_fmt:" << pix_fmt;
+        }
+    }
     d_ptr->codecCtx.reset(new CodecContext(encodec));
     return true;
 }

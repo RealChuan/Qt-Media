@@ -23,6 +23,7 @@ public:
     void setInFilePath(const QString &filePath);
     void setOutFilePath(const QString &filepath);
 
+    void setAudioEncodecID(AVCodecID codecID);
     void setVideoEnCodecID(AVCodecID codecID);
 
     void startTranscode();

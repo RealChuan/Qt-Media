@@ -15,11 +15,7 @@ public:
         inOut = avfilter_inout_alloc();
         Q_ASSERT(nullptr != inOut);
     }
-    ~FilterInOutPrivate()
-    {
-        Q_ASSERT(nullptr != inOut);
-        avfilter_inout_free(&inOut);
-    }
+    ~FilterInOutPrivate() { avfilter_inout_free(&inOut); }
 
     QObject *owner;
     AVFilterInOut *inOut = nullptr;
@@ -35,6 +31,11 @@ FilterInOut::~FilterInOut() {}
 AVFilterInOut *FilterInOut::avFilterInOut()
 {
     return d_ptr->inOut;
+}
+
+void FilterInOut::setAVFilterInOut(AVFilterInOut *avFilterInOut)
+{
+    d_ptr->inOut = avFilterInOut;
 }
 
 } // namespace Ffmpeg

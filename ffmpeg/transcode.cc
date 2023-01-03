@@ -112,7 +112,7 @@ bool init_filter(FilteringContext *fctx,
     filter_graph->config();
 
     fctx->buffersrcCtx = buffersrc_ctx;
-    fctx->buffersrcCtx = buffersink_ctx;
+    fctx->buffersinkCtx = buffersink_ctx;
     fctx->filterGraph = filter_graph;
 
     return true;
@@ -155,8 +155,9 @@ public:
     FormatContext *inFormatContext;
     FormatContext *outFormatContext;
     QVector<TranscodeContext *> transcodeContexts{};
-    AVCodecID videoEnCodecId = AV_CODEC_ID_NONE;
     QVector<FilteringContext *> filteringContexts{};
+    AVCodecID audioEnCodecId = AV_CODEC_ID_NONE;
+    AVCodecID videoEnCodecId = AV_CODEC_ID_NONE;
 
     bool gpuDecode = false;
 
@@ -183,6 +184,11 @@ void Transcode::setInFilePath(const QString &filePath)
 void Transcode::setOutFilePath(const QString &filepath)
 {
     d_ptr->outFilepath = filepath;
+}
+
+void Transcode::setAudioEncodecID(AVCodecID codecID)
+{
+    d_ptr->audioEnCodecId = codecID;
 }
 
 void Transcode::setVideoEnCodecID(AVCodecID codecID)
@@ -264,10 +270,10 @@ bool Transcode::openOutputFile()
             QSharedPointer<AVContextInfo> contextInfoPtr(new AVContextInfo);
             contextInfoPtr->setIndex(i);
             contextInfoPtr->setStream(stream);
-            //            contextInfoPtr->initEncoder(decContextInfo->mediaType() == AVMEDIA_TYPE_VIDEO
-            //                                            ? d_ptr->videoEnCodecId
-            //                                            : decContextInfo->codecCtx()->avCodecCtx()->codec_id);
-            contextInfoPtr->initEncoder(decContextInfo->codecCtx()->avCodecCtx()->codec_id);
+            contextInfoPtr->initEncoder(decContextInfo->mediaType() == AVMEDIA_TYPE_AUDIO
+                                            ? d_ptr->audioEnCodecId
+                                            : d_ptr->videoEnCodecId);
+            //contextInfoPtr->initEncoder(decContextInfo->codecCtx()->avCodecCtx()->codec_id);
             decContextInfo->copyToCodecParameters(contextInfoPtr.data());
             if (d_ptr->outFormatContext->avFormatContext()->oformat->flags & AVFMT_GLOBALHEADER) {
                 contextInfoPtr->codecCtx()->setFlags(contextInfoPtr->codecCtx()->flags()
@@ -312,6 +318,8 @@ void Transcode::reset()
 
 void Transcode::run()
 {
+    QElapsedTimer timer;
+    timer.start();
     qDebug() << "Start Transcoding";
     reset();
     if (!openInputFile()) {
@@ -323,7 +331,7 @@ void Transcode::run()
     initFilters();
     loop();
     cleanup();
-    qDebug() << "Finish Transcoding";
+    qDebug() << "Finish Transcoding: " << timer.elapsed() / 1000.0 / 60.0;
 }
 
 void Transcode::initFilters()
@@ -371,9 +379,7 @@ void Transcode::loop()
         Ffmpeg::calculateTime(packetPtr.data(),
                               d_ptr->transcodeContexts.at(stream_index)->decContextInfo.data());
 
-        auto progressStr = QString::asprintf("%.4f", packetPtr->pts() / duration);
-        qDebug() << "Progressing: " << progressStr;
-        emit progressChanged(progressStr.toDouble());
+        emit progressChanged(packetPtr->pts() * 1000 / duration);
     }
 }
 

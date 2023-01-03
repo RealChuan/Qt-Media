@@ -15,6 +15,7 @@ public:
     ~FilterInOut();
 
     AVFilterInOut *avFilterInOut();
+    void setAVFilterInOut(AVFilterInOut *avFilterInOut);
 
 private:
     class FilterInOutPrivate;

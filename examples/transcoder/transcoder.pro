@@ -6,7 +6,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TEMPLATE = app
 
-TARGET = QTranscoder
+TARGET = QFfmpegTranscoder
 
 LIBS += -L$$APP_OUTPUT_PATH/../libs \
     -l$$replaceLibName(ffmpeg) \

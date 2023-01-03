@@ -12,11 +12,71 @@ extern "C" {
 
 namespace Ffmpeg {
 
-struct CodecContext::CodecContextPrivate
+class CodecContext::CodecContextPrivate
 {
+public:
+    CodecContextPrivate() {}
     ~CodecContextPrivate() { avcodec_free_context(&codecCtx); }
+
+    void init()
+    {
+        Q_ASSERT(nullptr != codec);
+        if (codec->supported_framerates) {
+            for (int i = 0; i < INT_MAX; i++) {
+                auto framerate = codec->supported_framerates[i];
+                if (framerate.num == 0 && framerate.den == 0) {
+                    break;
+                }
+                supported_framerates.append(framerate);
+            }
+        }
+        if (codec->pix_fmts) {
+            for (int i = 0; i < INT_MAX; i++) {
+                auto pix_fmt = codec->pix_fmts[i];
+                if (pix_fmt == -1) {
+                    break;
+                }
+                supported_pix_fmts.append(pix_fmt);
+            }
+        }
+        if (codec->supported_samplerates) {
+            for (int i = 0; i < INT_MAX; i++) {
+                auto samplerate = codec->supported_samplerates[i];
+                if (samplerate == 0) {
+                    break;
+                }
+                supported_samplerates.append(samplerate);
+            }
+        }
+        if (codec->sample_fmts) {
+            for (int i = 0; i < INT_MAX; i++) {
+                auto sample_fmt = codec->sample_fmts[i];
+                if (sample_fmt == -1) {
+                    break;
+                }
+                supported_sample_fmts.append(sample_fmt);
+            }
+        }
+        if (codec->channel_layouts) {
+            for (int i = 0; i < INT_MAX; i++) {
+                auto channel_layout = codec->channel_layouts[i];
+                if (channel_layout == 0) {
+                    break;
+                }
+                supported_channel_layouts.append(channel_layout);
+            }
+        }
+    }
+
     AVCodec *codec = nullptr;
     AVCodecContext *codecCtx = nullptr; //解码器上下文
+
+    QVector<AVRational> supported_framerates{};
+    QVector<AVPixelFormat> supported_pix_fmts{};
+    QVector<int> supported_samplerates{};
+    QVector<AVSampleFormat> supported_sample_fmts{};
+    QVector<uint64_t> supported_channel_layouts{};
+
     AVError error;
 };
 
@@ -26,6 +86,7 @@ CodecContext::CodecContext(AVCodec *codec, QObject *parent)
 {
     d_ptr->codec = codec;
     d_ptr->codecCtx = avcodec_alloc_context3(codec);
+    d_ptr->init();
     Q_ASSERT(d_ptr->codecCtx != nullptr);
 }
 
@@ -34,14 +95,22 @@ CodecContext::~CodecContext() {}
 void CodecContext::copyToCodecParameters(CodecContext *dst)
 {
     auto dstCodecCtx = dst->d_ptr->codecCtx;
+    // quality
+    dstCodecCtx->bit_rate = d_ptr->codecCtx->bit_rate;
+    dstCodecCtx->rc_max_rate = d_ptr->codecCtx->rc_max_rate;
+    dstCodecCtx->rc_min_rate = d_ptr->codecCtx->rc_min_rate;
+    dstCodecCtx->qmin = d_ptr->codecCtx->qmin;
+    dstCodecCtx->qmax = d_ptr->codecCtx->qmax; // smaller -> better
+    //dstCodecCtx->qblur = d_ptr->codecCtx->qmin;
+    dstCodecCtx->qcompress = d_ptr->codecCtx->qcompress;
 
     switch (mediaType()) {
     case AVMEDIA_TYPE_AUDIO:
-        dstCodecCtx->sample_rate = d_ptr->codecCtx->sample_rate;
-        dstCodecCtx->channel_layout = d_ptr->codecCtx->channel_layout;
+        dst->setSampleRate(d_ptr->codecCtx->sample_rate);
+        dst->setChannelLayout(d_ptr->codecCtx->channel_layout);
         dstCodecCtx->channels = av_get_channel_layout_nb_channels(dstCodecCtx->channel_layout);
         /* take first format from list of supported formats */
-        dstCodecCtx->sample_fmt = d_ptr->codec->sample_fmts[0];
+        dst->setSampleFmt(d_ptr->codec->sample_fmts[0]);
         dstCodecCtx->time_base = AVRational{1, dstCodecCtx->sample_rate};
         break;
     case AVMEDIA_TYPE_VIDEO:
@@ -49,11 +118,8 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
         dstCodecCtx->width = d_ptr->codecCtx->width;
         dstCodecCtx->sample_aspect_ratio = d_ptr->codecCtx->sample_aspect_ratio;
         /* take first format from list of supported formats */
-        if (d_ptr->codec->pix_fmts) {
-            dstCodecCtx->pix_fmt = d_ptr->codec->pix_fmts[0];
-        } else {
-            dstCodecCtx->pix_fmt = d_ptr->codecCtx->pix_fmt;
-        }
+        dst->setPixfmt(d_ptr->codec->pix_fmts ? d_ptr->codec->pix_fmts[0]
+                                              : d_ptr->codecCtx->pix_fmt);
         /* video time_base can be set to whatever is handy and supported by encoder */
         dstCodecCtx->time_base = av_inv_q(d_ptr->codecCtx->framerate);
         break;
@@ -96,6 +162,64 @@ void CodecContext::setThreadCount(int threadCount)
 void CodecContext::setFrameRate(const AVRational &frameRate)
 {
     d_ptr->codecCtx->framerate = frameRate;
+}
+
+void CodecContext::setPixfmt(AVPixelFormat pixfmt)
+{
+    if (d_ptr->supported_pix_fmts.isEmpty() || d_ptr->supported_pix_fmts.contains(pixfmt)) {
+        d_ptr->codecCtx->pix_fmt = pixfmt;
+        return;
+    }
+    d_ptr->codecCtx->pix_fmt = d_ptr->supported_pix_fmts.first();
+}
+
+AVPixelFormat CodecContext::pixfmt() const
+{
+    return d_ptr->codecCtx->pix_fmt;
+}
+
+void CodecContext::setSampleRate(int sampleRate)
+{
+    if (d_ptr->supported_samplerates.isEmpty()
+        || d_ptr->supported_samplerates.contains(sampleRate)) {
+        d_ptr->codecCtx->sample_rate = sampleRate;
+        return;
+    }
+    d_ptr->codecCtx->sample_rate = d_ptr->supported_samplerates.first();
+}
+
+int CodecContext::sampleRate() const
+{
+    return d_ptr->codecCtx->sample_rate;
+}
+
+void CodecContext::setSampleFmt(AVSampleFormat sampleFmt)
+{
+    if (d_ptr->supported_sample_fmts.isEmpty() || d_ptr->supported_sample_fmts.contains(sampleFmt)) {
+        d_ptr->codecCtx->sample_fmt = sampleFmt;
+        return;
+    }
+    d_ptr->codecCtx->sample_fmt = d_ptr->supported_sample_fmts.first();
+}
+
+AVSampleFormat CodecContext::sampleFmt() const
+{
+    return d_ptr->codecCtx->sample_fmt;
+}
+
+void CodecContext::setChannelLayout(uint64_t channelLayout)
+{
+    if (d_ptr->supported_channel_layouts.isEmpty()
+        || d_ptr->supported_channel_layouts.contains(channelLayout)) {
+        d_ptr->codecCtx->channel_layout = channelLayout;
+        return;
+    }
+    d_ptr->codecCtx->channel_layout = d_ptr->supported_channel_layouts.first();
+}
+
+uint64_t CodecContext::channelLayout() const
+{
+    return d_ptr->codecCtx->channel_layout;
 }
 
 void CodecContext::setFlags(int flags)

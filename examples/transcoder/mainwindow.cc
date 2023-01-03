@@ -17,6 +17,24 @@ public:
 
         inTextEdit = new QTextEdit(owner);
         outTextEdit = new QTextEdit(owner);
+
+        audioCodecCbx = new QComboBox(owner);
+        audioCodecCbx->setView(new QListView(audioCodecCbx));
+        audioCodecCbx->setMaxVisibleItems(10);
+        audioCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
+        for (int i = AV_CODEC_ID_MP2; i <= AV_CODEC_ID_CODEC2; i++) {
+            audioCodecCbx->addItem(avcodec_get_name(static_cast<AVCodecID>(i)), i);
+        }
+        audioCodecCbx->setCurrentIndex(audioCodecCbx->findData(AV_CODEC_ID_AAC));
+        videoCodecCbx = new QComboBox(owner);
+        videoCodecCbx->setView(new QListView(videoCodecCbx));
+        videoCodecCbx->setMaxVisibleItems(10);
+        videoCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
+        for (int i = AV_CODEC_ID_MPEG1VIDEO; i <= AV_CODEC_ID_VVC; i++) {
+            videoCodecCbx->addItem(avcodec_get_name(static_cast<AVCodecID>(i)), i);
+        }
+        videoCodecCbx->setCurrentIndex(videoCodecCbx->findData(AV_CODEC_ID_H264));
+
         startButton = new QToolButton(owner);
         startButton->setText(QObject::tr("Start"));
         startButton->setMinimumSize(BUTTON_SIZE);
@@ -30,6 +48,10 @@ public:
 
     QTextEdit *inTextEdit;
     QTextEdit *outTextEdit;
+
+    QComboBox *audioCodecCbx;
+    QComboBox *videoCodecCbx;
+
     QToolButton *startButton;
     QProgressBar *progressBar;
 };
@@ -90,7 +112,10 @@ void MainWindow::onStart()
 
     d_ptr->transcode->setInFilePath(inPath);
     d_ptr->transcode->setOutFilePath(outPath);
-    d_ptr->transcode->setVideoEnCodecID(AV_CODEC_ID_MJPEG);
+    d_ptr->transcode->setAudioEncodecID(
+        static_cast<AVCodecID>(d_ptr->audioCodecCbx->currentData().toInt()));
+    d_ptr->transcode->setVideoEnCodecID(
+        static_cast<AVCodecID>(d_ptr->videoCodecCbx->currentData().toInt()));
     d_ptr->transcode->startTranscode();
     d_ptr->startButton->setEnabled(false);
 }
@@ -112,6 +137,13 @@ void MainWindow::setupUI()
     editLayout->addWidget(d_ptr->outTextEdit, 1, 0, 1, 1);
     editLayout->addWidget(outBtn, 1, 1, 1, 1);
 
+    auto groupBox = new QGroupBox(tr("Encoder Settings"), this);
+    auto encoderLayout = new QHBoxLayout(groupBox);
+    encoderLayout->addWidget(new QLabel(tr("Audio Codec ID:"), this));
+    encoderLayout->addWidget(d_ptr->audioCodecCbx);
+    encoderLayout->addWidget(new QLabel(tr("Video Codec ID:"), this));
+    encoderLayout->addWidget(d_ptr->videoCodecCbx);
+
     auto displayLayout = new QHBoxLayout;
     displayLayout->addWidget(d_ptr->startButton);
     displayLayout->addWidget(d_ptr->progressBar);
@@ -119,6 +151,7 @@ void MainWindow::setupUI()
     auto widget = new QWidget(this);
     auto layout = new QVBoxLayout(widget);
     layout->addLayout(editLayout);
+    layout->addWidget(groupBox);
     layout->addLayout(displayLayout);
     setCentralWidget(widget);
 }
@@ -131,5 +164,6 @@ void MainWindow::buildConnect()
     });
     connect(d_ptr->transcode, &Ffmpeg::Transcode::finished, this, [this] {
         d_ptr->startButton->setEnabled(true);
+        d_ptr->progressBar->setValue(0);
     });
 }

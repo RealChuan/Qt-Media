@@ -21,6 +21,12 @@ public:
         : owner(parent)
     {}
 
+    void createFilter(const QString &name)
+    {
+        filter = avfilter_get_by_name(name.toLocal8Bit().constData());
+        Q_ASSERT(nullptr != filter);
+    }
+
     QObject *owner;
 
     const AVFilter *filter = nullptr;
@@ -32,7 +38,7 @@ FilterContext::FilterContext(const QString &name, QObject *parent)
     : QObject{parent}
     , d_ptr(new FilterContextPrivate(this))
 {
-    d_ptr->filter = avfilter_get_by_name(name.toLocal8Bit().constData());
+    d_ptr->createFilter(name);
 }
 
 FilterContext::~FilterContext() {}

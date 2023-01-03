@@ -16,8 +16,13 @@ public:
         : owner(parent)
     {
         filterGraph = avfilter_graph_alloc();
+        Q_ASSERT(nullptr != filterGraph);
     }
-    ~FilterGraphPrivate() { avfilter_graph_free(&filterGraph); }
+    ~FilterGraphPrivate()
+    {
+        Q_ASSERT(nullptr != filterGraph);
+        avfilter_graph_free(&filterGraph);
+    }
 
     QObject *owner;
     AVFilterGraph *filterGraph = nullptr;
@@ -33,13 +38,15 @@ FilterGraph::~FilterGraph() {}
 
 bool FilterGraph::parse(const QString &filters, FilterInOut *in, FilterInOut *out)
 {
-    auto outputs = out->avFilterInOut();
     auto inputs = in->avFilterInOut();
+    auto outputs = out->avFilterInOut();
     auto ret = avfilter_graph_parse_ptr(d_ptr->filterGraph,
                                         filters.toLocal8Bit().constData(),
                                         &inputs,
                                         &outputs,
                                         nullptr);
+    in->setAVFilterInOut(inputs);
+    out->setAVFilterInOut(outputs);
     if (ret < 0) {
         setError(ret);
         return false;

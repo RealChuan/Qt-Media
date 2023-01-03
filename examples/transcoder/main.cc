@@ -13,9 +13,9 @@
 void setAppInfo()
 {
     qApp->setApplicationVersion(QObject::tr("0.0.1"));
-    qApp->setApplicationDisplayName(QObject::tr("QTranscoder"));
-    qApp->setApplicationName(QObject::tr("QTranscoder"));
-    qApp->setDesktopFileName(QObject::tr("QTranscoder"));
+    qApp->setApplicationDisplayName(QObject::tr("QFfmpegTranscoder"));
+    qApp->setApplicationName(QObject::tr("QFfmpegTranscoder"));
+    qApp->setDesktopFileName(QObject::tr("QFfmpegTranscoder"));
     qApp->setOrganizationDomain(QObject::tr("Youth"));
     qApp->setOrganizationName(QObject::tr("Youth"));
 }
@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 #endif
     Utils::setHighDpiEnvironmentVariable();
     SharedTools::QtSingleApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-    SharedTools::QtSingleApplication app("QTranscoder", argc, argv);
+    SharedTools::QtSingleApplication app("QFfmpegTranscoder", argc, argv);
     if (app.isRunning()) {
         qWarning() << "This is already running";
         if (app.sendMessage("raise_window_noop", 5000)) {

@@ -5,6 +5,7 @@
 
 extern "C" {
 #include <libavutil/avutil.h>
+#include <libavutil/samplefmt.h>
 }
 
 struct AVCodecContext;
@@ -28,8 +29,21 @@ public:
     void copyToCodecParameters(CodecContext *dst);
 
     bool setParameters(const AVCodecParameters *par);
-    void setTimebase(const AVRational &timebase);
     void setFrameRate(const AVRational &frameRate);
+
+    void setPixfmt(AVPixelFormat pixfmt);
+    AVPixelFormat pixfmt() const;
+
+    void setSampleRate(int sampleRate);
+    int sampleRate() const;
+
+    void setSampleFmt(AVSampleFormat sampleFmt);
+    AVSampleFormat sampleFmt() const;
+
+    void setChannelLayout(uint64_t channelLayout);
+    uint64_t channelLayout() const;
+
+    void setTimebase(const AVRational &timebase);
     // Set before open, Soft solution is effective
     void setThreadCount(int threadCount);
     bool open();
@@ -63,7 +77,7 @@ signals:
 private:
     void setError(int errorCode);
 
-    struct CodecContextPrivate;
+    class CodecContextPrivate;
     QScopedPointer<CodecContextPrivate> d_ptr;
 };
 
