@@ -8,6 +8,7 @@
 
 extern "C" {
 #include <libavcodec/avcodec.h>
+#include <libavutil/channel_layout.h>
 }
 
 namespace Ffmpeg {
@@ -68,7 +69,7 @@ public:
         }
     }
 
-    AVCodec *codec = nullptr;
+    const AVCodec *codec = nullptr;
     AVCodecContext *codecCtx = nullptr; //解码器上下文
 
     QVector<AVRational> supported_framerates{};
@@ -80,7 +81,7 @@ public:
     AVError error;
 };
 
-CodecContext::CodecContext(AVCodec *codec, QObject *parent)
+CodecContext::CodecContext(const AVCodec *codec, QObject *parent)
     : QObject(parent)
     , d_ptr(new CodecContextPrivate)
 {
@@ -222,6 +223,31 @@ uint64_t CodecContext::channelLayout() const
     return d_ptr->codecCtx->channel_layout;
 }
 
+void CodecContext::setSize(const QSize &size)
+{
+    if (!size.isValid()) {
+        return;
+    }
+    d_ptr->codecCtx->width = size.width();
+    d_ptr->codecCtx->height = size.height();
+}
+
+QSize CodecContext::size() const
+{
+    return {d_ptr->codecCtx->width, d_ptr->codecCtx->height};
+}
+
+void CodecContext::setQuailty(int quailty)
+{
+    Q_ASSERT(quailty >= d_ptr->codecCtx->qmin);
+    d_ptr->codecCtx->qmax = quailty;
+}
+
+QPair<int, int> CodecContext::quantizer() const
+{
+    return {d_ptr->codecCtx->qmin, d_ptr->codecCtx->qmax};
+}
+
 void CodecContext::setFlags(int flags)
 {
     d_ptr->codecCtx->flags = flags;
@@ -336,7 +362,7 @@ AVError CodecContext::avError()
     return d_ptr->error;
 }
 
-AVCodec *CodecContext::codec()
+const AVCodec *CodecContext::codec()
 {
     return d_ptr->codec;
 }

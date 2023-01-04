@@ -23,7 +23,7 @@ class CodecContext : public QObject
 {
     Q_OBJECT
 public:
-    explicit CodecContext(AVCodec *codec, QObject *parent = nullptr);
+    explicit CodecContext(const AVCodec *codec, QObject *parent = nullptr);
     ~CodecContext();
 
     void copyToCodecParameters(CodecContext *dst);
@@ -42,6 +42,12 @@ public:
 
     void setChannelLayout(uint64_t channelLayout);
     uint64_t channelLayout() const;
+
+    void setSize(const QSize &size);
+    QSize size() const;
+
+    void setQuailty(int quailty);
+    QPair<int, int> quantizer() const;
 
     void setTimebase(const AVRational &timebase);
     // Set before open, Soft solution is effective
@@ -68,7 +74,7 @@ public:
 
     AVError avError();
 
-    AVCodec *codec();
+    const AVCodec *codec();
     AVCodecContext *avCodecCtx();
 
 signals:

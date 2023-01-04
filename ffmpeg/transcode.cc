@@ -14,8 +14,10 @@
 #include <QSharedPointer>
 
 extern "C" {
+#include <libavcodec/avcodec.h>
 #include <libavdevice/avdevice.h>
 #include <libavfilter/avfilter.h>
+#include <libavutil/channel_layout.h>
 }
 
 namespace Ffmpeg {
@@ -158,6 +160,8 @@ public:
     QVector<FilteringContext *> filteringContexts{};
     AVCodecID audioEnCodecId = AV_CODEC_ID_NONE;
     AVCodecID videoEnCodecId = AV_CODEC_ID_NONE;
+    QSize size = QSize(-1, -1);
+    int quailty = -1;
 
     bool gpuDecode = false;
 
@@ -196,6 +200,16 @@ void Transcode::setVideoEnCodecID(AVCodecID codecID)
     d_ptr->videoEnCodecId = codecID;
 }
 
+void Transcode::setSize(const QSize &size)
+{
+    d_ptr->size = size;
+}
+
+void Transcode::setQuailty(int quailty)
+{
+    d_ptr->quailty = quailty;
+}
+
 void Transcode::startTranscode()
 {
     stopTranscode();
@@ -210,6 +224,7 @@ void Transcode::stopTranscode()
         quit();
         wait();
     }
+    d_ptr->reset();
 }
 
 bool Transcode::openInputFile()
@@ -275,6 +290,8 @@ bool Transcode::openOutputFile()
                                             : d_ptr->videoEnCodecId);
             //contextInfoPtr->initEncoder(decContextInfo->codecCtx()->avCodecCtx()->codec_id);
             decContextInfo->copyToCodecParameters(contextInfoPtr.data());
+            contextInfoPtr->setSize(d_ptr->size);
+            contextInfoPtr->setQuailty(d_ptr->quailty);
             if (d_ptr->outFormatContext->avFormatContext()->oformat->flags & AVFMT_GLOBALHEADER) {
                 contextInfoPtr->codecCtx()->setFlags(contextInfoPtr->codecCtx()->flags()
                                                      | AV_CODEC_FLAG_GLOBAL_HEADER);
@@ -311,17 +328,12 @@ bool Transcode::openOutputFile()
     return d_ptr->outFormatContext->writeHeader();
 }
 
-void Transcode::reset()
-{
-    d_ptr->reset();
-}
-
 void Transcode::run()
 {
     QElapsedTimer timer;
     timer.start();
     qDebug() << "Start Transcoding";
-    reset();
+    d_ptr->reset();
     if (!openInputFile()) {
         return;
     }
@@ -345,10 +357,22 @@ void Transcode::initFilters()
             continue;
         }
 
+        QString filter_spec;
+        if (codec_type == AVMEDIA_TYPE_VIDEO) {
+            if (d_ptr->size.isValid()) { // "scale=320:240"
+                filter_spec = QString("scale=%1:%2")
+                                  .arg(QString::number(d_ptr->size.width()),
+                                       QString::number(d_ptr->size.height()));
+            } else {
+                filter_spec = "null";
+            }
+        } else {
+            filter_spec = "anull";
+        }
         init_filter(filteringContext,
                     d_ptr->transcodeContexts.at(i)->decContextInfo.data(),
                     d_ptr->transcodeContexts.at(i)->encContextInfo.data(),
-                    codec_type == AVMEDIA_TYPE_VIDEO ? "null" : "anull");
+                    filter_spec.toLocal8Bit().constData());
     }
 }
 
@@ -439,6 +463,31 @@ void Transcode::setError(int errorCode)
 {
     d_ptr->error.setError(errorCode);
     emit error(d_ptr->error);
+}
+
+QVector<CodecInfo> getFileCodecInfo(const QString &filePath)
+{
+    QVector<CodecInfo> codecs{};
+    QScopedPointer<FormatContext> formatContextPtr(new FormatContext);
+    auto ret = formatContextPtr->openFilePath(filePath);
+    if (!ret) {
+        return codecs;
+    }
+    formatContextPtr->findStream();
+    auto stream_num = formatContextPtr->streams();
+    for (int i = 0; i < stream_num; i++) {
+        auto codecpar = formatContextPtr->stream(i)->codecpar;
+        QScopedPointer<AVContextInfo> contextInfoPtr(new AVContextInfo);
+        contextInfoPtr->setIndex(i);
+        contextInfoPtr->setStream(formatContextPtr->stream(i));
+        contextInfoPtr->initDecoder(formatContextPtr->guessFrameRate(i));
+        codecs.append({codecpar->codec_type,
+                       codecpar->codec_id,
+                       {codecpar->width, codecpar->height},
+                       contextInfoPtr->codecCtx()->quantizer()});
+    }
+    formatContextPtr->dumpFormat();
+    return codecs;
 }
 
 } // namespace Ffmpeg

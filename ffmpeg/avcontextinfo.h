@@ -27,6 +27,9 @@ public:
 
     void copyToCodecParameters(AVContextInfo *dst);
 
+    void setSize(const QSize &size);
+    void setQuailty(int quailty);
+
     void resetIndex();
     void setIndex(int index);
     int index();

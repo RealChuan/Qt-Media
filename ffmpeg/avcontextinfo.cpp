@@ -37,6 +37,16 @@ void AVContextInfo::copyToCodecParameters(AVContextInfo *dst)
     d_ptr->codecCtx->copyToCodecParameters(dst->d_ptr->codecCtx.data());
 }
 
+void AVContextInfo::setSize(const QSize &size)
+{
+    d_ptr->codecCtx->setSize(size);
+}
+
+void AVContextInfo::setQuailty(int quailty)
+{
+    d_ptr->codecCtx->setQuailty(quailty);
+}
+
 CodecContext *AVContextInfo::codecCtx()
 {
     return d_ptr->codecCtx.data();
@@ -78,7 +88,7 @@ bool AVContextInfo::initDecoder(const AVRational &frameRate)
 {
     Q_ASSERT(d_ptr->stream != nullptr);
     const char *typeStr = av_get_media_type_string(d_ptr->stream->codecpar->codec_type);
-    AVCodec *codec = avcodec_find_decoder(d_ptr->stream->codecpar->codec_id);
+    auto codec = avcodec_find_decoder(d_ptr->stream->codecpar->codec_id);
     if (!codec) {
         qWarning() << tr("%1 Codec not found.").arg(typeStr);
         return false;
@@ -246,7 +256,6 @@ void AVContextInfo::showCodecpar()
     qInfo() << "start_time: " << d_ptr->stream->start_time;
     qInfo() << "duration: " << d_ptr->stream->duration;
     qInfo() << "nb_frames: " << d_ptr->stream->nb_frames;
-    qInfo() << "index_entries_allocated_size: " << d_ptr->stream->index_entries_allocated_size;
     qInfo() << "format: " << codecpar->format;
     qInfo() << "bit_rate: " << codecpar->bit_rate;
     switch (mediaType()) {

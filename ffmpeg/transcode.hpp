@@ -3,11 +3,12 @@
 
 #include "ffmepg_global.h"
 
+#include <QSize>
+#include <QThread>
+
 extern "C" {
 #include <libavcodec/codec_id.h>
 }
-
-#include <QThread>
 
 namespace Ffmpeg {
 
@@ -26,10 +27,11 @@ public:
     void setAudioEncodecID(AVCodecID codecID);
     void setVideoEnCodecID(AVCodecID codecID);
 
+    void setSize(const QSize &size);
+    void setQuailty(int quailty);
+
     void startTranscode();
     void stopTranscode();
-
-    void reset();
 
 signals:
     void error(const Ffmpeg::AVError &avError);
@@ -53,6 +55,16 @@ private:
     class TranscodePrivate;
     QScopedPointer<TranscodePrivate> d_ptr;
 };
+
+struct CodecInfo
+{
+    AVMediaType mediaType = AVMEDIA_TYPE_UNKNOWN;
+    AVCodecID codecID = AV_CODEC_ID_NONE;
+    QSize size = QSize(-1, -1);
+    QPair<int, int> quantizer = {-1, -1};
+};
+
+QVector<CodecInfo> FFMPEG_EXPORT getFileCodecInfo(const QString &filePath);
 
 } // namespace Ffmpeg
 
