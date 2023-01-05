@@ -32,6 +32,7 @@ set(PROJECT_SOURCES
         subtitle.cpp subtitle.h
         subtitledecoder.cpp subtitledecoder.h
         transcode.cc transcode.hpp
+        transcodeutils.cc transcodeutils.hpp
         videodecoder.cpp videodecoder.h
         videoformat.cc videoformat.hpp
         videoframeconverter.cc videoframeconverter.hpp)

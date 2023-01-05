@@ -97,13 +97,13 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
 {
     auto dstCodecCtx = dst->d_ptr->codecCtx;
     // quality
-    dstCodecCtx->bit_rate = d_ptr->codecCtx->bit_rate;
-    dstCodecCtx->rc_max_rate = d_ptr->codecCtx->rc_max_rate;
-    dstCodecCtx->rc_min_rate = d_ptr->codecCtx->rc_min_rate;
-    dstCodecCtx->qmin = d_ptr->codecCtx->qmin;
-    dstCodecCtx->qmax = d_ptr->codecCtx->qmax; // smaller -> better
+    //dstCodecCtx->bit_rate = d_ptr->codecCtx->bit_rate;
+    //dstCodecCtx->rc_max_rate = d_ptr->codecCtx->rc_max_rate;
+    //dstCodecCtx->rc_min_rate = d_ptr->codecCtx->rc_min_rate;
+    //dstCodecCtx->qmin = d_ptr->codecCtx->qmin;
+    //dstCodecCtx->qmax = d_ptr->codecCtx->qmax; // smaller -> better
     //dstCodecCtx->qblur = d_ptr->codecCtx->qmin;
-    dstCodecCtx->qcompress = d_ptr->codecCtx->qcompress;
+    //dstCodecCtx->qcompress = d_ptr->codecCtx->qcompress;
 
     switch (mediaType()) {
     case AVMEDIA_TYPE_AUDIO:
@@ -230,6 +230,8 @@ void CodecContext::setSize(const QSize &size)
     }
     d_ptr->codecCtx->width = size.width();
     d_ptr->codecCtx->height = size.height();
+    // fix me to improve image quality
+    d_ptr->codecCtx->bit_rate = d_ptr->codecCtx->width * d_ptr->codecCtx->height * 4;
 }
 
 QSize CodecContext::size() const
@@ -240,12 +242,23 @@ QSize CodecContext::size() const
 void CodecContext::setQuailty(int quailty)
 {
     Q_ASSERT(quailty >= d_ptr->codecCtx->qmin);
-    d_ptr->codecCtx->qmax = quailty;
+    d_ptr->codecCtx->flags |= AV_CODEC_FLAG_QSCALE;
+    d_ptr->codecCtx->global_quality = FF_QP2LAMBDA * quailty;
 }
 
 QPair<int, int> CodecContext::quantizer() const
 {
     return {d_ptr->codecCtx->qmin, d_ptr->codecCtx->qmax};
+}
+
+QVector<AVPixelFormat> CodecContext::supportPixFmts() const
+{
+    return d_ptr->supported_pix_fmts;
+}
+
+QVector<AVSampleFormat> CodecContext::supportSampleFmts() const
+{
+    return d_ptr->supported_sample_fmts;
 }
 
 void CodecContext::setFlags(int flags)

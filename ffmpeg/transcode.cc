@@ -290,8 +290,10 @@ bool Transcode::openOutputFile()
                                             : d_ptr->videoEnCodecId);
             //contextInfoPtr->initEncoder(decContextInfo->codecCtx()->avCodecCtx()->codec_id);
             decContextInfo->copyToCodecParameters(contextInfoPtr.data());
-            contextInfoPtr->setSize(d_ptr->size);
-            contextInfoPtr->setQuailty(d_ptr->quailty);
+            if (decContextInfo->mediaType() == AVMEDIA_TYPE_VIDEO) {
+                contextInfoPtr->setSize(d_ptr->size);
+                contextInfoPtr->setQuailty(d_ptr->quailty);
+            }
             if (d_ptr->outFormatContext->avFormatContext()->oformat->flags & AVFMT_GLOBALHEADER) {
                 contextInfoPtr->codecCtx()->setFlags(contextInfoPtr->codecCtx()->flags()
                                                      | AV_CODEC_FLAG_GLOBAL_HEADER);
@@ -463,31 +465,6 @@ void Transcode::setError(int errorCode)
 {
     d_ptr->error.setError(errorCode);
     emit error(d_ptr->error);
-}
-
-QVector<CodecInfo> getFileCodecInfo(const QString &filePath)
-{
-    QVector<CodecInfo> codecs{};
-    QScopedPointer<FormatContext> formatContextPtr(new FormatContext);
-    auto ret = formatContextPtr->openFilePath(filePath);
-    if (!ret) {
-        return codecs;
-    }
-    formatContextPtr->findStream();
-    auto stream_num = formatContextPtr->streams();
-    for (int i = 0; i < stream_num; i++) {
-        auto codecpar = formatContextPtr->stream(i)->codecpar;
-        QScopedPointer<AVContextInfo> contextInfoPtr(new AVContextInfo);
-        contextInfoPtr->setIndex(i);
-        contextInfoPtr->setStream(formatContextPtr->stream(i));
-        contextInfoPtr->initDecoder(formatContextPtr->guessFrameRate(i));
-        codecs.append({codecpar->codec_type,
-                       codecpar->codec_id,
-                       {codecpar->width, codecpar->height},
-                       contextInfoPtr->codecCtx()->quantizer()});
-    }
-    formatContextPtr->dumpFormat();
-    return codecs;
 }
 
 } // namespace Ffmpeg

@@ -11,7 +11,9 @@ public:
     ~MainWindow();
 
 private slots:
+    void onVideoEncoderChanged();
     void onOpenInputFile();
+    void onCheckInputFile();
     void onOpenOutputFile();
     void onStart();
 

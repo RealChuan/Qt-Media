@@ -2,6 +2,7 @@
 
 #include <ffmpeg/avversion.hpp>
 #include <ffmpeg/transcode.hpp>
+#include <ffmpeg/transcodeutils.hpp>
 
 #include <QtWidgets>
 
@@ -23,7 +24,11 @@ public:
         audioCodecCbx->setMaxVisibleItems(10);
         audioCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
         for (int i = AV_CODEC_ID_MP2; i <= AV_CODEC_ID_CODEC2; i++) {
-            audioCodecCbx->addItem(avcodec_get_name(static_cast<AVCodecID>(i)), i);
+            auto codecID = static_cast<AVCodecID>(i);
+            if (!Ffmpeg::TranscodeUtils::isSupportAudioEncoder(codecID)) {
+                continue;
+            }
+            audioCodecCbx->addItem(avcodec_get_name(codecID), codecID);
         }
         audioCodecCbx->setCurrentIndex(audioCodecCbx->findData(AV_CODEC_ID_AAC));
         videoCodecCbx = new QComboBox(owner);
@@ -31,6 +36,10 @@ public:
         videoCodecCbx->setMaxVisibleItems(10);
         videoCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
         for (int i = AV_CODEC_ID_MPEG1VIDEO; i <= AV_CODEC_ID_VVC; i++) {
+            auto codecID = static_cast<AVCodecID>(i);
+            if (!Ffmpeg::TranscodeUtils::isSupportVideoEncoder(codecID)) {
+                continue;
+            }
             videoCodecCbx->addItem(avcodec_get_name(static_cast<AVCodecID>(i)), i);
         }
         videoCodecCbx->setCurrentIndex(videoCodecCbx->findData(AV_CODEC_ID_H264));
@@ -57,7 +66,7 @@ public:
     {
         bool audioSet = false;
         bool videoSet = false;
-        auto codecs = Ffmpeg::getFileCodecInfo(filePath);
+        auto codecs = Ffmpeg::TranscodeUtils::getFileCodecInfo(filePath);
         for (const auto &codec : qAsConst(codecs)) {
             if (audioSet && videoSet) {
                 break;
@@ -87,10 +96,6 @@ public:
                     originalSize = codec.size;
                     widthLineEdit->blockSignals(false);
                     heightLineEdit->blockSignals(false);
-                    if (codec.quantizer.first != -1 && codec.quantizer.second != -1) {
-                        quailtySbx->setRange(codec.quantizer.first, codec.quantizer.second);
-                        quailtySbx->setValue((codec.quantizer.first + codec.quantizer.second) / 2);
-                    }
                 }
                 break;
             default: break;
@@ -130,6 +135,13 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow() {}
 
+void MainWindow::onVideoEncoderChanged()
+{
+    auto codecID = static_cast<AVCodecID>(d_ptr->videoCodecCbx->currentData().toInt());
+    auto quantizer = Ffmpeg::TranscodeUtils::getCodecQuantizer(codecID);
+    d_ptr->quailtySbx->setRange(quantizer.first, quantizer.second);
+}
+
 void MainWindow::onOpenInputFile()
 {
     const QString path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation)
@@ -146,6 +158,25 @@ void MainWindow::onOpenInputFile()
     d_ptr->inTextEdit->setPlainText(filePath);
 
     d_ptr->initInputFileAttribute(filePath);
+}
+
+void MainWindow::onCheckInputFile()
+{
+    auto filePath = d_ptr->inTextEdit->toPlainText();
+    if (filePath.isEmpty()) {
+        qWarning() << "filePath.isEmpty()";
+        return;
+    }
+    if (QFile::exists(filePath)) {
+        d_ptr->initInputFileAttribute(filePath);
+        return;
+    }
+    QUrl url(filePath);
+    if (!url.isValid()) {
+        qWarning() << "!url.isValid()";
+        return;
+    }
+    d_ptr->initInputFileAttribute(url.toEncoded());
 }
 
 void MainWindow::onOpenOutputFile()
@@ -168,10 +199,10 @@ void MainWindow::onStart()
 {
     if (d_ptr->startButton->text() == tr("Start")) {
         auto inPath = d_ptr->inTextEdit->toPlainText();
-        if (!QFile::exists(inPath)) {
-            QMessageBox::warning(this, tr("Not exist"), tr("Input file path does not exist!"));
-            return;
-        }
+        //        if (!QFile::exists(inPath)) {
+        //            QMessageBox::warning(this, tr("Not exist"), tr("Input file path does not exist!"));
+        //            return;
+        //        }
         auto outPath = d_ptr->outTextEdit->toPlainText();
 
         d_ptr->transcode->setInFilePath(inPath);
@@ -197,14 +228,23 @@ void MainWindow::setupUI()
     inBtn->setText(tr("Open In"));
     inBtn->setMinimumSize(BUTTON_SIZE);
     connect(inBtn, &QToolButton::clicked, this, &MainWindow::onOpenInputFile);
+    auto checkInBtn = new QToolButton(this);
+    checkInBtn->setText(tr("Check In File"));
+    checkInBtn->setToolTip(tr("Enter the path manually and use it"));
+    checkInBtn->setMinimumSize(BUTTON_SIZE);
+    connect(checkInBtn, &QToolButton::clicked, this, &MainWindow::onCheckInputFile);
     auto outBtn = new QToolButton(this);
     outBtn->setText(tr("Open Out"));
     outBtn->setMinimumSize(BUTTON_SIZE);
     connect(outBtn, &QToolButton::clicked, this, &MainWindow::onOpenOutputFile);
 
+    auto inLayout = new QVBoxLayout;
+    inLayout->addWidget(inBtn);
+    inLayout->addWidget(checkInBtn);
+
     auto editLayout = new QGridLayout;
     editLayout->addWidget(d_ptr->inTextEdit, 0, 0, 1, 1);
-    editLayout->addWidget(inBtn, 0, 1, 1, 1);
+    editLayout->addLayout(inLayout, 0, 1, 1, 1);
     editLayout->addWidget(d_ptr->outTextEdit, 1, 0, 1, 1);
     editLayout->addWidget(outBtn, 1, 1, 1, 1);
 
@@ -240,6 +280,11 @@ void MainWindow::setupUI()
 
 void MainWindow::buildConnect()
 {
+    connect(d_ptr->videoCodecCbx,
+            &QComboBox::currentTextChanged,
+            this,
+            &MainWindow::onVideoEncoderChanged);
+
     connect(d_ptr->widthLineEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
         if (!d_ptr->keepAspectRatioCkb->isChecked() || !d_ptr->originalSize.isValid()) {
             return;

@@ -56,16 +56,6 @@ private:
     QScopedPointer<TranscodePrivate> d_ptr;
 };
 
-struct CodecInfo
-{
-    AVMediaType mediaType = AVMEDIA_TYPE_UNKNOWN;
-    AVCodecID codecID = AV_CODEC_ID_NONE;
-    QSize size = QSize(-1, -1);
-    QPair<int, int> quantizer = {-1, -1};
-};
-
-QVector<CodecInfo> FFMPEG_EXPORT getFileCodecInfo(const QString &filePath);
-
 } // namespace Ffmpeg
 
 #endif // TRANSCODE_HPP

@@ -49,6 +49,9 @@ public:
     void setQuailty(int quailty);
     QPair<int, int> quantizer() const;
 
+    QVector<AVPixelFormat> supportPixFmts() const;
+    QVector<AVSampleFormat> supportSampleFmts() const;
+
     void setTimebase(const AVRational &timebase);
     // Set before open, Soft solution is effective
     void setThreadCount(int threadCount);
