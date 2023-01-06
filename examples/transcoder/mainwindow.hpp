@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 
+class QGroupBox;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -19,6 +21,7 @@ private slots:
 
 private:
     void setupUI();
+    QGroupBox *initVideoSetting();
     void buildConnect();
 
     class MainWindowPrivate;

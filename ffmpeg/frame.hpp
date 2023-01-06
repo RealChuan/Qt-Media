@@ -35,6 +35,8 @@ public:
     void setDuration(double duration);
     double duration();
 
+    void setAVFrameNull();
+
     void setQImageFormat(QImage::Format format);
     QImage::Format format() const;
     QImage convertToImage() const; // maybe null

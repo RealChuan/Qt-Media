@@ -47,6 +47,22 @@ public:
         quailtySbx = new QSpinBox(owner);
         quailtySbx->setRange(2, 31);
         quailtySbx->setToolTip(tr("smaller -> better"));
+        crfSbx = new QSpinBox(owner);
+        crfSbx->setRange(0, 51);
+        crfSbx->setToolTip(tr("smaller -> better"));
+        crfSbx->setValue(18);
+        presetCbx = new QComboBox(owner);
+        presetCbx->setView(new QListView(presetCbx));
+        presetCbx->addItems(transcode->presets());
+        presetCbx->setCurrentText(transcode->preset());
+        tuneCbx = new QComboBox(owner);
+        tuneCbx->setView(new QListView(tuneCbx));
+        tuneCbx->addItems(transcode->tunes());
+        tuneCbx->setCurrentText(transcode->tune());
+        profileCbx = new QComboBox(owner);
+        profileCbx->setView(new QListView(profileCbx));
+        profileCbx->addItems(transcode->profiles());
+        profileCbx->setCurrentText(transcode->profile());
 
         widthLineEdit = new QLineEdit(owner);
         widthLineEdit->setValidator(new QIntValidator(0, INT_MAX, widthLineEdit));
@@ -54,6 +70,9 @@ public:
         heightLineEdit->setValidator(new QIntValidator(0, INT_MAX, heightLineEdit));
         keepAspectRatioCkb = new QCheckBox(tr("keepAspectRatio"), owner);
         keepAspectRatioCkb->setChecked(true);
+
+        videoMinBitrateLineEdit = new QLineEdit(owner);
+        videoMaxBitrateLineEdit = new QLineEdit(owner);
 
         startButton = new QToolButton(owner);
         startButton->setText(QObject::tr("Start"));
@@ -96,11 +115,20 @@ public:
                     originalSize = codec.size;
                     widthLineEdit->blockSignals(false);
                     heightLineEdit->blockSignals(false);
+                    calBitrate();
                 }
                 break;
             default: break;
             }
         }
+    }
+
+    void calBitrate()
+    {
+        auto w = widthLineEdit->text().toInt();
+        auto h = heightLineEdit->text().toInt();
+        videoMinBitrateLineEdit->setText(QString::number(w * h));
+        videoMaxBitrateLineEdit->setText(QString::number(w * h * 4));
     }
 
     QWidget *owner;
@@ -113,10 +141,17 @@ public:
     QComboBox *audioCodecCbx;
     QComboBox *videoCodecCbx;
     QSpinBox *quailtySbx;
+    QSpinBox *crfSbx;
+    QComboBox *presetCbx;
+    QComboBox *tuneCbx;
+    QComboBox *profileCbx;
+
     QLineEdit *widthLineEdit;
     QLineEdit *heightLineEdit;
     QSize originalSize = QSize(-1, -1);
     QCheckBox *keepAspectRatioCkb;
+    QLineEdit *videoMinBitrateLineEdit;
+    QLineEdit *videoMaxBitrateLineEdit;
 
     QToolButton *startButton;
     QProgressBar *progressBar;
@@ -204,6 +239,9 @@ void MainWindow::onStart()
         //            return;
         //        }
         auto outPath = d_ptr->outTextEdit->toPlainText();
+        if (inPath.isEmpty() || outPath.isEmpty()) {
+            return;
+        }
 
         d_ptr->transcode->setInFilePath(inPath);
         d_ptr->transcode->setOutFilePath(outPath);
@@ -214,6 +252,10 @@ void MainWindow::onStart()
         d_ptr->transcode->setSize(
             {d_ptr->widthLineEdit->text().toInt(), d_ptr->heightLineEdit->text().toInt()});
         d_ptr->transcode->setQuailty(d_ptr->quailtySbx->value());
+        d_ptr->transcode->setMinBitrate(d_ptr->videoMinBitrateLineEdit->text().toInt());
+        d_ptr->transcode->setMaxBitrate(d_ptr->videoMaxBitrateLineEdit->text().toInt());
+        d_ptr->transcode->setCrf(d_ptr->crfSbx->value());
+        d_ptr->transcode->setPreset(d_ptr->presetCbx->currentText());
         d_ptr->transcode->startTranscode();
         d_ptr->startButton->setText(tr("Stop"));
     } else if (d_ptr->startButton->text() == tr("Stop")) {
@@ -256,15 +298,19 @@ void MainWindow::setupUI()
     groupLayout1->addWidget(new QLabel(tr("Quality:"), this));
     groupLayout1->addWidget(d_ptr->quailtySbx);
     auto groupLayout2 = new QHBoxLayout;
-    groupLayout2->addWidget(new QLabel(tr("Width:"), this));
-    groupLayout2->addWidget(d_ptr->widthLineEdit);
-    groupLayout2->addWidget(new QLabel(tr("Height:"), this));
-    groupLayout2->addWidget(d_ptr->heightLineEdit);
-    groupLayout2->addWidget(d_ptr->keepAspectRatioCkb);
+    groupLayout2->addWidget(new QLabel(tr("Crf:"), this));
+    groupLayout2->addWidget(d_ptr->crfSbx);
+    groupLayout2->addWidget(new QLabel(tr("Preset:"), this));
+    groupLayout2->addWidget(d_ptr->presetCbx);
+    groupLayout2->addWidget(new QLabel(tr("Tune:"), this));
+    groupLayout2->addWidget(d_ptr->tuneCbx);
+    groupLayout2->addWidget(new QLabel(tr("Profile:"), this));
+    groupLayout2->addWidget(d_ptr->profileCbx);
     auto groupBox = new QGroupBox(tr("Encoder Settings"), this);
     auto groupLayout = new QVBoxLayout(groupBox);
     groupLayout->addLayout(groupLayout1);
     groupLayout->addLayout(groupLayout2);
+    groupLayout->addWidget(initVideoSetting());
 
     auto displayLayout = new QHBoxLayout;
     displayLayout->addWidget(d_ptr->startButton);
@@ -276,6 +322,27 @@ void MainWindow::setupUI()
     layout->addWidget(groupBox);
     layout->addLayout(displayLayout);
     setCentralWidget(widget);
+}
+
+QGroupBox *MainWindow::initVideoSetting()
+{
+    auto layout1 = new QHBoxLayout;
+    layout1->addWidget(new QLabel(tr("Width:"), this));
+    layout1->addWidget(d_ptr->widthLineEdit);
+    layout1->addWidget(new QLabel(tr("height:"), this));
+    layout1->addWidget(d_ptr->heightLineEdit);
+    layout1->addWidget(d_ptr->keepAspectRatioCkb);
+    auto layout2 = new QHBoxLayout;
+    layout2->addWidget(new QLabel(tr("Min Bitrate:"), this));
+    layout2->addWidget(d_ptr->videoMinBitrateLineEdit);
+    layout2->addWidget(new QLabel(tr("Max Bitrate:"), this));
+    layout2->addWidget(d_ptr->videoMaxBitrateLineEdit);
+
+    auto groupBox = new QGroupBox(tr("Video"), this);
+    auto layout = new QVBoxLayout(groupBox);
+    layout->addLayout(layout1);
+    layout->addLayout(layout2);
+    return groupBox;
 }
 
 void MainWindow::buildConnect()
@@ -294,6 +361,7 @@ void MainWindow::buildConnect()
         d_ptr->heightLineEdit->blockSignals(true);
         d_ptr->heightLineEdit->setText(QString::number(height));
         d_ptr->heightLineEdit->blockSignals(false);
+        d_ptr->calBitrate();
     });
     connect(d_ptr->heightLineEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
         if (!d_ptr->keepAspectRatioCkb->isChecked() || !d_ptr->originalSize.isValid()) {
@@ -304,6 +372,7 @@ void MainWindow::buildConnect()
         d_ptr->widthLineEdit->blockSignals(true);
         d_ptr->widthLineEdit->setText(QString::number(width));
         d_ptr->widthLineEdit->blockSignals(false);
+        d_ptr->calBitrate();
     });
     connect(d_ptr->keepAspectRatioCkb, &QCheckBox::stateChanged, this, [this] {
         if (!d_ptr->keepAspectRatioCkb->isChecked() || !d_ptr->originalSize.isValid()) {
@@ -314,6 +383,7 @@ void MainWindow::buildConnect()
         d_ptr->heightLineEdit->blockSignals(true);
         d_ptr->heightLineEdit->setText(QString::number(height));
         d_ptr->heightLineEdit->blockSignals(false);
+        d_ptr->calBitrate();
     });
 
     connect(d_ptr->startButton, &QToolButton::clicked, this, &MainWindow::onStart);

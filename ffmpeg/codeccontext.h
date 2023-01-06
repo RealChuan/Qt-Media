@@ -49,6 +49,13 @@ public:
     void setQuailty(int quailty);
     QPair<int, int> quantizer() const;
 
+    void setMinBitrate(int64_t bitrate);
+    void setMaxBitrate(int64_t bitrate);
+    void setCrf(int crf);
+    void setPreset(const QString &preset);
+    void setTune(const QString &tune);
+    void setProfile(const QString &profile);
+
     QVector<AVPixelFormat> supportPixFmts() const;
     QVector<AVSampleFormat> supportSampleFmts() const;
 

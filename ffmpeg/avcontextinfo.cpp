@@ -47,6 +47,36 @@ void AVContextInfo::setQuailty(int quailty)
     d_ptr->codecCtx->setQuailty(quailty);
 }
 
+void AVContextInfo::setMinBitrate(int64_t bitrate)
+{
+    d_ptr->codecCtx->setMinBitrate(bitrate);
+}
+
+void AVContextInfo::setMaxBitrate(int64_t bitrate)
+{
+    d_ptr->codecCtx->setMaxBitrate(bitrate);
+}
+
+void AVContextInfo::setCrf(int crf)
+{
+    d_ptr->codecCtx->setCrf(crf);
+}
+
+void AVContextInfo::setPreset(const QString &preset)
+{
+    d_ptr->codecCtx->setPreset(preset);
+}
+
+void AVContextInfo::setTune(const QString &tune)
+{
+    d_ptr->codecCtx->setTune(tune);
+}
+
+void AVContextInfo::setProfile(const QString &profile)
+{
+    d_ptr->codecCtx->setProfile(profile);
+}
+
 CodecContext *AVContextInfo::codecCtx()
 {
     return d_ptr->codecCtx.data();

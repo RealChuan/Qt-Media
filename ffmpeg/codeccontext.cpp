@@ -9,6 +9,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/channel_layout.h>
+#include <libavutil/opt.h>
 }
 
 namespace Ffmpeg {
@@ -97,13 +98,16 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
 {
     auto dstCodecCtx = dst->d_ptr->codecCtx;
     // quality
-    //dstCodecCtx->bit_rate = d_ptr->codecCtx->bit_rate;
-    //dstCodecCtx->rc_max_rate = d_ptr->codecCtx->rc_max_rate;
-    //dstCodecCtx->rc_min_rate = d_ptr->codecCtx->rc_min_rate;
-    //dstCodecCtx->qmin = d_ptr->codecCtx->qmin;
-    //dstCodecCtx->qmax = d_ptr->codecCtx->qmax; // smaller -> better
-    //dstCodecCtx->qblur = d_ptr->codecCtx->qmin;
-    //dstCodecCtx->qcompress = d_ptr->codecCtx->qcompress;
+    dstCodecCtx->bit_rate = d_ptr->codecCtx->bit_rate;
+    dstCodecCtx->rc_max_rate = d_ptr->codecCtx->rc_max_rate;
+    dstCodecCtx->rc_min_rate = d_ptr->codecCtx->rc_min_rate;
+    dstCodecCtx->qmin = d_ptr->codecCtx->qmin;
+    dstCodecCtx->qmax = d_ptr->codecCtx->qmax; // smaller -> better
+    dstCodecCtx->qblur = d_ptr->codecCtx->qblur;
+    dstCodecCtx->qcompress = d_ptr->codecCtx->qcompress;
+    dstCodecCtx->max_qdiff = d_ptr->codecCtx->max_qdiff;
+    dstCodecCtx->bits_per_raw_sample = d_ptr->codecCtx->bits_per_raw_sample;
+    dstCodecCtx->compression_level = d_ptr->codecCtx->compression_level;
 
     switch (mediaType()) {
     case AVMEDIA_TYPE_AUDIO:
@@ -123,6 +127,12 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
                                               : d_ptr->codecCtx->pix_fmt);
         /* video time_base can be set to whatever is handy and supported by encoder */
         dstCodecCtx->time_base = av_inv_q(d_ptr->codecCtx->framerate);
+        dstCodecCtx->color_primaries = d_ptr->codecCtx->color_primaries;
+        dstCodecCtx->color_trc = d_ptr->codecCtx->color_trc;
+        dstCodecCtx->colorspace = d_ptr->codecCtx->colorspace;
+        dstCodecCtx->color_range = d_ptr->codecCtx->color_range;
+        dstCodecCtx->chroma_sample_location = d_ptr->codecCtx->chroma_sample_location;
+        dstCodecCtx->slices = d_ptr->codecCtx->slices;
         break;
     default: break;
     }
@@ -231,7 +241,10 @@ void CodecContext::setSize(const QSize &size)
     d_ptr->codecCtx->width = size.width();
     d_ptr->codecCtx->height = size.height();
     // fix me to improve image quality
-    d_ptr->codecCtx->bit_rate = d_ptr->codecCtx->width * d_ptr->codecCtx->height * 4;
+    auto bit_rate = d_ptr->codecCtx->width * d_ptr->codecCtx->height * 4;
+    d_ptr->codecCtx->bit_rate = bit_rate;
+    d_ptr->codecCtx->rc_min_rate = bit_rate;
+    d_ptr->codecCtx->rc_max_rate = bit_rate;
 }
 
 QSize CodecContext::size() const
@@ -259,6 +272,44 @@ QVector<AVPixelFormat> CodecContext::supportPixFmts() const
 QVector<AVSampleFormat> CodecContext::supportSampleFmts() const
 {
     return d_ptr->supported_sample_fmts;
+}
+
+void CodecContext::setMinBitrate(int64_t bitrate)
+{
+    Q_ASSERT(bitrate > 0);
+    d_ptr->codecCtx->rc_min_rate = bitrate;
+}
+
+void CodecContext::setMaxBitrate(int64_t bitrate)
+{
+    qDebug() << bitrate << d_ptr->codecCtx->rc_min_rate;
+    Q_ASSERT(bitrate >= d_ptr->codecCtx->rc_min_rate);
+    d_ptr->codecCtx->rc_max_rate = bitrate;
+    d_ptr->codecCtx->bit_rate = bitrate;
+}
+
+void CodecContext::setCrf(int crf)
+{
+    Q_ASSERT(crf >= 0 && crf <= 51);
+    av_opt_set_int(d_ptr->codecCtx, "crf", crf, AV_OPT_SEARCH_CHILDREN);
+}
+
+void CodecContext::setPreset(const QString &preset)
+{
+    av_opt_set(d_ptr->codecCtx, "preset", preset.toLocal8Bit().constData(), AV_OPT_SEARCH_CHILDREN);
+}
+
+void CodecContext::setTune(const QString &tune)
+{
+    av_opt_set(d_ptr->codecCtx, "tune", tune.toLocal8Bit().constData(), AV_OPT_SEARCH_CHILDREN);
+}
+
+void CodecContext::setProfile(const QString &profile)
+{
+    av_opt_set(d_ptr->codecCtx,
+               "profile",
+               profile.toLocal8Bit().constData(),
+               AV_OPT_SEARCH_CHILDREN);
 }
 
 void CodecContext::setFlags(int flags)

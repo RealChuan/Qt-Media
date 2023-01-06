@@ -11,8 +11,6 @@
 #include <filter/filtergraph.hpp>
 #include <filter/filterinout.hpp>
 
-#include <QSharedPointer>
-
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavdevice/avdevice.h>
@@ -148,6 +146,8 @@ public:
             qDeleteAll(filteringContexts);
             filteringContexts.clear();
         }
+        inFormatContext->close();
+        outFormatContext->close();
     }
 
     QObject *owner;
@@ -162,6 +162,31 @@ public:
     AVCodecID videoEnCodecId = AV_CODEC_ID_NONE;
     QSize size = QSize(-1, -1);
     int quailty = -1;
+    int64_t minBitrate = -1;
+    int64_t maxBitrate = -1;
+    int crf = 18;
+    QStringList presets{"ultrafast",
+                        "superfast",
+                        "veryfast",
+                        "faster",
+                        "fast",
+                        "medium",
+                        "slow",
+                        "slower",
+                        "veryslow",
+                        "placebo"};
+    QString preset = "medium";
+    QStringList tunes{"film",
+                      "animation",
+                      "grain",
+                      "stillimage",
+                      "psnr",
+                      "ssim",
+                      "fastdecode",
+                      "zerolatency"};
+    QString tune = "film";
+    QStringList profiles{"baseline", "extended", "main", "high"};
+    QString profile = "main";
 
     bool gpuDecode = false;
 
@@ -208,6 +233,69 @@ void Transcode::setSize(const QSize &size)
 void Transcode::setQuailty(int quailty)
 {
     d_ptr->quailty = quailty;
+}
+
+void Transcode::setMinBitrate(int64_t bitrate)
+{
+    d_ptr->minBitrate = bitrate;
+}
+
+void Transcode::setMaxBitrate(int64_t bitrate)
+{
+    d_ptr->maxBitrate = bitrate;
+}
+
+void Transcode::setCrf(int crf)
+{
+    d_ptr->crf = crf;
+}
+
+void Transcode::setPreset(const QString &preset)
+{
+    Q_ASSERT(d_ptr->presets.contains(preset));
+    d_ptr->preset = preset;
+}
+
+QString Transcode::preset() const
+{
+    return d_ptr->preset;
+}
+
+QStringList Transcode::presets() const
+{
+    return d_ptr->presets;
+}
+
+void Transcode::setTune(const QString &tune)
+{
+    Q_ASSERT(d_ptr->tunes.contains(tune));
+    d_ptr->tune = tune;
+}
+
+QString Transcode::tune() const
+{
+    return d_ptr->tune;
+}
+
+QStringList Transcode::tunes() const
+{
+    return d_ptr->tunes;
+}
+
+void Transcode::setProfile(const QString &profile)
+{
+    Q_ASSERT(d_ptr->profiles.contains(profile));
+    d_ptr->profile = profile;
+}
+
+QString Transcode::profile() const
+{
+    return d_ptr->profile;
+}
+
+QStringList Transcode::profiles() const
+{
+    return d_ptr->profiles;
 }
 
 void Transcode::startTranscode()
@@ -290,9 +378,15 @@ bool Transcode::openOutputFile()
                                             : d_ptr->videoEnCodecId);
             //contextInfoPtr->initEncoder(decContextInfo->codecCtx()->avCodecCtx()->codec_id);
             decContextInfo->copyToCodecParameters(contextInfoPtr.data());
+            contextInfoPtr->setQuailty(d_ptr->quailty);
+            contextInfoPtr->setCrf(d_ptr->crf);
+            contextInfoPtr->setPreset(d_ptr->preset);
+            contextInfoPtr->setTune(d_ptr->tune);
             if (decContextInfo->mediaType() == AVMEDIA_TYPE_VIDEO) {
                 contextInfoPtr->setSize(d_ptr->size);
-                contextInfoPtr->setQuailty(d_ptr->quailty);
+                contextInfoPtr->setMinBitrate(d_ptr->minBitrate);
+                contextInfoPtr->setMaxBitrate(d_ptr->maxBitrate);
+                contextInfoPtr->setProfile(d_ptr->profile);
             }
             if (d_ptr->outFormatContext->avFormatContext()->oformat->flags & AVFMT_GLOBALHEADER) {
                 contextInfoPtr->codecCtx()->setFlags(contextInfoPtr->codecCtx()->flags()
@@ -358,7 +452,6 @@ void Transcode::initFilters()
         if (codec_type != AVMEDIA_TYPE_AUDIO && codec_type != AVMEDIA_TYPE_VIDEO) {
             continue;
         }
-
         QString filter_spec;
         if (codec_type == AVMEDIA_TYPE_VIDEO) {
             if (d_ptr->size.isValid()) { // "scale=320:240"
@@ -413,10 +506,12 @@ void Transcode::cleanup()
 {
     auto stream_num = d_ptr->inFormatContext->streams();
     for (int i = 0; i < stream_num; i++) {
-        if (!d_ptr->filteringContexts.at(i)->filterGraph.isNull()) {
+        if (d_ptr->filteringContexts.at(i)->filterGraph.isNull()) {
             continue;
         }
-        filterEncodeWriteframe(nullptr, i);
+        QScopedPointer<Frame> framePtr(new Frame);
+        framePtr->setAVFrameNull();
+        filterEncodeWriteframe(framePtr.data(), i);
         flushEncoder(i);
     }
     d_ptr->outFormatContext->writeTrailer();
@@ -440,8 +535,14 @@ bool Transcode::filterEncodeWriteframe(Frame *frame, uint stream_index)
 bool Transcode::encodeWriteFrame(uint stream_index, int flush, Frame *frame)
 {
     auto transcodeCtx = d_ptr->transcodeContexts.at(stream_index);
-
-    auto packets = transcodeCtx->encContextInfo->encodeFrame(flush ? nullptr : frame);
+    QVector<Packet *> packets{};
+    if (flush) {
+        QScopedPointer<Frame> framePtr(new Frame);
+        framePtr->setAVFrameNull();
+        packets = transcodeCtx->encContextInfo->encodeFrame(framePtr.data());
+    } else {
+        packets = transcodeCtx->encContextInfo->encodeFrame(frame);
+    }
     for (auto packet : packets) {
         packet->setStreamIndex(stream_index);
         packet->rescaleTs(transcodeCtx->encContextInfo->timebase(),

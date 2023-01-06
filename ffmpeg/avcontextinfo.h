@@ -27,8 +27,15 @@ public:
 
     void copyToCodecParameters(AVContextInfo *dst);
 
+    // encoder
     void setSize(const QSize &size);
     void setQuailty(int quailty);
+    void setMinBitrate(int64_t bitrate);
+    void setMaxBitrate(int64_t bitrate);
+    void setCrf(int crf);
+    void setPreset(const QString &preset);
+    void setTune(const QString &tune);
+    void setProfile(const QString &profile);
 
     void resetIndex();
     void setIndex(int index);

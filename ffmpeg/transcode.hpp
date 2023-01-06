@@ -29,6 +29,21 @@ public:
 
     void setSize(const QSize &size);
     void setQuailty(int quailty);
+    void setMinBitrate(int64_t bitrate);
+    void setMaxBitrate(int64_t bitrate);
+    void setCrf(int crf);
+
+    void setPreset(const QString &preset);
+    QString preset() const;
+    QStringList presets() const;
+
+    void setTune(const QString &tune);
+    QString tune() const;
+    QStringList tunes() const;
+
+    void setProfile(const QString &profile);
+    QString profile() const;
+    QStringList profiles() const;
 
     void startTranscode();
     void stopTranscode();

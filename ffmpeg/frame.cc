@@ -35,6 +35,7 @@ struct Frame::FramePrivate
     bool imageAlloc = false;
     double pts = 0;
     double duration = 0;
+    bool useNull = false;
 
     QImage::Format format = QImage::Format_Invalid;
 };
@@ -129,6 +130,11 @@ double Frame::duration()
     return d_ptr->duration;
 }
 
+void Frame::setAVFrameNull()
+{
+    d_ptr->useNull = true;
+}
+
 void Frame::setQImageFormat(QImage::Format format)
 {
     d_ptr->format = format;
@@ -159,6 +165,9 @@ bool Frame::isKey()
 
 AVFrame *Frame::avFrame()
 {
+    if (d_ptr->useNull) {
+        return nullptr;
+    }
     Q_ASSERT(d_ptr->frame != nullptr);
     return d_ptr->frame;
 }
