@@ -93,4 +93,4 @@ jobs:
         if: startsWith(matrix.os, 'macos') || startsWith(matrix.os, 'ubuntu')
         run: |
           qmake
-          make
+          make -j4
