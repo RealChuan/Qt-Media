@@ -1,5 +1,5 @@
 #include "formatcontext.h"
-#include "averror.h"
+#include "averrormanager.hpp"
 #include "packet.h"
 
 #include <QDebug>
@@ -34,7 +34,6 @@ public:
     QMap<int, QString> audioMap;
     QMap<int, QString> subtitleMap;
     QImage coverImage;
-    AVError error;
 };
 
 FormatContext::FormatContext(QObject *parent)
@@ -281,8 +280,7 @@ void FormatContext::printInformation()
 
 void FormatContext::setError(int errorCode)
 {
-    d_ptr->error.setError(errorCode);
-    emit error(d_ptr->error);
+    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 AVStream *FormatContext::stream(int index)
@@ -411,11 +409,6 @@ qint64 FormatContext::duration() const
 QImage &FormatContext::coverImage() const
 {
     return d_ptr->coverImage;
-}
-
-AVError FormatContext::avError() const
-{
-    return d_ptr->error;
 }
 
 } // namespace Ffmpeg

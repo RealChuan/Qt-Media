@@ -132,11 +132,6 @@ bool AVContextInfo::initDecoder(const AVRational &frameRate)
     if (d_ptr->stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
         d_ptr->codecCtx->setFrameRate(frameRate);
     }
-    connect(d_ptr->codecCtx.data(),
-            &CodecContext::error,
-            this,
-            &AVContextInfo::error,
-            Qt::UniqueConnection);
 
     qInfo() << tr("Decoder name: ") << codec->name;
 

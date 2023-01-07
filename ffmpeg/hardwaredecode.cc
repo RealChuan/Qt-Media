@@ -1,7 +1,9 @@
 #include "hardwaredecode.hpp"
-#include "averror.h"
+#include "averrormanager.hpp"
 #include "codeccontext.h"
 #include "frame.hpp"
+
+#include <QDebug>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -70,10 +72,9 @@ struct HardWareDecode::HardWareDecodePrivate
         av_buffer_unref(&bufferRef);
     }
 
-    QVector<AVHWDeviceType> hwDeviceTypes;
+    QVector<AVHWDeviceType> hwDeviceTypes{};
     AVHWDeviceType hwDeviceType = AV_HWDEVICE_TYPE_NONE;
     AVBufferRef *bufferRef = nullptr;
-    AVError error;
     bool vaild = true;
 };
 
@@ -155,15 +156,9 @@ bool HardWareDecode::isVaild()
     return d_ptr->vaild;
 }
 
-AVError HardWareDecode::avError()
-{
-    return d_ptr->error;
-}
-
 void HardWareDecode::setError(int errorCode)
 {
-    d_ptr->error.setError(errorCode);
-    emit error(d_ptr->error);
+    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 } // namespace Ffmpeg

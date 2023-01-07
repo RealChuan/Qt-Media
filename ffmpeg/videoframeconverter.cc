@@ -1,16 +1,17 @@
 #include "videoframeconverter.hpp"
-#include "averror.h"
+#include "averrormanager.hpp"
 #include "codeccontext.h"
 #include "frame.hpp"
 #include "videoformat.hpp"
+
+#include <QDebug>
+#include <QImage>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
 }
-
-#include <QImage>
 
 namespace Ffmpeg {
 
@@ -101,7 +102,7 @@ int VideoFrameConverter::scale(Frame *in, Frame *out)
                         outFrame->data,
                         outFrame->linesize);
     if (ret < 0) {
-        qWarning() << AVError::avErrorString(ret);
+        setError(ret);
     }
     outFrame->width = d_ptr->dstSize.width();
     outFrame->height = d_ptr->dstSize.height();
@@ -122,6 +123,11 @@ bool VideoFrameConverter::isSupportedInput_pix_fmt(AVPixelFormat pix_fmt)
 bool VideoFrameConverter::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
 {
     return sws_isSupportedOutput(pix_fmt);
+}
+
+void VideoFrameConverter::setError(int errorCode)
+{
+    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 void VideoFrameConverter::debugMessage()

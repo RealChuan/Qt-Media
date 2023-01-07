@@ -1,7 +1,7 @@
 #include "filtercontext.hpp"
+#include "averrormanager.hpp"
 #include "filtergraph.hpp"
 
-#include <ffmpeg/averror.h>
 #include <ffmpeg/frame.hpp>
 
 #include <QDebug>
@@ -31,7 +31,6 @@ public:
 
     const AVFilter *filter = nullptr;
     AVFilterContext *filterContext = nullptr;
-    AVError error;
 };
 
 FilterContext::FilterContext(const QString &name, QObject *parent)
@@ -90,8 +89,7 @@ AVFilterContext *FilterContext::avFilterContext()
 
 void FilterContext::setError(int errorCode)
 {
-    d_ptr->error.setError(errorCode);
-    emit error(d_ptr->error);
+    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 } // namespace Ffmpeg

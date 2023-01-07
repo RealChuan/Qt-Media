@@ -1,5 +1,5 @@
 #include "codeccontext.h"
-#include "averror.h"
+#include "averrormanager.hpp"
 #include "frame.hpp"
 #include "packet.h"
 #include "subtitle.h"
@@ -78,8 +78,6 @@ public:
     QVector<int> supported_samplerates{};
     QVector<AVSampleFormat> supported_sample_fmts{};
     QVector<uint64_t> supported_channel_layouts{};
-
-    AVError error;
 };
 
 CodecContext::CodecContext(const AVCodec *codec, QObject *parent)
@@ -115,7 +113,11 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
         dst->setChannelLayout(d_ptr->codecCtx->channel_layout);
         dstCodecCtx->channels = av_get_channel_layout_nb_channels(dstCodecCtx->channel_layout);
         /* take first format from list of supported formats */
-        dst->setSampleFmt(d_ptr->codec->sample_fmts[0]);
+        if (d_ptr->codec->sample_fmts) {
+            dst->setSampleFmt(d_ptr->codec->sample_fmts[0]);
+        } else {
+            dst->setSampleFmt(d_ptr->codecCtx->sample_fmt);
+        }
         dstCodecCtx->time_base = AVRational{1, dstCodecCtx->sample_rate};
         break;
     case AVMEDIA_TYPE_VIDEO:
@@ -421,11 +423,6 @@ void CodecContext::flush()
     avcodec_flush_buffers(d_ptr->codecCtx);
 }
 
-AVError CodecContext::avError()
-{
-    return d_ptr->error;
-}
-
 const AVCodec *CodecContext::codec()
 {
     return d_ptr->codec;
@@ -433,8 +430,7 @@ const AVCodec *CodecContext::codec()
 
 void CodecContext::setError(int errorCode)
 {
-    d_ptr->error.setError(errorCode);
-    emit error(d_ptr->error);
+    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 } // namespace Ffmpeg

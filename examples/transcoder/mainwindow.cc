@@ -1,5 +1,6 @@
 #include "mainwindow.hpp"
 
+#include <ffmpeg/averror.h>
 #include <ffmpeg/avversion.hpp>
 #include <ffmpeg/transcode.hpp>
 #include <ffmpeg/transcodeutils.hpp>
@@ -169,6 +170,13 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 MainWindow::~MainWindow() {}
+
+void MainWindow::onError(const Ffmpeg::AVError &avError)
+{
+    const QString str = tr("Error[%1]:%2.")
+                            .arg(QString::number(avError.errorCode()), avError.errorString());
+    qWarning() << str;
+}
 
 void MainWindow::onVideoEncoderChanged()
 {
@@ -347,6 +355,8 @@ QGroupBox *MainWindow::initVideoSetting()
 
 void MainWindow::buildConnect()
 {
+    connect(d_ptr->transcode, &Ffmpeg::Transcode::error, this, &MainWindow::onError);
+
     connect(d_ptr->videoCodecCbx,
             &QComboBox::currentTextChanged,
             this,

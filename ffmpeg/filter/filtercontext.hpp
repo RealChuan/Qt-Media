@@ -7,12 +7,10 @@ struct AVFilterContext;
 
 namespace Ffmpeg {
 
-class AVError;
 class Frame;
 class FilterGraph;
 class FilterContext : public QObject
 {
-    Q_OBJECT
 public:
     // name list
     // Video: {buffer, buffersink}
@@ -28,9 +26,6 @@ public:
     bool buffersink_getFrame(Frame *frame);
 
     AVFilterContext *avFilterContext();
-
-signals:
-    void error(const Ffmpeg::AVError &avError);
 
 private:
     void setError(int errorCode);

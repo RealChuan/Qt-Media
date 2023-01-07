@@ -56,6 +56,7 @@ protected:
     void run() override;
 
 private:
+    void buildConnect();
     bool openInputFile();
     bool openOutputFile();
     void initFilters();

@@ -71,7 +71,7 @@ MainWindow::~MainWindow()
 void MainWindow::onError(const Ffmpeg::AVError &avError)
 {
     const QString str = tr("Error[%1]:%2.")
-                            .arg(QString::number(avError.error()), avError.errorString());
+                            .arg(QString::number(avError.errorCode()), avError.errorString());
     qWarning() << str;
 }
 

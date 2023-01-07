@@ -17,6 +17,7 @@ set(PROJECT_SOURCES
         avcontextinfo.cpp avcontextinfo.h
         avversion.cc avversion.hpp
         averror.cpp averror.h
+        averrormanager.cc averrormanager.hpp
         codeccontext.cpp codeccontext.h
         colorspace.hpp
         decoder.cc decoder.h

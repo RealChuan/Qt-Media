@@ -13,14 +13,12 @@ struct AVRational;
 
 namespace Ffmpeg {
 
-class AVError;
 class Subtitle;
 class Packet;
 class Frame;
 class CodecContext;
 class AVContextInfo : public QObject
 {
-    Q_OBJECT
 public:
     explicit AVContextInfo(QObject *parent = nullptr);
     ~AVContextInfo();
@@ -70,9 +68,6 @@ public:
     bool isGpuDecode();
 
     CodecContext *codecCtx();
-
-signals:
-    void error(const Ffmpeg::AVError &avError);
 
 private:
     void showCodecpar();

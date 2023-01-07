@@ -1,7 +1,7 @@
 #include "player.h"
 #include "audiodecoder.h"
 #include "avcontextinfo.h"
-#include "averror.h"
+#include "averrormanager.hpp"
 #include "formatcontext.h"
 #include "packet.h"
 #include "subtitledecoder.h"
@@ -59,7 +59,6 @@ Player::Player(QObject *parent)
     : QThread(parent)
     , d_ptr(new PlayerPrivate(this))
 {
-    qRegisterMetaType<Ffmpeg::AVError>("Ffmpeg::AVError");
     buildConnect();
     buildErrorConnect();
 }
@@ -371,14 +370,6 @@ bool Player::setMediaIndex(AVContextInfo *contextInfo, int index)
     return contextInfo->openCodec(d_ptr->gpuDecode);
 }
 
-void Player::buildErrorConnect()
-{
-    connect(d_ptr->formatCtx, &FormatContext::error, this, &Player::error);
-    connect(d_ptr->audioInfo, &AVContextInfo::error, this, &Player::error);
-    connect(d_ptr->videoInfo, &AVContextInfo::error, this, &Player::error);
-    connect(d_ptr->subtitleInfo, &AVContextInfo::error, this, &Player::error);
-}
-
 void Player::pause(bool status)
 {
     d_ptr->audioDecoder->pause(status);
@@ -503,6 +494,11 @@ void Player::buildConnect(bool state)
                    this,
                    &Player::positionChanged);
     }
+}
+
+void Player::buildErrorConnect()
+{
+    connect(AVErrorManager::instance(), &AVErrorManager::error, this, &Player::error);
 }
 
 } // namespace Ffmpeg

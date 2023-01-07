@@ -16,6 +16,7 @@ SOURCES += \
     audioframeconverter.cpp \
     avcontextinfo.cpp \
     averror.cpp \
+    averrormanager.cc \
     avversion.cc \
     codeccontext.cpp \
     decoder.cc \
@@ -40,6 +41,7 @@ HEADERS += \
     audioframeconverter.h \
     avcontextinfo.h \
     averror.h \
+    averrormanager.hpp \
     avversion.hpp \
     codeccontext.h \
     colorspace.hpp \

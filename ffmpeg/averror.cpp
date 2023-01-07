@@ -6,30 +6,53 @@ extern "C" {
 
 namespace Ffmpeg {
 
-AVError::AVError(const AVError &other)
+class AVError::AVErrorPrivate
 {
-    m_error = other.m_error;
-    m_errorString = other.m_errorString;
+public:
+    AVErrorPrivate() {}
+
+    int error = 0;
+    QString errorString;
+};
+
+AVError::AVError(int error)
+    : d_ptr(new AVErrorPrivate)
+{
+    setErrorCode(error);
+}
+
+AVError::AVError(const AVError &other)
+    : d_ptr(new AVErrorPrivate)
+{
+    d_ptr->error = other.d_ptr->error;
+    d_ptr->errorString = other.d_ptr->errorString;
 }
 
 AVError &AVError::operator=(const AVError &other)
 {
-    m_error = other.m_error;
-    m_errorString = other.m_errorString;
+    d_ptr->error = other.d_ptr->error;
+    d_ptr->errorString = other.d_ptr->errorString;
     return *this;
 }
 
-void AVError::setError(int error)
+AVError::~AVError() {}
+
+void AVError::setErrorCode(int error)
 {
-    m_error = error;
+    d_ptr->error = error;
     char buf[1024] = {0};
-    av_strerror(m_error, buf, sizeof buf);
-    m_errorString = buf;
+    av_strerror(d_ptr->error, buf, sizeof buf);
+    d_ptr->errorString = buf;
+}
+
+int AVError::errorCode() const
+{
+    return d_ptr->error;
 }
 
 QString AVError::errorString() const
 {
-    return m_errorString;
+    return d_ptr->errorString;
 }
 
 QString AVError::avErrorString(int error)

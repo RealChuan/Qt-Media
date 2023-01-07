@@ -1,6 +1,6 @@
 #include "transcode.hpp"
 #include "avcontextinfo.h"
-#include "averror.h"
+#include "averrormanager.hpp"
 #include "codeccontext.h"
 #include "decoder.h"
 #include "formatcontext.h"
@@ -190,15 +190,15 @@ public:
 
     bool gpuDecode = false;
 
-    AVError error;
-
     volatile bool runing = true;
 };
 
 Transcode::Transcode(QObject *parent)
     : QThread{parent}
     , d_ptr(new TranscodePrivate(this))
-{}
+{
+    buildConnect();
+}
 
 Transcode::~Transcode()
 {
@@ -431,15 +431,22 @@ void Transcode::run()
     qDebug() << "Start Transcoding";
     d_ptr->reset();
     if (!openInputFile()) {
+        qWarning() << "Open input file failed!";
         return;
     }
     if (!openOutputFile()) {
+        qWarning() << "Open ouput file failed!";
         return;
     }
     initFilters();
     loop();
     cleanup();
     qDebug() << "Finish Transcoding: " << timer.elapsed() / 1000.0 / 60.0;
+}
+
+void Transcode::buildConnect()
+{
+    connect(AVErrorManager::instance(), &AVErrorManager::error, this, &Transcode::error);
 }
 
 void Transcode::initFilters()
@@ -564,8 +571,7 @@ bool Transcode::flushEncoder(uint stream_index)
 
 void Transcode::setError(int errorCode)
 {
-    d_ptr->error.setError(errorCode);
-    emit error(d_ptr->error);
+    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 } // namespace Ffmpeg

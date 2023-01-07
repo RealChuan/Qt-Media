@@ -14,11 +14,9 @@ struct AVFormatContext;
 
 namespace Ffmpeg {
 
-class AVError;
 class Packet;
 class FormatContext : public QObject
 {
-    Q_OBJECT
 public:
     enum OpenMode { ReadOnly = 1, WriteOnly };
 
@@ -64,14 +62,9 @@ public:
 
     QImage &coverImage() const;
 
-    AVError avError() const;
-
     void dumpFormat();
 
     AVFormatContext *avFormatContext();
-
-signals:
-    void error(const Ffmpeg::AVError &avError);
 
 private:
     void findStreamIndex();

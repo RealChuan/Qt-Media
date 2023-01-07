@@ -75,12 +75,12 @@ protected:
 
 private:
     void buildConnect(bool state = true);
+    void buildErrorConnect();
     bool initAvCodec();
     void playVideo();
     void checkSeek();
     void setMediaState(MediaState mediaState);
     bool setMediaIndex(AVContextInfo *contextInfo, int index);
-    void buildErrorConnect();
 
     class PlayerPrivate;
     QScopedPointer<PlayerPrivate> d_ptr;

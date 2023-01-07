@@ -59,7 +59,7 @@ private:
 
     QScopedPointer<LogAsyncPrivate> d_ptr;
 
-    Singleton(LogAsync)
+    SINGLETON(LogAsync)
 };
 
 } // namespace Utils

@@ -1,9 +1,10 @@
 #include "audioframeconverter.h"
-#include "averror.h"
+#include "averrormanager.hpp"
 #include "codeccontext.h"
 #include "frame.hpp"
 
 #include <QAudioDevice>
+#include <QDebug>
 #include <QMediaDevices>
 
 extern "C" {
@@ -131,7 +132,7 @@ AudioFrameConverter::AudioFrameConverter(CodecContext *codecCtx, QAudioFormat &f
 
     int ret = swr_init(d_ptr->swrContext);
     if (ret < 0) {
-        qWarning() << AVError::avErrorString(ret);
+        setError(ret);
     }
     Q_ASSERT(d_ptr->swrContext != nullptr);
 }
@@ -160,10 +161,15 @@ QByteArray AudioFrameConverter::convert(Frame *frame)
                           frame->avFrame()->nb_samples);
     if (len <= 0) {
         data.clear();
-        qWarning() << AVError::avErrorString(len);
+        setError(len);
     }
 
     return data;
+}
+
+void AudioFrameConverter::setError(int errorCode)
+{
+    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 QAudioFormat getAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize)

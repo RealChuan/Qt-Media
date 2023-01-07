@@ -1,7 +1,7 @@
 #include "filtergraph.hpp"
 #include "filterinout.hpp"
 
-#include <ffmpeg/averror.h>
+#include <ffmpeg/averrormanager.hpp>
 
 extern "C" {
 #include <libavfilter/avfilter.h>
@@ -26,7 +26,6 @@ public:
 
     QObject *owner;
     AVFilterGraph *filterGraph = nullptr;
-    AVError error;
 };
 
 FilterGraph::FilterGraph(QObject *parent)
@@ -71,8 +70,7 @@ AVFilterGraph *FilterGraph::avFilterGraph()
 
 void FilterGraph::setError(int errorCode)
 {
-    d_ptr->error.setError(errorCode);
-    emit error(d_ptr->error);
+    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 } // namespace Ffmpeg

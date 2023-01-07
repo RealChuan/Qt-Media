@@ -8,11 +8,9 @@ struct AVCodec;
 namespace Ffmpeg {
 
 class Frame;
-class AVError;
 class CodecContext;
 class HardWareDecode : public QObject
 {
-    Q_OBJECT
 public:
     explicit HardWareDecode(QObject *parent = nullptr);
     ~HardWareDecode();
@@ -22,11 +20,6 @@ public:
     Frame *transforFrame(Frame *in, bool &ok);
 
     bool isVaild();
-
-    AVError avError();
-
-signals:
-    void error(const Ffmpeg::AVError &avError);
 
 private:
     void setError(int errorCode);

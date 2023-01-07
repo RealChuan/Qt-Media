@@ -10,20 +10,21 @@ namespace Ffmpeg {
 class FFMPEG_EXPORT AVError
 {
 public:
-    explicit AVError(int error = 0) { setError(error); }
+    explicit AVError(int error = 0);
     AVError(const AVError &other);
     AVError &operator=(const AVError &other);
+    ~AVError();
 
-    void setError(int error);
-    int error() const { return m_error; }
+    void setErrorCode(int error);
+    int errorCode() const;
 
     QString errorString() const;
 
     static QString avErrorString(int error);
 
 private:
-    int m_error = 0;
-    QString m_errorString;
+    class AVErrorPrivate;
+    QScopedPointer<AVErrorPrivate> d_ptr;
 };
 
 } // namespace Ffmpeg

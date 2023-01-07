@@ -15,13 +15,11 @@ struct AVCodec;
 
 namespace Ffmpeg {
 
-class AVError;
 class Subtitle;
 class Packet;
 class Frame;
 class CodecContext : public QObject
 {
-    Q_OBJECT
 public:
     explicit CodecContext(const AVCodec *codec, QObject *parent = nullptr);
     ~CodecContext();
@@ -82,13 +80,8 @@ public:
 
     void flush();
 
-    AVError avError();
-
     const AVCodec *codec();
     AVCodecContext *avCodecCtx();
-
-signals:
-    void error(const Ffmpeg::AVError &avError);
 
 private:
     void setError(int errorCode);

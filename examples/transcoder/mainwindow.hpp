@@ -3,6 +3,10 @@
 
 #include <QMainWindow>
 
+namespace Ffmpeg {
+class AVError;
+}
+
 class QGroupBox;
 
 class MainWindow : public QMainWindow
@@ -13,6 +17,7 @@ public:
     ~MainWindow();
 
 private slots:
+    void onError(const Ffmpeg::AVError &avError);
     void onVideoEncoderChanged();
     void onOpenInputFile();
     void onCheckInputFile();
