@@ -20,30 +20,24 @@ extern "C" {
 
 namespace Ffmpeg {
 
-struct FilteringContext
+struct TranscodeContext
 {
+    QSharedPointer<AVContextInfo> decContextInfo;
+    QSharedPointer<AVContextInfo> encContextInfo;
+
     QSharedPointer<FilterContext> buffersinkCtx;
     QSharedPointer<FilterContext> buffersrcCtx;
     QSharedPointer<FilterGraph> filterGraph;
 };
 
-struct TranscodeContext
-{
-    QSharedPointer<AVContextInfo> decContextInfo;
-    QSharedPointer<AVContextInfo> encContextInfo;
-};
-
-bool init_filter(FilteringContext *fctx,
-                 AVContextInfo *decContextInfo,
-                 AVContextInfo *encContextInfo,
-                 const char *filter_spec)
+bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec)
 {
     QSharedPointer<FilterContext> buffersrc_ctx;
     QSharedPointer<FilterContext> buffersink_ctx;
     QSharedPointer<FilterGraph> filter_graph(new FilterGraph);
-    auto dec_ctx = decContextInfo->codecCtx()->avCodecCtx();
-    auto enc_ctx = encContextInfo->codecCtx()->avCodecCtx();
-    switch (decContextInfo->mediaType()) {
+    auto dec_ctx = transcodeContext->decContextInfo->codecCtx()->avCodecCtx();
+    auto enc_ctx = transcodeContext->encContextInfo->codecCtx()->avCodecCtx();
+    switch (transcodeContext->decContextInfo->mediaType()) {
     case AVMEDIA_TYPE_VIDEO: {
         buffersrc_ctx.reset(new FilterContext("buffer"));
         buffersink_ctx.reset(new FilterContext("buffersink"));
@@ -80,14 +74,19 @@ bool init_filter(FilteringContext *fctx,
         buffersrc_ctx->create("in", args, filter_graph.data());
         buffersink_ctx->create("out", "", filter_graph.data());
         av_opt_set_bin(buffersink_ctx->avFilterContext(),
-                       "channel_layouts",
-                       (uint8_t *) &enc_ctx->channel_layout,
-                       sizeof(enc_ctx->channel_layout),
-                       AV_OPT_SEARCH_CHILDREN);
-        av_opt_set_bin(buffersink_ctx->avFilterContext(),
                        "sample_rates",
                        (uint8_t *) &enc_ctx->sample_rate,
                        sizeof(enc_ctx->sample_rate),
+                       AV_OPT_SEARCH_CHILDREN);
+        av_opt_set_bin(buffersink_ctx->avFilterContext(),
+                       "sample_fmts",
+                       (uint8_t *) &enc_ctx->sample_fmt,
+                       sizeof(enc_ctx->sample_fmt),
+                       AV_OPT_SEARCH_CHILDREN);
+        av_opt_set_bin(buffersink_ctx->avFilterContext(),
+                       "channel_layouts",
+                       (uint8_t *) &enc_ctx->channel_layout,
+                       sizeof(enc_ctx->channel_layout),
                        AV_OPT_SEARCH_CHILDREN);
     } break;
     default: return false;
@@ -111,9 +110,13 @@ bool init_filter(FilteringContext *fctx,
     filter_graph->parse(filter_spec, fliterIn.data(), fliterOut.data());
     filter_graph->config();
 
-    fctx->buffersrcCtx = buffersrc_ctx;
-    fctx->buffersinkCtx = buffersink_ctx;
-    fctx->filterGraph = filter_graph;
+    //    if (!(enc_ctx->codec->capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE)) {
+    //        buffersink_ctx->buffersink_setFrameSize(enc_ctx->frame_size);
+    //    }
+
+    transcodeContext->buffersrcCtx = buffersrc_ctx;
+    transcodeContext->buffersinkCtx = buffersink_ctx;
+    transcodeContext->filterGraph = filter_graph;
 
     return true;
 }
@@ -142,10 +145,6 @@ public:
             qDeleteAll(transcodeContexts);
             transcodeContexts.clear();
         }
-        if (!filteringContexts.isEmpty()) {
-            qDeleteAll(filteringContexts);
-            filteringContexts.clear();
-        }
         inFormatContext->close();
         outFormatContext->close();
     }
@@ -157,7 +156,6 @@ public:
     FormatContext *inFormatContext;
     FormatContext *outFormatContext;
     QVector<TranscodeContext *> transcodeContexts{};
-    QVector<FilteringContext *> filteringContexts{};
     AVCodecID audioEnCodecId = AV_CODEC_ID_NONE;
     AVCodecID videoEnCodecId = AV_CODEC_ID_NONE;
     QSize size = QSize(-1, -1);
@@ -325,16 +323,19 @@ bool Transcode::openInputFile()
     d_ptr->inFormatContext->findStream();
     auto stream_num = d_ptr->inFormatContext->streams();
     for (int i = 0; i < stream_num; i++) {
+        auto transContext = new TranscodeContext;
+        d_ptr->transcodeContexts.append(transContext);
+        auto stream = d_ptr->inFormatContext->stream(i);
+        auto codec_type = stream->codecpar->codec_type;
+        if (stream->disposition & AV_DISPOSITION_ATTACHED_PIC) {
+            continue;
+        }
         QSharedPointer<AVContextInfo> contextInfoPtr;
-        auto codec_type = d_ptr->inFormatContext->stream(i)->codecpar->codec_type;
         switch (codec_type) {
         case AVMEDIA_TYPE_AUDIO:
         case AVMEDIA_TYPE_VIDEO:
         case AVMEDIA_TYPE_SUBTITLE: contextInfoPtr.reset(new AVContextInfo); break;
-        default: break;
-        }
-        if (contextInfoPtr.isNull()) {
-            continue;
+        default: return false;
         }
         if (!d_ptr->setInMediaIndex(contextInfoPtr.data(), i)) {
             return false;
@@ -342,9 +343,7 @@ bool Transcode::openInputFile()
         if (codec_type == AVMEDIA_TYPE_VIDEO || codec_type == AVMEDIA_TYPE_AUDIO) {
             contextInfoPtr->openCodec(d_ptr->gpuDecode);
         }
-        auto transContext = new TranscodeContext;
         transContext->decContextInfo = contextInfoPtr;
-        d_ptr->transcodeContexts.append(transContext);
     }
     d_ptr->inFormatContext->dumpFormat();
 
@@ -360,12 +359,32 @@ bool Transcode::openOutputFile()
     }
     auto stream_num = d_ptr->inFormatContext->streams();
     for (int i = 0; i < stream_num; i++) {
+        auto inStream = d_ptr->inFormatContext->stream(i);
         auto stream = d_ptr->outFormatContext->createStream();
         if (!stream) {
             return false;
         }
+        stream->disposition = inStream->disposition;
+        stream->discard = inStream->discard;
+        stream->sample_aspect_ratio = inStream->sample_aspect_ratio;
+        stream->avg_frame_rate = inStream->avg_frame_rate;
+        stream->event_flags = inStream->event_flags;
+        av_dict_copy(&stream->metadata, inStream->metadata, 0);
         auto transContext = d_ptr->transcodeContexts.at(i);
         auto decContextInfo = transContext->decContextInfo;
+        if (inStream->disposition & AV_DISPOSITION_ATTACHED_PIC) {
+            auto ret = avcodec_parameters_copy(stream->codecpar, inStream->codecpar);
+            if (ret < 0) {
+                qErrnoWarning("Copying parameters for stream #%u failed", i);
+                return ret;
+            }
+            stream->time_base = inStream->time_base;
+            stream->codecpar->width = inStream->codecpar->width > 0 ? inStream->codecpar->width
+                                                                    : d_ptr->size.width();
+            stream->codecpar->height = inStream->codecpar->height > 0 ? inStream->codecpar->height
+                                                                      : d_ptr->size.height();
+            continue;
+        }
         stream->codecpar->codec_type = decContextInfo->mediaType();
         switch (decContextInfo->mediaType()) {
         case AVMEDIA_TYPE_AUDIO:
@@ -406,7 +425,6 @@ bool Transcode::openOutputFile()
             qFatal("Elementary stream #%d is of unknown type, cannot proceed", i);
             return false;
         default: {
-            auto inStream = d_ptr->inFormatContext->stream(i);
             auto ret = avcodec_parameters_copy(stream->codecpar, inStream->codecpar);
             if (ret < 0) {
                 qErrnoWarning("Copying parameters for stream #%u failed", i);
@@ -453,8 +471,10 @@ void Transcode::initFilters()
 {
     auto stream_num = d_ptr->inFormatContext->streams();
     for (int i = 0; i < stream_num; i++) {
-        auto filteringContext = new FilteringContext;
-        d_ptr->filteringContexts.append(filteringContext);
+        auto transcodeCtx = d_ptr->transcodeContexts.at(i);
+        if (transcodeCtx->decContextInfo.isNull()) {
+            continue;
+        }
         auto codec_type = d_ptr->inFormatContext->stream(i)->codecpar->codec_type;
         if (codec_type != AVMEDIA_TYPE_AUDIO && codec_type != AVMEDIA_TYPE_VIDEO) {
             continue;
@@ -471,10 +491,7 @@ void Transcode::initFilters()
         } else {
             filter_spec = "anull";
         }
-        init_filter(filteringContext,
-                    d_ptr->transcodeContexts.at(i)->decContextInfo.data(),
-                    d_ptr->transcodeContexts.at(i)->encContextInfo.data(),
-                    filter_spec.toLocal8Bit().constData());
+        init_filter(transcodeCtx, filter_spec.toLocal8Bit().constData());
     }
 }
 
@@ -487,7 +504,7 @@ void Transcode::loop()
             break;
         }
         auto stream_index = packetPtr->avPacket()->stream_index;
-        auto filter_graph = d_ptr->filteringContexts.at(stream_index)->filterGraph;
+        auto filter_graph = d_ptr->transcodeContexts.at(stream_index)->filterGraph;
         if (filter_graph.isNull()) {
             packetPtr->rescaleTs(d_ptr->inFormatContext->stream(stream_index)->time_base,
                                  d_ptr->outFormatContext->stream(stream_index)->time_base);
@@ -501,11 +518,11 @@ void Transcode::loop()
                 QScopedPointer<Frame> framePtr(frame);
                 filterEncodeWriteframe(frame, stream_index);
             }
-        }
-        Ffmpeg::calculateTime(packetPtr.data(),
-                              d_ptr->transcodeContexts.at(stream_index)->decContextInfo.data());
 
-        emit progressChanged(packetPtr->pts() * 1000 / duration);
+            Ffmpeg::calculateTime(packetPtr.data(),
+                                  d_ptr->transcodeContexts.at(stream_index)->decContextInfo.data());
+            emit progressChanged(packetPtr->pts() * 1000 / duration);
+        }
     }
 }
 
@@ -513,7 +530,7 @@ void Transcode::cleanup()
 {
     auto stream_num = d_ptr->inFormatContext->streams();
     for (int i = 0; i < stream_num; i++) {
-        if (d_ptr->filteringContexts.at(i)->filterGraph.isNull()) {
+        if (d_ptr->transcodeContexts.at(i)->filterGraph.isNull()) {
             continue;
         }
         QScopedPointer<Frame> framePtr(new Frame);
@@ -527,7 +544,7 @@ void Transcode::cleanup()
 
 bool Transcode::filterEncodeWriteframe(Frame *frame, uint stream_index)
 {
-    auto filteringCtx = d_ptr->filteringContexts.at(stream_index);
+    auto filteringCtx = d_ptr->transcodeContexts.at(stream_index);
     if (!filteringCtx->buffersrcCtx->buffersrc_addFrameFlags(frame)) {
         return false;
     }

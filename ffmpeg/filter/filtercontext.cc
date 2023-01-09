@@ -75,11 +75,19 @@ bool FilterContext::buffersrc_addFrameFlags(Frame *frame)
 bool FilterContext::buffersink_getFrame(Frame *frame)
 {
     auto ret = av_buffersink_get_frame(d_ptr->filterContext, frame->avFrame());
+    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+        return false;
+    }
     if (ret < 0) {
         setError(ret);
         return false;
     }
     return true;
+}
+
+void FilterContext::buffersink_setFrameSize(int size)
+{
+    av_buffersink_set_frame_size(d_ptr->filterContext, size);
 }
 
 AVFilterContext *FilterContext::avFilterContext()

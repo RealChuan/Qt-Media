@@ -24,6 +24,7 @@ public:
 
     bool buffersrc_addFrameFlags(Frame *frame);
     bool buffersink_getFrame(Frame *frame);
+    void buffersink_setFrameSize(int size);
 
     AVFilterContext *avFilterContext();
 

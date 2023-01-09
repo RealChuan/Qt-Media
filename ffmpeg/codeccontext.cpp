@@ -22,7 +22,7 @@ public:
 
     void init()
     {
-        Q_ASSERT(nullptr != codec);
+        auto codec = codecCtx->codec;
         if (codec->supported_framerates) {
             for (int i = 0; i < INT_MAX; i++) {
                 auto framerate = codec->supported_framerates[i];
@@ -70,7 +70,6 @@ public:
         }
     }
 
-    const AVCodec *codec = nullptr;
     AVCodecContext *codecCtx = nullptr; //解码器上下文
 
     QVector<AVRational> supported_framerates{};
@@ -84,7 +83,6 @@ CodecContext::CodecContext(const AVCodec *codec, QObject *parent)
     : QObject(parent)
     , d_ptr(new CodecContextPrivate)
 {
-    d_ptr->codec = codec;
     d_ptr->codecCtx = avcodec_alloc_context3(codec);
     d_ptr->init();
     Q_ASSERT(d_ptr->codecCtx != nullptr);
@@ -111,10 +109,10 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
     case AVMEDIA_TYPE_AUDIO:
         dst->setSampleRate(d_ptr->codecCtx->sample_rate);
         dst->setChannelLayout(d_ptr->codecCtx->channel_layout);
-        dstCodecCtx->channels = av_get_channel_layout_nb_channels(dstCodecCtx->channel_layout);
+        //dstCodecCtx->channels = av_get_channel_layout_nb_channels(dstCodecCtx->channel_layout);
         /* take first format from list of supported formats */
-        if (d_ptr->codec->sample_fmts) {
-            dst->setSampleFmt(d_ptr->codec->sample_fmts[0]);
+        if (d_ptr->codecCtx->codec->sample_fmts) {
+            dst->setSampleFmt(d_ptr->codecCtx->codec->sample_fmts[0]);
         } else {
             dst->setSampleFmt(d_ptr->codecCtx->sample_fmt);
         }
@@ -125,8 +123,8 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
         dstCodecCtx->width = d_ptr->codecCtx->width;
         dstCodecCtx->sample_aspect_ratio = d_ptr->codecCtx->sample_aspect_ratio;
         /* take first format from list of supported formats */
-        dst->setPixfmt(d_ptr->codec->pix_fmts ? d_ptr->codec->pix_fmts[0]
-                                              : d_ptr->codecCtx->pix_fmt);
+        dst->setPixfmt(d_ptr->codecCtx->codec->pix_fmts ? d_ptr->codecCtx->codec->pix_fmts[0]
+                                                        : d_ptr->codecCtx->pix_fmt);
         /* video time_base can be set to whatever is handy and supported by encoder */
         dstCodecCtx->time_base = av_inv_q(d_ptr->codecCtx->framerate);
         dstCodecCtx->color_primaries = d_ptr->codecCtx->color_primaries;
@@ -163,10 +161,10 @@ void CodecContext::setTimebase(const AVRational &timebase)
 
 void CodecContext::setThreadCount(int threadCount)
 {
-    Q_ASSERT(d_ptr->codecCtx != nullptr && d_ptr->codec != nullptr);
-    if (d_ptr->codec->capabilities & AV_CODEC_CAP_FRAME_THREADS) {
+    Q_ASSERT(d_ptr->codecCtx != nullptr);
+    if (d_ptr->codecCtx->codec->capabilities & AV_CODEC_CAP_FRAME_THREADS) {
         d_ptr->codecCtx->thread_type = FF_THREAD_FRAME;
-    } else if (d_ptr->codec->capabilities & AV_CODEC_CAP_SLICE_THREADS) {
+    } else if (d_ptr->codecCtx->codec->capabilities & AV_CODEC_CAP_SLICE_THREADS) {
         d_ptr->codecCtx->thread_type = FF_THREAD_SLICE;
     }
     d_ptr->codecCtx->thread_count = threadCount;
@@ -225,9 +223,10 @@ void CodecContext::setChannelLayout(uint64_t channelLayout)
     if (d_ptr->supported_channel_layouts.isEmpty()
         || d_ptr->supported_channel_layouts.contains(channelLayout)) {
         d_ptr->codecCtx->channel_layout = channelLayout;
-        return;
+    } else {
+        d_ptr->codecCtx->channel_layout = d_ptr->supported_channel_layouts.first();
     }
-    d_ptr->codecCtx->channel_layout = d_ptr->supported_channel_layouts.first();
+    d_ptr->codecCtx->channels = av_get_channel_layout_nb_channels(d_ptr->codecCtx->channel_layout);
 }
 
 uint64_t CodecContext::channelLayout() const
@@ -327,8 +326,7 @@ int CodecContext::flags() const
 bool CodecContext::open()
 {
     Q_ASSERT(d_ptr->codecCtx != nullptr);
-    Q_ASSERT(d_ptr->codec != nullptr);
-    int ret = avcodec_open2(d_ptr->codecCtx, d_ptr->codec, NULL);
+    auto ret = avcodec_open2(d_ptr->codecCtx, d_ptr->codecCtx->codec, NULL);
     if (ret < 0) {
         setError(ret);
         return false;
@@ -375,6 +373,9 @@ bool CodecContext::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
 bool CodecContext::sendFrame(Frame *frame)
 {
     auto ret = avcodec_send_frame(d_ptr->codecCtx, frame->avFrame());
+    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+        return false;
+    }
     if (ret < 0) {
         setError(ret);
         return false;
@@ -385,6 +386,9 @@ bool CodecContext::sendFrame(Frame *frame)
 bool CodecContext::receivePacket(Packet *packet)
 {
     auto ret = avcodec_receive_packet(d_ptr->codecCtx, packet->avPacket());
+    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+        return false;
+    }
     if (ret < 0) {
         setError(ret);
         return false;
@@ -414,8 +418,7 @@ QString CodecContext::mediaTypeString() const
 
 bool CodecContext::isDecoder() const
 {
-    Q_ASSERT(d_ptr->codec != nullptr);
-    return av_codec_is_decoder(d_ptr->codec) != 0;
+    return av_codec_is_decoder(d_ptr->codecCtx->codec) != 0;
 }
 
 void CodecContext::flush()
@@ -425,7 +428,7 @@ void CodecContext::flush()
 
 const AVCodec *CodecContext::codec()
 {
-    return d_ptr->codec;
+    return d_ptr->codecCtx->codec;
 }
 
 void CodecContext::setError(int errorCode)
