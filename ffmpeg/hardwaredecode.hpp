@@ -22,8 +22,6 @@ public:
     bool isVaild();
 
 private:
-    void setError(int errorCode);
-
     struct HardWareDecodePrivate;
     QScopedPointer<HardWareDecodePrivate> d_ptr;
 };

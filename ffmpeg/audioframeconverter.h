@@ -16,8 +16,6 @@ public:
     QByteArray convert(Frame *frame);
 
 private:
-    void setError(int errorCode);
-
     class AudioFrameConverterPrivate;
     QScopedPointer<AudioFrameConverterPrivate> d_ptr;
 };

@@ -35,10 +35,7 @@ public:
     static bool isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt);
 
 private:
-    void setError(int errorCode);
-    inline void debugMessage();
-
-    struct VideoFrameConverterPrivate;
+    class VideoFrameConverterPrivate;
     QScopedPointer<VideoFrameConverterPrivate> d_ptr;
 };
 

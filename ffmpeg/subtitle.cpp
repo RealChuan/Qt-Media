@@ -24,6 +24,63 @@ public:
 
     void freeSubtitle() { avsubtitle_free(&subtitle); }
 
+    void parseImage(SwsContext *swsContext)
+    {
+        image = QImage(videoResolutionRatio, QImage::Format_RGBA8888);
+        image.fill(Qt::transparent);
+        QPainter painter(&image);
+        for (size_t i = 0; i < subtitle.num_rects; i++) {
+            auto sub_rect = subtitle.rects[i];
+
+            uint8_t *pixels[4];
+            int pitch[4];
+            //注意，这里是RGBA格式，需要Alpha
+            av_image_alloc(pixels, pitch, sub_rect->w, sub_rect->h, AV_PIX_FMT_RGBA, 1);
+            swsContext = sws_getCachedContext(swsContext,
+                                              sub_rect->w,
+                                              sub_rect->h,
+                                              AV_PIX_FMT_PAL8,
+                                              sub_rect->w,
+                                              sub_rect->h,
+                                              AV_PIX_FMT_RGBA,
+                                              SWS_BILINEAR,
+                                              nullptr,
+                                              nullptr,
+                                              nullptr);
+            sws_scale(swsContext, sub_rect->data, sub_rect->linesize, 0, sub_rect->h, pixels, pitch);
+            //这里也使用RGBA
+            auto image = QImage(pixels[0], sub_rect->w, sub_rect->h, QImage::Format_RGBA8888);
+            if (!image.isNull()) {
+                painter.drawImage(QRect(sub_rect->x, sub_rect->y, sub_rect->w, sub_rect->h), image);
+            }
+            av_freep(&pixels[0]);
+        }
+        pts = subtitle.start_display_time / 1000.0;
+        duration = (subtitle.end_display_time - subtitle.start_display_time) / 1000.0;
+    }
+
+    void parseText()
+    {
+        pts = QString::asprintf("%.2f", pts).toDouble(); // libass只支持0.01秒，还要四舍五入
+        for (size_t i = 0; i < subtitle.num_rects; i++) {
+            AVSubtitleRect *sub_rect = subtitle.rects[i];
+            QByteArray text;
+            switch (sub_rect->type) {
+            case AVSubtitleType::SUBTITLE_TEXT:
+                type = Subtitle::TEXT;
+                text = sub_rect->text;
+                break;
+            case AVSubtitleType::SUBTITLE_ASS:
+                type = Subtitle::ASS;
+                text = sub_rect->ass;
+                break;
+            default: continue;
+            }
+            texts.append(text);
+            //qDebug() << "Subtitle Type:" << sub_rect->type << QString::fromUtf8(text);
+        }
+    }
+
     QObject *owner;
     AVSubtitle subtitle;
     double pts = 0;
@@ -58,79 +115,15 @@ void Subtitle::parse(SwsContext *swsContext)
     switch (d_ptr->subtitle.format) {
     case 0:
         d_ptr->type = Subtitle::Graphics;
-        parseImage(swsContext);
+        d_ptr->parseImage(swsContext);
         break;
-    default: parseText(); break;
+    default: d_ptr->parseText(); break;
     }
 }
 
 QByteArrayList Subtitle::texts() const
 {
     return d_ptr->texts;
-}
-
-void Subtitle::parseImage(SwsContext *swsContext)
-{
-    d_ptr->image = QImage(d_ptr->videoResolutionRatio, QImage::Format_RGBA8888);
-    d_ptr->image.fill(Qt::transparent);
-    QPainter painter(&d_ptr->image);
-    for (size_t i = 0; i < d_ptr->subtitle.num_rects; i++) {
-        auto sub_rect = d_ptr->subtitle.rects[i];
-
-        uint8_t *pixels[4];
-        int pitch[4];
-        //注意，这里是RGBA格式，需要Alpha
-        av_image_alloc(pixels, pitch, sub_rect->w, sub_rect->h, AV_PIX_FMT_RGBA, 1);
-        swsContext = sws_getCachedContext(swsContext,
-                                          sub_rect->w,
-                                          sub_rect->h,
-                                          AV_PIX_FMT_PAL8,
-                                          sub_rect->w,
-                                          sub_rect->h,
-                                          AV_PIX_FMT_RGBA,
-                                          SWS_BILINEAR,
-                                          nullptr,
-                                          nullptr,
-                                          nullptr);
-        sws_scale(d_ptr->swsContext,
-                  sub_rect->data,
-                  sub_rect->linesize,
-                  0,
-                  sub_rect->h,
-                  pixels,
-                  pitch);
-        //这里也使用RGBA
-        auto image = QImage(pixels[0], sub_rect->w, sub_rect->h, QImage::Format_RGBA8888);
-        if (!image.isNull()) {
-            painter.drawImage(QRect(sub_rect->x, sub_rect->y, sub_rect->w, sub_rect->h), image);
-        }
-        av_freep(&pixels[0]);
-    }
-    d_ptr->pts = d_ptr->subtitle.start_display_time / 1000.0;
-    d_ptr->duration = (d_ptr->subtitle.end_display_time - d_ptr->subtitle.start_display_time)
-                      / 1000.0;
-}
-
-void Subtitle::parseText()
-{
-    d_ptr->pts = QString::asprintf("%.2f", d_ptr->pts).toDouble(); // libass只支持0.01秒，还要四舍五入
-    for (size_t i = 0; i < d_ptr->subtitle.num_rects; i++) {
-        AVSubtitleRect *sub_rect = d_ptr->subtitle.rects[i];
-        QByteArray text;
-        switch (sub_rect->type) {
-        case AVSubtitleType::SUBTITLE_TEXT:
-            d_ptr->type = Subtitle::TEXT;
-            text = sub_rect->text;
-            break;
-        case AVSubtitleType::SUBTITLE_ASS:
-            d_ptr->type = Subtitle::ASS;
-            text = sub_rect->ass;
-            break;
-        default: continue;
-        }
-        d_ptr->texts.append(text);
-        //qDebug() << "Subtitle Type:" << sub_rect->type << QString::fromUtf8(text);
-    }
 }
 
 AVSubtitle *Subtitle::avSubtitle()

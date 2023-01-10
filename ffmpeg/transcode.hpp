@@ -48,6 +48,8 @@ public:
     void startTranscode();
     void stopTranscode();
 
+    float fps();
+
 signals:
     void error(const Ffmpeg::AVError &avError);
     void progressChanged(qreal); // 0.XXXX
@@ -57,16 +59,7 @@ protected:
 
 private:
     void buildConnect();
-    bool openInputFile();
-    bool openOutputFile();
-    void initFilters();
     void loop();
-    void cleanup();
-    bool filterEncodeWriteframe(Frame *frame, uint stream_index);
-    bool encodeWriteFrame(uint stream_index, int flush, Frame *frame);
-    bool flushEncoder(uint stream_index);
-
-    void setError(int errorCode);
 
     class TranscodePrivate;
     QScopedPointer<TranscodePrivate> d_ptr;

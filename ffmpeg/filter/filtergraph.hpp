@@ -21,8 +21,6 @@ public:
     AVFilterGraph *avFilterGraph();
 
 private:
-    void setError(int errorCode);
-
     class FilterGraphPrivate;
     QScopedPointer<FilterGraphPrivate> d_ptr;
 };

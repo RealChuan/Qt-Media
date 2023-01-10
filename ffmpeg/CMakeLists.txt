@@ -13,6 +13,7 @@ set(PROJECT_SOURCES
         videorender/widgetrender.cc videorender/widgetrender.hpp
 
         audiodecoder.cpp audiodecoder.h
+        audiofifo.cc audiofifo.hpp
         audioframeconverter.cpp audioframeconverter.h
         avcontextinfo.cpp avcontextinfo.h
         avversion.cc avversion.hpp

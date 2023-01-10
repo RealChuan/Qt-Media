@@ -14,18 +14,27 @@
 
 ## How to set the encoding parameters to get smaller file size and better quality video?
 
-1. Set a very high bit rate;  
-2. Setting encoder global_quality is invalid.The code is as follows:  
+1. Set a very high bit rate;
+2. Setting encoder global_quality is invalid.The code is as follows:
 
    ```C++
    d_ptr->codecCtx->flags |= AV_CODEC_FLAG_QSCALE;
    d_ptr->codecCtx->global_quality = FF_QP2LAMBDA * quailty;
    ```
-3. Setting crf is invalid. The code is as follows：  
-    
-    ```C++
+3. Setting crf is invalid. The code is as follows：
+
+   ```C++
    av_opt_set_int(d_ptr->codecCtx, "crf", crf, AV_OPT_SEARCH_CHILDREN);
    ```
+
+## How to compute pts from frames taken from AVAudioFifo?
+
+```C++
+// fix me?
+frame->pts = transcodeCtx->audioPts * 1000
+                     / transcodeCtx->decContextInfoPtr->codecCtx()->sampleRate();
+transcodeCtx->audioPts += frame->nb_samples;
+```
 
 ## QFfmpegPlayer
 

@@ -36,7 +36,6 @@ public:
     QImage generateImage() const;
     QImage image() const;
 
-    AVSubtitle *avSubtitle();
     void clear();
 
     Type type() const;
@@ -44,10 +43,9 @@ public:
     double pts();
     double duration();
 
-private:
-    void parseImage(SwsContext *swsContext);
-    void parseText();
+    AVSubtitle *avSubtitle();
 
+private:
     class SubtitlePrivate;
     QScopedPointer<SubtitlePrivate> d_ptr;
 };

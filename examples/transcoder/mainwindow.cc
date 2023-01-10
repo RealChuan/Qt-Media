@@ -80,6 +80,9 @@ public:
         startButton->setMinimumSize(BUTTON_SIZE);
         progressBar = new QProgressBar(owner);
         progressBar->setRange(0, 100);
+        fpsLabel = new QLabel(owner);
+        fpsLabel->setToolTip(QObject::tr("Video Encoder FPS."));
+        fpsTimer = new QTimer(owner);
     }
 
     void initInputFileAttribute(const QString &filePath)
@@ -156,6 +159,8 @@ public:
 
     QToolButton *startButton;
     QProgressBar *progressBar;
+    QLabel *fpsLabel;
+    QTimer *fpsTimer;
 };
 
 MainWindow::MainWindow(QWidget *parent)
@@ -266,9 +271,15 @@ void MainWindow::onStart()
         d_ptr->transcode->setPreset(d_ptr->presetCbx->currentText());
         d_ptr->transcode->startTranscode();
         d_ptr->startButton->setText(tr("Stop"));
+
+        d_ptr->fpsTimer->start(1000);
+
     } else if (d_ptr->startButton->text() == tr("Stop")) {
         d_ptr->transcode->stopTranscode();
+        d_ptr->progressBar->setValue(0);
         d_ptr->startButton->setText(tr("Start"));
+
+        d_ptr->fpsTimer->stop();
     }
 }
 
@@ -323,6 +334,7 @@ void MainWindow::setupUI()
     auto displayLayout = new QHBoxLayout;
     displayLayout->addWidget(d_ptr->startButton);
     displayLayout->addWidget(d_ptr->progressBar);
+    displayLayout->addWidget(d_ptr->fpsLabel);
 
     auto widget = new QWidget(this);
     auto layout = new QVBoxLayout(widget);
@@ -401,7 +413,12 @@ void MainWindow::buildConnect()
         d_ptr->progressBar->setValue(value * 100);
     });
     connect(d_ptr->transcode, &Ffmpeg::Transcode::finished, this, [this] {
-        d_ptr->startButton->setEnabled(true);
-        d_ptr->progressBar->setValue(0);
+        if (d_ptr->startButton->text() == tr("Stop")) {
+            d_ptr->startButton->click();
+        }
+    });
+    connect(d_ptr->fpsTimer, &QTimer::timeout, this, [this] {
+        auto str = QString("FPS: %1").arg(QString::number(d_ptr->transcode->fps(), 'f', 2));
+        d_ptr->fpsLabel->setText(str);
     });
 }

@@ -40,6 +40,7 @@ public:
 
     void setChannelLayout(uint64_t channelLayout);
     uint64_t channelLayout() const;
+    int channels() const;
 
     void setSize(const QSize &size);
     QSize size() const;
@@ -84,8 +85,6 @@ public:
     AVCodecContext *avCodecCtx();
 
 private:
-    void setError(int errorCode);
-
     class CodecContextPrivate;
     QScopedPointer<CodecContextPrivate> d_ptr;
 };

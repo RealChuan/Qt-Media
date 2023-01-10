@@ -67,12 +67,6 @@ public:
     AVFormatContext *avFormatContext();
 
 private:
-    void findStreamIndex();
-    void initMetaData();
-    void printInformation();
-
-    void setError(int errorCode);
-
     class FormatContextPrivate;
     QScopedPointer<FormatContextPrivate> d_ptr;
 };

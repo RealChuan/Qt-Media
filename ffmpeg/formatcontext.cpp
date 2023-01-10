@@ -24,6 +24,77 @@ public:
 
     ~FormatContextPrivate() {}
 
+    void findStreamIndex()
+    {
+        videoIndexs.clear();
+        audioMap.clear();
+        subtitleMap.clear();
+        coverImage = QImage();
+
+        //nb_streams视音频流的个数
+        for (uint i = 0; i < formatCtx->nb_streams; i++) {
+            switch (formatCtx->streams[i]->codecpar->codec_type) {
+            case AVMEDIA_TYPE_VIDEO: videoIndexs.append(i); break;
+            case AVMEDIA_TYPE_AUDIO: {
+                AVDictionaryEntry *tag = nullptr;
+                QString str;
+                while (nullptr
+                       != (tag = av_dict_get(formatCtx->streams[i]->metadata,
+                                             "",
+                                             tag,
+                                             AV_DICT_IGNORE_SUFFIX))) {
+                    str = str + tag->key + ":" + QString::fromUtf8(tag->value) + " ";
+                    //qDebug() << tag->key << ":" << QString::fromUtf8(tag->value);
+                }
+                str.chop(1);
+                audioMap.insert(i, str);
+            } break;
+            case AVMEDIA_TYPE_SUBTITLE: {
+                QString str;
+                AVDictionaryEntry *tag = nullptr;
+                while (nullptr
+                       != (tag = av_dict_get(formatCtx->streams[i]->metadata,
+                                             "",
+                                             tag,
+                                             AV_DICT_IGNORE_SUFFIX))) {
+                    str = str + tag->key + ":" + QString::fromUtf8(tag->value) + " ";
+                    //qDebug() << tag->key << ":" << QString::fromUtf8(tag->value);
+                }
+                str.chop(1);
+                subtitleMap.insert(i, str);
+            } break;
+            default: break;
+            }
+
+            if (formatCtx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) {
+                AVPacket &pkt = formatCtx->streams[i]->attached_pic;
+                coverImage = QImage::fromData((uchar *) pkt.data, pkt.size);
+            }
+        }
+    }
+
+    void initMetaData()
+    {
+        AVDictionaryEntry *tag = nullptr;
+        while (nullptr != (tag = av_dict_get(formatCtx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
+            qDebug() << tag->key << QString::fromUtf8(tag->value);
+        }
+    }
+
+    void printInformation()
+    {
+        qInfo() << tr("AV Format Name: ") << formatCtx->iformat->name;
+        QTime time(QTime::fromMSecsSinceStartOfDay(formatCtx->duration / 1000));
+        qInfo() << tr("Duration:") << time.toString("hh:mm:ss.zzz");
+
+        if (formatCtx->pb) {
+            // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
+            formatCtx->pb->eof_reached = 0;
+        }
+    }
+
+    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
+
     QObject *owner;
     AVFormatContext *formatCtx = nullptr;
     QString filepath;
@@ -63,7 +134,7 @@ bool FormatContext::openFilePath(const QString &filepath, OpenMode mode)
                                        nullptr,
                                        nullptr);
         if (ret != 0) {
-            setError(ret);
+            d_ptr->setError(ret);
             return false;
         }
         av_format_inject_global_side_data(d_ptr->formatCtx);
@@ -75,7 +146,7 @@ bool FormatContext::openFilePath(const QString &filepath, OpenMode mode)
                                                   nullptr,
                                                   d_ptr->filepath.toLocal8Bit().constData());
         if (ret < 0) {
-            setError(ret);
+            d_ptr->setError(ret);
             return false;
         }
         d_ptr->isOpen = true;
@@ -108,7 +179,7 @@ bool FormatContext::avio_open()
                            d_ptr->filepath.toLocal8Bit().constData(),
                            AVIO_FLAG_WRITE);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -131,7 +202,7 @@ bool FormatContext::writeHeader()
 {
     auto ret = avformat_write_header(d_ptr->formatCtx, nullptr);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -141,7 +212,7 @@ bool FormatContext::writeFrame(Packet *packet)
 {
     auto ret = av_interleaved_write_frame(d_ptr->formatCtx, packet->avPacket());
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -151,7 +222,7 @@ bool FormatContext::writeTrailer()
 {
     auto ret = av_write_trailer(d_ptr->formatCtx);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -162,14 +233,14 @@ bool FormatContext::findStream()
     //获取音视频流数据信息
     int ret = avformat_find_stream_info(d_ptr->formatCtx, nullptr);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     qDebug() << "The video file contains the number of stream information:"
              << d_ptr->formatCtx->nb_streams;
-    printInformation();
-    initMetaData();
-    findStreamIndex();
+    d_ptr->printInformation();
+    d_ptr->initMetaData();
+    d_ptr->findStreamIndex();
     return true;
 }
 
@@ -208,81 +279,6 @@ void FormatContext::discardStreamExcluded(int audioIndex, int videoIndex, int su
     }
 }
 
-void FormatContext::findStreamIndex()
-{
-    d_ptr->videoIndexs.clear();
-    d_ptr->audioMap.clear();
-    d_ptr->subtitleMap.clear();
-    d_ptr->coverImage = QImage();
-
-    //nb_streams视音频流的个数
-    for (uint i = 0; i < d_ptr->formatCtx->nb_streams; i++) {
-        switch (d_ptr->formatCtx->streams[i]->codecpar->codec_type) {
-        case AVMEDIA_TYPE_VIDEO: d_ptr->videoIndexs.append(i); break;
-        case AVMEDIA_TYPE_AUDIO: {
-            AVDictionaryEntry *tag = nullptr;
-            QString str;
-            while (nullptr
-                   != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata,
-                                         "",
-                                         tag,
-                                         AV_DICT_IGNORE_SUFFIX))) {
-                str = str + tag->key + ":" + QString::fromUtf8(tag->value) + " ";
-                //qDebug() << tag->key << ":" << QString::fromUtf8(tag->value);
-            }
-            str.chop(1);
-            d_ptr->audioMap.insert(i, str);
-        } break;
-        case AVMEDIA_TYPE_SUBTITLE: {
-            QString str;
-            AVDictionaryEntry *tag = nullptr;
-            while (nullptr
-                   != (tag = av_dict_get(d_ptr->formatCtx->streams[i]->metadata,
-                                         "",
-                                         tag,
-                                         AV_DICT_IGNORE_SUFFIX))) {
-                str = str + tag->key + ":" + QString::fromUtf8(tag->value) + " ";
-                //qDebug() << tag->key << ":" << QString::fromUtf8(tag->value);
-            }
-            str.chop(1);
-            d_ptr->subtitleMap.insert(i, str);
-        } break;
-        default: break;
-        }
-
-        if (d_ptr->formatCtx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) {
-            AVPacket &pkt = d_ptr->formatCtx->streams[i]->attached_pic;
-            d_ptr->coverImage = QImage::fromData((uchar *) pkt.data, pkt.size);
-        }
-    }
-}
-
-void FormatContext::initMetaData()
-{
-    AVDictionaryEntry *tag = nullptr;
-    while (nullptr
-           != (tag = av_dict_get(d_ptr->formatCtx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
-        qDebug() << tag->key << QString::fromUtf8(tag->value);
-    }
-}
-
-void FormatContext::printInformation()
-{
-    qInfo() << tr("AV Format Name: ") << d_ptr->formatCtx->iformat->name;
-    QTime time(QTime::fromMSecsSinceStartOfDay(d_ptr->formatCtx->duration / 1000));
-    qInfo() << tr("Duration:") << time.toString("hh:mm:ss.zzz");
-
-    if (d_ptr->formatCtx->pb) {
-        // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
-        d_ptr->formatCtx->pb->eof_reached = 0;
-    }
-}
-
-void FormatContext::setError(int errorCode)
-{
-    AVErrorManager::instance()->setErrorCode(errorCode);
-}
-
 AVStream *FormatContext::stream(int index)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
@@ -305,7 +301,7 @@ bool FormatContext::readFrame(Packet *packet)
     if (ret >= 0) {
         return true;
     }
-    setError(ret);
+    d_ptr->setError(ret);
     return false;
 }
 
@@ -348,7 +344,7 @@ bool FormatContext::seekFirstFrame()
     }
     int ret = avformat_seek_file(d_ptr->formatCtx, -1, INT64_MIN, timestamp, INT64_MAX, 0);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -372,7 +368,7 @@ bool FormatContext::seek(int64_t timestamp)
                                  seek_max * AV_TIME_BASE,
                                  0);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -383,7 +379,7 @@ bool FormatContext::seek(int index, int64_t timestamp)
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     int ret = av_seek_frame(d_ptr->formatCtx, index, timestamp, AVSEEK_FLAG_BACKWARD);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;

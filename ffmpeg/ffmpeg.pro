@@ -13,6 +13,7 @@ LIBS += -l$$replaceLibName(utils)
 
 SOURCES += \
     audiodecoder.cpp \
+    audiofifo.cc \
     audioframeconverter.cpp \
     avcontextinfo.cpp \
     averror.cpp \
@@ -38,6 +39,7 @@ SOURCES += \
 
 HEADERS += \
     audiodecoder.h \
+    audiofifo.hpp \
     audioframeconverter.h \
     avcontextinfo.h \
     averror.h \

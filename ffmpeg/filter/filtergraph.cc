@@ -18,11 +18,14 @@ public:
         filterGraph = avfilter_graph_alloc();
         Q_ASSERT(nullptr != filterGraph);
     }
+
     ~FilterGraphPrivate()
     {
         Q_ASSERT(nullptr != filterGraph);
         avfilter_graph_free(&filterGraph);
     }
+
+    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
 
     QObject *owner;
     AVFilterGraph *filterGraph = nullptr;
@@ -47,7 +50,7 @@ bool FilterGraph::parse(const QString &filters, FilterInOut *in, FilterInOut *ou
     in->setAVFilterInOut(inputs);
     out->setAVFilterInOut(outputs);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -57,7 +60,7 @@ bool FilterGraph::config()
 {
     auto ret = avfilter_graph_config(d_ptr->filterGraph, nullptr);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -66,11 +69,6 @@ bool FilterGraph::config()
 AVFilterGraph *FilterGraph::avFilterGraph()
 {
     return d_ptr->filterGraph;
-}
-
-void FilterGraph::setError(int errorCode)
-{
-    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 } // namespace Ffmpeg

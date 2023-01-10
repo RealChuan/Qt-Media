@@ -41,6 +41,8 @@ public:
     QImage::Format format() const;
     QImage convertToImage() const; // maybe null
 
+    bool getBuffer();
+
     void unref();
 
     AVFrame *avFrame();

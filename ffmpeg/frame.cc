@@ -1,4 +1,5 @@
 #include "frame.hpp"
+#include "averrormanager.hpp"
 
 #include <QImage>
 
@@ -30,6 +31,8 @@ struct Frame::FramePrivate
             imageAlloc = false;
         }
     }
+
+    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
 
     AVFrame *frame;
     bool imageAlloc = false;
@@ -156,6 +159,16 @@ QImage Frame::convertToImage() const
                   d_ptr->frame->height,
                   d_ptr->frame->linesize[0],
                   d_ptr->format);
+}
+
+bool Frame::getBuffer()
+{
+    auto ret = av_frame_get_buffer(d_ptr->frame, 0);
+    if (ret < 0) {
+        d_ptr->setError(ret);
+        return false;
+    }
+    return true;
 }
 
 bool Frame::isKey()

@@ -1,5 +1,6 @@
 set(PROJECT_SOURCES
       countdownlatch.cc countdownlatch.hpp
+      fps.cc fps.hpp
       hostosinfo.cpp hostosinfo.h
       logasync.cpp logasync.h
       osspecificaspects.h

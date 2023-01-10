@@ -15,12 +15,37 @@ extern "C" {
 
 namespace Ffmpeg {
 
-struct VideoFrameConverter::VideoFrameConverterPrivate
+class VideoFrameConverter::VideoFrameConverterPrivate
 {
+public:
+    VideoFrameConverterPrivate(QObject *parent)
+        : owner(parent)
+    {}
+
+    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
+
+    inline void debugMessage()
+    {
+#ifndef QT_NO_DEBUG
+        auto support_in = sws_isSupportedInput(src_pix_fmt);
+        auto support_out = sws_isSupportedOutput(dst_pix_fmt);
+        if (!support_in) {
+            qInfo() << QString("support src_pix_fmt: %1 %2")
+                           .arg(QString::number(src_pix_fmt), QString::number(support_in));
+        }
+        if (!support_out) {
+            qInfo() << QString("support dst_pix_fmt: %1 %2")
+                           .arg(QString::number(dst_pix_fmt), QString::number(support_out));
+        }
+#endif
+    }
+
+    QObject *owner;
+
     struct SwsContext *swsContext = nullptr;
     AVPixelFormat src_pix_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
     AVPixelFormat dst_pix_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
-    QSize dstSize;
+    QSize dstSize = {-1, -1};
 };
 
 VideoFrameConverter::VideoFrameConverter(CodecContext *codecCtx,
@@ -28,12 +53,12 @@ VideoFrameConverter::VideoFrameConverter(CodecContext *codecCtx,
                                          AVPixelFormat pix_fmt,
                                          QObject *parent)
     : QObject(parent)
-    , d_ptr(new VideoFrameConverterPrivate)
+    , d_ptr(new VideoFrameConverterPrivate(this))
 {
     auto ctx = codecCtx->avCodecCtx();
     d_ptr->src_pix_fmt = ctx->pix_fmt;
     d_ptr->dst_pix_fmt = pix_fmt;
-    debugMessage();
+    d_ptr->debugMessage();
     size.isValid() ? d_ptr->dstSize = size : d_ptr->dstSize = QSize(ctx->width, ctx->height);
     d_ptr->swsContext = sws_getCachedContext(d_ptr->swsContext,
                                              ctx->width,
@@ -55,7 +80,7 @@ VideoFrameConverter::VideoFrameConverter(Frame *frame,
                                          AVPixelFormat pix_fmt,
                                          QObject *parent)
     : QObject(parent)
-    , d_ptr(new VideoFrameConverterPrivate)
+    , d_ptr(new VideoFrameConverterPrivate(this))
 {
     flush(frame, size, pix_fmt);
 }
@@ -71,7 +96,7 @@ void VideoFrameConverter::flush(Frame *frame, const QSize &dstSize, AVPixelForma
     auto avFrame = frame->avFrame();
     d_ptr->src_pix_fmt = static_cast<AVPixelFormat>(avFrame->format);
     d_ptr->dst_pix_fmt = pix_fmt;
-    debugMessage();
+    d_ptr->debugMessage();
     dstSize.isValid() ? d_ptr->dstSize = dstSize
                       : d_ptr->dstSize = QSize(avFrame->width, avFrame->height);
     d_ptr->swsContext = sws_getCachedContext(d_ptr->swsContext,
@@ -102,7 +127,7 @@ int VideoFrameConverter::scale(Frame *in, Frame *out)
                         outFrame->data,
                         outFrame->linesize);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
     }
     outFrame->width = d_ptr->dstSize.width();
     outFrame->height = d_ptr->dstSize.height();
@@ -123,27 +148,6 @@ bool VideoFrameConverter::isSupportedInput_pix_fmt(AVPixelFormat pix_fmt)
 bool VideoFrameConverter::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
 {
     return sws_isSupportedOutput(pix_fmt);
-}
-
-void VideoFrameConverter::setError(int errorCode)
-{
-    AVErrorManager::instance()->setErrorCode(errorCode);
-}
-
-void VideoFrameConverter::debugMessage()
-{
-#ifndef QT_NO_DEBUG
-    auto support_in = sws_isSupportedInput(d_ptr->src_pix_fmt);
-    auto support_out = sws_isSupportedOutput(d_ptr->dst_pix_fmt);
-    if (!support_in) {
-        qInfo() << QString("support src_pix_fmt: %1 %2")
-                       .arg(QString::number(d_ptr->src_pix_fmt), QString::number(support_in));
-    }
-    if (!support_out) {
-        qInfo() << QString("support dst_pix_fmt: %1 %2")
-                       .arg(QString::number(d_ptr->dst_pix_fmt), QString::number(support_out));
-    }
-#endif
 }
 
 } // namespace Ffmpeg

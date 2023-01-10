@@ -70,10 +70,7 @@ public:
     CodecContext *codecCtx();
 
 private:
-    void showCodecpar();
-    void showMetaData();
-
-    struct AVContextInfoPrivate;
+    class AVContextInfoPrivate;
     QScopedPointer<AVContextInfoPrivate> d_ptr;
 };
 

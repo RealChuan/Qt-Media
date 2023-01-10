@@ -2,6 +2,7 @@
 
 #include <ffmpeg/frame.hpp>
 #include <ffmpeg/subtitle.h>
+#include <utils/fps.hpp>
 
 #include <QDebug>
 #include <QElapsedTimer>
@@ -12,53 +13,25 @@ extern "C" {
 
 namespace Ffmpeg {
 
-static float avgDuration = 0.f;
-static float alpha = 1.f / 100.f; // 采样数设置为100
-static int frameCount = 0;
-
-float fps(int deltaTime) // ms
-{
-    ++frameCount;
-    if (1 == frameCount) {
-        avgDuration = static_cast<float>(deltaTime);
-    } else {
-        avgDuration = avgDuration * (1 - alpha) + deltaTime * alpha;
-    }
-    return (1.f / avgDuration * 1000);
-}
-
-void printFps()
-{
-    static QElapsedTimer timer;
-    if (timer.isValid()) {
-        qDebug() << "FPS: " << fps(timer.elapsed());
-    }
-    timer.restart();
-}
-
 class VideoRender::VideoRenderPrivate
 {
 public:
-    VideoRenderPrivate() {}
+    VideoRenderPrivate()
+        : fpsPtr(new Utils::Fps)
+    {}
 
-    void flushFPS()
-    {
-        if (timer.isValid()) {
-            fps = Ffmpeg::fps(timer.elapsed());
-        }
-        timer.restart();
-    }
+    ~VideoRenderPrivate() {}
+
+    void flushFPS() { fps = fpsPtr->calculate(); }
 
     void resetFps()
     {
-        avgDuration = 0.f;
-        frameCount = 0;
         fps = 0;
-        timer.invalidate();
+        fpsPtr->reset();
     }
 
+    QScopedPointer<Utils::Fps> fpsPtr;
     float fps = 0;
-    QElapsedTimer timer;
 };
 
 VideoRender::VideoRender()

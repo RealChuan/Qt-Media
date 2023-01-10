@@ -104,6 +104,8 @@ class AudioFrameConverter::AudioFrameConverterPrivate
 public:
     AudioFrameConverterPrivate() {}
 
+    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
+
     SwrContext *swrContext;
     QAudioFormat format;
     AVSampleFormat avSampleFormat;
@@ -132,7 +134,7 @@ AudioFrameConverter::AudioFrameConverter(CodecContext *codecCtx, QAudioFormat &f
 
     int ret = swr_init(d_ptr->swrContext);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
     }
     Q_ASSERT(d_ptr->swrContext != nullptr);
 }
@@ -161,15 +163,10 @@ QByteArray AudioFrameConverter::convert(Frame *frame)
                           frame->avFrame()->nb_samples);
     if (len <= 0) {
         data.clear();
-        setError(len);
+        d_ptr->setError(len);
     }
 
     return data;
-}
-
-void AudioFrameConverter::setError(int errorCode)
-{
-    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 QAudioFormat getAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize)

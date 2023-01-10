@@ -27,6 +27,8 @@ public:
         Q_ASSERT(nullptr != filter);
     }
 
+    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
+
     QObject *owner;
 
     const AVFilter *filter = nullptr;
@@ -56,7 +58,7 @@ bool FilterContext::create(const QString &name, const QString &args, FilterGraph
                                             nullptr,
                                             filterGraph->avFilterGraph());
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -66,7 +68,7 @@ bool FilterContext::buffersrc_addFrameFlags(Frame *frame)
 {
     auto ret = av_buffersrc_add_frame_flags(d_ptr->filterContext, frame->avFrame(), 0);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -79,7 +81,7 @@ bool FilterContext::buffersink_getFrame(Frame *frame)
         return false;
     }
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -93,11 +95,6 @@ void FilterContext::buffersink_setFrameSize(int size)
 AVFilterContext *FilterContext::avFilterContext()
 {
     return d_ptr->filterContext;
-}
-
-void FilterContext::setError(int errorCode)
-{
-    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 } // namespace Ffmpeg

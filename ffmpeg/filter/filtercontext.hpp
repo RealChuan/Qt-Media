@@ -29,8 +29,6 @@ public:
     AVFilterContext *avFilterContext();
 
 private:
-    void setError(int errorCode);
-
     class FilterContextPrivate;
     QScopedPointer<FilterContextPrivate> d_ptr;
 };

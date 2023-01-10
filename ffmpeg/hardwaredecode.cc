@@ -72,6 +72,8 @@ struct HardWareDecode::HardWareDecodePrivate
         av_buffer_unref(&bufferRef);
     }
 
+    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
+
     QVector<AVHWDeviceType> hwDeviceTypes{};
     AVHWDeviceType hwDeviceType = AV_HWDEVICE_TYPE_NONE;
     AVBufferRef *bufferRef = nullptr;
@@ -108,7 +110,7 @@ bool HardWareDecode::initHardWareDevice(CodecContext *codecContext)
     int ret = av_hwdevice_ctx_create(&d_ptr->bufferRef, d_ptr->hwDeviceType, nullptr, nullptr, 0);
     if (ret < 0) {
         qWarning() << "Failed to create specified HW device.";
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     codecContext->avCodecCtx()->hw_device_ctx = av_buffer_ref(d_ptr->bufferRef);
@@ -135,7 +137,7 @@ Frame *HardWareDecode::transforFrame(Frame *in, bool &ok)
     //int ret = av_hwframe_map(out->avFrame(), in->avFrame(), 0);
     if (ret < 0) {
         qWarning() << "Error transferring the data to system memory";
-        setError(ret);
+        d_ptr->setError(ret);
         ok = false;
     }
     // 拷贝其他信息
@@ -154,11 +156,6 @@ bool HardWareDecode::isVaild()
         return false;
     }
     return d_ptr->vaild;
-}
-
-void HardWareDecode::setError(int errorCode)
-{
-    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 } // namespace Ffmpeg

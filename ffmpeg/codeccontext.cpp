@@ -70,6 +70,8 @@ public:
         }
     }
 
+    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
+
     AVCodecContext *codecCtx = nullptr; //解码器上下文
 
     QVector<AVRational> supported_framerates{};
@@ -147,7 +149,7 @@ bool CodecContext::setParameters(const AVCodecParameters *par)
 {
     int ret = avcodec_parameters_to_context(d_ptr->codecCtx, par);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -234,6 +236,15 @@ uint64_t CodecContext::channelLayout() const
     return d_ptr->codecCtx->channel_layout;
 }
 
+int CodecContext::channels() const
+{
+    if (d_ptr->codecCtx->channels <= 0) {
+        d_ptr->codecCtx->channels = av_get_channel_layout_nb_channels(
+            d_ptr->codecCtx->channel_layout);
+    }
+    return d_ptr->codecCtx->channels;
+}
+
 void CodecContext::setSize(const QSize &size)
 {
     if (!size.isValid()) {
@@ -292,22 +303,28 @@ void CodecContext::setMaxBitrate(int64_t bitrate)
 void CodecContext::setCrf(int crf)
 {
     Q_ASSERT(crf >= 0 && crf <= 51);
-    av_opt_set_int(d_ptr->codecCtx, "crf", crf, AV_OPT_SEARCH_CHILDREN);
+    av_opt_set_int(d_ptr->codecCtx->priv_data, "crf", crf, AV_OPT_SEARCH_CHILDREN);
 }
 
 void CodecContext::setPreset(const QString &preset)
 {
-    av_opt_set(d_ptr->codecCtx, "preset", preset.toLocal8Bit().constData(), AV_OPT_SEARCH_CHILDREN);
+    av_opt_set(d_ptr->codecCtx->priv_data,
+               "preset",
+               preset.toLocal8Bit().constData(),
+               AV_OPT_SEARCH_CHILDREN);
 }
 
 void CodecContext::setTune(const QString &tune)
 {
-    av_opt_set(d_ptr->codecCtx, "tune", tune.toLocal8Bit().constData(), AV_OPT_SEARCH_CHILDREN);
+    av_opt_set(d_ptr->codecCtx->priv_data,
+               "tune",
+               tune.toLocal8Bit().constData(),
+               AV_OPT_SEARCH_CHILDREN);
 }
 
 void CodecContext::setProfile(const QString &profile)
 {
-    av_opt_set(d_ptr->codecCtx,
+    av_opt_set(d_ptr->codecCtx->priv_data,
                "profile",
                profile.toLocal8Bit().constData(),
                AV_OPT_SEARCH_CHILDREN);
@@ -328,7 +345,7 @@ bool CodecContext::open()
     Q_ASSERT(d_ptr->codecCtx != nullptr);
     auto ret = avcodec_open2(d_ptr->codecCtx, d_ptr->codecCtx->codec, NULL);
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -338,7 +355,7 @@ bool CodecContext::sendPacket(Packet *packet)
 {
     int ret = avcodec_send_packet(d_ptr->codecCtx, packet->avPacket());
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -351,7 +368,7 @@ bool CodecContext::receiveFrame(Frame *frame)
         return true;
     }
     if (ret != -11) { // Resource temporarily unavailable
-        setError(ret);
+        d_ptr->setError(ret);
     }
     return false;
 }
@@ -364,7 +381,7 @@ bool CodecContext::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
                                        &got_sub_ptr,
                                        packet->avPacket());
     if (ret < 0 || got_sub_ptr <= 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -377,7 +394,7 @@ bool CodecContext::sendFrame(Frame *frame)
         return false;
     }
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -390,7 +407,7 @@ bool CodecContext::receivePacket(Packet *packet)
         return false;
     }
     if (ret < 0) {
-        setError(ret);
+        d_ptr->setError(ret);
         return false;
     }
     return true;
@@ -429,11 +446,6 @@ void CodecContext::flush()
 const AVCodec *CodecContext::codec()
 {
     return d_ptr->codecCtx->codec;
-}
-
-void CodecContext::setError(int errorCode)
-{
-    AVErrorManager::instance()->setErrorCode(errorCode);
 }
 
 } // namespace Ffmpeg
