@@ -1,6 +1,7 @@
 #include "hardwaredecode.hpp"
 #include "averrormanager.hpp"
 #include "codeccontext.h"
+#include "ffmpegutils.hpp"
 #include "frame.hpp"
 
 #include <QDebug>
@@ -49,23 +50,13 @@ AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_f
     return AV_PIX_FMT_NONE;
 }
 
-struct HardWareDecode::HardWareDecodePrivate
+class HardWareDecode::HardWareDecodePrivate
 {
-    HardWareDecodePrivate()
-    {
-        auto type = AV_HWDEVICE_TYPE_NONE; // ffmpeg支持的硬件解码器
-        QStringList list;
-        while ((type = av_hwdevice_iterate_types(type))
-               != AV_HWDEVICE_TYPE_NONE) // 遍历支持的设备类型。
-        {
-            hwDeviceTypes.append(type);
-            const char *ctype = av_hwdevice_get_type_name(type); // 获取AVHWDeviceType的字符串名称。
-            if (ctype) {
-                list.append(QString(ctype));
-            }
-        }
-        qInfo() << QObject::tr("Supported hardware decoders: ", "HardWareDecode") << list;
-    }
+public:
+    HardWareDecodePrivate(QObject *parent)
+        : owner(parent)
+    {}
+
     ~HardWareDecodePrivate()
     {
         hw_pix_fmt = AV_PIX_FMT_NONE;
@@ -74,7 +65,8 @@ struct HardWareDecode::HardWareDecodePrivate
 
     void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
 
-    QVector<AVHWDeviceType> hwDeviceTypes{};
+    QObject *owner;
+    QVector<AVHWDeviceType> hwDeviceTypes = Utils::getCurrentHWDeviceTypes();
     AVHWDeviceType hwDeviceType = AV_HWDEVICE_TYPE_NONE;
     AVBufferRef *bufferRef = nullptr;
     bool vaild = true;
@@ -82,7 +74,7 @@ struct HardWareDecode::HardWareDecodePrivate
 
 HardWareDecode::HardWareDecode(QObject *parent)
     : QObject(parent)
-    , d_ptr(new HardWareDecodePrivate)
+    , d_ptr(new HardWareDecodePrivate(this))
 {}
 
 HardWareDecode::~HardWareDecode() {}

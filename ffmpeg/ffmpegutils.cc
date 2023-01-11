@@ -1,7 +1,9 @@
-#include "transcodeutils.hpp"
+#include "ffmpegutils.hpp"
 #include "avcontextinfo.h"
 #include "codeccontext.h"
 #include "formatcontext.h"
+
+#include <QDebug>
 
 extern "C" {
 #include "libavformat/avformat.h"
@@ -9,7 +11,27 @@ extern "C" {
 
 namespace Ffmpeg {
 
-namespace TranscodeUtils {
+namespace Utils {
+
+QVector<AVHWDeviceType> getCurrentHWDeviceTypes()
+{
+    static QVector<AVHWDeviceType> types{};
+    if (types.isEmpty()) {
+        auto type = AV_HWDEVICE_TYPE_NONE; // ffmpeg支持的硬件解码器
+        QStringList list;
+        while ((type = av_hwdevice_iterate_types(type))
+               != AV_HWDEVICE_TYPE_NONE) // 遍历支持的设备类型。
+        {
+            types.append(type);
+            auto ctype = av_hwdevice_get_type_name(type); // 获取AVHWDeviceType的字符串名称。
+            if (ctype) {
+                list.append(QString(ctype));
+            }
+        }
+        qInfo() << QObject::tr("Current hardware decoders: ") << list;
+    }
+    return types;
+}
 
 QVector<CodecInfo> getFileCodecInfo(const QString &filePath)
 {
@@ -60,6 +82,6 @@ bool isSupportAudioEncoder(AVCodecID codecId)
     return !samplefmts.isEmpty();
 }
 
-} // namespace TranscodeUtils
+} // namespace Utils
 
 } // namespace Ffmpeg

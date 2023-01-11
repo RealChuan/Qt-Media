@@ -189,12 +189,12 @@ public:
             if (!stream) {
                 return false;
             }
+            av_dict_copy(&stream->metadata, inStream->metadata, 0);
             stream->disposition = inStream->disposition;
             stream->discard = inStream->discard;
             stream->sample_aspect_ratio = inStream->sample_aspect_ratio;
             stream->avg_frame_rate = inStream->avg_frame_rate;
             stream->event_flags = inStream->event_flags;
-            av_dict_copy(&stream->metadata, inStream->metadata, 0);
             auto transContext = transcodeContexts.at(i);
             auto decContextInfo = transContext->decContextInfoPtr;
             if (inStream->disposition & AV_DISPOSITION_ATTACHED_PIC) {
@@ -405,7 +405,7 @@ public:
             return nullptr;
         }
         // fix me?
-        frame->pts = transcodeCtx->audioPts * 1000
+        frame->pts = transcodeCtx->audioPts / av_q2d(transcodeCtx->decContextInfoPtr->timebase())
                      / transcodeCtx->decContextInfoPtr->codecCtx()->sampleRate();
         transcodeCtx->audioPts += frame->nb_samples;
         //qDebug() << "new: " << stream_index << frame->pts;
@@ -513,6 +513,8 @@ Transcode::Transcode(QObject *parent)
     : QThread{parent}
     , d_ptr(new TranscodePrivate(this))
 {
+    av_log_set_level(AV_LOG_INFO);
+
     buildConnect();
 }
 

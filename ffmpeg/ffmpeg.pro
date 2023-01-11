@@ -24,15 +24,16 @@ SOURCES += \
     decoderaudioframe.cpp \
     decodersubtitleframe.cc \
     decodervideoframe.cpp \
+    ffmpegutils.cc \
     formatcontext.cpp \
     frame.cc \
     hardwaredecode.cc \
+    hardwareencode.cc \
     packet.cpp \
     player.cpp \
     subtitle.cpp \
     subtitledecoder.cpp \
     transcode.cc \
-    transcodeutils.cc \
     videodecoder.cpp \
     videoformat.cc \
     videoframeconverter.cc
@@ -52,15 +53,16 @@ HEADERS += \
     decodersubtitleframe.hpp \
     decodervideoframe.h \
     ffmepg_global.h \
+    ffmpegutils.hpp \
     formatcontext.h \
     frame.hpp \
     hardwaredecode.hpp \
+    hardwareencode.hpp \
     packet.h \
     player.h \
     subtitle.h \
     subtitledecoder.h \
     transcode.hpp \
-    transcodeutils.hpp \
     videodecoder.h \
     videoformat.hpp \
     videoframeconverter.hpp

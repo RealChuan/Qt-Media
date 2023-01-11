@@ -31,7 +31,7 @@
 
 ```C++
 // fix me?
-frame->pts = transcodeCtx->audioPts * 1000
+frame->pts = transcodeCtx->audioPts / av_q2d(transcodeCtx->decContextInfoPtr->timebase())
                      / transcodeCtx->decContextInfoPtr->codecCtx()->sampleRate();
 transcodeCtx->audioPts += frame->nb_samples;
 ```

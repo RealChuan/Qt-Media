@@ -1,5 +1,5 @@
-#ifndef TRANSCODEUTILS_HPP
-#define TRANSCODEUTILS_HPP
+#ifndef FFMPEGUTILS_HPP
+#define FFMPEGUTILS_HPP
 
 #include "ffmepg_global.h"
 
@@ -7,11 +7,14 @@
 
 extern "C" {
 #include <libavcodec/codec_id.h>
+#include <libavutil/hwcontext.h>
 }
 
 namespace Ffmpeg {
 
-namespace TranscodeUtils {
+namespace Utils {
+
+QVector<AVHWDeviceType> getCurrentHWDeviceTypes();
 
 struct CodecInfo
 {
@@ -28,8 +31,8 @@ bool FFMPEG_EXPORT isSupportVideoEncoder(AVCodecID codecId);
 
 bool FFMPEG_EXPORT isSupportAudioEncoder(AVCodecID codecId);
 
-} // namespace TranscodeUtils
+} // namespace Utils
 
 } // namespace Ffmpeg
 
-#endif // TRANSCODEUTILS_HPP
+#endif // FFMPEGUTILS_HPP

@@ -2,8 +2,8 @@
 
 #include <ffmpeg/averror.h>
 #include <ffmpeg/avversion.hpp>
+#include <ffmpeg/ffmpegutils.hpp>
 #include <ffmpeg/transcode.hpp>
-#include <ffmpeg/transcodeutils.hpp>
 
 #include <QtWidgets>
 
@@ -26,7 +26,7 @@ public:
         audioCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
         for (int i = AV_CODEC_ID_MP2; i <= AV_CODEC_ID_CODEC2; i++) {
             auto codecID = static_cast<AVCodecID>(i);
-            if (!Ffmpeg::TranscodeUtils::isSupportAudioEncoder(codecID)) {
+            if (!Ffmpeg::Utils::isSupportAudioEncoder(codecID)) {
                 continue;
             }
             audioCodecCbx->addItem(avcodec_get_name(codecID), codecID);
@@ -38,7 +38,7 @@ public:
         videoCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
         for (int i = AV_CODEC_ID_MPEG1VIDEO; i <= AV_CODEC_ID_VVC; i++) {
             auto codecID = static_cast<AVCodecID>(i);
-            if (!Ffmpeg::TranscodeUtils::isSupportVideoEncoder(codecID)) {
+            if (!Ffmpeg::Utils::isSupportVideoEncoder(codecID)) {
                 continue;
             }
             videoCodecCbx->addItem(avcodec_get_name(static_cast<AVCodecID>(i)), i);
@@ -89,7 +89,7 @@ public:
     {
         bool audioSet = false;
         bool videoSet = false;
-        auto codecs = Ffmpeg::TranscodeUtils::getFileCodecInfo(filePath);
+        auto codecs = Ffmpeg::Utils::getFileCodecInfo(filePath);
         for (const auto &codec : qAsConst(codecs)) {
             if (audioSet && videoSet) {
                 break;
@@ -186,7 +186,7 @@ void MainWindow::onError(const Ffmpeg::AVError &avError)
 void MainWindow::onVideoEncoderChanged()
 {
     auto codecID = static_cast<AVCodecID>(d_ptr->videoCodecCbx->currentData().toInt());
-    auto quantizer = Ffmpeg::TranscodeUtils::getCodecQuantizer(codecID);
+    auto quantizer = Ffmpeg::Utils::getCodecQuantizer(codecID);
     d_ptr->quailtySbx->setRange(quantizer.first, quantizer.second);
 }
 
@@ -269,8 +269,13 @@ void MainWindow::onStart()
         d_ptr->transcode->setMaxBitrate(d_ptr->videoMaxBitrateLineEdit->text().toInt());
         d_ptr->transcode->setCrf(d_ptr->crfSbx->value());
         d_ptr->transcode->setPreset(d_ptr->presetCbx->currentText());
+        d_ptr->transcode->setProfile(d_ptr->profileCbx->currentText());
         d_ptr->transcode->startTranscode();
         d_ptr->startButton->setText(tr("Stop"));
+
+        auto filename = QFile::exists(inPath) ? QFileInfo(inPath).fileName()
+                                              : QFileInfo(QUrl(inPath).toString()).fileName();
+        setWindowTitle(filename);
 
         d_ptr->fpsTimer->start(1000);
 
@@ -314,9 +319,10 @@ void MainWindow::setupUI()
     groupLayout1->addWidget(d_ptr->audioCodecCbx);
     groupLayout1->addWidget(new QLabel(tr("Video Codec ID:"), this));
     groupLayout1->addWidget(d_ptr->videoCodecCbx);
-    groupLayout1->addWidget(new QLabel(tr("Quality:"), this));
-    groupLayout1->addWidget(d_ptr->quailtySbx);
-    auto groupLayout2 = new QHBoxLayout;
+    auto invaildBox = new QGroupBox(tr("Invalid setting"), this);
+    auto groupLayout2 = new QHBoxLayout(invaildBox);
+    groupLayout2->addWidget(new QLabel(tr("Quality:"), this));
+    groupLayout2->addWidget(d_ptr->quailtySbx);
     groupLayout2->addWidget(new QLabel(tr("Crf:"), this));
     groupLayout2->addWidget(d_ptr->crfSbx);
     groupLayout2->addWidget(new QLabel(tr("Preset:"), this));
@@ -328,7 +334,7 @@ void MainWindow::setupUI()
     auto groupBox = new QGroupBox(tr("Encoder Settings"), this);
     auto groupLayout = new QVBoxLayout(groupBox);
     groupLayout->addLayout(groupLayout1);
-    groupLayout->addLayout(groupLayout2);
+    groupLayout->addWidget(invaildBox);
     groupLayout->addWidget(initVideoSetting());
 
     auto displayLayout = new QHBoxLayout;

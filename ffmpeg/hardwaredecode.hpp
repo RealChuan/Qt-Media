@@ -22,7 +22,7 @@ public:
     bool isVaild();
 
 private:
-    struct HardWareDecodePrivate;
+    class HardWareDecodePrivate;
     QScopedPointer<HardWareDecodePrivate> d_ptr;
 };
 

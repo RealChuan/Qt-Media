@@ -148,8 +148,8 @@ bool AVContextInfo::isIndexVaild()
 void AVContextInfo::setStream(AVStream *stream)
 {
     d_ptr->stream = stream;
-    d_ptr->showCodecpar();
-    d_ptr->showMetaData();
+    //    d_ptr->showCodecpar();
+    //    d_ptr->showMetaData();
 }
 
 AVStream *AVContextInfo::stream()

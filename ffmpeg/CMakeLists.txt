@@ -26,15 +26,16 @@ set(PROJECT_SOURCES
         decodersubtitleframe.cc decodersubtitleframe.hpp
         decodervideoframe.cpp decodervideoframe.h
         ffmepg_global.h
+        ffmpegutils.cc ffmpegutils.hpp
         formatcontext.cpp formatcontext.h
         frame.cc frame.hpp
         hardwaredecode.cc hardwaredecode.hpp
+        hardwareencode.cc hardwareencode.hpp
         packet.cpp packet.h
         player.cpp player.h
         subtitle.cpp subtitle.h
         subtitledecoder.cpp subtitledecoder.h
         transcode.cc transcode.hpp
-        transcodeutils.cc transcodeutils.hpp
         videodecoder.cpp videodecoder.h
         videoformat.cc videoformat.hpp
         videoframeconverter.cc videoframeconverter.hpp)

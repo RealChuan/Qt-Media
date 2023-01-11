@@ -59,6 +59,8 @@ Player::Player(QObject *parent)
     : QThread(parent)
     , d_ptr(new PlayerPrivate(this))
 {
+    av_log_set_level(AV_LOG_INFO);
+
     buildConnect();
     buildErrorConnect();
 }

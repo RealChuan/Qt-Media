@@ -106,6 +106,8 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
     dstCodecCtx->max_qdiff = d_ptr->codecCtx->max_qdiff;
     dstCodecCtx->bits_per_raw_sample = d_ptr->codecCtx->bits_per_raw_sample;
     dstCodecCtx->compression_level = d_ptr->codecCtx->compression_level;
+    dstCodecCtx->gop_size = d_ptr->codecCtx->gop_size;
+    dstCodecCtx->profile = d_ptr->codecCtx->profile;
 
     switch (mediaType()) {
     case AVMEDIA_TYPE_AUDIO:
@@ -303,31 +305,37 @@ void CodecContext::setMaxBitrate(int64_t bitrate)
 void CodecContext::setCrf(int crf)
 {
     Q_ASSERT(crf >= 0 && crf <= 51);
-    av_opt_set_int(d_ptr->codecCtx->priv_data, "crf", crf, AV_OPT_SEARCH_CHILDREN);
+    av_opt_set_int(d_ptr->codecCtx->priv_data, "crf", crf, 0);
 }
 
 void CodecContext::setPreset(const QString &preset)
 {
-    av_opt_set(d_ptr->codecCtx->priv_data,
-               "preset",
-               preset.toLocal8Bit().constData(),
-               AV_OPT_SEARCH_CHILDREN);
+    av_opt_set(d_ptr->codecCtx->priv_data, "preset", preset.toLocal8Bit().constData(), 0);
 }
 
 void CodecContext::setTune(const QString &tune)
 {
-    av_opt_set(d_ptr->codecCtx->priv_data,
-               "tune",
-               tune.toLocal8Bit().constData(),
-               AV_OPT_SEARCH_CHILDREN);
+    av_opt_set(d_ptr->codecCtx->priv_data, "tune", tune.toLocal8Bit().constData(), 0);
 }
 
 void CodecContext::setProfile(const QString &profile)
 {
-    av_opt_set(d_ptr->codecCtx->priv_data,
-               "profile",
-               profile.toLocal8Bit().constData(),
-               AV_OPT_SEARCH_CHILDREN);
+    switch (d_ptr->codecCtx->codec_id) {
+    case AV_CODEC_ID_H264:
+        if (profile == "baseline") {
+            d_ptr->codecCtx->profile = FF_PROFILE_H264_BASELINE;
+        } else if (profile == "extended") {
+            d_ptr->codecCtx->profile = FF_PROFILE_H264_EXTENDED;
+        } else if (profile == "main") {
+            d_ptr->codecCtx->profile = FF_PROFILE_H264_MAIN;
+        } else if (profile == "high") {
+            d_ptr->codecCtx->profile = FF_PROFILE_H264_HIGH;
+        }
+        break;
+    default: break;
+    }
+
+    av_opt_set(d_ptr->codecCtx->priv_data, "profile", profile.toLocal8Bit().constData(), 0);
 }
 
 void CodecContext::setFlags(int flags)
