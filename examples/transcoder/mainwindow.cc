@@ -85,6 +85,44 @@ public:
         fpsTimer = new QTimer(owner);
     }
 
+    QGroupBox *initVideoSetting()
+    {
+        auto layout1 = new QHBoxLayout;
+        layout1->addWidget(new QLabel(tr("Width:"), owner));
+        layout1->addWidget(widthLineEdit);
+        layout1->addWidget(new QLabel(tr("height:"), owner));
+        layout1->addWidget(heightLineEdit);
+        layout1->addWidget(keepAspectRatioCkb);
+        auto layout2 = new QHBoxLayout;
+        layout2->addWidget(new QLabel(tr("Min Bitrate:"), owner));
+        layout2->addWidget(videoMinBitrateLineEdit);
+        layout2->addWidget(new QLabel(tr("Max Bitrate:"), owner));
+        layout2->addWidget(videoMaxBitrateLineEdit);
+
+        auto groupBox = new QGroupBox(tr("Video"), owner);
+        auto layout = new QVBoxLayout(groupBox);
+        layout->addLayout(layout1);
+        layout->addLayout(layout2);
+        return groupBox;
+    }
+
+    QGroupBox *invalidSetting()
+    {
+        auto groupBox = new QGroupBox(tr("Invalid setting"), owner);
+        auto layout = new QHBoxLayout(groupBox);
+        layout->addWidget(new QLabel(tr("Quality:"), owner));
+        layout->addWidget(quailtySbx);
+        layout->addWidget(new QLabel(tr("Crf:"), owner));
+        layout->addWidget(crfSbx);
+        layout->addWidget(new QLabel(tr("Preset:"), owner));
+        layout->addWidget(presetCbx);
+        layout->addWidget(new QLabel(tr("Tune:"), owner));
+        layout->addWidget(tuneCbx);
+        layout->addWidget(new QLabel(tr("Profile:"), owner));
+        layout->addWidget(profileCbx);
+        return groupBox;
+    }
+
     void initInputFileAttribute(const QString &filePath)
     {
         bool audioSet = false;
@@ -319,26 +357,22 @@ void MainWindow::setupUI()
     groupLayout1->addWidget(d_ptr->audioCodecCbx);
     groupLayout1->addWidget(new QLabel(tr("Video Codec ID:"), this));
     groupLayout1->addWidget(d_ptr->videoCodecCbx);
-    auto invaildBox = new QGroupBox(tr("Invalid setting"), this);
-    auto groupLayout2 = new QHBoxLayout(invaildBox);
-    groupLayout2->addWidget(new QLabel(tr("Quality:"), this));
-    groupLayout2->addWidget(d_ptr->quailtySbx);
-    groupLayout2->addWidget(new QLabel(tr("Crf:"), this));
-    groupLayout2->addWidget(d_ptr->crfSbx);
-    groupLayout2->addWidget(new QLabel(tr("Preset:"), this));
-    groupLayout2->addWidget(d_ptr->presetCbx);
-    groupLayout2->addWidget(new QLabel(tr("Tune:"), this));
-    groupLayout2->addWidget(d_ptr->tuneCbx);
-    groupLayout2->addWidget(new QLabel(tr("Profile:"), this));
-    groupLayout2->addWidget(d_ptr->profileCbx);
     auto groupBox = new QGroupBox(tr("Encoder Settings"), this);
     auto groupLayout = new QVBoxLayout(groupBox);
     groupLayout->addLayout(groupLayout1);
-    groupLayout->addWidget(invaildBox);
-    groupLayout->addWidget(initVideoSetting());
+    groupLayout->addWidget(d_ptr->invalidSetting());
+    groupLayout->addWidget(d_ptr->initVideoSetting());
 
+    auto useGpuCheckBox = new QCheckBox(tr("GPU"), this);
+    useGpuCheckBox->setToolTip(tr("GPU"));
+    useGpuCheckBox->setChecked(true);
+    connect(useGpuCheckBox, &QCheckBox::clicked, this, [this, useGpuCheckBox] {
+        d_ptr->transcode->setUseGpu(useGpuCheckBox->isChecked());
+    });
+    d_ptr->transcode->setUseGpu(useGpuCheckBox->isChecked());
     auto displayLayout = new QHBoxLayout;
     displayLayout->addWidget(d_ptr->startButton);
+    displayLayout->addWidget(useGpuCheckBox);
     displayLayout->addWidget(d_ptr->progressBar);
     displayLayout->addWidget(d_ptr->fpsLabel);
 
@@ -348,27 +382,6 @@ void MainWindow::setupUI()
     layout->addWidget(groupBox);
     layout->addLayout(displayLayout);
     setCentralWidget(widget);
-}
-
-QGroupBox *MainWindow::initVideoSetting()
-{
-    auto layout1 = new QHBoxLayout;
-    layout1->addWidget(new QLabel(tr("Width:"), this));
-    layout1->addWidget(d_ptr->widthLineEdit);
-    layout1->addWidget(new QLabel(tr("height:"), this));
-    layout1->addWidget(d_ptr->heightLineEdit);
-    layout1->addWidget(d_ptr->keepAspectRatioCkb);
-    auto layout2 = new QHBoxLayout;
-    layout2->addWidget(new QLabel(tr("Min Bitrate:"), this));
-    layout2->addWidget(d_ptr->videoMinBitrateLineEdit);
-    layout2->addWidget(new QLabel(tr("Max Bitrate:"), this));
-    layout2->addWidget(d_ptr->videoMaxBitrateLineEdit);
-
-    auto groupBox = new QGroupBox(tr("Video"), this);
-    auto layout = new QVBoxLayout(groupBox);
-    layout->addLayout(layout1);
-    layout->addLayout(layout2);
-    return groupBox;
 }
 
 void MainWindow::buildConnect()

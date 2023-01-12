@@ -27,6 +27,7 @@ struct TranscodeContext
     QSharedPointer<AVContextInfo> decContextInfoPtr;
     QSharedPointer<AVContextInfo> encContextInfoPtr;
 
+    bool initFilter = false;
     QSharedPointer<FilterContext> buffersinkCtxPtr;
     QSharedPointer<FilterContext> buffersrcCtxPtr;
     QSharedPointer<FilterGraph> filterGraphPtr;
@@ -35,7 +36,7 @@ struct TranscodeContext
     int64_t audioPts = 0;
 };
 
-bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec)
+bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Frame *frame)
 {
     QSharedPointer<FilterContext> buffersrc_ctx;
     QSharedPointer<FilterContext> buffersink_ctx;
@@ -50,7 +51,7 @@ bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec)
             = QString::asprintf("video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
                                 dec_ctx->width,
                                 dec_ctx->height,
-                                dec_ctx->pix_fmt,
+                                frame->avFrame()->format, //dec_ctx->pix_fmt,
                                 dec_ctx->time_base.num,
                                 dec_ctx->time_base.den,
                                 dec_ctx->sample_aspect_ratio.num,
@@ -166,12 +167,11 @@ public:
                 return false;
             }
             if (codec_type == AVMEDIA_TYPE_VIDEO || codec_type == AVMEDIA_TYPE_AUDIO) {
-                contextInfoPtr->openCodec(gpuDecode);
+                contextInfoPtr->openCodec(useGpu);
             }
             transContext->decContextInfoPtr = contextInfoPtr;
         }
         inFormatContext->dumpFormat();
-
         return true;
     }
 
@@ -237,7 +237,7 @@ public:
                     contextInfoPtr->codecCtx()->setFlags(contextInfoPtr->codecCtx()->flags()
                                                          | AV_CODEC_FLAG_GLOBAL_HEADER);
                 }
-                contextInfoPtr->openCodec(gpuDecode);
+                contextInfoPtr->openCodec(false);
                 auto ret = avcodec_parameters_from_context(stream->codecpar,
                                                            contextInfoPtr->codecCtx()->avCodecCtx());
                 if (ret < 0) {
@@ -253,22 +253,19 @@ public:
             default: {
                 auto ret = avcodec_parameters_copy(stream->codecpar, inStream->codecpar);
                 if (ret < 0) {
-                    qErrnoWarning("Copying parameters for stream #%u failed", i);
+                    setError(ret);
                     return ret;
                 }
                 stream->time_base = inStream->time_base;
             } break;
             }
         }
-
         outFormatContext->dumpFormat();
-
         outFormatContext->avio_open();
-
         return outFormatContext->writeHeader();
     }
 
-    void initFilters()
+    void initFilters(Frame *frame)
     {
         auto stream_num = inFormatContext->streams();
         for (int i = 0; i < stream_num; i++) {
@@ -292,7 +289,7 @@ public:
             } else {
                 filter_spec = "anull";
             }
-            init_filter(transcodeCtx, filter_spec.toLocal8Bit().constData());
+            init_filter(transcodeCtx, filter_spec.toLocal8Bit().constData(), frame);
         }
     }
 
@@ -502,7 +499,7 @@ public:
     QStringList profiles{"baseline", "extended", "main", "high"};
     QString profile = "main";
 
-    bool gpuDecode = false;
+    bool useGpu = false;
 
     volatile bool runing = true;
     QScopedPointer<Utils::Fps> fpsPtr;
@@ -521,6 +518,11 @@ Transcode::Transcode(QObject *parent)
 Transcode::~Transcode()
 {
     stopTranscode();
+}
+
+void Transcode::setUseGpu(bool useGpu)
+{
+    d_ptr->useGpu = useGpu;
 }
 
 void Transcode::setInFilePath(const QString &filePath)
@@ -652,7 +654,6 @@ void Transcode::run()
         qWarning() << "Open ouput file failed!";
         return;
     }
-    d_ptr->initFilters();
     d_ptr->initAudioFifo();
     loop();
     d_ptr->cleanup();
@@ -673,17 +674,21 @@ void Transcode::loop()
             break;
         }
         auto stream_index = packetPtr->avPacket()->stream_index;
-        auto filter_graph = d_ptr->transcodeContexts.at(stream_index)->filterGraphPtr;
-        if (filter_graph.isNull()) {
+        auto transcodeCtx = d_ptr->transcodeContexts.at(stream_index);
+        auto encContextInfoPtr = transcodeCtx->encContextInfoPtr;
+        if (encContextInfoPtr.isNull()) {
             packetPtr->rescaleTs(d_ptr->inFormatContext->stream(stream_index)->time_base,
                                  d_ptr->outFormatContext->stream(stream_index)->time_base);
             d_ptr->outFormatContext->writeFrame(packetPtr.data());
         } else {
-            auto transcodeCtx = d_ptr->transcodeContexts.at(stream_index);
             packetPtr->rescaleTs(d_ptr->inFormatContext->stream(stream_index)->time_base,
                                  transcodeCtx->decContextInfoPtr->timebase());
             auto frames = transcodeCtx->decContextInfoPtr->decodeFrame(packetPtr.data());
             for (auto frame : frames) {
+                if (!transcodeCtx->initFilter) {
+                    d_ptr->initFilters(frame);
+                    transcodeCtx->initFilter = true;
+                }
                 QScopedPointer<Frame> framePtr(frame);
                 d_ptr->filterEncodeWriteframe(frame, stream_index);
             }

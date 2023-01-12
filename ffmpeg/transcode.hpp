@@ -21,6 +21,8 @@ public:
     explicit Transcode(QObject *parent = nullptr);
     ~Transcode();
 
+    void setUseGpu(bool useGpu);
+
     void setInFilePath(const QString &filePath);
     void setOutFilePath(const QString &filepath);
 

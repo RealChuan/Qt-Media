@@ -24,48 +24,31 @@ public:
     {
         auto codec = codecCtx->codec;
         if (codec->supported_framerates) {
-            for (int i = 0; i < INT_MAX; i++) {
-                auto framerate = codec->supported_framerates[i];
-                if (framerate.num == 0 && framerate.den == 0) {
-                    break;
-                }
-                supported_framerates.append(framerate);
+            for (auto framerate = codec->supported_framerates;
+                 (*framerate).num != 0 && (*framerate).den != 0;
+                 framerate++) {
+                supported_framerates.append(*framerate);
             }
         }
         if (codec->pix_fmts) {
-            for (int i = 0; i < INT_MAX; i++) {
-                auto pix_fmt = codec->pix_fmts[i];
-                if (pix_fmt == -1) {
-                    break;
-                }
-                supported_pix_fmts.append(pix_fmt);
+            for (auto pix_fmt = codec->pix_fmts; *pix_fmt != -1; pix_fmt++) {
+                supported_pix_fmts.append(*pix_fmt);
             }
         }
         if (codec->supported_samplerates) {
-            for (int i = 0; i < INT_MAX; i++) {
-                auto samplerate = codec->supported_samplerates[i];
-                if (samplerate == 0) {
-                    break;
-                }
-                supported_samplerates.append(samplerate);
+            for (auto samplerate = codec->supported_samplerates; *samplerate != 0; samplerate++) {
+                supported_samplerates.append(*samplerate);
             }
         }
         if (codec->sample_fmts) {
-            for (int i = 0; i < INT_MAX; i++) {
-                auto sample_fmt = codec->sample_fmts[i];
-                if (sample_fmt == -1) {
-                    break;
-                }
-                supported_sample_fmts.append(sample_fmt);
+            for (auto sample_fmt = codec->sample_fmts; *sample_fmt != -1; sample_fmt++) {
+                supported_sample_fmts.append(*sample_fmt);
             }
         }
         if (codec->channel_layouts) {
-            for (int i = 0; i < INT_MAX; i++) {
-                auto channel_layout = codec->channel_layouts[i];
-                if (channel_layout == 0) {
-                    break;
-                }
-                supported_channel_layouts.append(channel_layout);
+            for (auto channel_layout = codec->channel_layouts; *channel_layout != 0;
+                 channel_layout++) {
+                supported_channel_layouts.append(*channel_layout);
             }
         }
     }
