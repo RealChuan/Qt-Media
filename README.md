@@ -10,6 +10,18 @@
 2. 在WidgetRender中，尽可能使用QImage::Format_RGB32和QImage::Format_ARGB32_Premultiplied图像格式。如下原因：
    1. Avoid most rendering directly to most of these formats using QPainter. Rendering is best optimized to the Format_RGB32  and Format_ARGB32_Premultiplied formats, and secondarily for rendering to the Format_RGB16, Format_RGBX8888,  Format_RGBA8888_Premultiplied, Format_RGBX64 and Format_RGBA64_Premultiplied formats.
 
+## Ffmpeg (version 5.0) has problems decoding ass subtitles
+
+Decoded subtitles:  
+```shell
+1,,Default,,0000,0000,0000,,Peek-a-boo!
+```
+  
+The standard should be:  
+```shell
+Dialogue: Marked=0,0:01:06.77,0:01:08.00,en,,0000,0000,0000,,Peek-a-boo!
+```
+
 ## SwsContext is awesome! Compared to QImage convertTo and scaled.
 
 ## How to set the encoding parameters to get smaller file size and better quality video?
