@@ -282,9 +282,8 @@ bool Player::initAvCodec()
 
 void Player::playVideo()
 {
-    d_ptr->formatCtx->discardStreamExcluded(d_ptr->audioInfo->index(),
-                                            d_ptr->videoInfo->index(),
-                                            d_ptr->subtitleInfo->index());
+    d_ptr->formatCtx->discardStreamExcluded(
+        {d_ptr->audioInfo->index(), d_ptr->videoInfo->index(), d_ptr->subtitleInfo->index()});
     d_ptr->formatCtx->seekFirstFrame();
 
     d_ptr->videoDecoder->startDecoder(d_ptr->formatCtx, d_ptr->videoInfo);

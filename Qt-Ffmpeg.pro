@@ -6,6 +6,7 @@ SUBDIRS += \
     utils \
     crashhandler\
     ffmpeg \
+    tests \
     examples
 
 TRANSLATIONS += \

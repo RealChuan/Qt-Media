@@ -1,6 +1,8 @@
 #ifndef PACKET_H
 #define PACKET_H
 
+#include "ffmepg_global.h"
+
 #include <QtCore>
 
 struct AVPacket;
@@ -8,7 +10,7 @@ struct AVRational;
 
 namespace Ffmpeg {
 
-class Packet
+class FFMPEG_EXPORT Packet
 {
 public:
     explicit Packet();

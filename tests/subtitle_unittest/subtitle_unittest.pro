@@ -6,25 +6,21 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TEMPLATE = app
 
-TARGET = QFfmpegPlayer
+TARGET = Subtitle_unittest
 
 LIBS += -L$$APP_OUTPUT_PATH/../libs \
     -l$$replaceLibName(ffmpeg) \
-    -l$$replaceLibName(crashhandler) \
-    -l$$replaceLibName(thirdparty) \
     -l$$replaceLibName(utils)
 
 include(../../3rdparty/3rdparty.pri)
 
 SOURCES += \
-    main.cpp \
-    mainwindow.cpp \
-    openwebmediadialog.cc \
-    slider.cpp
+    main.cc \
+    mainwindow.cc \
+    subtitlethread.cc
 
 HEADERS += \
-    mainwindow.h \
-    openwebmediadialog.hpp \
-    slider.h
+    mainwindow.hpp \
+    subtitlethread.hpp
 
 DESTDIR = $$APP_OUTPUT_PATH

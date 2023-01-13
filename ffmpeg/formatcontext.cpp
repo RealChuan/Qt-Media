@@ -269,10 +269,10 @@ int FormatContext::findBestStreamIndex(AVMediaType type) const
     return av_find_best_stream(d_ptr->formatCtx, type, -1, -1, nullptr, 0);
 }
 
-void FormatContext::discardStreamExcluded(int audioIndex, int videoIndex, int subtitleIndex)
+void FormatContext::discardStreamExcluded(QVector<int> indexs)
 {
     for (uint i = 0; i < d_ptr->formatCtx->nb_streams; i++) {
-        if (i == audioIndex || i == videoIndex || i == subtitleIndex) {
+        if (indexs.contains(i)) {
             continue;
         }
         d_ptr->formatCtx->streams[i]->discard = AVDISCARD_ALL;

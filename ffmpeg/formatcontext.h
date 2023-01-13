@@ -1,6 +1,8 @@
 #ifndef FORMATCONTEXT_H
 #define FORMATCONTEXT_H
 
+#include "ffmepg_global.h"
+
 #include <QObject>
 
 extern "C" {
@@ -15,7 +17,7 @@ struct AVFormatContext;
 namespace Ffmpeg {
 
 class Packet;
-class FormatContext : public QObject
+class FFMPEG_EXPORT FormatContext : public QObject
 {
 public:
     enum OpenMode { ReadOnly = 1, WriteOnly };
@@ -44,8 +46,8 @@ public:
     QMap<int, QString> subtitleMap() const;
 
     int findBestStreamIndex(AVMediaType type) const;
-    // 丢弃除指定3个stream的音视频流，优化av_read_frame性能
-    void discardStreamExcluded(int audioIndex, int videoIndex, int subtitleIndex);
+    // 丢弃除indexs中包含的音视频流，优化av_read_frame性能
+    void discardStreamExcluded(QVector<int> indexs);
 
     bool seekFirstFrame();
     bool seek(int64_t timestamp);

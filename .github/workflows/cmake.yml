@@ -68,6 +68,7 @@ jobs:
       - name: Install dependencies on ubuntu
         if: startsWith(matrix.os, 'ubuntu')
         run: |
+          sudo apt-get update
           sudo apt-get install ninja-build nasm
           ninja --version
           cmake --version
