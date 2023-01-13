@@ -2,19 +2,23 @@
 #include "frame.hpp"
 #include "packet.h"
 
+extern "C" {
+#include <libavformat/avformat.h>
+}
+
 namespace Ffmpeg {
 
 void calculateTime(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext)
 {
-    AVRational tb = contextInfo->stream()->time_base;
-    AVRational frame_rate = formatContext->guessFrameRate(contextInfo->stream());
+    auto tb = contextInfo->stream()->time_base;
+    auto frame_rate = formatContext->guessFrameRate(contextInfo->stream());
     // 当前帧播放时长
-    double duration = (frame_rate.num && frame_rate.den
-                           ? av_q2d(AVRational{frame_rate.den, frame_rate.num})
-                           : 0);
+    auto duration = (frame_rate.num && frame_rate.den
+                         ? av_q2d(AVRational{frame_rate.den, frame_rate.num})
+                         : 0);
     // 当前帧显示时间戳
     auto avFrame = frame->avFrame();
-    double pts = (avFrame->pts == AV_NOPTS_VALUE) ? NAN : avFrame->pts * av_q2d(tb);
+    auto pts = (avFrame->pts == AV_NOPTS_VALUE) ? NAN : avFrame->pts * av_q2d(tb);
     frame->setDuration(duration);
     frame->setPts(pts);
     //qDebug() << duration << pts;
@@ -22,12 +26,12 @@ void calculateTime(Frame *frame, AVContextInfo *contextInfo, FormatContext *form
 
 void calculateTime(Packet *packet, AVContextInfo *contextInfo)
 {
-    AVRational tb = contextInfo->stream()->time_base;
+    auto tb = contextInfo->stream()->time_base;
     // 当前帧播放时长
     auto avPacket = packet->avPacket();
-    double duration = avPacket->duration * av_q2d(tb);
+    auto duration = avPacket->duration * av_q2d(tb);
     // 当前帧显示时间戳
-    double pts = (avPacket->pts == AV_NOPTS_VALUE) ? NAN : avPacket->pts * av_q2d(tb);
+    auto pts = (avPacket->pts == AV_NOPTS_VALUE) ? NAN : avPacket->pts * av_q2d(tb);
     packet->setDuration(duration);
     packet->setPts(pts);
     //qDebug() << duration << pts;

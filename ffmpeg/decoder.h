@@ -1,7 +1,7 @@
 #ifndef DECODER_H
 #define DECODER_H
 
-#include <QDebug>
+#include <QSharedPointer>
 #include <QThread>
 
 #include <utils/countdownlatch.hpp>
@@ -9,11 +9,6 @@
 
 #include "avcontextinfo.h"
 #include "formatcontext.h"
-
-extern "C" {
-#include <libavformat/avformat.h>
-#include <libavutil/time.h>
-}
 
 #define Sleep_Queue_Full_Milliseconds 50
 #define Sleep_Queue_Empty_Milliseconds 10

@@ -14,6 +14,10 @@
 
 #include <memory>
 
+extern "C" {
+#include <libavformat/avformat.h>
+}
+
 namespace Ffmpeg {
 
 class Player::PlayerPrivate
@@ -297,8 +301,8 @@ void Player::playVideo()
         if (!d_ptr->formatCtx->readFrame(packetPtr.get())) {
             break;
         }
-        auto stream_index = packetPtr->avPacket()->stream_index;
-        if (d_ptr->formatCtx->checkPktPlayRange(packetPtr.get()) <= 0) {
+        auto stream_index = packetPtr->streamIndex();
+        if (!d_ptr->formatCtx->checkPktPlayRange(packetPtr.get())) {
         } else if (d_ptr->audioInfo->isIndexVaild()
                    && stream_index == d_ptr->audioInfo->index()) { // 如果是音频数据
             d_ptr->audioDecoder->append(packetPtr.release());

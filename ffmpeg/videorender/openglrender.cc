@@ -675,7 +675,7 @@ void OpenglRender::paintGL()
 
     resizeViewport();
 
-    auto format = d_ptr->framePtr->avFrame()->format;
+    auto format = d_ptr->framePtr->format();
     //qDebug() << format;
     // 绑定纹理
     switch (format) {

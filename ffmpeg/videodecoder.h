@@ -4,15 +4,12 @@
 #include "decoder.h"
 #include "packet.h"
 
-struct AVFrame;
-
 namespace Ffmpeg {
 
 class VideoRender;
 
 class VideoDecoder : public Decoder<Packet *>
 {
-    Q_OBJECT
 public:
     explicit VideoDecoder(QObject *parent = nullptr);
     ~VideoDecoder();

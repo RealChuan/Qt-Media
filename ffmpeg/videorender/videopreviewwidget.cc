@@ -10,6 +10,10 @@
 #include <QPainter>
 #include <QRunnable>
 
+extern "C" {
+#include <libavformat/avformat.h>
+}
+
 namespace Ffmpeg {
 
 class PreviewTask : public QRunnable
@@ -95,8 +99,8 @@ private:
         if (!formatContext->readFrame(packetPtr.get()) || m_videoPreviewWidgetPtr.isNull()) {
             return framePtr;
         }
-        if (formatContext->checkPktPlayRange(packetPtr.get()) <= 0) {
-        } else if (packetPtr->avPacket()->stream_index == videoInfo->index()
+        if (!formatContext->checkPktPlayRange(packetPtr.get())) {
+        } else if (packetPtr->streamIndex() == videoInfo->index()
                    && !(videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC)
                    && packetPtr->isKey()) {
             auto frames(videoInfo->decodeFrame(packetPtr.data()));

@@ -53,7 +53,7 @@ public:
 
     bool readFrame(Packet *packet);
 
-    int checkPktPlayRange(Packet *packet);
+    bool checkPktPlayRange(Packet *packet);
 
     AVRational guessFrameRate(int index) const;
     AVRational guessFrameRate(AVStream *stream) const;

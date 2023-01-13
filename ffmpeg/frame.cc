@@ -85,6 +85,14 @@ Frame &Frame::operator=(const Frame &other)
 
 Frame::~Frame() {}
 
+void Frame::copyPropsFrom(Frame *src)
+{
+    auto srcFrame = src->avFrame();
+    av_frame_copy_props(d_ptr->frame, srcFrame);
+    d_ptr->frame->width = srcFrame->width;
+    d_ptr->frame->height = srcFrame->height;
+}
+
 bool Frame::imageAlloc(const QSize &size, AVPixelFormat pix_fmt, int align)
 {
     Q_ASSERT(size.isValid());
@@ -133,6 +141,11 @@ double Frame::duration()
     return d_ptr->duration;
 }
 
+int Frame::format() const
+{
+    return d_ptr->frame->format;
+}
+
 void Frame::setAVFrameNull()
 {
     d_ptr->useNull = true;
@@ -143,7 +156,7 @@ void Frame::setQImageFormat(QImage::Format format)
     d_ptr->format = format;
 }
 
-QImage::Format Frame::format() const
+QImage::Format Frame::qImageformat() const
 {
     return d_ptr->format;
 }

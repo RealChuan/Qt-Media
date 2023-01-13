@@ -57,9 +57,8 @@ void VideoDecoder::runDecoder()
         auto frames(m_contextInfo->decodeFrame(packetPtr.data()));
         for (auto frame : frames) {
             Ffmpeg::calculateTime(frame, m_contextInfo, m_formatContext);
-            frame->setQImageFormat(
-                VideoFormat::qFormatMaps.value(AVPixelFormat(frame->avFrame()->format),
-                                               QImage::Format_Invalid));
+            frame->setQImageFormat(VideoFormat::qFormatMaps.value(AVPixelFormat(frame->format()),
+                                                                  QImage::Format_Invalid));
             d_ptr->decoderVideoFrame->append(frame);
         }
 

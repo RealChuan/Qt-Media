@@ -27,6 +27,7 @@ public:
     double duration();
 
     void setStreamIndex(int index);
+    int streamIndex() const;
 
     void rescaleTs(const AVRational &srcTimeBase, const AVRational &dstTimeBase);
 

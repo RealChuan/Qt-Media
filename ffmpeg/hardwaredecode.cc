@@ -118,7 +118,7 @@ Frame *HardWareDecode::transforFrame(Frame *in, bool &ok)
         return in;
     }
 
-    if (in->avFrame()->format != hw_pix_fmt) {
+    if (in->format() != hw_pix_fmt) {
         return in;
     }
     auto out = new Frame;
@@ -133,9 +133,7 @@ Frame *HardWareDecode::transforFrame(Frame *in, bool &ok)
         ok = false;
     }
     // 拷贝其他信息
-    av_frame_copy_props(out->avFrame(), in->avFrame());
-    out->avFrame()->width = in->avFrame()->width;
-    out->avFrame()->height = in->avFrame()->height;
+    out->copyPropsFrom(in);
     return out;
 }
 

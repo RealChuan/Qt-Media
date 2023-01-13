@@ -16,7 +16,6 @@ set(PROJECT_SOURCES
         audiofifo.cc audiofifo.hpp
         audioframeconverter.cpp audioframeconverter.h
         avcontextinfo.cpp avcontextinfo.h
-        avversion.cc avversion.hpp
         averror.cpp averror.h
         averrormanager.cc averrormanager.hpp
         codeccontext.cpp codeccontext.h

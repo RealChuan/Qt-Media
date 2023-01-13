@@ -10,7 +10,6 @@ class VideoRender;
 
 class DecoderVideoFrame : public Decoder<Frame *>
 {
-    Q_OBJECT
 public:
     explicit DecoderVideoFrame(QObject *parent = nullptr);
     ~DecoderVideoFrame();

@@ -2,6 +2,10 @@
 #include "decodersubtitleframe.hpp"
 #include "subtitle.h"
 
+extern "C" {
+#include <libavcodec/packet.h>
+}
+
 namespace Ffmpeg {
 
 class SubtitleDecoder::SubtitleDecoderPrivate
@@ -56,6 +60,7 @@ void SubtitleDecoder::runDecoder()
             msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
+        //qDebug() << "packet ass :" << QString::fromUtf8(packetPtr->avPacket()->data);
         std::unique_ptr<Subtitle> subtitlePtr(new Subtitle);
         if (!m_contextInfo->decodeSubtitle2(subtitlePtr.get(), packetPtr.data())) {
             continue;

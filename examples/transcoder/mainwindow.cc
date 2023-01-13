@@ -1,7 +1,6 @@
 #include "mainwindow.hpp"
 
 #include <ffmpeg/averror.h>
-#include <ffmpeg/avversion.hpp>
 #include <ffmpeg/ffmpegutils.hpp>
 #include <ffmpeg/transcode.hpp>
 
@@ -205,7 +204,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , d_ptr(new MainWindowPrivate(this))
 {
-    Ffmpeg::printFfmpegInfo();
+    Ffmpeg::Utils::printFfmpegInfo();
 
     setupUI();
     buildConnect();

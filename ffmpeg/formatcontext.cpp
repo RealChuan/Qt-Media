@@ -305,21 +305,18 @@ bool FormatContext::readFrame(Packet *packet)
     return false;
 }
 
-int FormatContext::checkPktPlayRange(Packet *packet)
+bool FormatContext::checkPktPlayRange(Packet *packet)
 {
-    Q_ASSERT(d_ptr->formatCtx != nullptr);
+    auto avPacket = packet->avPacket();
     /* check if packet is in play range specified by user, then queue, otherwise discard */
-    int64_t start_time = AV_NOPTS_VALUE;
-    int64_t duration = AV_NOPTS_VALUE;
-    int64_t stream_start_time = d_ptr->formatCtx->streams[packet->avPacket()->stream_index]
-                                    ->start_time;
-    int64_t pkt_ts = packet->avPacket()->pts == AV_NOPTS_VALUE ? packet->avPacket()->dts
-                                                               : packet->avPacket()->pts;
-    int pkt_in_play_range
+    auto start_time = AV_NOPTS_VALUE;
+    auto duration = AV_NOPTS_VALUE;
+    auto stream_start_time = d_ptr->formatCtx->streams[avPacket->stream_index]->start_time;
+    auto pkt_ts = avPacket->pts == AV_NOPTS_VALUE ? avPacket->dts : avPacket->pts;
+    auto pkt_in_play_range
         = duration == AV_NOPTS_VALUE
           || (pkt_ts - (stream_start_time != AV_NOPTS_VALUE ? stream_start_time : 0))
-                         * av_q2d(
-                             d_ptr->formatCtx->streams[packet->avPacket()->stream_index]->time_base)
+                         * av_q2d(d_ptr->formatCtx->streams[avPacket->stream_index]->time_base)
                      - (double) (start_time != AV_NOPTS_VALUE ? start_time : 0) / 1000000
                  <= ((double) duration / 1000000);
     return pkt_in_play_range;

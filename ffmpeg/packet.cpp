@@ -88,6 +88,11 @@ void Packet::setStreamIndex(int index)
     d_ptr->packet->stream_index = index;
 }
 
+int Packet::streamIndex() const
+{
+    return d_ptr->packet->stream_index;
+}
+
 void Packet::rescaleTs(const AVRational &srcTimeBase, const AVRational &dstTimeBase)
 {
     av_packet_rescale_ts(d_ptr->packet, srcTimeBase, dstTimeBase);

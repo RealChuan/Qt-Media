@@ -14,6 +14,8 @@ namespace Ffmpeg {
 
 namespace Utils {
 
+void FFMPEG_EXPORT printFfmpegInfo();
+
 QVector<AVHWDeviceType> getCurrentHWDeviceTypes();
 
 struct CodecInfo

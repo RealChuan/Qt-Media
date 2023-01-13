@@ -10,7 +10,6 @@ class VideoRender;
 
 class SubtitleDecoder : public Decoder<Packet *>
 {
-    Q_OBJECT
 public:
     explicit SubtitleDecoder(QObject *parent = nullptr);
     ~SubtitleDecoder();

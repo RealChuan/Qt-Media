@@ -3,7 +3,7 @@
 #include "slider.h"
 
 #include <ffmpeg/averror.h>
-#include <ffmpeg/avversion.hpp>
+#include <ffmpeg/ffmpegutils.hpp>
 #include <ffmpeg/player.h>
 #include <ffmpeg/videorender/videopreviewwidget.hpp>
 #include <ffmpeg/videorender/videorendercreate.hpp>
@@ -53,7 +53,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , d_ptr(new MainWindowPrivate(this))
 {
-    Ffmpeg::printFfmpegInfo();
+    Ffmpeg::Utils::printFfmpegInfo();
 
     setupUI();
     buildConnect();

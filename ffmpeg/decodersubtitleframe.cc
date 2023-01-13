@@ -4,6 +4,7 @@
 #include <subtitle/ass.hpp>
 #include <videorender/videorender.hpp>
 
+#include <QDebug>
 #include <QImage>
 #include <QWaitCondition>
 
@@ -74,7 +75,7 @@ void DecoderSubtitleFrame::runDecoder()
 {
     auto ctx = m_contextInfo->codecCtx()->avCodecCtx();
     QScopedPointer<Ass> assPtr(new Ass);
-    assPtr->init(ctx->extradata, ctx->extradata_size);
+    assPtr->init(ctx->subtitle_header, ctx->subtitle_header_size);
     assPtr->setWindowSize(d_ptr->videoResolutionRatio);
     SwsContext *swsContext = nullptr;
     quint64 dropNum = 0;

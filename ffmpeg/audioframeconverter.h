@@ -6,11 +6,12 @@ namespace Ffmpeg {
 
 class CodecContext;
 class Frame;
-class AudioFrameConverter
+class AudioFrameConverter : public QObject
 {
-    Q_DISABLE_COPY_MOVE(AudioFrameConverter)
 public:
-    explicit AudioFrameConverter(CodecContext *codecCtx, QAudioFormat &format);
+    explicit AudioFrameConverter(CodecContext *codecCtx,
+                                 QAudioFormat &format,
+                                 QObject *parent = nullptr);
     ~AudioFrameConverter();
 
     QByteArray convert(Frame *frame);

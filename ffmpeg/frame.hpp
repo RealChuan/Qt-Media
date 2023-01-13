@@ -22,6 +22,8 @@ public:
     Frame &operator=(const Frame &other);
     ~Frame();
 
+    void copyPropsFrom(Frame *src);
+
     bool isKey();
 
     bool imageAlloc(const QSize &size, AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA, int align = 1);
@@ -35,10 +37,12 @@ public:
     void setDuration(double duration);
     double duration();
 
+    int format() const;
+
     void setAVFrameNull();
 
     void setQImageFormat(QImage::Format format);
-    QImage::Format format() const;
+    QImage::Format qImageformat() const;
     QImage convertToImage() const; // maybe null
 
     bool getBuffer();

@@ -51,7 +51,7 @@ bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Fr
             = QString::asprintf("video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
                                 dec_ctx->width,
                                 dec_ctx->height,
-                                frame->avFrame()->format, //dec_ctx->pix_fmt,
+                                frame->format(), //dec_ctx->pix_fmt,
                                 dec_ctx->time_base.num,
                                 dec_ctx->time_base.den,
                                 dec_ctx->sample_aspect_ratio.num,
@@ -673,7 +673,7 @@ void Transcode::loop()
         if (!d_ptr->inFormatContext->readFrame(packetPtr.get())) {
             break;
         }
-        auto stream_index = packetPtr->avPacket()->stream_index;
+        auto stream_index = packetPtr->streamIndex();
         auto transcodeCtx = d_ptr->transcodeContexts.at(stream_index);
         auto encContextInfoPtr = transcodeCtx->encContextInfoPtr;
         if (encContextInfoPtr.isNull()) {
@@ -697,7 +697,6 @@ void Transcode::loop()
                                   d_ptr->transcodeContexts.at(stream_index)
                                       ->decContextInfoPtr.data());
             emit progressChanged(packetPtr->pts() * 1000 / duration);
-
             if (transcodeCtx->decContextInfoPtr->mediaType() == AVMEDIA_TYPE_VIDEO) {
                 d_ptr->fps = d_ptr->fpsPtr->calculate();
             }

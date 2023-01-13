@@ -16,7 +16,8 @@ void main()
     vec3 yuv;
     vec3 rgb;
 
-    if (format == 0 || format == 4 || format == 5 || format == 6 || format == 7) { // YUV420P
+    // YUV420P YUV422P YUV444P YUV410P YUV411P
+    if (format == 0 || format == 4 || format == 5 || format == 6 || format == 7) {
         yuv.x = texture(tex_y, TexCord).r;
         yuv.y = texture(tex_u, TexCord).r;
         yuv.z = texture(tex_v, TexCord).r;
@@ -24,7 +25,7 @@ void main()
         yuv.x = texture(tex_rgba, TexCord).r;
         yuv.y = texture(tex_rgba, TexCord).g;
         yuv.z = texture(tex_rgba, TexCord).a;
-    } else if (format == 2 || format == 17 || format == 20) { // RGB24
+    } else if (format == 2 || format == 17 || format == 20) { // RGB24 BGR8 RGB8
         gl_FragColor = vec4(texture(tex_rgba, TexCord).rgb, 1);
         return;
     } else if (format == 3) { // BGR24
@@ -41,7 +42,7 @@ void main()
         float y2 = tc.a;
         float y = (pixel == 1) ? y2 : y1;
         yuv = vec3(y, cb, cr);
-    } else if (format == 23 || format == 161) { // NV12
+    } else if (format == 23 || format == 159) { // NV12 P010LE
         yuv.x = texture(tex_y, TexCord).r;
         yuv.y = texture(tex_uv, TexCord).r;
         yuv.z = texture(tex_uv, TexCord).a;
@@ -61,7 +62,7 @@ void main()
     } else if (format == 28) { // BGRA
         gl_FragColor = texture(tex_rgba, TexCord).bgra;
         return;
-    } else if (format == 64) { // YUV420P10LE
+    } else if (format == 62) { // YUV420P10LE
         vec3 yuv_l;
         vec3 yuv_h;
         yuv_l.x = texture(tex_y, TexCord).r;
@@ -71,16 +72,16 @@ void main()
         yuv_l.z = texture(tex_v, TexCord).r;
         yuv_h.z = texture(tex_v, TexCord).a;
         yuv = (yuv_l * 255.0 + yuv_h * 255.0 * 256.0) / (1023.0);
-    } else if (format == 120) { // 0RGB
+    } else if (format == 118) { // 0RGB
         gl_FragColor = vec4(texture(tex_rgba, TexCord).gba, 1);
         return;
-    } else if (format == 121) { // RGB0
+    } else if (format == 119) { // RGB0
         gl_FragColor = vec4(texture(tex_rgba, TexCord).rgb, 1);
         return;
-    } else if (format == 122) { // 0BGR
+    } else if (format == 120) { // 0BGR
         gl_FragColor = vec4(texture(tex_rgba, TexCord).abg, 1);
         return;
-    } else if (format == 123) { // BGR0
+    } else if (format == 121) { // BGR0
         gl_FragColor = vec4(texture(tex_rgba, TexCord).bgr, 1);
         return;
     } else {

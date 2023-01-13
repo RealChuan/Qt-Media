@@ -102,33 +102,35 @@ QAudioFormat::SampleFormat getSampleFormat(AVSampleFormat format)
 class AudioFrameConverter::AudioFrameConverterPrivate
 {
 public:
-    AudioFrameConverterPrivate() {}
+    AudioFrameConverterPrivate(QObject *parent)
+        : owner(parent)
+    {}
 
     void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
+
+    QObject *owner;
 
     SwrContext *swrContext;
     QAudioFormat format;
     AVSampleFormat avSampleFormat;
 };
 
-AudioFrameConverter::AudioFrameConverter(CodecContext *codecCtx, QAudioFormat &format)
-    : d_ptr(new AudioFrameConverterPrivate)
+AudioFrameConverter::AudioFrameConverter(CodecContext *codecCtx,
+                                         QAudioFormat &format,
+                                         QObject *parent)
+    : QObject(parent)
+    , d_ptr(new AudioFrameConverterPrivate(this))
 {
     d_ptr->format = format;
     d_ptr->avSampleFormat = getAVSampleFormat(d_ptr->format.sampleFormat());
     auto channelLayout = getChannelLayout(d_ptr->format.channelConfig());
-    auto ctx = codecCtx->avCodecCtx();
-    auto channel_layout = ctx->channel_layout;
-    if (channel_layout <= 0) {
-        av_get_default_channel_layout(ctx->channels);
-    }
     d_ptr->swrContext = swr_alloc_set_opts(nullptr,
                                            channelLayout,
                                            d_ptr->avSampleFormat,
                                            d_ptr->format.sampleRate(),
-                                           channel_layout,
-                                           ctx->sample_fmt,
-                                           ctx->sample_rate,
+                                           codecCtx->channelLayout(),
+                                           codecCtx->sampleFmt(),
+                                           codecCtx->sampleRate(),
                                            0,
                                            nullptr);
 
@@ -147,9 +149,10 @@ AudioFrameConverter::~AudioFrameConverter()
 
 QByteArray AudioFrameConverter::convert(Frame *frame)
 {
+    auto nb_samples = frame->avFrame()->nb_samples;
     int size = av_samples_get_buffer_size(nullptr,
                                           d_ptr->format.channelCount(),
-                                          frame->avFrame()->nb_samples,
+                                          nb_samples,
                                           d_ptr->avSampleFormat,
                                           0);
 
@@ -158,9 +161,9 @@ QByteArray AudioFrameConverter::convert(Frame *frame)
 
     int len = swr_convert(d_ptr->swrContext,
                           bufPointer,
-                          frame->avFrame()->nb_samples,
+                          nb_samples,
                           const_cast<const uint8_t **>(frame->avFrame()->data),
-                          frame->avFrame()->nb_samples);
+                          nb_samples);
     if (len <= 0) {
         data.clear();
         d_ptr->setError(len);
