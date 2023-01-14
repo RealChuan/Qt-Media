@@ -30,6 +30,8 @@ public:
     void setVideoEnCodecID(AVCodecID codecID);
 
     void setSize(const QSize &size);
+    void setSubtitleFilename(const QString &filename);
+
     void setQuailty(int quailty);
     void setMinBitrate(int64_t bitrate);
     void setMaxBitrate(int64_t bitrate);

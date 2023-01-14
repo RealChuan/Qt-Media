@@ -66,7 +66,9 @@ bool FilterContext::create(const QString &name, const QString &args, FilterGraph
 
 bool FilterContext::buffersrc_addFrameFlags(Frame *frame)
 {
-    auto ret = av_buffersrc_add_frame_flags(d_ptr->filterContext, frame->avFrame(), 0);
+    auto ret = av_buffersrc_add_frame_flags(d_ptr->filterContext,
+                                            frame->avFrame(),
+                                            AV_BUFFERSRC_FLAG_KEEP_REF | AV_BUFFERSRC_FLAG_PUSH);
     if (ret < 0) {
         d_ptr->setError(ret);
         return false;

@@ -1,7 +1,9 @@
 #include "subtitlethread.hpp"
 
+#include <ffmpeg/avcontextinfo.h>
 #include <ffmpeg/formatcontext.h>
 #include <ffmpeg/packet.h>
+#include <ffmpeg/subtitle.h>
 
 #include <QMap>
 
@@ -65,6 +67,26 @@ void SubtitleThread::run()
     formatCtxPtr->seekFirstFrame();
     auto indexs = formatCtxPtr->subtitleMap().keys();
     formatCtxPtr->discardStreamExcluded(indexs);
+    QMap<int, Ffmpeg::AVContextInfo *> subtitleInfos;
+    auto clean = qScopeGuard([&] {
+        if (subtitleInfos.isEmpty()) {
+            return;
+        }
+        qDeleteAll(subtitleInfos);
+        subtitleInfos.clear();
+    });
+    for (auto i : indexs) {
+        auto info = new Ffmpeg::AVContextInfo;
+        subtitleInfos[i] = info;
+        info->setIndex(i);
+        info->setStream(formatCtxPtr->stream(i));
+        if (!info->initDecoder(formatCtxPtr->guessFrameRate(i))) {
+            return;
+        }
+        if (!info->openCodec(false)) {
+            return;
+        }
+    }
     while (d_ptr->runing.load()) {
         QScopedPointer<Ffmpeg::Packet> packetPtr(new Ffmpeg::Packet);
         if (!formatCtxPtr->readFrame(packetPtr.data())) {
@@ -76,6 +98,19 @@ void SubtitleThread::run()
         }
         qInfo() << "SubTitle text: " << stream_index
                 << QString::fromUtf8(packetPtr->avPacket()->data);
+        auto info = subtitleInfos.value(stream_index);
+        if (!info) {
+            continue;
+        }
+        QScopedPointer<Ffmpeg::Subtitle> subtitlePtr(new Ffmpeg::Subtitle);
+        if (!info->decodeSubtitle2(subtitlePtr.get(), packetPtr.data())) {
+            continue;
+        }
+        subtitlePtr->parse(nullptr);
+        auto tests = subtitlePtr->texts();
+        for (const auto &test : qAsConst(tests)) {
+            qInfo() << QString::fromUtf8(test);
+        }
         sleep(1);
     }
 }

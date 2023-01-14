@@ -19,6 +19,7 @@ private slots:
     void onVideoEncoderChanged();
     void onOpenInputFile();
     void onCheckInputFile();
+    void onOpenSubtitle();
     void onOpenOutputFile();
     void onStart();
 

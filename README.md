@@ -12,17 +12,23 @@
 
 ## Ffmpeg (version 5.0) has problems decoding ass subtitles
 
-Decoded subtitles:  
-```shell
-1,,Default,,0000,0000,0000,,Peek-a-boo!
+Decoded subtitles(ffmpeg-n5.0):
+
 ```
-  
-The standard should be:  
-```shell
-Dialogue: Marked=0,0:01:06.77,0:01:08.00,en,,0000,0000,0000,,Peek-a-boo!
+0,,en,,0000,0000,0000,,Peek-a-boo!
 ```
 
-## SwsContext is awesome! Compared to QImage convertTo and scaled.
+The ASS standard format should be (ffmpeg-n4.4.3) :
+
+```
+Dialogue: 0,0:01:06.77,0:01:08.00,en,,0000,0000,0000,,Peek-a-boo!\r\n
+```
+
+## With the subtitle filter, there is a problem with the subtitle display time
+
+```
+subtitles=filename='%1':original_size=%2x%3
+```
 
 ## How to set the encoding parameters to get smaller file size and better quality video?
 
@@ -48,10 +54,6 @@ frame->pts = transcodeCtx->audioPts / av_q2d(transcodeCtx->decContextInfoPtr->ti
 transcodeCtx->audioPts += frame->nb_samples;
 ```
 
-## QFfmpegPlayer
-
-<div align=center><img src="doc/player.png"></div>
-
 ### 动态切换Video Render，从opengl切换到widget，还是有GPU 0-3D占用，而且使用量是opengl的2倍！！！QT-BUG？
 
 ## QOpenGLWidget memory leak, move zoom-in and zoom-out window, code as follows:
@@ -72,3 +74,9 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 ```
+
+## SwsContext is awesome! Compared to QImage convertTo and scaled.
+
+## QFfmpegPlayer
+
+<div align=center><img src="doc/player.png"></div>

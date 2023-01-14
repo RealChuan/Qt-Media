@@ -265,32 +265,41 @@ public:
         return outFormatContext->writeHeader();
     }
 
-    void initFilters(Frame *frame)
+    void initFilters(int stream_index, Frame *frame)
     {
-        auto stream_num = inFormatContext->streams();
-        for (int i = 0; i < stream_num; i++) {
-            auto transcodeCtx = transcodeContexts.at(i);
-            if (transcodeCtx->decContextInfoPtr.isNull()) {
-                continue;
-            }
-            auto codec_type = inFormatContext->stream(i)->codecpar->codec_type;
-            if (codec_type != AVMEDIA_TYPE_AUDIO && codec_type != AVMEDIA_TYPE_VIDEO) {
-                continue;
-            }
-            QString filter_spec;
-            if (codec_type == AVMEDIA_TYPE_VIDEO) {
-                if (size.isValid()) { // "scale=320:240"
-                    filter_spec = QString("scale=%1:%2")
-                                      .arg(QString::number(size.width()),
-                                           QString::number(size.height()));
-                } else {
-                    filter_spec = "null";
-                }
-            } else {
-                filter_spec = "anull";
-            }
-            init_filter(transcodeCtx, filter_spec.toLocal8Bit().constData(), frame);
+        auto transcodeCtx = transcodeContexts.at(stream_index);
+        if (transcodeCtx->decContextInfoPtr.isNull()) {
+            return;
         }
+        auto codec_type = inFormatContext->stream(stream_index)->codecpar->codec_type;
+        if (codec_type != AVMEDIA_TYPE_AUDIO && codec_type != AVMEDIA_TYPE_VIDEO) {
+            return;
+        }
+        QString filter_spec;
+        if (codec_type == AVMEDIA_TYPE_VIDEO) {
+            if (size.isValid()) { // "scale=320:240"
+                filter_spec = QString("scale=%1:%2")
+                                  .arg(QString::number(size.width()),
+                                       QString::number(size.height()));
+            }
+            if (!subtitleFilename.isEmpty()) {
+                // "subtitles=filename=..." burn subtitle into video
+                if (!filter_spec.isEmpty()) {
+                    filter_spec += ",";
+                }
+                filter_spec += QString("subtitles=filename='%1':original_size=%2x%3")
+                                   .arg(subtitleFilename,
+                                        QString::number(size.width()),
+                                        QString::number(size.height()));
+            }
+            if (filter_spec.isEmpty()) {
+                filter_spec = "null";
+            }
+            qInfo() << "Video Filter: " << filter_spec;
+        } else {
+            filter_spec = "anull";
+        }
+        init_filter(transcodeCtx, filter_spec.toLocal8Bit().constData(), frame);
     }
 
     void initAudioFifo()
@@ -472,6 +481,7 @@ public:
     AVCodecID audioEnCodecId = AV_CODEC_ID_NONE;
     AVCodecID videoEnCodecId = AV_CODEC_ID_NONE;
     QSize size = QSize(-1, -1);
+    QString subtitleFilename;
     int quailty = -1;
     int64_t minBitrate = -1;
     int64_t maxBitrate = -1;
@@ -548,6 +558,18 @@ void Transcode::setVideoEnCodecID(AVCodecID codecID)
 void Transcode::setSize(const QSize &size)
 {
     d_ptr->size = size;
+}
+
+void Transcode::setSubtitleFilename(const QString &filename)
+{
+    Q_ASSERT(QFile::exists(filename));
+    d_ptr->subtitleFilename = filename;
+    // only for windwos
+    d_ptr->subtitleFilename.replace('/', "\\\\");
+    auto index = d_ptr->subtitleFilename.indexOf(":\\");
+    if (index > 0) {
+        d_ptr->subtitleFilename.insert(index, char('\\'));
+    }
 }
 
 void Transcode::setQuailty(int quailty)
@@ -686,7 +708,7 @@ void Transcode::loop()
             auto frames = transcodeCtx->decContextInfoPtr->decodeFrame(packetPtr.data());
             for (auto frame : frames) {
                 if (!transcodeCtx->initFilter) {
-                    d_ptr->initFilters(frame);
+                    d_ptr->initFilters(stream_index, frame);
                     transcodeCtx->initFilter = true;
                 }
                 QScopedPointer<Frame> framePtr(frame);

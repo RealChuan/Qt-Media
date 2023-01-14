@@ -1,6 +1,8 @@
 #ifndef AVCONTEXTINFO_H
 #define AVCONTEXTINFO_H
 
+#include "ffmepg_global.h"
+
 #include <QObject>
 
 extern "C" {
@@ -17,7 +19,8 @@ class Subtitle;
 class Packet;
 class Frame;
 class CodecContext;
-class AVContextInfo : public QObject
+
+class FFMPEG_EXPORT AVContextInfo : public QObject
 {
 public:
     explicit AVContextInfo(QObject *parent = nullptr);

@@ -1,9 +1,11 @@
 #ifndef SUBTITLE_H
 #define SUBTITLE_H
 
-#include <QObject>
+#include "ffmepg_global.h"
 
-#include <subtitle/assdata.hpp>
+#include <ffmpeg/subtitle/assdata.hpp>
+
+#include <QObject>
 
 struct AVSubtitle;
 struct SwsContext;
@@ -12,7 +14,7 @@ namespace Ffmpeg {
 
 class Ass;
 
-class Subtitle : public QObject
+class FFMPEG_EXPORT Subtitle : public QObject
 {
     Q_OBJECT
 public:

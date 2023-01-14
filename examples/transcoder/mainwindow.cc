@@ -17,6 +17,7 @@ public:
         transcode = new Ffmpeg::Transcode(owner);
 
         inTextEdit = new QTextEdit(owner);
+        subtitleTextEdit = new QTextEdit(owner);
         outTextEdit = new QTextEdit(owner);
 
         audioCodecCbx = new QComboBox(owner);
@@ -177,6 +178,7 @@ public:
     Ffmpeg::Transcode *transcode;
 
     QTextEdit *inTextEdit;
+    QTextEdit *subtitleTextEdit;
     QTextEdit *outTextEdit;
 
     QComboBox *audioCodecCbx;
@@ -264,6 +266,21 @@ void MainWindow::onCheckInputFile()
     d_ptr->initInputFileAttribute(url.toEncoded());
 }
 
+void MainWindow::onOpenSubtitle()
+{
+    const QString path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation)
+                             .value(0, QDir::homePath());
+    const QString filePath = QFileDialog::getOpenFileName(this,
+                                                          tr("Open File"),
+                                                          path,
+                                                          tr("Audio Video (*.srt *.ass *.txt)"));
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    d_ptr->subtitleTextEdit->setPlainText(filePath);
+}
+
 void MainWindow::onOpenOutputFile()
 {
     const QString path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation)
@@ -284,10 +301,7 @@ void MainWindow::onStart()
 {
     if (d_ptr->startButton->text() == tr("Start")) {
         auto inPath = d_ptr->inTextEdit->toPlainText();
-        //        if (!QFile::exists(inPath)) {
-        //            QMessageBox::warning(this, tr("Not exist"), tr("Input file path does not exist!"));
-        //            return;
-        //        }
+        auto subtitlePath = d_ptr->subtitleTextEdit->toPlainText();
         auto outPath = d_ptr->outTextEdit->toPlainText();
         if (inPath.isEmpty() || outPath.isEmpty()) {
             return;
@@ -301,6 +315,9 @@ void MainWindow::onStart()
             static_cast<AVCodecID>(d_ptr->videoCodecCbx->currentData().toInt()));
         d_ptr->transcode->setSize(
             {d_ptr->widthLineEdit->text().toInt(), d_ptr->heightLineEdit->text().toInt()});
+        if (QFile::exists(subtitlePath)) {
+            d_ptr->transcode->setSubtitleFilename(subtitlePath);
+        }
         d_ptr->transcode->setQuailty(d_ptr->quailtySbx->value());
         d_ptr->transcode->setMinBitrate(d_ptr->videoMinBitrateLineEdit->text().toInt());
         d_ptr->transcode->setMaxBitrate(d_ptr->videoMaxBitrateLineEdit->text().toInt());
@@ -336,6 +353,10 @@ void MainWindow::setupUI()
     checkInBtn->setToolTip(tr("Enter the path manually and use it"));
     checkInBtn->setMinimumSize(BUTTON_SIZE);
     connect(checkInBtn, &QToolButton::clicked, this, &MainWindow::onCheckInputFile);
+    auto subtitleBtn = new QToolButton(this);
+    subtitleBtn->setText(tr("Add Subtitle"));
+    subtitleBtn->setMinimumSize(BUTTON_SIZE);
+    connect(subtitleBtn, &QToolButton::clicked, this, &MainWindow::onOpenSubtitle);
     auto outBtn = new QToolButton(this);
     outBtn->setText(tr("Open Out"));
     outBtn->setMinimumSize(BUTTON_SIZE);
@@ -348,8 +369,10 @@ void MainWindow::setupUI()
     auto editLayout = new QGridLayout;
     editLayout->addWidget(d_ptr->inTextEdit, 0, 0, 1, 1);
     editLayout->addLayout(inLayout, 0, 1, 1, 1);
-    editLayout->addWidget(d_ptr->outTextEdit, 1, 0, 1, 1);
-    editLayout->addWidget(outBtn, 1, 1, 1, 1);
+    editLayout->addWidget(d_ptr->subtitleTextEdit, 1, 0, 1, 1);
+    editLayout->addWidget(subtitleBtn, 1, 1, 1, 1);
+    editLayout->addWidget(d_ptr->outTextEdit, 2, 0, 1, 1);
+    editLayout->addWidget(outBtn, 2, 1, 1, 1);
 
     auto groupLayout1 = new QHBoxLayout;
     groupLayout1->addWidget(new QLabel(tr("Audio Codec ID:"), this));
