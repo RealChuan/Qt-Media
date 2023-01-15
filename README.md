@@ -26,6 +26,8 @@ The ASS standard format should be (ffmpeg-n4.4.3) :
 Dialogue: 0,0:01:06.77,0:01:08.00,en,,0000,0000,0000,,Peek-a-boo!\r\n
 ```
 
+use ```ass_process_data```;
+
 ## With the subtitle filter, there is a problem with the subtitle display time
 
 ```

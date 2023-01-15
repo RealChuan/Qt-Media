@@ -334,7 +334,7 @@ int CodecContext::flags() const
 bool CodecContext::open()
 {
     Q_ASSERT(d_ptr->codecCtx != nullptr);
-    auto ret = avcodec_open2(d_ptr->codecCtx, d_ptr->codecCtx->codec, NULL);
+    auto ret = avcodec_open2(d_ptr->codecCtx, nullptr, nullptr);
     if (ret < 0) {
         d_ptr->setError(ret);
         return false;

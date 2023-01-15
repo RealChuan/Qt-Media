@@ -15,7 +15,7 @@ void msg_callback(int level, const char *fmt, va_list va, void *data)
     if (level > 6) {
         return;
     }
-    qInfo() << "libass:" << QString::vasprintf(fmt, va);
+    qInfo() << "libass:" << level << QString::vasprintf(fmt, va);
 }
 
 void print_font_providers(ASS_Library *ass_library)
@@ -149,7 +149,7 @@ void Ass::addSubtitleChunk(const QByteArray &data, double pts, double duration)
 void Ass::getRGBAData(AssDataInfoList &list, double pts)
 {
     int ch;
-    ASS_Image *img = ass_render_frame(d_ptr->ass_renderer, d_ptr->acc_track, pts * 1000, &ch);
+    auto img = ass_render_frame(d_ptr->ass_renderer, d_ptr->acc_track, pts * 1000, &ch);
     while (img) {
         auto rect = QRect(img->dst_x, img->dst_y, img->w, img->h);
         auto rgba = QByteArray(img->w * img->h * sizeof(uint32_t), Qt::Uninitialized);

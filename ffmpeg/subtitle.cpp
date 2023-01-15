@@ -61,7 +61,7 @@ public:
 
     void parseText()
     {
-        //pts = QString::asprintf("%.2f", pts).toDouble(); // libass只支持0.01秒，还要四舍五入
+        pts = QString::asprintf("%.2f", pts).toDouble(); // libass只支持0.01秒，还要四舍五入
         for (size_t i = 0; i < subtitle.num_rects; i++) {
             AVSubtitleRect *sub_rect = subtitle.rects[i];
             QByteArray text;
@@ -170,7 +170,11 @@ bool Subtitle::resolveAss(Ass *ass)
         return false;
     }
     for (const auto &data : qAsConst(d_ptr->texts)) {
-        ass->addSubtitleChunk(data, d_ptr->pts, d_ptr->duration);
+        if (data.startsWith("Dialogue")) {
+            ass->addSubtitleEvent(data);
+        } else {
+            ass->addSubtitleChunk(data, d_ptr->pts, d_ptr->duration);
+        }
     }
     ass->getRGBAData(d_ptr->assList, d_ptr->pts);
     return true;
