@@ -56,7 +56,8 @@ public:
         //        ass_alloc_style(acc_track);
         //        acc_track->styles[0].ScaleX = acc_track->styles[0].ScaleY = 1;
 
-        ass_set_fonts(ass_renderer, NULL, "sans-serif", ASS_FONTPROVIDER_AUTODETECT, NULL, 1);
+        /* Initialize fonts */
+        ass_set_fonts(ass_renderer, nullptr, nullptr, 1, NULL, 1);
     }
     ~AssPrivate()
     {
@@ -102,7 +103,7 @@ void Ass::setFont(const QString &fontFamily)
                   NULL,
                   fontFamily.toStdString().c_str(),
                   ASS_FONTPROVIDER_AUTODETECT,
-                  NULL,
+                  nullptr,
                   1);
 }
 
@@ -114,7 +115,7 @@ void Ass::addFont(const QByteArray &name, const QByteArray &data)
                  data.size());
 }
 
-void Ass::addSubtitleData(const QByteArray &data)
+void Ass::addSubtitleEvent(const QByteArray &data)
 {
     if (data.isEmpty()) {
         return;
@@ -122,7 +123,7 @@ void Ass::addSubtitleData(const QByteArray &data)
     ass_process_data(d_ptr->acc_track, (char *) data.constData(), data.size());
 }
 
-void Ass::addSubtitleData(const QByteArray &data, double pts, double duration)
+void Ass::addSubtitleEvent(const QByteArray &data, double pts, double duration)
 {
     if (data.isEmpty() || pts < 0 || duration < 0) {
         return;
@@ -134,6 +135,15 @@ void Ass::addSubtitleData(const QByteArray &data, double pts, double duration)
     event->Duration = duration * 1000;
     event->Style = 0;
     event->ReadOrder = eventID;
+}
+
+void Ass::addSubtitleChunk(const QByteArray &data, double pts, double duration)
+{
+    ass_process_chunk(d_ptr->acc_track,
+                      (char *) data.constData(),
+                      data.size(),
+                      pts * 1000,
+                      duration * 1000);
 }
 
 void Ass::getRGBAData(AssDataInfoList &list, double pts)

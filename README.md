@@ -18,6 +18,8 @@ Decoded subtitles(ffmpeg-n5.0):
 0,,en,,0000,0000,0000,,Peek-a-boo!
 ```
 
+You must use ```ass_process_chunk``` and set pts and duration, as in libavfilter/vf_subtitles.c.
+
 The ASS standard format should be (ffmpeg-n4.4.3) :
 
 ```

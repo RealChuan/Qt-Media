@@ -21,8 +21,9 @@ public:
     void setFont(const QString &fontFamily);
     void addFont(const QByteArray &name, const QByteArray &data);
 
-    void addSubtitleData(const QByteArray &data);
-    void addSubtitleData(const QByteArray &data, double pts, double duration);
+    void addSubtitleEvent(const QByteArray &data);
+    void addSubtitleEvent(const QByteArray &data, double pts, double duration);
+    void addSubtitleChunk(const QByteArray &data, double pts, double duration);
 
     void getRGBAData(AssDataInfoList &list, double pts);
 

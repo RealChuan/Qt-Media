@@ -75,7 +75,9 @@ void DecoderSubtitleFrame::runDecoder()
 {
     auto ctx = m_contextInfo->codecCtx()->avCodecCtx();
     QScopedPointer<Ass> assPtr(new Ass);
-    assPtr->init(ctx->subtitle_header, ctx->subtitle_header_size);
+    if (ctx->subtitle_header) {
+        assPtr->init(ctx->subtitle_header, ctx->subtitle_header_size);
+    }
     assPtr->setWindowSize(d_ptr->videoResolutionRatio);
     SwsContext *swsContext = nullptr;
     quint64 dropNum = 0;
