@@ -47,15 +47,17 @@ bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Fr
     case AVMEDIA_TYPE_VIDEO: {
         buffersrc_ctx.reset(new FilterContext("buffer"));
         buffersink_ctx.reset(new FilterContext("buffersink"));
+        auto time_base = transcodeContext->decContextInfoPtr->stream()->time_base;
         auto args
             = QString::asprintf("video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
                                 dec_ctx->width,
                                 dec_ctx->height,
                                 frame->format(), //dec_ctx->pix_fmt,
-                                dec_ctx->time_base.num,
-                                dec_ctx->time_base.den,
+                                time_base.num,
+                                time_base.den,
                                 dec_ctx->sample_aspect_ratio.num,
                                 dec_ctx->sample_aspect_ratio.den);
+        qInfo() << "Video filter in args:" << args;
         buffersrc_ctx->create("in", args, filter_graph.data());
         buffersink_ctx->create("out", "", filter_graph.data());
         av_opt_set_bin(buffersink_ctx->avFilterContext(),
@@ -72,11 +74,12 @@ bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Fr
         }
         auto args = QString::asprintf(
             "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%" PRIx64,
-            dec_ctx->time_base.num,
-            dec_ctx->time_base.den,
+            1,
+            dec_ctx->sample_rate,
             dec_ctx->sample_rate,
             av_get_sample_fmt_name(dec_ctx->sample_fmt),
             dec_ctx->channel_layout);
+        qInfo() << "Audio filter in args:" << args;
         buffersrc_ctx->create("in", args, filter_graph.data());
         buffersink_ctx->create("out", "", filter_graph.data());
         av_opt_set_bin(buffersink_ctx->avFilterContext(),
