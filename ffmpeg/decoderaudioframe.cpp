@@ -14,11 +14,11 @@ namespace Ffmpeg {
 struct DecoderAudioFrame::DecoderAudioFramePrivate
 {
     QScopedPointer<QAudioSink> audioSinkPtr;
-    QIODevice *audioDevice;
+    QIODevice *audioDevice = nullptr;
     qreal volume = 0.5;
 
     volatile bool pause = false;
-    double speed;
+    double speed = 0;
     QMutex mutex;
     QWaitCondition waitCondition;
 
@@ -47,12 +47,13 @@ void DecoderAudioFrame::stopDecoder()
 
 void DecoderAudioFrame::pause(bool state)
 {
-    if (!isRunning())
+    if (!isRunning()) {
         return;
-
+    }
     d_ptr->pause = state;
-    if (state)
+    if (state) {
         return;
+    }
     d_ptr->waitCondition.wakeOne();
 }
 
@@ -269,6 +270,9 @@ void DecoderAudioFrame::checkSpeed(QElapsedTimer &timer, qint64 &pauseTime)
 
 void DecoderAudioFrame::writeToDevice(QByteArray &audioBuf)
 {
+    if (!d_ptr->audioDevice) {
+        return;
+    }
     while (audioBuf.size() > 0 && !m_seek && !d_ptr->pause) {
         int byteFree = d_ptr->audioSinkPtr->bytesFree();
         if (byteFree > 0 && byteFree < audioBuf.size()) {
@@ -300,6 +304,9 @@ QAudioFormat DecoderAudioFrame::resetAudioOutput()
     d_ptr->audioSinkPtr->setBufferSize(format.sampleRate() * sampleSzie / 8);
     d_ptr->audioSinkPtr->setVolume(d_ptr->volume);
     d_ptr->audioDevice = d_ptr->audioSinkPtr->start();
+    if (!d_ptr->audioDevice) {
+        qWarning() << tr("Create AudioDevice Failed!");
+    }
     connect(d_ptr->audioSinkPtr.data(),
             &QAudioSink::stateChanged,
             this,

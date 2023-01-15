@@ -58,6 +58,13 @@ frame->pts = transcodeCtx->audioPts / av_q2d(transcodeCtx->decContextInfoPtr->ti
 transcodeCtx->audioPts += frame->nb_samples;
 ```
 
+## Failed to set up resampler
+[it's a bug in Qt 6.4.1 on Windows](https://forum.qt.io/topic/140523/qt-6-x-error-message-qt-multimedia-audiooutput-failed-to-setup-resampler)
+https://bugreports.qt.io/browse/QTBUG-108383 (johnco3's bug report)
+https://bugreports.qt.io/browse/QTBUG-108669 (a duplicate bug report; I filed it before I found any of this) 
+### solution:  
+https://stackoverflow.com/questions/74500509/failed-to-setup-resampler-when-starting-qaudiosink
+
 ### 动态切换Video Render，从opengl切换到widget，还是有GPU 0-3D占用，而且使用量是opengl的2倍！！！QT-BUG？
 
 ## QOpenGLWidget memory leak, move zoom-in and zoom-out window, code as follows:

@@ -30,7 +30,7 @@ void print_font_providers(ASS_Library *ass_library)
     ASS_DefaultFontProvider *providers;
     size_t providers_size = 0;
     ass_get_available_font_providers(ass_library, &providers, &providers_size);
-    qDebug("test.c: Available font providers (%zu): ", providers_size);
+    qDebug("Available font providers (%zu): ", providers_size);
     for (int i = 0; i < int(providers_size); i++) {
         qDebug() << font_provider_maps[providers[i]];
     }

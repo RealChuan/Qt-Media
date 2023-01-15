@@ -8,7 +8,7 @@ ELSEIF (CMAKE_HOST_UNIX)
     set(CMAKE_TOOLCHAIN_FILE "/usr/local/share/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 ENDIF ()
 
-list(APPEND CMAKE_PREFIX_PATH "C:\\Qt\\6.4.0\\msvc2019_64")
+list(APPEND CMAKE_PREFIX_PATH "C:\\Qt\\6.4.2\\msvc2019_64")
 
 project(Qt-Ffmpeg VERSION 0.1 LANGUAGES CXX)
 
