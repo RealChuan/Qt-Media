@@ -24,24 +24,19 @@ public:
         audioCodecCbx->setView(new QListView(audioCodecCbx));
         audioCodecCbx->setMaxVisibleItems(10);
         audioCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
-        for (int i = AV_CODEC_ID_MP2; i <= AV_CODEC_ID_CODEC2; i++) {
-            auto codecID = static_cast<AVCodecID>(i);
-            if (!Ffmpeg::Utils::isSupportAudioEncoder(codecID)) {
-                continue;
-            }
+        auto codecIDs = Ffmpeg::Utils::getCurrentSupportCodecIDs(AVMEDIA_TYPE_AUDIO, true);
+        for (const auto &codecID : qAsConst(codecIDs)) {
             audioCodecCbx->addItem(avcodec_get_name(codecID), codecID);
         }
         audioCodecCbx->setCurrentIndex(audioCodecCbx->findData(AV_CODEC_ID_AAC));
+
         videoCodecCbx = new QComboBox(owner);
         videoCodecCbx->setView(new QListView(videoCodecCbx));
         videoCodecCbx->setMaxVisibleItems(10);
         videoCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
-        for (int i = AV_CODEC_ID_MPEG1VIDEO; i <= AV_CODEC_ID_VVC; i++) {
-            auto codecID = static_cast<AVCodecID>(i);
-            if (!Ffmpeg::Utils::isSupportVideoEncoder(codecID)) {
-                continue;
-            }
-            videoCodecCbx->addItem(avcodec_get_name(static_cast<AVCodecID>(i)), i);
+        codecIDs = Ffmpeg::Utils::getCurrentSupportCodecIDs(AVMEDIA_TYPE_VIDEO, true);
+        for (const auto &codecID : qAsConst(codecIDs)) {
+            videoCodecCbx->addItem(avcodec_get_name(codecID), codecID);
         }
         videoCodecCbx->setCurrentIndex(videoCodecCbx->findData(AV_CODEC_ID_H264));
 

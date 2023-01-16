@@ -12,10 +12,17 @@ namespace Ffmpeg {
 void msg_callback(int level, const char *fmt, va_list va, void *data)
 {
     Q_UNUSED(data)
-    if (level > 6) {
-        return;
+    switch (level) {
+    case 0: qCritical() << "libass:" << QString::vasprintf(fmt, va); break;
+    case 1:
+    case 2:
+    case 3: qWarning() << "libass:" << QString::vasprintf(fmt, va); break;
+    case 4:
+    case 5:
+    case 6: qInfo() << "libass:" << QString::vasprintf(fmt, va); break;
+    case 7:
+    default: qDebug() << "libass:" << QString::vasprintf(fmt, va); break;
     }
-    qInfo() << "libass:" << level << QString::vasprintf(fmt, va);
 }
 
 void print_font_providers(ASS_Library *ass_library)

@@ -116,6 +116,47 @@ FormatContext::~FormatContext()
     close();
 }
 
+void FormatContext::copyChapterFrom(FormatContext *src)
+{
+    auto is = src->avFormatContext();
+    auto os = d_ptr->formatCtx;
+    AVChapter **tmp = (AVChapter **) av_realloc_f(os->chapters,
+                                                  is->nb_chapters + os->nb_chapters,
+                                                  sizeof(*os->chapters));
+    if (!tmp) {
+        qWarning() << tr("Memory request error");
+        return;
+    }
+    os->chapters = tmp;
+
+    for (uint i = 0; i < is->nb_chapters; i++) {
+        AVChapter *in_ch = is->chapters[i], *out_ch;
+        int64_t start_time = 0;
+        int64_t ts_off = av_rescale_q(start_time, AVRational{1, AV_TIME_BASE}, in_ch->time_base);
+        int64_t rt = INT64_MAX;
+
+        if (in_ch->end < ts_off) {
+            continue;
+        }
+        if (rt != INT64_MAX && in_ch->start > rt + ts_off) {
+            break;
+        }
+        out_ch = (AVChapter *) av_mallocz(sizeof(AVChapter));
+        if (!out_ch) {
+            qWarning() << tr("Memory request error");
+            return;
+        }
+        out_ch->id = in_ch->id;
+        out_ch->time_base = in_ch->time_base;
+        out_ch->start = FFMAX(0, in_ch->start - ts_off);
+        out_ch->end = FFMIN(rt, in_ch->end - ts_off);
+
+        av_dict_copy(&out_ch->metadata, in_ch->metadata, 0);
+
+        os->chapters[os->nb_chapters++] = out_ch;
+    }
+}
+
 bool FormatContext::isOpen()
 {
     return d_ptr->isOpen;

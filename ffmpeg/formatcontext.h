@@ -25,6 +25,8 @@ public:
     explicit FormatContext(QObject *parent = nullptr);
     ~FormatContext();
 
+    void copyChapterFrom(FormatContext *src);
+
     bool isOpen();
     bool openFilePath(const QString &filepath, OpenMode mode = ReadOnly);
     void close();

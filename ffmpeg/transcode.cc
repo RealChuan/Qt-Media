@@ -185,6 +185,7 @@ public:
         if (!ret) {
             return ret;
         }
+        outFormatContext->copyChapterFrom(inFormatContext);
         auto stream_num = inFormatContext->streams();
         for (int i = 0; i < stream_num; i++) {
             auto inStream = inFormatContext->stream(i);
@@ -467,6 +468,8 @@ public:
         }
         inFormatContext->close();
         outFormatContext->close();
+
+        subtitleFilename.clear();
 
         fps = 0;
         fpsPtr->reset();

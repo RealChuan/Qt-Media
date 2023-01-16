@@ -29,9 +29,7 @@ QVector<CodecInfo> FFMPEG_EXPORT getFileCodecInfo(const QString &filePath);
 
 QPair<int, int> FFMPEG_EXPORT getCodecQuantizer(AVCodecID codecId);
 
-bool FFMPEG_EXPORT isSupportVideoEncoder(AVCodecID codecId);
-
-bool FFMPEG_EXPORT isSupportAudioEncoder(AVCodecID codecId);
+QVector<AVCodecID> FFMPEG_EXPORT getCurrentSupportCodecIDs(AVMediaType mediaType, bool encoder);
 
 } // namespace Utils
 
