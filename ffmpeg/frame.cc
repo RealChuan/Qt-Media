@@ -93,7 +93,6 @@ void Frame::copyPropsFrom(Frame *src)
     d_ptr->frame->height = srcFrame->height;
     d_ptr->frame->pts = srcFrame->pts;
     d_ptr->frame->pkt_dts = srcFrame->pkt_dts;
-    d_ptr->frame->time_base = srcFrame->time_base;
     d_ptr->frame->key_frame = srcFrame->key_frame;
 }
 
