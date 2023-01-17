@@ -83,6 +83,7 @@ bool HardWareEncode::initHardWareDevice(CodecContext *codecContext)
     }
 
     auto hw_frames_ref = av_hwframe_ctx_alloc(d_ptr->bufferRef);
+    auto clean = qScopeGuard([&] { av_buffer_unref(&hw_frames_ref); });
     if (!hw_frames_ref) {
         qWarning() << "Failed to create VAAPI frame context.";
         return false;
@@ -96,7 +97,6 @@ bool HardWareEncode::initHardWareDevice(CodecContext *codecContext)
     frames_ctx->height = ctx->height;
     frames_ctx->initial_pool_size = 20;
     auto err = av_hwframe_ctx_init(hw_frames_ref);
-    auto clean = qScopeGuard([&] { av_buffer_unref(&hw_frames_ref); });
     if (err < 0) {
         d_ptr->setError(err);
         return false;

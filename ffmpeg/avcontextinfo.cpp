@@ -246,7 +246,7 @@ QVector<Frame *> AVContextInfo::decodeFrame(Packet *packet)
     while (d_ptr->codecCtx->receiveFrame(framePtr.get())) {
         if (d_ptr->gpuType == GpuDecode && mediaType() == AVMEDIA_TYPE_VIDEO) {
             bool ok = false;
-            framePtr.reset(d_ptr->hardWareDecodePtr->transFromGpu(framePtr.get(), ok));
+            framePtr.reset(d_ptr->hardWareDecodePtr->transFromGpu(framePtr.release(), ok));
             if (!ok) {
                 return frames;
             }

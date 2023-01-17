@@ -38,9 +38,10 @@ struct Frame::FramePrivate
     bool imageAlloc = false;
     double pts = 0;
     double duration = 0;
-    bool useNull = false;
 
     QImage::Format format = QImage::Format_Invalid;
+
+    bool useNull = false;
 };
 
 Frame::Frame()
@@ -71,6 +72,7 @@ Frame::Frame(const Frame &other)
     d_ptr->pts = other.d_ptr->pts;
     d_ptr->duration = other.d_ptr->duration;
     d_ptr->format = other.d_ptr->format;
+    d_ptr->useNull = other.d_ptr->useNull;
 }
 
 Frame &Frame::operator=(const Frame &other)
@@ -80,6 +82,7 @@ Frame &Frame::operator=(const Frame &other)
     d_ptr->pts = other.d_ptr->pts;
     d_ptr->duration = other.d_ptr->duration;
     d_ptr->format = other.d_ptr->format;
+    d_ptr->useNull = other.d_ptr->useNull;
     return *this;
 }
 
