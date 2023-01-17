@@ -83,7 +83,7 @@ void SubtitleThread::run()
         if (!info->initDecoder(formatCtxPtr->guessFrameRate(i))) {
             return;
         }
-        if (!info->openCodec(false)) {
+        if (!info->openCodec(Ffmpeg::AVContextInfo::NotUseGpu)) {
             return;
         }
     }

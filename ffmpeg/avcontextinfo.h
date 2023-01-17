@@ -23,6 +23,8 @@ class CodecContext;
 class FFMPEG_EXPORT AVContextInfo : public QObject
 {
 public:
+    enum GpuType { NotUseGpu, GpuDecode, GpuEncode };
+
     explicit AVContextInfo(QObject *parent = nullptr);
     ~AVContextInfo();
 
@@ -50,7 +52,7 @@ public:
     bool initDecoder(const AVRational &frameRate);
     bool initEncoder(AVCodecID codecId);
     bool initEncoder(const QString &name);
-    bool openCodec(bool useGpu = false);
+    bool openCodec(GpuType type = NotUseGpu);
 
     bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
     // sendPacket and receiveFrame
@@ -68,7 +70,8 @@ public:
     QString mediaTypeString() const;
     bool isDecoder() const;
 
-    bool isGpuDecode();
+    GpuType gpuType() const;
+    AVPixelFormat pixfmt() const;
 
     CodecContext *codecCtx();
 

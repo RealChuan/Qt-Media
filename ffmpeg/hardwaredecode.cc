@@ -13,28 +13,6 @@ extern "C" {
 
 namespace Ffmpeg {
 
-AVPixelFormat getPixelFormat(const AVCodec *decoder, AVHWDeviceType type)
-{
-    AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
-    for (int i = 0;; i++) {
-        const AVCodecHWConfig *config = avcodec_get_hw_config(decoder, i);
-        if (!config) {
-            qWarning() << QObject::tr("Decoder %1 does not support device type %2.",
-                                      "HardWareDecode")
-                              .arg(decoder->name, av_hwdevice_get_type_name(type));
-            return hw_pix_fmt;
-        }
-        if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX
-            && config->device_type == type) {
-            qInfo() << QObject::tr("Decoder %1 support device type %2.", "HardWareDecode")
-                           .arg(decoder->name, av_hwdevice_get_type_name(type));
-            hw_pix_fmt = config->pix_fmt;
-            break;
-        }
-    }
-    return hw_pix_fmt;
-}
-
 AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
 
 AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts)
@@ -69,7 +47,7 @@ public:
     QVector<AVHWDeviceType> hwDeviceTypes = Utils::getCurrentHWDeviceTypes();
     AVHWDeviceType hwDeviceType = AV_HWDEVICE_TYPE_NONE;
     AVBufferRef *bufferRef = nullptr;
-    bool vaild = true;
+    bool vaild = false;
 };
 
 HardWareDecode::HardWareDecode(QObject *parent)
@@ -81,11 +59,14 @@ HardWareDecode::~HardWareDecode() {}
 
 bool HardWareDecode::initPixelFormat(const AVCodec *decoder)
 {
+    if (av_codec_is_decoder(decoder) <= 0) {
+        return false;
+    }
     if (d_ptr->hwDeviceTypes.isEmpty()) {
         return false;
     }
     for (AVHWDeviceType type : qAsConst(d_ptr->hwDeviceTypes)) {
-        hw_pix_fmt = getPixelFormat(decoder, type);
+        hw_pix_fmt = Utils::getPixelFormat(decoder, type);
         if (hw_pix_fmt != AV_PIX_FMT_NONE) {
             d_ptr->hwDeviceType = type;
             break;
@@ -99,7 +80,7 @@ bool HardWareDecode::initHardWareDevice(CodecContext *codecContext)
     if (hw_pix_fmt == AV_PIX_FMT_NONE) {
         return false;
     }
-    int ret = av_hwdevice_ctx_create(&d_ptr->bufferRef, d_ptr->hwDeviceType, nullptr, nullptr, 0);
+    auto ret = av_hwdevice_ctx_create(&d_ptr->bufferRef, d_ptr->hwDeviceType, nullptr, nullptr, 0);
     if (ret < 0) {
         qWarning() << "Failed to create specified HW device.";
         d_ptr->setError(ret);
@@ -111,7 +92,7 @@ bool HardWareDecode::initHardWareDevice(CodecContext *codecContext)
     return true;
 }
 
-Frame *HardWareDecode::transforFrame(Frame *in, bool &ok)
+Frame *HardWareDecode::transFromGpu(Frame *in, bool &ok)
 {
     ok = true;
     if (!isVaild()) {

@@ -10,6 +10,8 @@ extern "C" {
 #include <libavutil/hwcontext.h>
 }
 
+struct AVCodec;
+
 namespace Ffmpeg {
 
 namespace Utils {
@@ -18,18 +20,21 @@ void FFMPEG_EXPORT printFfmpegInfo();
 
 QVector<AVHWDeviceType> getCurrentHWDeviceTypes();
 
+AVPixelFormat getPixelFormat(const AVCodec *codec, AVHWDeviceType type);
+
 struct CodecInfo
 {
     AVMediaType mediaType = AVMEDIA_TYPE_UNKNOWN;
-    AVCodecID codecID = AV_CODEC_ID_NONE;
+    AVCodecID id = AV_CODEC_ID_NONE;
+    QString name;
     QSize size = QSize(-1, -1);
 };
 
 QVector<CodecInfo> FFMPEG_EXPORT getFileCodecInfo(const QString &filePath);
 
-QPair<int, int> FFMPEG_EXPORT getCodecQuantizer(AVCodecID codecId);
+QPair<int, int> FFMPEG_EXPORT getCodecQuantizer(const QString &codecname);
 
-QVector<AVCodecID> FFMPEG_EXPORT getCurrentSupportCodecIDs(AVMediaType mediaType, bool encoder);
+QStringList FFMPEG_EXPORT getCurrentSupportCodecs(AVMediaType mediaType, bool encoder);
 
 } // namespace Utils
 

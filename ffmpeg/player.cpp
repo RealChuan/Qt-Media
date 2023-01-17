@@ -372,7 +372,8 @@ bool Player::setMediaIndex(AVContextInfo *contextInfo, int index)
     if (!contextInfo->initDecoder(d_ptr->formatCtx->guessFrameRate(index))) {
         return false;
     }
-    return contextInfo->openCodec(d_ptr->gpuDecode);
+    return contextInfo->openCodec(d_ptr->gpuDecode ? AVContextInfo::GpuType::GpuDecode
+                                                   : AVContextInfo::GpuType::NotUseGpu);
 }
 
 void Player::pause(bool status)

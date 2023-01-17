@@ -24,21 +24,16 @@ public:
         audioCodecCbx->setView(new QListView(audioCodecCbx));
         audioCodecCbx->setMaxVisibleItems(10);
         audioCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
-        auto codecIDs = Ffmpeg::Utils::getCurrentSupportCodecIDs(AVMEDIA_TYPE_AUDIO, true);
-        for (const auto &codecID : qAsConst(codecIDs)) {
-            audioCodecCbx->addItem(avcodec_get_name(codecID), codecID);
-        }
+        audioCodecCbx->addItems(Ffmpeg::Utils::getCurrentSupportCodecs(AVMEDIA_TYPE_AUDIO, true));
         audioCodecCbx->setCurrentIndex(audioCodecCbx->findData(AV_CODEC_ID_AAC));
+        audioCodecCbx->setCurrentText(avcodec_get_name(AV_CODEC_ID_AAC));
 
         videoCodecCbx = new QComboBox(owner);
         videoCodecCbx->setView(new QListView(videoCodecCbx));
         videoCodecCbx->setMaxVisibleItems(10);
         videoCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
-        codecIDs = Ffmpeg::Utils::getCurrentSupportCodecIDs(AVMEDIA_TYPE_VIDEO, true);
-        for (const auto &codecID : qAsConst(codecIDs)) {
-            videoCodecCbx->addItem(avcodec_get_name(codecID), codecID);
-        }
-        videoCodecCbx->setCurrentIndex(videoCodecCbx->findData(AV_CODEC_ID_H264));
+        videoCodecCbx->addItems(Ffmpeg::Utils::getCurrentSupportCodecs(AVMEDIA_TYPE_VIDEO, true));
+        videoCodecCbx->setCurrentText(avcodec_get_name(AV_CODEC_ID_H264));
 
         quailtySbx = new QSpinBox(owner);
         quailtySbx->setRange(2, 31);
@@ -131,20 +126,20 @@ public:
             switch (codec.mediaType) {
             case AVMEDIA_TYPE_AUDIO:
                 if (!audioSet) {
-                    auto index = audioCodecCbx->findData(codec.codecID);
+                    auto index = audioCodecCbx->findText(codec.name);
                     if (index > 0) {
-                        audioCodecCbx->setCurrentIndex(index);
+                        audioCodecCbx->setCurrentText(codec.name);
                         audioSet = true;
                     }
                 }
                 break;
             case AVMEDIA_TYPE_VIDEO:
                 if (!videoSet) {
-                    auto index = videoCodecCbx->findData(codec.codecID);
+                    auto index = videoCodecCbx->findText(codec.name);
                     if (index > 0) {
-                        videoCodecCbx->setCurrentIndex(index);
-                        videoSet = true;
+                        videoCodecCbx->setCurrentText(codec.name);
                     }
+                    videoSet = true;
                     widthLineEdit->blockSignals(true);
                     heightLineEdit->blockSignals(true);
                     widthLineEdit->setText(QString::number(codec.size.width()));
@@ -219,8 +214,7 @@ void MainWindow::onError(const Ffmpeg::AVError &avError)
 
 void MainWindow::onVideoEncoderChanged()
 {
-    auto codecID = static_cast<AVCodecID>(d_ptr->videoCodecCbx->currentData().toInt());
-    auto quantizer = Ffmpeg::Utils::getCodecQuantizer(codecID);
+    auto quantizer = Ffmpeg::Utils::getCodecQuantizer(d_ptr->videoCodecCbx->currentText());
     d_ptr->quailtySbx->setRange(quantizer.first, quantizer.second);
 }
 
@@ -304,10 +298,8 @@ void MainWindow::onStart()
 
         d_ptr->transcode->setInFilePath(inPath);
         d_ptr->transcode->setOutFilePath(outPath);
-        d_ptr->transcode->setAudioEncodecID(
-            static_cast<AVCodecID>(d_ptr->audioCodecCbx->currentData().toInt()));
-        d_ptr->transcode->setVideoEnCodecID(
-            static_cast<AVCodecID>(d_ptr->videoCodecCbx->currentData().toInt()));
+        d_ptr->transcode->setAudioEncodecName(d_ptr->audioCodecCbx->currentText());
+        d_ptr->transcode->setVideoEncodecName(d_ptr->videoCodecCbx->currentText());
         d_ptr->transcode->setSize(
             {d_ptr->widthLineEdit->text().toInt(), d_ptr->heightLineEdit->text().toInt()});
         if (QFile::exists(subtitlePath)) {

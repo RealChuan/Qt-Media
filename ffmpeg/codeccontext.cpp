@@ -114,6 +114,7 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
                                                         : d_ptr->codecCtx->pix_fmt);
         /* video time_base can be set to whatever is handy and supported by encoder */
         dstCodecCtx->time_base = av_inv_q(d_ptr->codecCtx->framerate);
+        dstCodecCtx->framerate = d_ptr->codecCtx->framerate;
         dstCodecCtx->color_primaries = d_ptr->codecCtx->color_primaries;
         dstCodecCtx->color_trc = d_ptr->codecCtx->color_trc;
         dstCodecCtx->colorspace = d_ptr->codecCtx->colorspace;
@@ -251,7 +252,9 @@ QSize CodecContext::size() const
 
 void CodecContext::setQuailty(int quailty)
 {
-    Q_ASSERT(quailty >= d_ptr->codecCtx->qmin);
+    if (quailty < d_ptr->codecCtx->qmin) {
+        return;
+    }
     d_ptr->codecCtx->flags |= AV_CODEC_FLAG_QSCALE;
     d_ptr->codecCtx->global_quality = FF_QP2LAMBDA * quailty;
 }

@@ -17,7 +17,7 @@ public:
 
     bool initPixelFormat(const AVCodec *decoder);
     bool initHardWareDevice(CodecContext *codecContext);
-    Frame *transforFrame(Frame *in, bool &ok);
+    Frame *transFromGpu(Frame *in, bool &ok);
 
     bool isVaild();
 

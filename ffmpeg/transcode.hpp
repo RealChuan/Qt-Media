@@ -28,6 +28,8 @@ public:
 
     void setAudioEncodecID(AVCodecID codecID);
     void setVideoEnCodecID(AVCodecID codecID);
+    void setAudioEncodecName(const QString &name);
+    void setVideoEncodecName(const QString &name);
 
     void setSize(const QSize &size);
     void setSubtitleFilename(const QString &filename);

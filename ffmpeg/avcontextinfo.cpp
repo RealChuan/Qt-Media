@@ -2,6 +2,7 @@
 #include "codeccontext.h"
 #include "frame.hpp"
 #include "hardwaredecode.hpp"
+#include "hardwareencode.hpp"
 #include "packet.h"
 
 #include <QDebug>
@@ -64,8 +65,9 @@ public:
     QScopedPointer<CodecContext> codecCtx; //解码器上下文
     AVStream *stream = nullptr;            //流
     int streamIndex = Error_Index;         // 索引
-    QScopedPointer<HardWareDecode> hardWareDecode;
-    bool gpuDecode = false;
+    QScopedPointer<HardWareDecode> hardWareDecodePtr;
+    QScopedPointer<HardWareEncode> hardWareEncodePtr;
+    GpuType gpuType = GpuType::NotUseGpu;
 };
 
 AVContextInfo::AVContextInfo(QObject *parent)
@@ -203,13 +205,23 @@ bool AVContextInfo::initEncoder(const QString &name)
     return true;
 }
 
-bool AVContextInfo::openCodec(bool useGpu)
+bool AVContextInfo::openCodec(GpuType type)
 {
-    d_ptr->gpuDecode = useGpu;
-    if (mediaType() == AVMEDIA_TYPE_VIDEO && d_ptr->gpuDecode) {
-        d_ptr->hardWareDecode.reset(new HardWareDecode);
-        d_ptr->hardWareDecode->initPixelFormat(d_ptr->codecCtx->codec());
-        d_ptr->hardWareDecode->initHardWareDevice(d_ptr->codecCtx.data());
+    d_ptr->gpuType = type;
+    if (mediaType() == AVMEDIA_TYPE_VIDEO) {
+        switch (d_ptr->gpuType) {
+        case GpuDecode:
+            d_ptr->hardWareDecodePtr.reset(new HardWareDecode);
+            d_ptr->hardWareDecodePtr->initPixelFormat(d_ptr->codecCtx->codec());
+            d_ptr->hardWareDecodePtr->initHardWareDevice(d_ptr->codecCtx.data());
+            break;
+        case GpuEncode:
+            d_ptr->hardWareEncodePtr.reset(new HardWareEncode);
+            d_ptr->hardWareEncodePtr->initEncoder(d_ptr->codecCtx->codec());
+            d_ptr->hardWareEncodePtr->initHardWareDevice(d_ptr->codecCtx.data());
+            break;
+        default: break;
+        }
     }
 
     //用于初始化pCodecCtx结构
@@ -232,9 +244,9 @@ QVector<Frame *> AVContextInfo::decodeFrame(Packet *packet)
     }
     std::unique_ptr<Frame> framePtr(new Frame);
     while (d_ptr->codecCtx->receiveFrame(framePtr.get())) {
-        if (d_ptr->gpuDecode && mediaType() == AVMEDIA_TYPE_VIDEO) {
+        if (d_ptr->gpuType == GpuDecode && mediaType() == AVMEDIA_TYPE_VIDEO) {
             bool ok = false;
-            framePtr.reset(d_ptr->hardWareDecode->transforFrame(framePtr.get(), ok));
+            framePtr.reset(d_ptr->hardWareDecodePtr->transFromGpu(framePtr.get(), ok));
             if (!ok) {
                 return frames;
             }
@@ -247,7 +259,17 @@ QVector<Frame *> AVContextInfo::decodeFrame(Packet *packet)
 
 QVector<Packet *> AVContextInfo::encodeFrame(Frame *frame)
 {
-    QVector<Packet *> packets;
+    QVector<Packet *> packets{};
+    bool needFree = false;
+    if (d_ptr->gpuType == GpuEncode && mediaType() == AVMEDIA_TYPE_VIDEO
+        && frame->avFrame() != nullptr) {
+        bool ok = false;
+        frame = d_ptr->hardWareEncodePtr->transToGpu(d_ptr->codecCtx.data(), frame, ok, needFree);
+        if (!ok) {
+            return packets;
+        }
+    }
+    QSharedPointer<Frame> framPtr(needFree ? frame : nullptr);
     if (!d_ptr->codecCtx->sendFrame(frame)) {
         return packets;
     }
@@ -304,9 +326,18 @@ bool AVContextInfo::isDecoder() const
     return d_ptr->codecCtx->isDecoder();
 }
 
-bool AVContextInfo::isGpuDecode()
+AVContextInfo::GpuType AVContextInfo::gpuType() const
 {
-    return d_ptr->gpuDecode;
+    return d_ptr->gpuType;
+}
+
+AVPixelFormat AVContextInfo::pixfmt() const
+{
+    if (d_ptr->gpuType == GpuEncode && mediaType() == AVMEDIA_TYPE_VIDEO
+        && d_ptr->hardWareEncodePtr->isVaild()) {
+        return d_ptr->hardWareEncodePtr->swFormat();
+    }
+    return d_ptr->codecCtx->pixfmt();
 }
 
 } // namespace Ffmpeg

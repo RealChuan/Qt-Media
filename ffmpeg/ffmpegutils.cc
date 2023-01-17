@@ -93,6 +93,27 @@ QVector<AVHWDeviceType> getCurrentHWDeviceTypes()
     return types;
 }
 
+AVPixelFormat getPixelFormat(const AVCodec *codec, AVHWDeviceType type)
+{
+    auto hw_pix_fmt = AV_PIX_FMT_NONE;
+    for (int i = 0;; i++) {
+        auto config = avcodec_get_hw_config(codec, i);
+        if (!config) {
+            qWarning() << QObject::tr("Codec %1 does not support device type %2.")
+                              .arg(codec->name, av_hwdevice_get_type_name(type));
+            return hw_pix_fmt;
+        }
+        if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX
+            && config->device_type == type) {
+            qInfo() << QObject::tr("Codec %1 support device type %2.")
+                           .arg(codec->name, av_hwdevice_get_type_name(type));
+            hw_pix_fmt = config->pix_fmt;
+            break;
+        }
+    }
+    return hw_pix_fmt;
+}
+
 QVector<CodecInfo> getFileCodecInfo(const QString &filePath)
 {
     QVector<CodecInfo> codecs{};
@@ -105,26 +126,28 @@ QVector<CodecInfo> getFileCodecInfo(const QString &filePath)
     auto stream_num = formatContextPtr->streams();
     for (int i = 0; i < stream_num; i++) {
         auto codecpar = formatContextPtr->stream(i)->codecpar;
-        codecs.append(
-            {codecpar->codec_type, codecpar->codec_id, {codecpar->width, codecpar->height}});
+        codecs.append({codecpar->codec_type,
+                       codecpar->codec_id,
+                       avcodec_get_name(codecpar->codec_id),
+                       {codecpar->width, codecpar->height}});
     }
     formatContextPtr->dumpFormat();
     return codecs;
 }
 
-QPair<int, int> getCodecQuantizer(AVCodecID codecId)
+QPair<int, int> getCodecQuantizer(const QString &codecname)
 {
     QScopedPointer<AVContextInfo> contextInfoPtr(new AVContextInfo);
-    if (!contextInfoPtr->initEncoder(codecId)) {
+    if (!contextInfoPtr->initEncoder(codecname)) {
         return {-1, -1};
     }
     auto quantizer = contextInfoPtr->codecCtx()->quantizer();
     return quantizer;
 }
 
-QVector<AVCodecID> getCurrentSupportCodecIDs(AVMediaType mediaType, bool encoder)
+QStringList getCurrentSupportCodecs(AVMediaType mediaType, bool encoder)
 {
-    QVector<AVCodecID> codecIDs{};
+    QStringList codecnames{};
     const AVCodecDescriptor **codecs{};
     auto nb_codecs = get_codecs_sorted(&codecs);
 
@@ -142,12 +165,11 @@ QVector<AVCodecID> getCurrentSupportCodecIDs(AVMediaType mediaType, bool encoder
             if (desc->type != mediaType) {
                 continue;
             }
-            if (!codecIDs.contains(codec->id)) {
-                codecIDs.append(codec->id);
+            auto name = codec->name;
+            if (!codecnames.contains(name)) {
+                codecnames.append(name);
             }
-            auto str = QString::asprintf("%-20s %s",
-                                         codec->name,
-                                         codec->long_name ? codec->long_name : "");
+            auto str = QString::asprintf("%-20s %s", name, codec->long_name ? codec->long_name : "");
             if (strcmp(codec->name, desc->name)) {
                 str += QString::asprintf(" (codec %s)", desc->name);
             }
@@ -155,7 +177,7 @@ QVector<AVCodecID> getCurrentSupportCodecIDs(AVMediaType mediaType, bool encoder
         }
     }
     av_free(codecs);
-    return codecIDs;
+    return codecnames;
 }
 
 } // namespace Utils

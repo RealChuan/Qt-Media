@@ -60,11 +60,17 @@ bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Fr
         qInfo() << "Video filter in args:" << args;
         buffersrc_ctx->create("in", args, filter_graph.data());
         buffersink_ctx->create("out", "", filter_graph.data());
+        auto pix_fmt = transcodeContext->encContextInfoPtr->pixfmt();
         av_opt_set_bin(buffersink_ctx->avFilterContext(),
                        "pix_fmts",
-                       (uint8_t *) &enc_ctx->pix_fmt,
-                       sizeof(enc_ctx->pix_fmt),
+                       (uint8_t *) &pix_fmt,
+                       sizeof(pix_fmt),
                        AV_OPT_SEARCH_CHILDREN);
+        //        av_opt_set_bin(buffersink_ctx->avFilterContext(),
+        //                       "pix_fmts",
+        //                       (uint8_t *) &enc_ctx->pix_fmt,
+        //                       sizeof(enc_ctx->pix_fmt),
+        //                       AV_OPT_SEARCH_CHILDREN);
     } break;
     case AVMEDIA_TYPE_AUDIO: {
         buffersrc_ctx.reset(new FilterContext("abuffer"));
@@ -170,7 +176,8 @@ public:
                 return false;
             }
             if (codec_type == AVMEDIA_TYPE_VIDEO || codec_type == AVMEDIA_TYPE_AUDIO) {
-                contextInfoPtr->openCodec(useGpu);
+                contextInfoPtr->openCodec(useGpu ? AVContextInfo::GpuDecode
+                                                 : AVContextInfo::NotUseGpu);
             }
             transContext->decContextInfoPtr = contextInfoPtr;
         }
@@ -223,10 +230,13 @@ public:
                 contextInfoPtr->setIndex(i);
                 contextInfoPtr->setStream(stream);
                 contextInfoPtr->initEncoder(decContextInfo->mediaType() == AVMEDIA_TYPE_AUDIO
-                                                ? audioEnCodecId
-                                                : videoEnCodecId);
+                                                ? audioEncoderName
+                                                : videoEncoderName);
                 //contextInfoPtr->initEncoder(decContextInfo->codecCtx()->avCodecCtx()->codec_id);
                 decContextInfo->copyToCodecParameters(contextInfoPtr.data());
+                // ffmpeg example transcoding.c ? framerate, sample_rate
+                contextInfoPtr->codecCtx()->avCodecCtx()->time_base = decContextInfo->timebase();
+
                 contextInfoPtr->setQuailty(quailty);
                 contextInfoPtr->setCrf(crf);
                 contextInfoPtr->setPreset(preset);
@@ -241,7 +251,7 @@ public:
                     contextInfoPtr->codecCtx()->setFlags(contextInfoPtr->codecCtx()->flags()
                                                          | AV_CODEC_FLAG_GLOBAL_HEADER);
                 }
-                contextInfoPtr->openCodec(false);
+                contextInfoPtr->openCodec(AVContextInfo::GpuEncode);
                 auto ret = avcodec_parameters_from_context(stream->codecpar,
                                                            contextInfoPtr->codecCtx()->avCodecCtx());
                 if (ret < 0) {
@@ -428,7 +438,7 @@ public:
         auto transcodeCtx = transcodeContexts.at(stream_index);
         QVector<Packet *> packets{};
         if (flush) {
-            QScopedPointer<Frame> framePtr(new Frame);
+            QSharedPointer<Frame> framePtr(new Frame);
             framePtr->setAVFrameNull();
             packets = transcodeCtx->encContextInfoPtr->encodeFrame(framePtr.data());
         } else {
@@ -484,8 +494,8 @@ public:
     FormatContext *inFormatContext;
     FormatContext *outFormatContext;
     QVector<TranscodeContext *> transcodeContexts{};
-    AVCodecID audioEnCodecId = AV_CODEC_ID_NONE;
-    AVCodecID videoEnCodecId = AV_CODEC_ID_NONE;
+    QString audioEncoderName;
+    QString videoEncoderName;
     QSize size = QSize(-1, -1);
     QString subtitleFilename;
     int quailty = -1;
@@ -553,12 +563,22 @@ void Transcode::setOutFilePath(const QString &filepath)
 
 void Transcode::setAudioEncodecID(AVCodecID codecID)
 {
-    d_ptr->audioEnCodecId = codecID;
+    d_ptr->audioEncoderName = avcodec_get_name(codecID);
 }
 
 void Transcode::setVideoEnCodecID(AVCodecID codecID)
 {
-    d_ptr->videoEnCodecId = codecID;
+    d_ptr->videoEncoderName = avcodec_get_name(codecID);
+}
+
+void Transcode::setAudioEncodecName(const QString &name)
+{
+    d_ptr->audioEncoderName = name;
+}
+
+void Transcode::setVideoEncodecName(const QString &name)
+{
+    d_ptr->videoEncoderName = name;
 }
 
 void Transcode::setSize(const QSize &size)
