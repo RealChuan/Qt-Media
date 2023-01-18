@@ -362,9 +362,9 @@ void MainWindow::setupUI()
     editLayout->addWidget(outBtn, 2, 1, 1, 1);
 
     auto groupLayout1 = new QHBoxLayout;
-    groupLayout1->addWidget(new QLabel(tr("Audio Codec ID:"), this));
+    groupLayout1->addWidget(new QLabel(tr("Audio Codec Name:"), this));
     groupLayout1->addWidget(d_ptr->audioCodecCbx);
-    groupLayout1->addWidget(new QLabel(tr("Video Codec ID:"), this));
+    groupLayout1->addWidget(new QLabel(tr("Video Codec Name:"), this));
     groupLayout1->addWidget(d_ptr->videoCodecCbx);
     auto groupBox = new QGroupBox(tr("Encoder Settings"), this);
     auto groupLayout = new QVBoxLayout(groupBox);
@@ -372,13 +372,13 @@ void MainWindow::setupUI()
     groupLayout->addWidget(d_ptr->invalidSetting());
     groupLayout->addWidget(d_ptr->initVideoSetting());
 
-    auto useGpuCheckBox = new QCheckBox(tr("GPU"), this);
-    useGpuCheckBox->setToolTip(tr("GPU"));
+    auto useGpuCheckBox = new QCheckBox(tr("GPU Decode"), this);
+    useGpuCheckBox->setToolTip(tr("GPU Decode"));
     useGpuCheckBox->setChecked(true);
     connect(useGpuCheckBox, &QCheckBox::clicked, this, [this, useGpuCheckBox] {
-        d_ptr->transcode->setUseGpu(useGpuCheckBox->isChecked());
+        d_ptr->transcode->setUseGpuDecode(useGpuCheckBox->isChecked());
     });
-    d_ptr->transcode->setUseGpu(useGpuCheckBox->isChecked());
+    d_ptr->transcode->setUseGpuDecode(useGpuCheckBox->isChecked());
     auto displayLayout = new QHBoxLayout;
     displayLayout->addWidget(d_ptr->startButton);
     displayLayout->addWidget(useGpuCheckBox);

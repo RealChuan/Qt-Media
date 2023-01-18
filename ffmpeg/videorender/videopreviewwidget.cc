@@ -3,7 +3,6 @@
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/decoder.h>
 #include <ffmpeg/frame.hpp>
-#include <ffmpeg/hardwaredecode.hpp>
 #include <ffmpeg/videodecoder.h>
 #include <ffmpeg/videoframeconverter.hpp>
 

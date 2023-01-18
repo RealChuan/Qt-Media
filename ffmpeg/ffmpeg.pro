@@ -3,6 +3,7 @@ include(../3rdparty/3rdparty.pri)
 include(videorender/videorender.pri)
 include(subtitle/subtitle.pri)
 include(filter/filter.pri)
+include(gpu/gpu.pri)
 
 QT += widgets multimedia openglwidgets
 
@@ -26,8 +27,6 @@ SOURCES += \
     ffmpegutils.cc \
     formatcontext.cpp \
     frame.cc \
-    hardwaredecode.cc \
-    hardwareencode.cc \
     packet.cpp \
     player.cpp \
     subtitle.cpp \
@@ -54,8 +53,6 @@ HEADERS += \
     ffmpegutils.hpp \
     formatcontext.h \
     frame.hpp \
-    hardwaredecode.hpp \
-    hardwareencode.hpp \
     packet.h \
     player.h \
     subtitle.h \

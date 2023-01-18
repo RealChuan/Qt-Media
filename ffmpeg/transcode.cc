@@ -176,8 +176,8 @@ public:
                 return false;
             }
             if (codec_type == AVMEDIA_TYPE_VIDEO || codec_type == AVMEDIA_TYPE_AUDIO) {
-                contextInfoPtr->openCodec(useGpu ? AVContextInfo::GpuDecode
-                                                 : AVContextInfo::NotUseGpu);
+                contextInfoPtr->openCodec(useGpuDecode ? AVContextInfo::GpuDecode
+                                                       : AVContextInfo::NotUseGpu);
             }
             transContext->decContextInfoPtr = contextInfoPtr;
         }
@@ -359,26 +359,26 @@ public:
         while (transcodeCtx->buffersinkCtxPtr->buffersink_getFrame(framePtr.data())) {
             framePtr->setPictType(AV_PICTURE_TYPE_NONE);
             if (transcodeCtx->audioFifoPtr.isNull()) {
-                encodeWriteFrame(stream_index, 0, framePtr.data());
+                encodeWriteFrame(stream_index, 0, framePtr);
             } else {
-                fliterAudioFifo(stream_index, framePtr.data());
+                fliterAudioFifo(stream_index, framePtr);
             }
         }
         return true;
     }
 
-    void fliterAudioFifo(uint stream_index, Frame *frame, bool finish = false)
+    void fliterAudioFifo(uint stream_index, QSharedPointer<Frame> framePtr, bool finish = false)
     {
         //qDebug() << "old: " << stream_index << frame->avFrame()->pts;
-        if (nullptr != frame) {
-            addSamplesToFifo(frame, stream_index);
+        if (!framePtr.isNull()) {
+            addSamplesToFifo(framePtr.data(), stream_index);
         }
         while (1) {
             auto framePtr = takeSamplesFromFifo(stream_index, finish);
             if (framePtr.isNull()) {
                 return;
             }
-            encodeWriteFrame(stream_index, 0, framePtr.data());
+            encodeWriteFrame(stream_index, 0, framePtr);
         }
     }
 
@@ -433,16 +433,16 @@ public:
         return framePtr;
     }
 
-    bool encodeWriteFrame(uint stream_index, int flush, Frame *frame)
+    bool encodeWriteFrame(uint stream_index, int flush, QSharedPointer<Frame> framePtr)
     {
         auto transcodeCtx = transcodeContexts.at(stream_index);
         QVector<Packet *> packets{};
         if (flush) {
-            QSharedPointer<Frame> framePtr(new Frame);
-            framePtr->setAVFrameNull();
-            packets = transcodeCtx->encContextInfoPtr->encodeFrame(framePtr.data());
+            QSharedPointer<Frame> frame_tmp_ptr(new Frame);
+            frame_tmp_ptr->setAVFrameNull();
+            packets = transcodeCtx->encContextInfoPtr->encodeFrame(frame_tmp_ptr);
         } else {
-            packets = transcodeCtx->encContextInfoPtr->encodeFrame(frame);
+            packets = transcodeCtx->encContextInfoPtr->encodeFrame(framePtr);
         }
         for (auto packet : packets) {
             packet->setStreamIndex(stream_index);
@@ -525,7 +525,7 @@ public:
     QStringList profiles{"baseline", "extended", "main", "high"};
     QString profile = "main";
 
-    bool useGpu = false;
+    bool useGpuDecode = false;
 
     volatile bool runing = true;
     QScopedPointer<Utils::Fps> fpsPtr;
@@ -546,9 +546,9 @@ Transcode::~Transcode()
     stopTranscode();
 }
 
-void Transcode::setUseGpu(bool useGpu)
+void Transcode::setUseGpuDecode(bool useGpu)
 {
-    d_ptr->useGpu = useGpu;
+    d_ptr->useGpuDecode = useGpu;
 }
 
 void Transcode::setInFilePath(const QString &filePath)

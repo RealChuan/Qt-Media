@@ -1,9 +1,10 @@
 #include "avcontextinfo.h"
 #include "codeccontext.h"
 #include "frame.hpp"
-#include "hardwaredecode.hpp"
-#include "hardwareencode.hpp"
 #include "packet.h"
+
+#include <gpu/hardwaredecode.hpp>
+#include <gpu/hardwareencode.hpp>
 
 #include <QDebug>
 
@@ -257,20 +258,19 @@ QVector<Frame *> AVContextInfo::decodeFrame(Packet *packet)
     return frames;
 }
 
-QVector<Packet *> AVContextInfo::encodeFrame(Frame *frame)
+QVector<Packet *> AVContextInfo::encodeFrame(QSharedPointer<Frame> framePtr)
 {
     QVector<Packet *> packets{};
-    bool needFree = false;
+    auto frame_tmp_ptr = framePtr;
     if (d_ptr->gpuType == GpuEncode && mediaType() == AVMEDIA_TYPE_VIDEO
-        && frame->avFrame() != nullptr) {
+        && framePtr->avFrame() != nullptr) {
         bool ok = false;
-        frame = d_ptr->hardWareEncodePtr->transToGpu(d_ptr->codecCtx.data(), frame, ok, needFree);
+        frame_tmp_ptr = d_ptr->hardWareEncodePtr->transToGpu(d_ptr->codecCtx.data(), framePtr, ok);
         if (!ok) {
             return packets;
         }
     }
-    QSharedPointer<Frame> framPtr(needFree ? frame : nullptr);
-    if (!d_ptr->codecCtx->sendFrame(frame)) {
+    if (!d_ptr->codecCtx->sendFrame(frame_tmp_ptr.data())) {
         return packets;
     }
     std::unique_ptr<Packet> packetPtr(new Packet);

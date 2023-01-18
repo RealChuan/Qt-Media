@@ -3,6 +3,10 @@ set(PROJECT_SOURCES
         filter/filtergraph.cc filter/filtergraph.hpp
         filter/filterinout.cc filter/filterinout.hpp
 
+        gpu/bufferref.cc gpu/bufferref.hpp
+        gpu/hardwaredecode.cc gpu/hardwaredecode.hpp
+        gpu/hardwareencode.cc gpu/hardwareencode.hpp
+
         subtitle/ass.cc subtitle/ass.hpp
         subtitle/assdata.cc subtitle/assdata.hpp
 
@@ -28,8 +32,6 @@ set(PROJECT_SOURCES
         ffmpegutils.cc ffmpegutils.hpp
         formatcontext.cpp formatcontext.h
         frame.cc frame.hpp
-        hardwaredecode.cc hardwaredecode.hpp
-        hardwareencode.cc hardwareencode.hpp
         packet.cpp packet.h
         player.cpp player.h
         subtitle.cpp subtitle.h

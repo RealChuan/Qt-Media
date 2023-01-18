@@ -21,7 +21,9 @@ public:
 
     bool initEncoder(const AVCodec *encoder);
     bool initHardWareDevice(CodecContext *codecContext);
-    Frame *transToGpu(CodecContext *codecContext, Frame *in, bool &ok, bool &needFree);
+    QSharedPointer<Frame> transToGpu(CodecContext *codecContext,
+                                     QSharedPointer<Frame> inPtr,
+                                     bool &ok);
 
     AVPixelFormat swFormat() const;
 

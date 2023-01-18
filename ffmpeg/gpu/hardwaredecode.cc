@@ -1,14 +1,15 @@
 #include "hardwaredecode.hpp"
-#include "averrormanager.hpp"
-#include "codeccontext.h"
-#include "ffmpegutils.hpp"
-#include "frame.hpp"
+#include "bufferref.hpp"
+
+#include <ffmpeg/averrormanager.hpp>
+#include <ffmpeg/codeccontext.h>
+#include <ffmpeg/ffmpegutils.hpp>
+#include <ffmpeg/frame.hpp>
 
 #include <QDebug>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
 }
 
 namespace Ffmpeg {
@@ -33,20 +34,18 @@ class HardWareDecode::HardWareDecodePrivate
 public:
     HardWareDecodePrivate(QObject *parent)
         : owner(parent)
-    {}
-
-    ~HardWareDecodePrivate()
     {
-        hw_pix_fmt = AV_PIX_FMT_NONE;
-        av_buffer_unref(&bufferRef);
+        bufferRef = new BufferRef(owner);
     }
+
+    ~HardWareDecodePrivate() { hw_pix_fmt = AV_PIX_FMT_NONE; }
 
     void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
 
     QObject *owner;
     QVector<AVHWDeviceType> hwDeviceTypes = Utils::getCurrentHWDeviceTypes();
     AVHWDeviceType hwDeviceType = AV_HWDEVICE_TYPE_NONE;
-    AVBufferRef *bufferRef = nullptr;
+    BufferRef *bufferRef;
     bool vaild = false;
 };
 
@@ -80,16 +79,14 @@ bool HardWareDecode::initHardWareDevice(CodecContext *codecContext)
     if (hw_pix_fmt == AV_PIX_FMT_NONE) {
         return false;
     }
-    auto ret = av_hwdevice_ctx_create(&d_ptr->bufferRef, d_ptr->hwDeviceType, nullptr, nullptr, 0);
-    if (ret < 0) {
-        qWarning() << "Failed to create specified HW device.";
-        d_ptr->setError(ret);
+    if (!d_ptr->bufferRef->hwdeviceCtxCreate(d_ptr->hwDeviceType)) {
         return false;
     }
-    codecContext->avCodecCtx()->hw_device_ctx = av_buffer_ref(d_ptr->bufferRef);
-    codecContext->avCodecCtx()->get_format = get_hw_format;
-    d_ptr->vaild = true;
-    return true;
+    auto ctx = codecContext->avCodecCtx();
+    ctx->hw_device_ctx = d_ptr->bufferRef->ref();
+    ctx->get_format = get_hw_format;
+    d_ptr->vaild = ctx->hw_device_ctx != nullptr;
+    return d_ptr->vaild;
 }
 
 Frame *HardWareDecode::transFromGpu(Frame *in, bool &ok)

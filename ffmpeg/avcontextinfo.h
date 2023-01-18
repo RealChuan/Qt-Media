@@ -57,7 +57,7 @@ public:
     bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
     // sendPacket and receiveFrame
     QVector<Frame *> decodeFrame(Packet *packet);
-    QVector<Packet *> encodeFrame(Frame *frame);
+    QVector<Packet *> encodeFrame(QSharedPointer<Frame> framePtr);
 
     void flush();
 
