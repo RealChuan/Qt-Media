@@ -1,6 +1,9 @@
 #include "mainwindow.h"
+#include "controlwidget.hpp"
 #include "openwebmediadialog.hpp"
-#include "slider.h"
+#include "playlistmodel.h"
+#include "qmediaplaylist.h"
+#include "titlewidget.hpp"
 
 #include <ffmpeg/averror.h>
 #include <ffmpeg/ffmpegutils.hpp>
@@ -10,6 +13,16 @@
 
 #include <QtWidgets>
 
+static bool isPlaylist(const QUrl &url) // Check for ".m3u" playlists.
+{
+    if (!url.isLocalFile()) {
+        return false;
+    }
+    const QFileInfo fileInfo(url.toLocalFile());
+    return fileInfo.exists()
+           && !fileInfo.suffix().compare(QLatin1String("m3u"), Qt::CaseInsensitive);
+}
+
 class MainWindow::MainWindowPrivate
 {
 public:
@@ -17,36 +30,100 @@ public:
         : owner(parent)
         , playerPtr(new Ffmpeg::Player)
     {
+        controlWidget = new ControlWidget(owner);
+        titleWidget = new TitleWidget(owner);
+
+        playlistModel = new PlaylistModel(owner);
+        playlistView = new QListView(owner);
+        playlistView->setModel(playlistModel);
+        playlistView->setCurrentIndex(
+            playlistModel->index(playlistModel->playlist()->currentIndex(), 0));
+        playlistView->setMaximumWidth(250);
+
         menu = new QMenu(owner);
 
-        slider = new Slider(owner);
-        positionLabel = new QLabel("00:00:00", owner);
-        durationLabel = new QLabel("/ 00:00:00", owner);
-        sourceFPSLabel = new QLabel("FPS: 00.00->", owner);
-        currentFPSLabel = new QLabel("00.00", owner);
-        playButton = new QPushButton(QObject::tr("play", "MainWindow"), owner);
-        playButton->setCheckable(true);
-
         fpsTimer = new QTimer(owner);
+
+        initShortcut();
     }
+
     ~MainWindowPrivate() {}
+
+    void initShortcut()
+    {
+        new QShortcut(QKeySequence::MoveToNextChar, owner, owner, [this] {
+            playerPtr->onSeek(controlWidget->position() + 5);
+            titleWidget->setText(tr("Fast forward: 5 seconds"));
+            titleWidget->setAutoHide(3000);
+            setTitleWidgetGeometry(true);
+        });
+        new QShortcut(QKeySequence::MoveToPreviousChar, owner, owner, [this] {
+            auto value = controlWidget->position() - 10;
+            if (value < 0) {
+                value = 0;
+            }
+            playerPtr->onSeek(value);
+            titleWidget->setText(tr("Fast return: 10 seconds"));
+            titleWidget->setAutoHide(3000);
+            setTitleWidgetGeometry(true);
+        });
+        new QShortcut(QKeySequence::MoveToPreviousLine, owner, owner, [this] {
+            controlWidget->setVolume(controlWidget->volume() + 5);
+        });
+        new QShortcut(QKeySequence::MoveToNextLine, owner, owner, [this] {
+            controlWidget->setVolume(controlWidget->volume() - 5);
+        });
+        new QShortcut(Qt::Key_Space, owner, owner, [this] { controlWidget->clickPlayButton(); });
+    }
+
+    void setControlWidgetGeometry(bool show = true)
+    {
+        if (videoRender.isNull()) {
+            return;
+        }
+        auto margain = 10;
+        auto geometry = videoRender->widget()->geometry();
+        auto p1 = QPoint(geometry.x() + margain, geometry.bottomLeft().y() - 100 - margain);
+        auto p2 = QPoint(geometry.topRight().x() - margain, geometry.bottomLeft().y() - margain);
+        globalControlWidgetGeometry = {owner->mapToGlobal(p1), owner->mapToGlobal(p2)};
+        controlWidget->setFixedSize(globalControlWidgetGeometry.size());
+        controlWidget->setGeometry(globalControlWidgetGeometry);
+        controlWidget->setVisible(show);
+    }
+
+    void setTitleWidgetGeometry(bool show = true)
+    {
+        if (videoRender.isNull()) {
+            return;
+        }
+        auto margain = 10;
+        auto geometry = videoRender->widget()->geometry();
+        auto p1 = QPoint(geometry.x() + margain, geometry.y() + margain);
+        auto p2 = QPoint(geometry.topRight().x() - margain, geometry.y() + margain + 80);
+        globalTitlelWidgetGeometry = {owner->mapToGlobal(p1), owner->mapToGlobal(p2)};
+        titleWidget->setFixedSize(globalTitlelWidgetGeometry.size());
+        titleWidget->setGeometry(globalTitlelWidgetGeometry);
+        titleWidget->setVisible(show);
+    }
 
     QWidget *owner;
     QScopedPointer<Ffmpeg::Player> playerPtr;
     QScopedPointer<Ffmpeg::VideoRender> videoRender;
     QScopedPointer<Ffmpeg::VideoPreviewWidget> videoPreviewWidgetPtr;
 
+    ControlWidget *controlWidget;
+    QRect globalControlWidgetGeometry;
+    TitleWidget *titleWidget;
+    QRect globalTitlelWidgetGeometry;
+
+    QListView *playlistView;
+    PlaylistModel *playlistModel;
+
     QMenu *menu;
 
-    Slider *slider;
-    QLabel *positionLabel;
-    QLabel *durationLabel;
-    QLabel *sourceFPSLabel;
-    QLabel *currentFPSLabel;
-    QPushButton *playButton;
     QTimer *fpsTimer;
 
-    QVBoxLayout *layout;
+    QHBoxLayout *layout;
 };
 
 MainWindow::MainWindow(QWidget *parent)
@@ -57,8 +134,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     setupUI();
     buildConnect();
-    initShortcut();
     initMenu();
+
+    setAttribute(Qt::WA_Hover);
+    installEventFilter(this);
+
     resize(1000, 650);
 }
 
@@ -75,35 +155,15 @@ void MainWindow::onError(const Ffmpeg::AVError &avError)
     qWarning() << str;
 }
 
-void MainWindow::onDurationChanged(qint64 duration)
-{
-    d_ptr->durationLabel->setText("/ "
-                                  + QTime::fromMSecsSinceStartOfDay(duration).toString("hh:mm:ss"));
-    d_ptr->slider->blockSignals(true);
-    d_ptr->slider->setRange(0, duration / 1000);
-    d_ptr->slider->blockSignals(false);
-}
-
-void MainWindow::onPositionChanged(qint64 position)
-{
-    d_ptr->positionLabel->setText(QTime::fromMSecsSinceStartOfDay(position).toString("hh:mm:ss"));
-    d_ptr->slider->setValue(position / 1000);
-}
-
 void MainWindow::onStarted()
 {
-    auto fps = d_ptr->playerPtr->fps();
-    auto fpsStr = QString("FPS: %1->").arg(QString::number(fps, 'f', 2));
-    d_ptr->sourceFPSLabel->setText(fpsStr);
-    d_ptr->sourceFPSLabel->setToolTip(fpsStr);
+    d_ptr->controlWidget->setSourceFPS(d_ptr->playerPtr->fps());
 
     auto size = d_ptr->playerPtr->resolutionRatio();
-    auto url = d_ptr->playerPtr->filePath();
-    auto filename = QFile::exists(url) ? QFileInfo(url).fileName()
-                                       : QFileInfo(QUrl(url).toString()).fileName();
-    setWindowTitle(
-        QString("%1[%2x%3]")
-            .arg(filename, QString::number(size.width()), QString::number(size.height())));
+    setWindowTitle(QString("%1[%2x%3]")
+                       .arg(d_ptr->playlistModel->playlist()->currentMedia().fileName(),
+                            QString::number(size.width()),
+                            QString::number(size.height())));
 
     d_ptr->fpsTimer->start(1000);
 }
@@ -111,8 +171,8 @@ void MainWindow::onStarted()
 void MainWindow::onFinished()
 {
     d_ptr->fpsTimer->stop();
-    onDurationChanged(0);
-    onPositionChanged(0);
+    d_ptr->controlWidget->onDurationChanged(0);
+    d_ptr->controlWidget->onPositionChanged(0);
 }
 
 void MainWindow::onHoverSlider(int pos, int value)
@@ -134,12 +194,15 @@ void MainWindow::onHoverSlider(int pos, int value)
                                                      | Qt::Tool | Qt::FramelessWindowHint
                                                      | Qt::WindowStaysOnTopHint);
     }
-    d_ptr->videoPreviewWidgetPtr->startPreview(filePath, index, value, d_ptr->slider->maximum());
+    d_ptr->videoPreviewWidgetPtr->startPreview(filePath,
+                                               index,
+                                               value,
+                                               d_ptr->controlWidget->duration());
 
     int w = 320;
     int h = 200;
     d_ptr->videoPreviewWidgetPtr->setFixedSize(w, h);
-    auto gpos = d_ptr->slider->mapToGlobal(d_ptr->slider->pos() + QPoint(pos, 0));
+    auto gpos = d_ptr->controlWidget->sliderGlobalPos() + QPoint(pos, 0);
     d_ptr->videoPreviewWidgetPtr->move(gpos - QPoint(w / 2, h + 15));
     d_ptr->videoPreviewWidgetPtr->show();
 }
@@ -158,10 +221,7 @@ void MainWindow::onShowCurrentFPS()
     if (renders.isEmpty()) {
         d_ptr->fpsTimer->stop();
     }
-    auto fps = renders[0]->fps();
-    auto fpsStr = QString::number(fps, 'f', 2);
-    d_ptr->currentFPSLabel->setText(fpsStr);
-    d_ptr->currentFPSLabel->setToolTip(fpsStr);
+    d_ptr->controlWidget->setCurrentFPS(renders[0]->fps());
 }
 
 void MainWindow::onOpenLocalMedia()
@@ -176,8 +236,7 @@ void MainWindow::onOpenLocalMedia()
     if (filePath.isEmpty()) {
         return;
     }
-
-    d_ptr->playerPtr->onSetFilePath(filePath);
+    addToPlaylist({filePath});
 }
 
 void MainWindow::onOpenWebMedia()
@@ -187,7 +246,7 @@ void MainWindow::onOpenWebMedia()
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
-    d_ptr->playerPtr->onSetFilePath(QUrl(dialog.url()).toEncoded());
+    addToPlaylist({QUrl(dialog.url())});
 }
 
 void MainWindow::onRenderChanged()
@@ -213,6 +272,19 @@ void MainWindow::onRenderChanged()
     d_ptr->videoRender.reset(videoRender);
 }
 
+void MainWindow::playlistPositionChanged(int currentItem)
+{
+    d_ptr->playlistView->setCurrentIndex(d_ptr->playlistModel->index(currentItem, 0));
+    d_ptr->playerPtr->onSetFilePath(d_ptr->playlistModel->playlist()->currentMedia().toString());
+}
+
+void MainWindow::jump(const QModelIndex &index)
+{
+    if (index.isValid()) {
+        d_ptr->playlistModel->playlist()->setCurrentIndex(index.row());
+    }
+}
+
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
     if (!d_ptr->videoRender.isNull() && watched == d_ptr->videoRender->widget()) {
@@ -227,15 +299,78 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
         } break;
         case QEvent::Drop: {
             auto e = static_cast<QDropEvent *>(event);
-            QList<QUrl> urls = e->mimeData()->urls();
+            QList<QUrl> urls = e->mimeData()->urls();            
             if (!urls.isEmpty()) {
-                d_ptr->playerPtr->onSetFilePath(urls.first().toLocalFile());
+                addToPlaylist(urls);
             }
         } break;
         case QEvent::ContextMenu: {
             auto e = static_cast<QContextMenuEvent *>(event);
             d_ptr->menu->exec(e->globalPos());
         } break;
+        case QEvent::Resize:
+            QMetaObject::invokeMethod(
+                this,
+                [=] {
+                    d_ptr->setControlWidgetGeometry(d_ptr->controlWidget->isVisible());
+                    d_ptr->setTitleWidgetGeometry(d_ptr->titleWidget->isVisible());
+                },
+                Qt::QueuedConnection);
+            break;
+            //        case QEvent::MouseButtonPress: {
+            //            auto e = static_cast<QMouseEvent *>(event);
+            //            if (e->button() & Qt::LeftButton) {
+            //                d_ptr->mpvPlayer->pause();
+            //            }
+            //        } break;
+        case QEvent::MouseButtonDblClick:
+            if (isFullScreen()) {
+                showNormal();
+            } else {
+                d_ptr->playlistView->hide();
+                showFullScreen();
+            }
+            break;
+        default: break;
+        }
+    } else if (watched == this) {
+        switch (event->type()) {
+        case QEvent::Show:
+        case QEvent::Move:
+            QMetaObject::invokeMethod(
+                this,
+                [=] {
+                    d_ptr->setControlWidgetGeometry(d_ptr->controlWidget->isVisible());
+                    d_ptr->setTitleWidgetGeometry(d_ptr->titleWidget->isVisible());
+                },
+                Qt::QueuedConnection);
+            break;
+        case QEvent::Hide: d_ptr->controlWidget->hide(); break;
+        case QEvent::HoverMove:
+            if (d_ptr->globalControlWidgetGeometry.isValid()) {
+                auto e = static_cast<QHoverEvent *>(event);
+                bool contain = d_ptr->globalControlWidgetGeometry.contains(
+                    e->globalPosition().toPoint());
+                bool isVisible = d_ptr->controlWidget->isVisible();
+                if (contain && !isVisible) {
+                    d_ptr->controlWidget->show();
+                } else if (!contain && isVisible) {
+                    d_ptr->controlWidget->hide();
+                }
+            }
+            if (d_ptr->globalTitlelWidgetGeometry.isValid() && isFullScreen()) {
+                auto e = static_cast<QHoverEvent *>(event);
+                bool contain = d_ptr->globalTitlelWidgetGeometry.contains(
+                    e->globalPosition().toPoint());
+                bool isVisible = d_ptr->titleWidget->isVisible();
+                if (contain && !isVisible) {
+                    d_ptr->titleWidget->setText(windowTitle());
+                    d_ptr->titleWidget->show();
+                } else if (!contain && isVisible) {
+                    d_ptr->titleWidget->hide();
+                }
+            }
+            break;
         default: break;
         }
     }
@@ -248,12 +383,13 @@ void MainWindow::keyPressEvent(QKeyEvent *ev)
 
     qDebug() << ev->key();
     switch (ev->key()) {
-    case Qt::Key_Space:
-        d_ptr->playButton->click();
+    case Qt::Key_Escape:
+        if (isFullScreen()) {
+            showNormal();
+        } else {
+            showMinimized();
+        }
         break;
-        //    useless
-        //    case Qt::Key_Right: d_ptr->player->onSeek(d_ptr->slider->value() + 5); break;
-        //    case Qt::Key_Left: d_ptr->player->onSeek(d_ptr->slider->value() - 5); break;
     case Qt::Key_Q: qApp->quit(); break;
     default: break;
     }
@@ -261,116 +397,12 @@ void MainWindow::keyPressEvent(QKeyEvent *ev)
 
 void MainWindow::setupUI()
 {
-    auto useGpuCheckBox = new QCheckBox(tr("GPU Decode"), this);
-    useGpuCheckBox->setToolTip(tr("GPU Decode"));
-    useGpuCheckBox->setChecked(true);
-    connect(useGpuCheckBox, &QCheckBox::clicked, this, [this, useGpuCheckBox] {
-        d_ptr->playerPtr->setUseGpuDecode(useGpuCheckBox->isChecked());
-    });
-    d_ptr->playerPtr->setUseGpuDecode(useGpuCheckBox->isChecked());
-
-    auto volumeSlider = new Slider(this);
-    connect(volumeSlider, &QSlider::sliderMoved, this, [this](int value) {
-        d_ptr->playerPtr->setVolume(value / 100.0);
-    });
-    volumeSlider->setRange(0, 100);
-    volumeSlider->setValue(50);
-
-    auto speedComboBox = new QComboBox(this);
-    connect(speedComboBox,
-            QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this,
-            [this, speedComboBox](int index) {
-                d_ptr->playerPtr->setSpeed(speedComboBox->itemData(index).toDouble());
-            });
-    double i = 0.5;
-    while (i <= 2) {
-        speedComboBox->addItem(QString::number(i), i);
-        i += 0.5;
-    }
-    speedComboBox->setCurrentIndex(1);
-
-    auto audioTracksComboBox = new QComboBox(this);
-    audioTracksComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    auto audioTracksView = new QListView(audioTracksComboBox);
-    audioTracksView->setTextElideMode(Qt::ElideRight);
-    audioTracksView->setAlternatingRowColors(true);
-    audioTracksComboBox->setView(audioTracksView);
-    connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::audioTracksChanged,
-            this,
-            [audioTracksComboBox](const QStringList &tracks) {
-                audioTracksComboBox->blockSignals(true);
-                audioTracksComboBox->clear();
-                audioTracksComboBox->addItems(tracks);
-                audioTracksComboBox->blockSignals(false);
-            });
-    connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::audioTrackChanged,
-            this,
-            [audioTracksComboBox](const QString &track) {
-                audioTracksComboBox->blockSignals(true);
-                audioTracksComboBox->setCurrentText(track);
-                audioTracksComboBox->blockSignals(false);
-            });
-    connect(audioTracksComboBox,
-            &QComboBox::currentTextChanged,
-            d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::onSetAudioTracks);
-
-    QComboBox *subtitleStreamsComboBox = new QComboBox(this);
-    subtitleStreamsComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    auto subtitleStreamsView = new QListView(subtitleStreamsComboBox);
-    subtitleStreamsView->setTextElideMode(Qt::ElideRight);
-    subtitleStreamsView->setAlternatingRowColors(true);
-    subtitleStreamsComboBox->setView(subtitleStreamsView);
-    connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::subtitleStreamsChanged,
-            this,
-            [subtitleStreamsComboBox](const QStringList &streams) {
-                subtitleStreamsComboBox->blockSignals(true);
-                subtitleStreamsComboBox->clear();
-                subtitleStreamsComboBox->addItems(streams);
-                subtitleStreamsComboBox->blockSignals(false);
-            });
-    connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::subtitleStreamChanged,
-            this,
-            [subtitleStreamsComboBox](const QString &stream) {
-                subtitleStreamsComboBox->blockSignals(true);
-                subtitleStreamsComboBox->setCurrentText(stream);
-                subtitleStreamsComboBox->blockSignals(false);
-            });
-    connect(subtitleStreamsComboBox,
-            &QComboBox::currentTextChanged,
-            d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::onSetSubtitleStream);
-
-    QWidget *processWidget = new QWidget(this);
-    //processWidget->setMaximumHeight(70);
-    QHBoxLayout *processLayout = new QHBoxLayout(processWidget);
-    processLayout->addWidget(d_ptr->slider);
-    processLayout->addWidget(d_ptr->positionLabel);
-    processLayout->addWidget(d_ptr->durationLabel);
-    processLayout->addWidget(d_ptr->sourceFPSLabel);
-    processLayout->addWidget(d_ptr->currentFPSLabel);
-
-    QHBoxLayout *controlLayout = new QHBoxLayout;
-    controlLayout->addWidget(d_ptr->playButton);
-    controlLayout->addWidget(useGpuCheckBox);
-    controlLayout->addWidget(new QLabel(tr("Volume: "), this));
-    controlLayout->addWidget(volumeSlider);
-    controlLayout->addWidget(new QLabel(tr("Speed: "), this));
-    controlLayout->addWidget(speedComboBox);
-    controlLayout->addWidget(new QLabel(tr("Audio Tracks: "), this));
-    controlLayout->addWidget(audioTracksComboBox);
-    controlLayout->addWidget(new QLabel(tr("Subtitle: "), this));
-    controlLayout->addWidget(subtitleStreamsComboBox);
-
     QWidget *widget = new QWidget(this);
-    d_ptr->layout = new QVBoxLayout(widget);
-    d_ptr->layout->addWidget(processWidget);
-    d_ptr->layout->addLayout(controlLayout);
+    d_ptr->layout = new QHBoxLayout(widget);
+    d_ptr->layout->setContentsMargins(QMargins());
+    d_ptr->layout->setSpacing(0);
+    d_ptr->layout->addWidget(d_ptr->playlistView);
+
     setCentralWidget(widget);
 }
 
@@ -379,57 +411,105 @@ void MainWindow::buildConnect()
     connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::error, this, &MainWindow::onError);
     connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::durationChanged,
-            this,
-            &MainWindow::onDurationChanged);
+            d_ptr->controlWidget,
+            [this](qint64 duration) { d_ptr->controlWidget->onDurationChanged(duration / 1000); });
     connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::positionChanged,
-            this,
-            &MainWindow::onPositionChanged);
+            d_ptr->controlWidget,
+            [this](qint64 position) { d_ptr->controlWidget->onPositionChanged(position / 1000); });
+    connect(d_ptr->playerPtr.data(),
+            &Ffmpeg::Player::audioTracksChanged,
+            d_ptr->controlWidget,
+            [this](const QStringList &tracks) { d_ptr->controlWidget->setAudioTracks(tracks); });
+    connect(d_ptr->playerPtr.data(),
+            &Ffmpeg::Player::audioTrackChanged,
+            d_ptr->controlWidget,
+            [this](const QString &track) { d_ptr->controlWidget->setCurrentAudioTrack(track); });
+    connect(d_ptr->playerPtr.data(),
+            &Ffmpeg::Player::subTracksChanged,
+            d_ptr->controlWidget,
+            [this](const QStringList &tracks) { d_ptr->controlWidget->setSubTracks(tracks); });
+    connect(d_ptr->playerPtr.data(),
+            &Ffmpeg::Player::subTrackChanged,
+            d_ptr->controlWidget,
+            [this](const QString &track) { d_ptr->controlWidget->setCurrentSubTrack(track); });
     connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::playStarted, this, &MainWindow::onStarted);
     connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::finished, this, &MainWindow::onFinished);
+    connect(d_ptr->playerPtr.data(),
+            &Ffmpeg::Player::stateChanged,
+            d_ptr->controlWidget,
+            [this](Ffmpeg::Player::MediaState state) {
+                switch (state) {
+                case Ffmpeg::Player::MediaState::StoppedState:
+                case Ffmpeg::Player::MediaState::PausedState:
+                    d_ptr->controlWidget->setPlayButtonChecked(false);
+                    break;
+                case Ffmpeg::Player::MediaState::PlayingState:
+                    d_ptr->controlWidget->setPlayButtonChecked(true);
+                    break;
+                default: break;
+                }
+            });
 
-    connect(d_ptr->slider, &Slider::sliderMoved, d_ptr->playerPtr.data(), &Ffmpeg::Player::onSeek);
-    connect(d_ptr->slider, &Slider::onHover, this, &MainWindow::onHoverSlider);
-    connect(d_ptr->slider, &Slider::onLeave, this, &MainWindow::onLeaveSlider);
-
-    connect(d_ptr->playButton, &QPushButton::clicked, this, [this](bool checked) {
+    connect(d_ptr->controlWidget, &ControlWidget::hoverPosition, this, &MainWindow::onHoverSlider);
+    connect(d_ptr->controlWidget, &ControlWidget::leavePosition, this, &MainWindow::onLeaveSlider);
+    connect(d_ptr->controlWidget, &ControlWidget::seek, d_ptr->playerPtr.data(), [this](int value) {
+        d_ptr->playerPtr->onSeek(value);
+        d_ptr->titleWidget->setText(
+            tr("Fast forward to: %1")
+                .arg(QTime::fromMSecsSinceStartOfDay(value * 1000).toString("hh:mm:ss")));
+        d_ptr->titleWidget->setAutoHide(3000);
+        d_ptr->setTitleWidgetGeometry(true);
+    });
+    connect(d_ptr->controlWidget, &ControlWidget::play, this, [this](bool checked) {
         if (checked && !d_ptr->playerPtr->isRunning())
             d_ptr->playerPtr->onPlay();
         else {
             d_ptr->playerPtr->pause(!checked);
         }
     });
-    connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::stateChanged,
-            d_ptr->playButton,
-            [this](Ffmpeg::Player::MediaState state) {
-                switch (state) {
-                case Ffmpeg::Player::MediaState::StoppedState:
-                case Ffmpeg::Player::MediaState::PausedState:
-                    d_ptr->playButton->setChecked(false);
-                    break;
-                case Ffmpeg::Player::MediaState::PlayingState:
-                    d_ptr->playButton->setChecked(true);
-                    break;
-                default: break;
-                }
+    connect(d_ptr->controlWidget,
+            &ControlWidget::useGpu,
+            d_ptr->playerPtr.data(),
+            [this](bool useGpu) { d_ptr->playerPtr->setUseGpuDecode(useGpu); });
+    d_ptr->controlWidget->setUseGpu(true);
+    connect(d_ptr->controlWidget,
+            &ControlWidget::volumeChanged,
+            d_ptr->playerPtr.data(),
+            [this](int value) {
+                d_ptr->playerPtr->setVolume(value / 100.0);
+                d_ptr->titleWidget->setText(tr("Volume: %1").arg(value));
+                d_ptr->titleWidget->setAutoHide(3000);
+                d_ptr->setTitleWidgetGeometry(true);
             });
+    d_ptr->controlWidget->setVolume(50);
+    connect(d_ptr->controlWidget,
+            &ControlWidget::speedChanged,
+            d_ptr->playerPtr.data(),
+            [this](double value) {
+                d_ptr->playerPtr->setSpeed(value);
+                d_ptr->titleWidget->setText(tr("Speed: %1").arg(value));
+                d_ptr->titleWidget->setAutoHide(3000);
+                d_ptr->setTitleWidgetGeometry(true);
+            });
+    connect(d_ptr->controlWidget,
+            &ControlWidget::audioTrackChanged,
+            d_ptr->playerPtr.data(),
+            &Ffmpeg::Player::onSetAudioTracks);
+    connect(d_ptr->controlWidget,
+            &ControlWidget::subTrackChanged,
+            d_ptr->playerPtr.data(),
+            &Ffmpeg::Player::onSetSubtitleStream);
+    connect(d_ptr->controlWidget, &ControlWidget::showList, d_ptr->playlistView, [this] {
+        d_ptr->playlistView->setVisible(!d_ptr->playlistView->isVisible());
+    });
+    connect(d_ptr->playlistModel->playlist(),
+            &QMediaPlaylist::currentIndexChanged,
+            this,
+            &MainWindow::playlistPositionChanged);
+    connect(d_ptr->playlistView, &QAbstractItemView::activated, this, &MainWindow::jump);
 
     connect(d_ptr->fpsTimer, &QTimer::timeout, this, &MainWindow::onShowCurrentFPS);
-}
-
-void MainWindow::initShortcut()
-{
-    new QShortcut(QKeySequence::MoveToNextChar, this, this, [this] {
-        d_ptr->playerPtr->onSeek(d_ptr->slider->value() + 5);
-    });
-    new QShortcut(QKeySequence::MoveToPreviousChar, this, this, [this] {
-        auto value = d_ptr->slider->value() - 10;
-        if (value < 0) {
-            value = 0;
-        }
-        d_ptr->playerPtr->onSeek(value);
-    });
 }
 
 void MainWindow::initMenu()
@@ -464,4 +544,22 @@ void MainWindow::initMenu()
     d_ptr->menu->addMenu(renderMenu);
 
     openglAction->trigger();
+}
+
+void MainWindow::addToPlaylist(const QList<QUrl> &urls)
+{
+    auto playlist = d_ptr->playlistModel->playlist();
+    const int previousMediaCount = playlist->mediaCount();
+    for (auto &url : urls) {
+        if (isPlaylist(url)) {
+            playlist->load(url);
+        } else {
+            playlist->addMedia(url);
+        }
+    }
+    if (playlist->mediaCount() > previousMediaCount) {
+        auto index = d_ptr->playlistModel->index(previousMediaCount, 0);
+        d_ptr->playlistView->setCurrentIndex(index);
+        jump(index);
+    }
 }

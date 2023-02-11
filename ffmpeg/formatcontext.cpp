@@ -167,12 +167,16 @@ bool FormatContext::openFilePath(const QString &filepath, OpenMode mode)
     d_ptr->mode = mode;
     close();
     d_ptr->filepath = filepath;
+
+    QByteArray inpuUrl;
+    if (QFile::exists(d_ptr->filepath)) {
+        inpuUrl = d_ptr->filepath.toUtf8();
+    } else {
+        inpuUrl = QUrl(d_ptr->filepath).toEncoded();
+    }
     //初始化pFormatCtx结构
     if (mode == ReadOnly) {
-        auto ret = avformat_open_input(&d_ptr->formatCtx,
-                                       d_ptr->filepath.toLocal8Bit().constData(),
-                                       nullptr,
-                                       nullptr);
+        auto ret = avformat_open_input(&d_ptr->formatCtx, inpuUrl.constData(), nullptr, nullptr);
         if (ret != 0) {
             d_ptr->setError(ret);
             return false;
@@ -184,7 +188,7 @@ bool FormatContext::openFilePath(const QString &filepath, OpenMode mode)
         auto ret = avformat_alloc_output_context2(&d_ptr->formatCtx,
                                                   nullptr,
                                                   nullptr,
-                                                  d_ptr->filepath.toLocal8Bit().constData());
+                                                  inpuUrl.constData());
         if (ret < 0) {
             d_ptr->setError(ret);
             return false;

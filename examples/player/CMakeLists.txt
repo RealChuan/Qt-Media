@@ -1,8 +1,14 @@
 set(PROJECT_SOURCES
+        controlwidget.cc controlwidget.hpp
         main.cpp
         mainwindow.cpp mainwindow.h
         openwebmediadialog.cc openwebmediadialog.hpp
-        slider.cpp slider.h)
+        playlistmodel.cpp playlistmodel.h
+        qmediaplaylist_p.h 
+        qmediaplaylist.cpp qmediaplaylist.h
+        qplaylistfileparser_p.h qplaylistfileparser.cpp
+        slider.cpp slider.h
+        titlewidget.cc titlewidget.hpp)
 
 qt_add_executable(QFfmpegPlayer MANUAL_FINALIZATION ${PROJECT_SOURCES})
 target_link_libraries(QFfmpegPlayer PRIVATE Qt6::Widgets Qt6::Multimedia Qt6::OpenGLWidgets 

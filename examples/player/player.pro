@@ -17,14 +17,25 @@ LIBS += -L$$APP_OUTPUT_PATH/../libs \
 include(../../3rdparty/3rdparty.pri)
 
 SOURCES += \
+    controlwidget.cc \
     main.cpp \
     mainwindow.cpp \
     openwebmediadialog.cc \
-    slider.cpp
+    playlistmodel.cpp \
+    qmediaplaylist.cpp \
+    qplaylistfileparser.cpp \
+    slider.cpp \
+    titlewidget.cc
 
 HEADERS += \
+    controlwidget.hpp \
     mainwindow.h \
     openwebmediadialog.hpp \
-    slider.h
+    playlistmodel.h \
+    qmediaplaylist.h \
+    qmediaplaylist_p.h \
+    qplaylistfileparser_p.h \
+    slider.h \
+    titlewidget.hpp
 
 DESTDIR = $$APP_OUTPUT_PATH

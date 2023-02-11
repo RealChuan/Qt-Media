@@ -63,8 +63,8 @@ signals:
     void stateChanged(Ffmpeg::Player::MediaState);
     void audioTracksChanged(const QStringList &tracks);
     void audioTrackChanged(const QString &track);
-    void subtitleStreamsChanged(const QStringList &streams);
-    void subtitleStreamChanged(const QString &stream);
+    void subTracksChanged(const QStringList &streams);
+    void subTrackChanged(const QString &stream);
     void error(const Ffmpeg::AVError &avError);
 
     void playStarted();

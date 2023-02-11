@@ -151,7 +151,7 @@ void Player::onSetAudioTracks(const QString &text) // 停止再播放最简单 �
         if (!setMediaIndex(d_ptr->subtitleInfo, subtitleIndex)) {
             return;
         }
-        emit subtitleStreamChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
+        emit subTrackChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
     }
     if (!setMediaIndex(d_ptr->audioInfo, index)) {
         return;
@@ -182,7 +182,7 @@ void Player::onSetSubtitleStream(const QString &text)
     if (!setMediaIndex(d_ptr->subtitleInfo, index)) {
         return;
     }
-    emit subtitleStreamChanged(text);
+    emit subTrackChanged(text);
     onSeek(mediaClock());
     onPlay();
 }
@@ -265,8 +265,8 @@ bool Player::initAvCodec()
             return false;
         }
         d_ptr->subtitleDecoder->setVideoResolutionRatio(resolutionRatio());
-        emit subtitleStreamsChanged(subtitleTracks.values());
-        emit subtitleStreamChanged(subtitleTracks.value(subtitleIndex));
+        emit subTracksChanged(subtitleTracks.values());
+        emit subTrackChanged(subtitleTracks.value(subtitleIndex));
     }
 
     qDebug() << d_ptr->audioInfo->index() << d_ptr->videoInfo->index()
@@ -410,7 +410,7 @@ void Player::setUseGpuDecode(bool on)
         if (!setMediaIndex(d_ptr->subtitleInfo, subtitleIndex)) {
             return;
         }
-        emit subtitleStreamChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
+        emit subTrackChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
     }
     onSeek(mediaClock());
     onPlay();
