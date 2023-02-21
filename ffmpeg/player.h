@@ -20,6 +20,7 @@ public:
     explicit Player(QObject *parent = nullptr);
     ~Player() override;
 
+    void openMedia(const QString &filepath);
     QString &filePath() const;
 
     bool isOpen();
@@ -33,6 +34,9 @@ public:
 
     void setUseGpuDecode(bool on);
     bool isGpuDecode();
+
+    void setAudioTrack(const QString &text);
+    void setSubtitleTrack(const QString &text);
 
     MediaState mediaState();
 
@@ -50,12 +54,9 @@ public:
     QVector<VideoRender *> videoRenders();
 
 public slots:
-    void onSetFilePath(const QString &filepath);
     void onPlay();
     void onStop();
     void onSeek(int timestamp); // s
-    void onSetAudioTracks(const QString &text);
-    void onSetSubtitleStream(const QString &text);
 
 signals:
     void durationChanged(qint64 duration); // ms

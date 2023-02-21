@@ -25,11 +25,6 @@ public:
     void setVolume(int value);
     int volume() const;
 
-    void setAudioTracks(const QStringList &list);
-    void setCurrentAudioTrack(const QString &track);
-    void setSubTracks(const QStringList &list);
-    void setCurrentSubTrack(const QString &track);
-
 public slots:
     void onDurationChanged(double value);
     void onPositionChanged(double value);
@@ -42,8 +37,6 @@ signals:
     void useGpu(bool);
     void volumeChanged(int value);
     void speedChanged(double);
-    void audioTrackChanged(const QString &text);
-    void subTrackChanged(const QString &text);
     void showList();
 
 private slots:

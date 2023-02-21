@@ -2,6 +2,7 @@
 #include "controlwidget.hpp"
 #include "openwebmediadialog.hpp"
 #include "playlistmodel.h"
+#include "playlistview.hpp"
 #include "qmediaplaylist.h"
 #include "titlewidget.hpp"
 
@@ -34,13 +35,21 @@ public:
         titleWidget = new TitleWidget(owner);
 
         playlistModel = new PlaylistModel(owner);
-        playlistView = new QListView(owner);
+        playlistView = new PlayListView(owner);
         playlistView->setModel(playlistModel);
         playlistView->setCurrentIndex(
             playlistModel->index(playlistModel->playlist()->currentIndex(), 0));
         playlistView->setMaximumWidth(250);
 
         menu = new QMenu(owner);
+        audioTracksMenu = new QMenu(QObject::tr("Select audio track"), owner);
+        subTracksMenu = new QMenu(QObject::tr("Select subtitle track"), owner);
+        audioTracksGroup = new QActionGroup(owner);
+        audioTracksGroup->setExclusive(true);
+        subTracksGroup = new QActionGroup(owner);
+        subTracksGroup->setExclusive(true);
+
+        playListMenu = new QMenu(owner);
 
         fpsTimer = new QTimer(owner);
 
@@ -116,10 +125,16 @@ public:
     TitleWidget *titleWidget;
     QRect globalTitlelWidgetGeometry;
 
-    QListView *playlistView;
+    PlayListView *playlistView;
     PlaylistModel *playlistModel;
 
     QMenu *menu;
+    QMenu *audioTracksMenu;
+    QMenu *subTracksMenu;
+    QActionGroup *audioTracksGroup;
+    QActionGroup *subTracksGroup;
+
+    QMenu *playListMenu;
 
     QTimer *fpsTimer;
 
@@ -135,8 +150,10 @@ MainWindow::MainWindow(QWidget *parent)
     setupUI();
     buildConnect();
     initMenu();
+    initPlayListMenu();
 
     setAttribute(Qt::WA_Hover);
+    d_ptr->playlistView->installEventFilter(this);
     installEventFilter(this);
 
     resize(1000, 650);
@@ -249,13 +266,8 @@ void MainWindow::onOpenWebMedia()
     addToPlaylist({QUrl(dialog.url())});
 }
 
-void MainWindow::onRenderChanged()
+void MainWindow::onRenderChanged(QAction *action)
 {
-    auto action = qobject_cast<QAction *>(sender());
-    if (!action) {
-        return;
-    }
-
     Ffmpeg::VideoRenderCreate::RenderType renderType = Ffmpeg::VideoRenderCreate::Opengl;
     auto type = action->data().toInt();
     switch (type) {
@@ -275,7 +287,7 @@ void MainWindow::onRenderChanged()
 void MainWindow::playlistPositionChanged(int currentItem)
 {
     d_ptr->playlistView->setCurrentIndex(d_ptr->playlistModel->index(currentItem, 0));
-    d_ptr->playerPtr->onSetFilePath(d_ptr->playlistModel->playlist()->currentMedia().toString());
+    d_ptr->playerPtr->openMedia(d_ptr->playlistModel->playlist()->currentMedia().toString());
 }
 
 void MainWindow::jump(const QModelIndex &index)
@@ -299,7 +311,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
         } break;
         case QEvent::Drop: {
             auto e = static_cast<QDropEvent *>(event);
-            QList<QUrl> urls = e->mimeData()->urls();            
+            QList<QUrl> urls = e->mimeData()->urls();
             if (!urls.isEmpty()) {
                 addToPlaylist(urls);
             }
@@ -331,6 +343,14 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
                 showFullScreen();
             }
             break;
+        default: break;
+        }
+    } else if (watched == d_ptr->playlistView) {
+        switch (event->type()) {
+        case QEvent::ContextMenu: {
+            auto e = static_cast<QContextMenuEvent *>(event);
+            d_ptr->playListMenu->exec(e->globalPos());
+        } break;
         default: break;
         }
     } else if (watched == this) {
@@ -420,19 +440,59 @@ void MainWindow::buildConnect()
     connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::audioTracksChanged,
             d_ptr->controlWidget,
-            [this](const QStringList &tracks) { d_ptr->controlWidget->setAudioTracks(tracks); });
+            [this](const QStringList &tracks) {
+                qDeleteAll(d_ptr->audioTracksGroup->actions());
+                if (tracks.size() < 2) {
+                    return;
+                }
+                for (const auto &item : qAsConst(tracks)) {
+                    auto action = new QAction(item, this);
+                    action->setCheckable(true);
+                    d_ptr->audioTracksMenu->addAction(action);
+                    d_ptr->audioTracksGroup->addAction(action);
+                }
+            });
     connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::audioTrackChanged,
             d_ptr->controlWidget,
-            [this](const QString &track) { d_ptr->controlWidget->setCurrentAudioTrack(track); });
+            [this](const QString &track) {
+                auto actions = d_ptr->audioTracksGroup->actions();
+                for (const auto action : qAsConst(actions)) {
+                    if (action->text() != track) {
+                        continue;
+                    }
+                    action->setChecked(true);
+                    break;
+                }
+            });
     connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::subTracksChanged,
             d_ptr->controlWidget,
-            [this](const QStringList &tracks) { d_ptr->controlWidget->setSubTracks(tracks); });
+            [this](const QStringList &tracks) {
+                qDeleteAll(d_ptr->subTracksGroup->actions());
+                if (tracks.size() < 2) {
+                    return;
+                }
+                for (const auto &item : qAsConst(tracks)) {
+                    auto action = new QAction(item, this);
+                    action->setCheckable(true);
+                    d_ptr->subTracksMenu->addAction(action);
+                    d_ptr->subTracksGroup->addAction(action);
+                }
+            });
     connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::subTrackChanged,
             d_ptr->controlWidget,
-            [this](const QString &track) { d_ptr->controlWidget->setCurrentSubTrack(track); });
+            [this](const QString &track) {
+                auto actions = d_ptr->subTracksGroup->actions();
+                for (const auto action : qAsConst(actions)) {
+                    if (action->text() != track) {
+                        continue;
+                    }
+                    action->setChecked(true);
+                    break;
+                }
+            });
     connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::playStarted, this, &MainWindow::onStarted);
     connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::finished, this, &MainWindow::onFinished);
     connect(d_ptr->playerPtr.data(),
@@ -492,14 +552,6 @@ void MainWindow::buildConnect()
                 d_ptr->titleWidget->setAutoHide(3000);
                 d_ptr->setTitleWidgetGeometry(true);
             });
-    connect(d_ptr->controlWidget,
-            &ControlWidget::audioTrackChanged,
-            d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::onSetAudioTracks);
-    connect(d_ptr->controlWidget,
-            &ControlWidget::subTrackChanged,
-            d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::onSetSubtitleStream);
     connect(d_ptr->controlWidget, &ControlWidget::showList, d_ptr->playlistView, [this] {
         d_ptr->playlistView->setVisible(!d_ptr->playlistView->isVisible());
     });
@@ -520,30 +572,54 @@ void MainWindow::initMenu()
     auto widgetAction = new QAction(tr("Widget"), this);
     widgetAction->setCheckable(true);
     widgetAction->setData(Ffmpeg::VideoRenderCreate::Widget);
-    connect(widgetAction,
-            &QAction::triggered,
-            this,
-            &MainWindow::onRenderChanged,
-            Qt::QueuedConnection);
     auto openglAction = new QAction(tr("Opengl"), this);
     openglAction->setCheckable(true);
     openglAction->setData(Ffmpeg::VideoRenderCreate::Opengl);
-    connect(openglAction,
-            &QAction::triggered,
-            this,
-            &MainWindow::onRenderChanged,
-            Qt::QueuedConnection);
+    openglAction->setChecked(true);
     auto actionGroup = new QActionGroup(this);
     actionGroup->setExclusive(true);
     actionGroup->addAction(widgetAction);
     actionGroup->addAction(openglAction);
+    connect(actionGroup,
+            &QActionGroup::triggered,
+            this,
+            &MainWindow::onRenderChanged,
+            Qt::QueuedConnection);
+    openglAction->trigger();
 
     auto renderMenu = new QMenu(tr("Video Render"), this);
     renderMenu->addAction(widgetAction);
     renderMenu->addAction(openglAction);
     d_ptr->menu->addMenu(renderMenu);
 
-    openglAction->trigger();
+    d_ptr->menu->addMenu(d_ptr->audioTracksMenu);
+    d_ptr->menu->addMenu(d_ptr->subTracksMenu);
+
+    connect(d_ptr->audioTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        d_ptr->playerPtr->setAudioTrack(action->text());
+    });
+    connect(d_ptr->subTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        d_ptr->playerPtr->setSubtitleTrack(action->text());
+    });
+}
+
+void MainWindow::initPlayListMenu()
+{
+    d_ptr->playListMenu->addAction(tr("Open Local Media"), this, &MainWindow::onOpenLocalMedia);
+    d_ptr->playListMenu->addAction(tr("Open Web Media"), this, &MainWindow::onOpenWebMedia);
+    d_ptr->playListMenu
+        ->addAction(tr("Remove the currently selected item"), d_ptr->playlistView, [this] {
+            auto indexs = d_ptr->playlistView->selectedAllIndexs();
+            std::sort(indexs.begin(), indexs.end(), [&](QModelIndex left, QModelIndex right) {
+                return left.row() > right.row();
+            });
+            for (const auto &index : qAsConst(indexs)) {
+                d_ptr->playlistModel->playlist()->removeMedia(index.row());
+            }
+        });
+    d_ptr->playListMenu->addAction(tr("Clear"), d_ptr->playlistView, [this] {
+        d_ptr->playlistModel->playlist()->clear();
+    });
 }
 
 void MainWindow::addToPlaylist(const QList<QUrl> &urls)

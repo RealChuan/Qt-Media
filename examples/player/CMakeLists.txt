@@ -4,6 +4,7 @@ set(PROJECT_SOURCES
         mainwindow.cpp mainwindow.h
         openwebmediadialog.cc openwebmediadialog.hpp
         playlistmodel.cpp playlistmodel.h
+        playlistview.cc playlistview.hpp
         qmediaplaylist_p.h 
         qmediaplaylist.cpp qmediaplaylist.h
         qplaylistfileparser_p.h qplaylistfileparser.cpp

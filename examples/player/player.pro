@@ -22,6 +22,7 @@ SOURCES += \
     mainwindow.cpp \
     openwebmediadialog.cc \
     playlistmodel.cpp \
+    playlistview.cc \
     qmediaplaylist.cpp \
     qplaylistfileparser.cpp \
     slider.cpp \
@@ -32,6 +33,7 @@ HEADERS += \
     mainwindow.h \
     openwebmediadialog.hpp \
     playlistmodel.h \
+    playlistview.hpp \
     qmediaplaylist.h \
     qmediaplaylist_p.h \
     qplaylistfileparser_p.h \

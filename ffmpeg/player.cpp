@@ -79,7 +79,7 @@ QString &Player::filePath() const
     return d_ptr->filepath;
 }
 
-void Player::onSetFilePath(const QString &filepath)
+void Player::openMedia(const QString &filepath)
 {
     onStop();
     d_ptr->filepath = filepath;
@@ -135,7 +135,7 @@ void Player::onSeek(int timestamp)
     d_ptr->seekTime = timestamp;
 }
 
-void Player::onSetAudioTracks(const QString &text) // 停止再播放最简单 之后在优化
+void Player::setAudioTrack(const QString &text) // 停止再播放最简单 之后在优化
 {
     auto audioTracks = d_ptr->formatCtx->audioMap();
     auto list = audioTracks.values();
@@ -161,7 +161,7 @@ void Player::onSetAudioTracks(const QString &text) // 停止再播放最简单 �
     onPlay();
 }
 
-void Player::onSetSubtitleStream(const QString &text)
+void Player::setSubtitleTrack(const QString &text)
 {
     auto subtitleTracks = d_ptr->formatCtx->subtitleMap();
     auto list = subtitleTracks.values();

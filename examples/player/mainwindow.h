@@ -24,7 +24,7 @@ private slots:
 
     void onOpenLocalMedia();
     void onOpenWebMedia();
-    void onRenderChanged();
+    void onRenderChanged(QAction *action);
 
     void playlistPositionChanged(int);
     void jump(const QModelIndex &index);
@@ -37,6 +37,7 @@ private:
     void setupUI();
     void buildConnect();
     void initMenu();
+    void initPlayListMenu();
     void addToPlaylist(const QList<QUrl> &urls);
 
     class MainWindowPrivate;

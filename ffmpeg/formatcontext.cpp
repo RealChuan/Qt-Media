@@ -36,28 +36,34 @@ public:
             case AVMEDIA_TYPE_VIDEO: videoIndexs.append(i); break;
             case AVMEDIA_TYPE_AUDIO: {
                 AVDictionaryEntry *tag = nullptr;
-                QString str;
+                QString str = QString::number(audioMap.size() + 1) + ".";
                 while (nullptr
                        != (tag = av_dict_get(formatCtx->streams[i]->metadata,
                                              "",
                                              tag,
                                              AV_DICT_IGNORE_SUFFIX))) {
-                    str = str + tag->key + ":" + QString::fromUtf8(tag->value) + " ";
-                    //qDebug() << tag->key << ":" << QString::fromUtf8(tag->value);
+                    QString key = tag->key;
+                    if (key == "language" || key == "title" || key == "NUMBER_OF_BYTES") {
+                        str = str + QString::fromUtf8(tag->value) + "-";
+                    }
+                    //qDebug() << key << ":" << QString::fromUtf8(tag->value);
                 }
                 str.chop(1);
                 audioMap.insert(i, str);
             } break;
             case AVMEDIA_TYPE_SUBTITLE: {
-                QString str;
+                QString str = QString::number(subtitleMap.size() + 1) + ".";
                 AVDictionaryEntry *tag = nullptr;
                 while (nullptr
                        != (tag = av_dict_get(formatCtx->streams[i]->metadata,
                                              "",
                                              tag,
                                              AV_DICT_IGNORE_SUFFIX))) {
-                    str = str + tag->key + ":" + QString::fromUtf8(tag->value) + " ";
-                    //qDebug() << tag->key << ":" << QString::fromUtf8(tag->value);
+                    QString key = tag->key;
+                    if (key == "language" || key == "title" || key == "NUMBER_OF_BYTES") {
+                        str = str + QString::fromUtf8(tag->value) + "-";
+                    }
+                    //qDebug() << key << ":" << QString::fromUtf8(tag->value);
                 }
                 str.chop(1);
                 subtitleMap.insert(i, str);

@@ -21,8 +21,7 @@ public:
         volumeSlider = new Slider(owner);
         volumeSlider->setRange(0, 100);
 
-        useGpuCheckBox = new QCheckBox(QObject::tr("GPU Decode"), owner);
-        useGpuCheckBox->setToolTip(tr("GPU Decode"));
+        useGpuCheckBox = new QCheckBox(QObject::tr("H/W"), owner);
 
         speedCbx = new QComboBox(owner);
         auto speedCbxView = new QListView(speedCbx);
@@ -36,20 +35,6 @@ public:
             i += 0.25;
         }
         speedCbx->setCurrentText("1");
-
-        audioTracksCbx = new QComboBox(owner);
-        audioTracksCbx->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
-        auto audioTracksView = new QListView(audioTracksCbx);
-        audioTracksView->setTextElideMode(Qt::ElideRight);
-        audioTracksView->setAlternatingRowColors(true);
-        audioTracksCbx->setView(audioTracksView);
-
-        subTracksCbx = new QComboBox(owner);
-        subTracksCbx->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
-        auto subtitleStreamsView = new QListView(subTracksCbx);
-        subtitleStreamsView->setTextElideMode(Qt::ElideRight);
-        subtitleStreamsView->setAlternatingRowColors(true);
-        subTracksCbx->setView(subtitleStreamsView);
     }
 
     ControlWidget *owner;
@@ -63,8 +48,6 @@ public:
     Slider *volumeSlider;
     QCheckBox *useGpuCheckBox;
     QComboBox *speedCbx;
-    QComboBox *audioTracksCbx;
-    QComboBox *subTracksCbx;
 };
 
 ControlWidget::ControlWidget(QWidget *parent)
@@ -139,36 +122,6 @@ int ControlWidget::volume() const
     return d_ptr->volumeSlider->value();
 }
 
-void ControlWidget::setAudioTracks(const QStringList &list)
-{
-    d_ptr->audioTracksCbx->blockSignals(true);
-    d_ptr->audioTracksCbx->clear();
-    d_ptr->audioTracksCbx->addItems(list);
-    d_ptr->audioTracksCbx->blockSignals(false);
-}
-
-void ControlWidget::setCurrentAudioTrack(const QString &track)
-{
-    d_ptr->audioTracksCbx->blockSignals(true);
-    d_ptr->audioTracksCbx->setCurrentText(track);
-    d_ptr->audioTracksCbx->blockSignals(false);
-}
-
-void ControlWidget::setSubTracks(const QStringList &list)
-{
-    d_ptr->subTracksCbx->blockSignals(true);
-    d_ptr->subTracksCbx->clear();
-    d_ptr->subTracksCbx->addItems(list);
-    d_ptr->subTracksCbx->blockSignals(false);
-}
-
-void ControlWidget::setCurrentSubTrack(const QString &track)
-{
-    d_ptr->subTracksCbx->blockSignals(true);
-    d_ptr->subTracksCbx->setCurrentText(track);
-    d_ptr->subTracksCbx->blockSignals(false);
-}
-
 void ControlWidget::onDurationChanged(double value)
 {
     auto str = QTime::fromMSecsSinceStartOfDay(value * 1000).toString("hh:mm:ss");
@@ -203,8 +156,6 @@ void ControlWidget::setupUI()
     processLayout->addWidget(d_ptr->slider);
     processLayout->addWidget(d_ptr->positionLabel);
     processLayout->addWidget(d_ptr->durationLabel);
-    processLayout->addWidget(d_ptr->sourceFPSLabel);
-    processLayout->addWidget(d_ptr->currentFPSLabel);
 
     auto listButton = new QToolButton(this);
     listButton->setText(tr("List"));
@@ -217,10 +168,8 @@ void ControlWidget::setupUI()
     controlLayout->addWidget(d_ptr->volumeSlider);
     controlLayout->addWidget(new QLabel(tr("Speed: "), this));
     controlLayout->addWidget(d_ptr->speedCbx);
-    controlLayout->addWidget(new QLabel(tr("Audio Tracks: "), this));
-    controlLayout->addWidget(d_ptr->audioTracksCbx);
-    controlLayout->addWidget(new QLabel(tr("Subtitle Tracks: "), this));
-    controlLayout->addWidget(d_ptr->subTracksCbx);
+    controlLayout->addWidget(d_ptr->sourceFPSLabel);
+    controlLayout->addWidget(d_ptr->currentFPSLabel);
     controlLayout->addWidget(listButton);
 
     auto widget = new QWidget(this);
@@ -245,13 +194,4 @@ void ControlWidget::buildConnect()
     });
     connect(d_ptr->volumeSlider, &QSlider::valueChanged, this, &ControlWidget::volumeChanged);
     connect(d_ptr->speedCbx, &QComboBox::currentIndexChanged, this, &ControlWidget::onSpeedChanged);
-
-    connect(d_ptr->audioTracksCbx,
-            &QComboBox::currentTextChanged,
-            this,
-            &ControlWidget::audioTrackChanged);
-    connect(d_ptr->subTracksCbx,
-            &QComboBox::currentTextChanged,
-            this,
-            &ControlWidget::subTrackChanged);
 }
