@@ -56,7 +56,7 @@ jobs:
       - name: Install dependencies on macos
         if: startsWith(matrix.os, 'macos')
         run: |
-          brew install ninja nasm
+          brew install ninja nasm pkg-config
           ninja --version
           cmake --version
           clang --version

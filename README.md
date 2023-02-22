@@ -85,7 +85,5 @@ MainWindow::MainWindow(QWidget *parent)
 ## SwsContext is awesome! Compared to QImage convertTo and scaled.
 
 ## QFfmpegPlayer
-### BUG：
-1. 全屏状态下，右键菜单及其他控件不显示，需要还原成默认窗口大小，再全屏，之后正常？  
 
-<div align=center><img src="doc/player.png"></div>
+<div align=center><img src="doc/player.jpeg"></div>
