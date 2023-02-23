@@ -39,7 +39,7 @@ public:
         playlistView->setModel(playlistModel);
         playlistView->setCurrentIndex(
             playlistModel->index(playlistModel->playlist()->currentIndex(), 0));
-        playlistView->setMaximumWidth(250);
+        //playlistView->setMaximumWidth(250);
 
         menu = new QMenu(owner);
         audioTracksMenu = new QMenu(QObject::tr("Select audio track"), owner);
@@ -52,6 +52,9 @@ public:
         playListMenu = new QMenu(owner);
 
         fpsTimer = new QTimer(owner);
+
+        splitter = new QSplitter(owner);
+        splitter->addWidget(playlistView);
 
         initShortcut();
     }
@@ -138,7 +141,7 @@ public:
 
     QTimer *fpsTimer;
 
-    QHBoxLayout *layout;
+    QSplitter *splitter;
 };
 
 MainWindow::MainWindow(QWidget *parent)
@@ -279,7 +282,7 @@ void MainWindow::onRenderChanged(QAction *action)
     videoRender->widget()->setAcceptDrops(true);
     videoRender->widget()->installEventFilter(this);
     d_ptr->playerPtr->setVideoRenders({videoRender});
-    d_ptr->layout->insertWidget(0, videoRender->widget());
+    d_ptr->splitter->insertWidget(0, videoRender->widget());
     // 为什么切换成widget还是有使用GPU 0-3D，而且使用量是切换为opengl的两倍！！！
     d_ptr->videoRender.reset(videoRender);
 }
@@ -417,13 +420,7 @@ void MainWindow::keyPressEvent(QKeyEvent *ev)
 
 void MainWindow::setupUI()
 {
-    QWidget *widget = new QWidget(this);
-    d_ptr->layout = new QHBoxLayout(widget);
-    d_ptr->layout->setContentsMargins(QMargins());
-    d_ptr->layout->setSpacing(0);
-    d_ptr->layout->addWidget(d_ptr->playlistView);
-
-    setCentralWidget(widget);
+    setCentralWidget(d_ptr->splitter);
 }
 
 void MainWindow::buildConnect()
