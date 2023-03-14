@@ -248,15 +248,14 @@ void MainWindow::onOpenLocalMedia()
 {
     const QString path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation)
                              .value(0, QDir::homePath());
-    const QString filePath
-        = QFileDialog::getOpenFileName(this,
-                                       tr("Open File"),
-                                       path,
-                                       tr("Audio Video (*.mp3 *.mp4 *.mkv *.rmvb)"));
-    if (filePath.isEmpty()) {
+    const auto urls = QFileDialog::getOpenFileUrls(this,
+                                                   tr("Open File"),
+                                                   path,
+                                                   tr("Audio Video (*.mp3 *.mp4 *.mkv *.rmvb)"));
+    if (urls.isEmpty()) {
         return;
     }
-    addToPlaylist({filePath});
+    addToPlaylist(urls);
 }
 
 void MainWindow::onOpenWebMedia()
@@ -289,8 +288,9 @@ void MainWindow::onRenderChanged(QAction *action)
 
 void MainWindow::playlistPositionChanged(int currentItem)
 {
+    auto url = d_ptr->playlistModel->playlist()->currentMedia();
     d_ptr->playlistView->setCurrentIndex(d_ptr->playlistModel->index(currentItem, 0));
-    d_ptr->playerPtr->openMedia(d_ptr->playlistModel->playlist()->currentMedia().toString());
+    d_ptr->playerPtr->openMedia(url.isLocalFile() ? url.toLocalFile() : url.toString());
 }
 
 void MainWindow::jump(const QModelIndex &index)
