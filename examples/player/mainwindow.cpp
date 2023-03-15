@@ -513,6 +513,10 @@ void MainWindow::buildConnect()
                 default: break;
                 }
             });
+    connect(d_ptr->playerPtr.data(),
+            &Ffmpeg::Player::readSpeedChanged,
+            d_ptr->controlWidget,
+            &ControlWidget::onReadSpeedChanged);
 
     connect(d_ptr->controlWidget, &ControlWidget::hoverPosition, this, &MainWindow::onHoverSlider);
     connect(d_ptr->controlWidget, &ControlWidget::leavePosition, this, &MainWindow::onLeaveSlider);
@@ -531,11 +535,6 @@ void MainWindow::buildConnect()
             d_ptr->playerPtr->pause(!checked);
         }
     });
-    connect(d_ptr->controlWidget,
-            &ControlWidget::useGpu,
-            d_ptr->playerPtr.data(),
-            [this](bool useGpu) { d_ptr->playerPtr->setUseGpuDecode(useGpu); });
-    d_ptr->controlWidget->setUseGpu(true);
     connect(d_ptr->controlWidget,
             &ControlWidget::volumeChanged,
             d_ptr->playerPtr.data(),
@@ -571,6 +570,14 @@ void MainWindow::initMenu()
 {
     d_ptr->menu->addAction(tr("Open Local Media"), this, &MainWindow::onOpenLocalMedia);
     d_ptr->menu->addAction(tr("Open Web Media"), this, &MainWindow::onOpenWebMedia);
+
+    auto hwAction = new QAction("H/W", this);
+    hwAction->setCheckable(true);
+    connect(hwAction, &QAction::toggled, this, [this](bool checked) {
+        d_ptr->playerPtr->setUseGpuDecode(checked);
+    });
+    hwAction->setChecked(true);
+    d_ptr->menu->addAction(hwAction);
 
     auto widgetAction = new QAction(tr("Widget"), this);
     widgetAction->setCheckable(true);

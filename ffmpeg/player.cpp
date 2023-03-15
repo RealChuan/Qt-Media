@@ -293,6 +293,10 @@ void Player::playVideo()
     setMediaClock(0);
     emit playStarted();
 
+    qint64 readSize = 0;
+    QElapsedTimer elapsedTimer;
+    elapsedTimer.start();
+
     while (d_ptr->runing) {
         checkSeek();
 
@@ -300,6 +304,9 @@ void Player::playVideo()
         if (!d_ptr->formatCtx->readFrame(packetPtr.get())) {
             break;
         }
+
+        calculateSpeed(elapsedTimer, readSize, packetPtr->avPacket()->size);
+
         auto stream_index = packetPtr->streamIndex();
         if (!d_ptr->formatCtx->checkPktPlayRange(packetPtr.get())) {
         } else if (d_ptr->audioInfo->isIndexVaild()
@@ -374,6 +381,18 @@ bool Player::setMediaIndex(AVContextInfo *contextInfo, int index)
     }
     return contextInfo->openCodec(d_ptr->gpuDecode ? AVContextInfo::GpuType::GpuDecode
                                                    : AVContextInfo::GpuType::NotUseGpu);
+}
+
+void Player::calculateSpeed(QElapsedTimer &timer, qint64 &readSize, qint64 addSize)
+{
+    readSize += addSize;
+    auto elapsed = timer.elapsed();
+    if (elapsed > 5000) {
+        auto speed = readSize * 1000 / elapsed;
+        emit readSpeedChanged(speed);
+        timer.restart();
+        readSize = 0;
+    }
 }
 
 void Player::pause(bool status)

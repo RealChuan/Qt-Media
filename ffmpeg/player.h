@@ -71,6 +71,8 @@ signals:
     void playStarted();
     void seekFinished();
 
+    void readSpeedChanged(qint64);
+
 protected:
     void run() override;
 
@@ -82,6 +84,7 @@ private:
     void checkSeek();
     void setMediaState(MediaState mediaState);
     bool setMediaIndex(AVContextInfo *contextInfo, int index);
+    void calculateSpeed(QElapsedTimer &timer, qint64 &readSize, qint64 addSize);
 
     class PlayerPrivate;
     QScopedPointer<PlayerPrivate> d_ptr;

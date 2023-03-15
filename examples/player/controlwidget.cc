@@ -1,6 +1,8 @@
 #include "controlwidget.hpp"
 #include "slider.h"
 
+#include <utils/utils.h>
+
 #include <QtWidgets>
 
 class ControlWidget::ControlWidgetPrivate
@@ -19,10 +21,10 @@ public:
         playButton->setCheckable(true);
         setPlayButtonIcon();
 
+        readSpeedLabel = new QLabel(owner);
+
         volumeSlider = new Slider(owner);
         volumeSlider->setRange(0, 100);
-
-        useGpuCheckBox = new QCheckBox(QObject::tr("H/W"), owner);
 
         speedCbx = new QComboBox(owner);
         auto speedCbxView = new QListView(speedCbx);
@@ -52,8 +54,8 @@ public:
     QLabel *sourceFPSLabel;
     QLabel *currentFPSLabel;
     QToolButton *playButton;
+    QLabel *readSpeedLabel;
     Slider *volumeSlider;
-    QCheckBox *useGpuCheckBox;
     QComboBox *speedCbx;
 };
 
@@ -111,11 +113,6 @@ void ControlWidget::setPlayButtonChecked(bool checked)
     d_ptr->setPlayButtonIcon();
 }
 
-void ControlWidget::setUseGpu(bool useGpu)
-{
-    d_ptr->useGpuCheckBox->setChecked(useGpu);
-}
-
 void ControlWidget::setVolume(int value)
 {
     if (value < d_ptr->volumeSlider->minimum()) {
@@ -151,6 +148,11 @@ void ControlWidget::onPositionChanged(double value)
     d_ptr->slider->blockSignals(false);
 }
 
+void ControlWidget::onReadSpeedChanged(qint64 speed)
+{
+    d_ptr->readSpeedLabel->setText(Utils::bytesToString(speed) + "/S");
+}
+
 void ControlWidget::onSpeedChanged()
 {
     auto data = d_ptr->speedCbx->currentData().toDouble();
@@ -177,7 +179,7 @@ void ControlWidget::setupUI()
     controlLayout->setSpacing(10);
     controlLayout->addWidget(d_ptr->playButton);
     controlLayout->addStretch();
-    controlLayout->addWidget(d_ptr->useGpuCheckBox);
+    controlLayout->addWidget(d_ptr->readSpeedLabel);
     controlLayout->addWidget(volumeBotton);
     controlLayout->addWidget(d_ptr->volumeSlider);
     controlLayout->addWidget(new QLabel(tr("Speed: "), this));
@@ -206,9 +208,6 @@ void ControlWidget::buildConnect()
     connect(d_ptr->slider, &Slider::onHover, this, &ControlWidget::hoverPosition);
     connect(d_ptr->slider, &Slider::onLeave, this, &ControlWidget::leavePosition);
     connect(d_ptr->playButton, &QToolButton::clicked, this, &ControlWidget::play);
-    connect(d_ptr->useGpuCheckBox, &QCheckBox::toggled, this, [this] {
-        emit useGpu(d_ptr->useGpuCheckBox->isChecked());
-    });
     connect(d_ptr->volumeSlider, &QSlider::valueChanged, this, &ControlWidget::volumeChanged);
     connect(d_ptr->speedCbx, &QComboBox::currentIndexChanged, this, &ControlWidget::onSpeedChanged);
 }
