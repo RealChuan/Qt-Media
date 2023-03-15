@@ -32,6 +32,7 @@ public:
         , playerPtr(new Ffmpeg::Player)
     {
         controlWidget = new ControlWidget(owner);
+        controlWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
         titleWidget = new TitleWidget(owner);
 
         playlistModel = new PlaylistModel(owner);
@@ -93,11 +94,16 @@ public:
         if (videoRender.isNull()) {
             return;
         }
+        controlWidget->setMinimumWidth(videoRender->widget()->width() / 2);
+        controlWidget->adjustSize();
+        if (controlWidget->width() * 2 < videoRender->widget()->width()) {
+            controlWidget->setMinimumWidth(videoRender->widget()->width() / 2);
+        }
         auto margain = 10;
         auto geometry = videoRender->widget()->geometry();
-        auto p1 = QPoint(geometry.x() + margain, geometry.bottomLeft().y() - 100 - margain);
-        auto p2 = QPoint(geometry.topRight().x() - margain, geometry.bottomLeft().y() - margain);
-        globalControlWidgetGeometry = {owner->mapToGlobal(p1), owner->mapToGlobal(p2)};
+        auto p1 = QPoint(geometry.x() + (geometry.width() - controlWidget->width()) / 2.0,
+                         geometry.bottomLeft().y() - controlWidget->height() - margain);
+        globalControlWidgetGeometry = {owner->mapToGlobal(p1), controlWidget->size()};
         controlWidget->setFixedSize(globalControlWidgetGeometry.size());
         controlWidget->setGeometry(globalControlWidgetGeometry);
         controlWidget->setVisible(show);

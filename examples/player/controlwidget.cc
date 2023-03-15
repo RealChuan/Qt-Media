@@ -12,11 +12,12 @@ public:
         slider = new Slider(owner);
         slider->setRange(0, 100);
         positionLabel = new QLabel("00:00:00", owner);
-        durationLabel = new QLabel("/ 00:00:00", owner);
+        durationLabel = new QLabel("00:00:00", owner);
         sourceFPSLabel = new QLabel("FPS: 00.00->", owner);
         currentFPSLabel = new QLabel("00.00", owner);
-        playButton = new QPushButton(QObject::tr("play"), owner);
+        playButton = new QToolButton(owner);
         playButton->setCheckable(true);
+        setPlayButtonIcon();
 
         volumeSlider = new Slider(owner);
         volumeSlider->setRange(0, 100);
@@ -37,6 +38,12 @@ public:
         speedCbx->setCurrentText("1");
     }
 
+    void setPlayButtonIcon()
+    {
+        playButton->setIcon(playButton->style()->standardIcon(
+            playButton->isChecked() ? QStyle::SP_MediaPause : QStyle::SP_MediaPlay));
+    }
+
     ControlWidget *owner;
 
     Slider *slider;
@@ -44,7 +51,7 @@ public:
     QLabel *durationLabel;
     QLabel *sourceFPSLabel;
     QLabel *currentFPSLabel;
-    QPushButton *playButton;
+    QToolButton *playButton;
     Slider *volumeSlider;
     QCheckBox *useGpuCheckBox;
     QComboBox *speedCbx;
@@ -80,7 +87,7 @@ QPoint ControlWidget::sliderGlobalPos() const
 
 void ControlWidget::setSourceFPS(float fps)
 {
-    auto fpsStr = QString("FPS: %1->").arg(QString::number(fps, 'f', 2));
+    auto fpsStr = QString("FPS: %1").arg(QString::number(fps, 'f', 2));
     d_ptr->sourceFPSLabel->setText(fpsStr);
     d_ptr->sourceFPSLabel->setToolTip(fpsStr);
 }
@@ -95,11 +102,13 @@ void ControlWidget::setCurrentFPS(float fps)
 void ControlWidget::clickPlayButton()
 {
     d_ptr->playButton->click();
+    d_ptr->setPlayButtonIcon();
 }
 
 void ControlWidget::setPlayButtonChecked(bool checked)
 {
     d_ptr->playButton->setChecked(checked);
+    d_ptr->setPlayButtonIcon();
 }
 
 void ControlWidget::setUseGpu(bool useGpu)
@@ -125,7 +134,7 @@ int ControlWidget::volume() const
 void ControlWidget::onDurationChanged(double value)
 {
     auto str = QTime::fromMSecsSinceStartOfDay(value * 1000).toString("hh:mm:ss");
-    d_ptr->durationLabel->setText("/ " + str);
+    d_ptr->durationLabel->setText(str);
     d_ptr->slider->blockSignals(true);
     d_ptr->slider->setRange(0, value);
     d_ptr->slider->blockSignals(false);
@@ -150,33 +159,41 @@ void ControlWidget::onSpeedChanged()
 
 void ControlWidget::setupUI()
 {
-    auto processWidget = new QWidget(this);
-    //processWidget->setMaximumHeight(70);
-    QHBoxLayout *processLayout = new QHBoxLayout(processWidget);
+    QHBoxLayout *processLayout = new QHBoxLayout;
+    processLayout->setSpacing(10);
     processLayout->addWidget(d_ptr->slider);
     processLayout->addWidget(d_ptr->positionLabel);
+    processLayout->addWidget(new QLabel("/", this));
     processLayout->addWidget(d_ptr->durationLabel);
+
+    auto volumeBotton = new QToolButton(this);
+    volumeBotton->setIcon(style()->standardIcon(QStyle::SP_MediaVolume));
 
     auto listButton = new QToolButton(this);
     listButton->setText(tr("List"));
     connect(listButton, &QToolButton::clicked, this, &ControlWidget::showList);
 
     auto controlLayout = new QHBoxLayout;
+    controlLayout->setSpacing(10);
     controlLayout->addWidget(d_ptr->playButton);
+    controlLayout->addStretch();
     controlLayout->addWidget(d_ptr->useGpuCheckBox);
-    controlLayout->addWidget(new QLabel(tr("Volume: "), this));
+    controlLayout->addWidget(volumeBotton);
     controlLayout->addWidget(d_ptr->volumeSlider);
     controlLayout->addWidget(new QLabel(tr("Speed: "), this));
     controlLayout->addWidget(d_ptr->speedCbx);
     controlLayout->addWidget(d_ptr->sourceFPSLabel);
+    controlLayout->addWidget(new QLabel("->", this));
     controlLayout->addWidget(d_ptr->currentFPSLabel);
     controlLayout->addWidget(listButton);
 
     auto widget = new QWidget(this);
     widget->setObjectName("wid");
-    widget->setStyleSheet("QWidget#wid{background: rgba(255,255,255,0.3);}");
+    widget->setStyleSheet("QWidget#wid{background: rgba(255,255,255,0.3); border-radius:5px;}"
+                          "QLabel{ color: white; }");
     auto layout = new QVBoxLayout(widget);
-    layout->addWidget(processWidget);
+    layout->setSpacing(15);
+    layout->addLayout(processLayout);
     layout->addLayout(controlLayout);
 
     auto l = new QHBoxLayout(this);
@@ -188,7 +205,7 @@ void ControlWidget::buildConnect()
     connect(d_ptr->slider, &Slider::valueChanged, this, &ControlWidget::seek);
     connect(d_ptr->slider, &Slider::onHover, this, &ControlWidget::hoverPosition);
     connect(d_ptr->slider, &Slider::onLeave, this, &ControlWidget::leavePosition);
-    connect(d_ptr->playButton, &QPushButton::clicked, this, &ControlWidget::play);
+    connect(d_ptr->playButton, &QToolButton::clicked, this, &ControlWidget::play);
     connect(d_ptr->useGpuCheckBox, &QCheckBox::toggled, this, [this] {
         emit useGpu(d_ptr->useGpuCheckBox->isChecked());
     });
