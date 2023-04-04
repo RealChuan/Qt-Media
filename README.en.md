@@ -1,18 +1,21 @@
 # Qt-Ffmpeg
 
+-   [Simplified Chinese](README.md)
+-   [English](README.en.md)
+
 ## Need a powerful opengl and vulkan yuv rendering module!
 
 1.  There are too many if else in the shader in Opengl, causing the GPU to run empty, affecting GPU decoding and av_hwframe_transfer_data speed, this phenomenon is especially obvious on 4K video images;
 2.  In WidgetRender, use QImage::Format_RGB32 and QImage::Format_ARGB32_Premultiplied image formats as much as possible. The following reasons:
     1.  Avoid most rendering directly to most of these formats using QPainter. Rendering is best optimized to the Format_RGB32  and Format_ARGB32_Premultiplied formats, and secondarily for rendering to the Format_RGB16, Format_RGBX8888,  Format_RGBA8888_Premultiplied, Format_RGBX64 and Format_RGBA64_Premultiplied formats.
 
-## Ffmpeg (5.0) is not the same as 4.4.3 in decoding subtitles
+## Ffmpeg（5.0）在解码字幕与4.4.3不太一样
 
 Decoding subtitles (ffmpeg-n5.0):
 
     0,,en,,0000,0000,0000,,Peek-a-boo!
 
-you must use`ass_process_chunk` 并设置 pts 和持续时间, 如在 libavfilter/vf_subtitles.c 中一样。
+you must use`ass_process_chunk`And set pts and duration as in libavfilter/vf_subtitles.c.
 
 ASS standard format should be (ffmpeg-n4.4.3):
 
@@ -58,7 +61,7 @@ transcodeCtx->audioPts += frame->nb_samples;
 
 ### Dynamically switch Video Render, switch from opengl to widget, there is still GPU 0-3D occupation, and the usage is twice that of opengl! ! ! QT-BUG?
 
-## QOpenGLWidget memory leak, moving zoom in and out of the window, the code is as follows:
+## QOpenGLWidget memory leak, move zoom in and zoom out window, the code is as follows:
 
 ```C++
 int main(int argc, char *argv[])
