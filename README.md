@@ -1,5 +1,8 @@
 # Qt-Ffmpeg
 
+- [简体中文](README.md)
+- [English](README.en.md)
+
 ## 需要一个强大的opengl和vulkan yuv渲染模块！
 
 1. Opengl中的shader有太多if else导致GPU空跑，影响GPU解码和av_hwframe_transfer_data速度，这个现象在4K视频图像上尤为明显；
