@@ -150,7 +150,7 @@ void ControlWidget::onPositionChanged(double value)
 
 void ControlWidget::onReadSpeedChanged(qint64 speed)
 {
-    d_ptr->readSpeedLabel->setText(Utils::bytesToString(speed) + "/S");
+    d_ptr->readSpeedLabel->setText(Utils::convertBytesToString(speed) + "/S");
 }
 
 void ControlWidget::onSpeedChanged()
