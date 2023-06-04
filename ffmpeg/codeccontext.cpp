@@ -290,8 +290,9 @@ void CodecContext::setMaxBitrate(int64_t bitrate)
 
 void CodecContext::setCrf(int crf)
 {
+    // 设置crf参数，范围是0-51，0是无损，23是默认值，51是最差质量
     Q_ASSERT(crf >= 0 && crf <= 51);
-    av_opt_set_int(d_ptr->codecCtx->priv_data, "crf", crf, 0);
+    av_opt_set(d_ptr->codecCtx->priv_data, "crf", QString::number(crf).toLocal8Bit().constData(), 0);
 }
 
 void CodecContext::setPreset(const QString &preset)
@@ -306,21 +307,6 @@ void CodecContext::setTune(const QString &tune)
 
 void CodecContext::setProfile(const QString &profile)
 {
-    switch (d_ptr->codecCtx->codec_id) {
-    case AV_CODEC_ID_H264:
-        if (profile == "baseline") {
-            d_ptr->codecCtx->profile = FF_PROFILE_H264_BASELINE;
-        } else if (profile == "extended") {
-            d_ptr->codecCtx->profile = FF_PROFILE_H264_EXTENDED;
-        } else if (profile == "main") {
-            d_ptr->codecCtx->profile = FF_PROFILE_H264_MAIN;
-        } else if (profile == "high") {
-            d_ptr->codecCtx->profile = FF_PROFILE_H264_HIGH;
-        }
-        break;
-    default: break;
-    }
-
     av_opt_set(d_ptr->codecCtx->priv_data, "profile", profile.toLocal8Bit().constData(), 0);
 }
 
