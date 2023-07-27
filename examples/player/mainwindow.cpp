@@ -94,6 +94,7 @@ public:
         if (videoRender.isNull()) {
             return;
         }
+        controlWidget->setFixedSize({QWIDGETSIZE_MAX, QWIDGETSIZE_MAX});
         controlWidget->setMinimumWidth(videoRender->widget()->width() / 2);
         controlWidget->adjustSize();
         if (controlWidget->width() * 2 < videoRender->widget()->width()) {
@@ -294,6 +295,9 @@ void MainWindow::onRenderChanged(QAction *action)
 
 void MainWindow::playlistPositionChanged(int currentItem)
 {
+    if (currentItem < 0) {
+        return;
+    }
     auto url = d_ptr->playlistModel->playlist()->currentMedia();
     d_ptr->playlistView->setCurrentIndex(d_ptr->playlistModel->index(currentItem, 0));
     d_ptr->playerPtr->openMedia(url.isLocalFile() ? url.toLocalFile() : url.toString());
@@ -382,7 +386,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
                     e->globalPosition().toPoint());
                 bool isVisible = d_ptr->controlWidget->isVisible();
                 if (contain && !isVisible) {
-                    d_ptr->controlWidget->show();
+                    d_ptr->setControlWidgetGeometry(true);
                 } else if (!contain && isVisible) {
                     d_ptr->controlWidget->hide();
                 }
@@ -518,6 +522,14 @@ void MainWindow::buildConnect()
             d_ptr->controlWidget,
             &ControlWidget::onReadSpeedChanged);
 
+    connect(d_ptr->controlWidget,
+            &ControlWidget::previous,
+            d_ptr->playlistModel->playlist(),
+            &QMediaPlaylist::previous);
+    connect(d_ptr->controlWidget,
+            &ControlWidget::next,
+            d_ptr->playlistModel->playlist(),
+            &QMediaPlaylist::next);
     connect(d_ptr->controlWidget, &ControlWidget::hoverPosition, this, &MainWindow::onHoverSlider);
     connect(d_ptr->controlWidget, &ControlWidget::leavePosition, this, &MainWindow::onLeaveSlider);
     connect(d_ptr->controlWidget, &ControlWidget::seek, d_ptr->playerPtr.data(), [this](int value) {
@@ -554,9 +566,17 @@ void MainWindow::buildConnect()
                 d_ptr->titleWidget->setAutoHide(3000);
                 d_ptr->setTitleWidgetGeometry(true);
             });
+    connect(d_ptr->controlWidget,
+            &ControlWidget::modelChanged,
+            d_ptr->playlistModel->playlist(),
+            [this](int model) {
+                d_ptr->playlistModel->playlist()->setPlaybackMode(
+                    QMediaPlaylist::PlaybackMode(model));
+            });
     connect(d_ptr->controlWidget, &ControlWidget::showList, d_ptr->playlistView, [this] {
         d_ptr->playlistView->setVisible(!d_ptr->playlistView->isVisible());
     });
+
     connect(d_ptr->playlistModel->playlist(),
             &QMediaPlaylist::currentIndexChanged,
             this,

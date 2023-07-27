@@ -1,4 +1,5 @@
 #include "controlwidget.hpp"
+#include "qmediaplaylist.h"
 #include "slider.h"
 
 #include <utils/utils.h>
@@ -8,25 +9,26 @@
 class ControlWidget::ControlWidgetPrivate
 {
 public:
-    ControlWidgetPrivate(ControlWidget *parent)
-        : owner(parent)
+    ControlWidgetPrivate(ControlWidget *q)
+        : q_ptr(q)
     {
-        slider = new Slider(owner);
+        slider = new Slider(q_ptr);
         slider->setRange(0, 100);
-        positionLabel = new QLabel("00:00:00", owner);
-        durationLabel = new QLabel("00:00:00", owner);
-        sourceFPSLabel = new QLabel("FPS: 00.00->", owner);
-        currentFPSLabel = new QLabel("00.00", owner);
-        playButton = new QToolButton(owner);
+        positionLabel = new QLabel("00:00:00", q_ptr);
+        durationLabel = new QLabel("00:00:00", q_ptr);
+        sourceFPSLabel = new QLabel("FPS: 00.00", q_ptr);
+        currentFPSLabel = new QLabel("00.00", q_ptr);
+        playButton = new QToolButton(q_ptr);
         playButton->setCheckable(true);
         setPlayButtonIcon();
 
-        readSpeedLabel = new QLabel(owner);
+        readSpeedLabel = new QLabel(q_ptr);
 
-        volumeSlider = new Slider(owner);
+        volumeSlider = new Slider(q_ptr);
+        volumeSlider->setMinimumWidth(60);
         volumeSlider->setRange(0, 100);
 
-        speedCbx = new QComboBox(owner);
+        speedCbx = new QComboBox(q_ptr);
         auto speedCbxView = new QListView(speedCbx);
         speedCbxView->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
         speedCbxView->setTextElideMode(Qt::ElideRight);
@@ -38,6 +40,64 @@ public:
             i += 0.25;
         }
         speedCbx->setCurrentText("1");
+
+        modelButton = new QPushButton(q_ptr);
+    }
+
+    void setupUI()
+    {
+        auto processLayout = new QHBoxLayout;
+        processLayout->setSpacing(10);
+        processLayout->addWidget(slider);
+        processLayout->addWidget(positionLabel);
+        processLayout->addWidget(new QLabel("/", q_ptr));
+        processLayout->addWidget(durationLabel);
+
+        auto skipBackwardButton = new QToolButton(q_ptr);
+        skipBackwardButton->setToolTip(QObject::tr("Previous"));
+        skipBackwardButton->setIcon(q_ptr->style()->standardIcon(QStyle::SP_MediaSkipBackward));
+        QObject::connect(skipBackwardButton, &QToolButton::clicked, q_ptr, &ControlWidget::previous);
+
+        auto skipForwardButton = new QToolButton(q_ptr);
+        skipForwardButton->setToolTip(QObject::tr("Next"));
+        skipForwardButton->setIcon(q_ptr->style()->standardIcon(QStyle::SP_MediaSkipForward));
+        QObject::connect(skipForwardButton, &QToolButton::clicked, q_ptr, &ControlWidget::next);
+
+        auto volumeBotton = new QToolButton(q_ptr);
+        volumeBotton->setIcon(q_ptr->style()->standardIcon(QStyle::SP_MediaVolume));
+
+        auto listButton = new QToolButton(q_ptr);
+        listButton->setText(tr("List"));
+        QObject::connect(listButton, &QToolButton::clicked, q_ptr, &ControlWidget::showList);
+
+        auto controlLayout = new QHBoxLayout;
+        controlLayout->setSpacing(10);
+        controlLayout->addWidget(skipBackwardButton);
+        controlLayout->addWidget(playButton);
+        controlLayout->addWidget(skipForwardButton);
+        controlLayout->addStretch();
+        controlLayout->addWidget(readSpeedLabel);
+        controlLayout->addWidget(volumeBotton);
+        controlLayout->addWidget(volumeSlider);
+        controlLayout->addWidget(new QLabel(tr("Speed: "), q_ptr));
+        controlLayout->addWidget(speedCbx);
+        controlLayout->addWidget(sourceFPSLabel);
+        controlLayout->addWidget(new QLabel("->", q_ptr));
+        controlLayout->addWidget(currentFPSLabel);
+        controlLayout->addWidget(modelButton);
+        controlLayout->addWidget(listButton);
+
+        auto widget = new QWidget(q_ptr);
+        widget->setObjectName("wid");
+        widget->setStyleSheet("QWidget#wid{background: rgba(255,255,255,0.3); border-radius:5px;}"
+                              "QLabel{ color: white; }");
+        auto layout = new QVBoxLayout(widget);
+        layout->setSpacing(15);
+        layout->addLayout(processLayout);
+        layout->addLayout(controlLayout);
+
+        auto l = new QHBoxLayout(q_ptr);
+        l->addWidget(widget);
     }
 
     void setPlayButtonIcon()
@@ -46,7 +106,13 @@ public:
             playButton->isChecked() ? QStyle::SP_MediaPause : QStyle::SP_MediaPlay));
     }
 
-    ControlWidget *owner;
+    void initModelButton()
+    {
+        modelButton->setProperty("model", QMediaPlaylist::Sequential);
+        QMetaObject::invokeMethod(q_ptr, &ControlWidget::onModelChanged, Qt::QueuedConnection);
+    }
+
+    ControlWidget *q_ptr;
 
     Slider *slider;
     QLabel *positionLabel;
@@ -57,6 +123,7 @@ public:
     QLabel *readSpeedLabel;
     Slider *volumeSlider;
     QComboBox *speedCbx;
+    QPushButton *modelButton;
 };
 
 ControlWidget::ControlWidget(QWidget *parent)
@@ -66,8 +133,9 @@ ControlWidget::ControlWidget(QWidget *parent)
     setWindowFlags(windowFlags() | Qt::FramelessWindowHint | Qt::Tool);
     setAttribute(Qt::WA_TranslucentBackground); //设置窗口背景透明
 
-    setupUI();
+    d_ptr->setupUI();
     buildConnect();
+    d_ptr->initModelButton();
 }
 
 ControlWidget::~ControlWidget() {}
@@ -159,47 +227,21 @@ void ControlWidget::onSpeedChanged()
     emit speedChanged(data);
 }
 
-void ControlWidget::setupUI()
+void ControlWidget::onModelChanged()
 {
-    QHBoxLayout *processLayout = new QHBoxLayout;
-    processLayout->setSpacing(10);
-    processLayout->addWidget(d_ptr->slider);
-    processLayout->addWidget(d_ptr->positionLabel);
-    processLayout->addWidget(new QLabel("/", this));
-    processLayout->addWidget(d_ptr->durationLabel);
+    auto model = d_ptr->modelButton->property("model").toInt();
 
-    auto volumeBotton = new QToolButton(this);
-    volumeBotton->setIcon(style()->standardIcon(QStyle::SP_MediaVolume));
+    auto metaEnum = QMetaEnum::fromType<QMediaPlaylist::PlaybackMode>();
+    model += 1;
+    if (model > QMediaPlaylist::Random) {
+        model = QMediaPlaylist::CurrentItemOnce;
+    }
+    auto text = metaEnum.valueToKey(model);
+    d_ptr->modelButton->setText(text);
+    d_ptr->modelButton->setToolTip(text);
+    d_ptr->modelButton->setProperty("model", model);
 
-    auto listButton = new QToolButton(this);
-    listButton->setText(tr("List"));
-    connect(listButton, &QToolButton::clicked, this, &ControlWidget::showList);
-
-    auto controlLayout = new QHBoxLayout;
-    controlLayout->setSpacing(10);
-    controlLayout->addWidget(d_ptr->playButton);
-    controlLayout->addStretch();
-    controlLayout->addWidget(d_ptr->readSpeedLabel);
-    controlLayout->addWidget(volumeBotton);
-    controlLayout->addWidget(d_ptr->volumeSlider);
-    controlLayout->addWidget(new QLabel(tr("Speed: "), this));
-    controlLayout->addWidget(d_ptr->speedCbx);
-    controlLayout->addWidget(d_ptr->sourceFPSLabel);
-    controlLayout->addWidget(new QLabel("->", this));
-    controlLayout->addWidget(d_ptr->currentFPSLabel);
-    controlLayout->addWidget(listButton);
-
-    auto widget = new QWidget(this);
-    widget->setObjectName("wid");
-    widget->setStyleSheet("QWidget#wid{background: rgba(255,255,255,0.3); border-radius:5px;}"
-                          "QLabel{ color: white; }");
-    auto layout = new QVBoxLayout(widget);
-    layout->setSpacing(15);
-    layout->addLayout(processLayout);
-    layout->addLayout(controlLayout);
-
-    auto l = new QHBoxLayout(this);
-    l->addWidget(widget);
+    emit modelChanged(model);
 }
 
 void ControlWidget::buildConnect()
@@ -210,4 +252,5 @@ void ControlWidget::buildConnect()
     connect(d_ptr->playButton, &QToolButton::clicked, this, &ControlWidget::play);
     connect(d_ptr->volumeSlider, &QSlider::valueChanged, this, &ControlWidget::volumeChanged);
     connect(d_ptr->speedCbx, &QComboBox::currentIndexChanged, this, &ControlWidget::onSpeedChanged);
+    connect(d_ptr->modelButton, &QPushButton::clicked, this, &ControlWidget::onModelChanged);
 }

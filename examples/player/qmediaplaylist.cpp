@@ -5,12 +5,12 @@
 #include "qmediaplaylist_p.h"
 #include "qplaylistfileparser_p.h"
 
-#include <QtCore/qlist.h>
-#include <QtCore/qfile.h>
-#include <QtCore/qurl.h>
-#include <QtCore/qcoreevent.h>
-#include <QtCore/qcoreapplication.h>
 #include <QRandomGenerator>
+#include <QtCore/qcoreapplication.h>
+#include <QtCore/qcoreevent.h>
+#include <QtCore/qfile.h>
+#include <QtCore/qlist.h>
+#include <QtCore/qurl.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -18,16 +18,13 @@ class QM3uPlaylistWriter
 {
 public:
     QM3uPlaylistWriter(QIODevice *device)
-        :m_device(device), m_textStream(new QTextStream(m_device))
-    {
-    }
+        : m_device(device)
+        , m_textStream(new QTextStream(m_device))
+    {}
 
-    ~QM3uPlaylistWriter()
-    {
-        delete m_textStream;
-    }
+    ~QM3uPlaylistWriter() { delete m_textStream; }
 
-    bool writeItem(const QUrl& item)
+    bool writeItem(const QUrl &item)
     {
         *m_textStream << item.toString() << Qt::endl;
         return true;
@@ -38,7 +35,6 @@ private:
     QTextStream *m_textStream;
 };
 
-
 int QMediaPlaylistPrivate::nextPosition(int steps) const
 {
     if (playlist.count() == 0)
@@ -47,17 +43,17 @@ int QMediaPlaylistPrivate::nextPosition(int steps) const
     int next = currentPos + steps;
 
     switch (playbackMode) {
-    case QMediaPlaylist::CurrentItemOnce:
-        return steps != 0 ? -1 : currentPos;
-    case QMediaPlaylist::CurrentItemInLoop:
-        return currentPos;
+    case QMediaPlaylist::CurrentItemOnce: return steps != 0 ? -1 : currentPos;
+    case QMediaPlaylist::CurrentItemInLoop: return currentPos;
     case QMediaPlaylist::Sequential:
         if (next >= playlist.size())
             next = -1;
         break;
-    case QMediaPlaylist::Loop:
-        next %= playlist.count();
+    case QMediaPlaylist::Loop: next %= playlist.count(); break;
+    case QMediaPlaylist::Random:
+        next = QRandomGenerator::global()->bounded(int(playlist.size()));
         break;
+    default: break;
     }
 
     return next;
@@ -74,10 +70,8 @@ int QMediaPlaylistPrivate::prevPosition(int steps) const
     next -= steps;
 
     switch (playbackMode) {
-    case QMediaPlaylist::CurrentItemOnce:
-        return steps != 0 ? -1 : currentPos;
-    case QMediaPlaylist::CurrentItemInLoop:
-        return currentPos;
+    case QMediaPlaylist::CurrentItemOnce: return steps != 0 ? -1 : currentPos;
+    case QMediaPlaylist::CurrentItemInLoop: return currentPos;
     case QMediaPlaylist::Sequential:
         if (next < 0)
             next = -1;
@@ -87,6 +81,10 @@ int QMediaPlaylistPrivate::prevPosition(int steps) const
         if (next < 0)
             next += playlist.size();
         break;
+    case QMediaPlaylist::Random:
+        next = QRandomGenerator::global()->bounded(int(playlist.size()));
+        break;
+    default: break;
     }
 
     return next;
@@ -117,7 +115,6 @@ int QMediaPlaylistPrivate::prevPosition(int steps) const
     \sa QUrl
 */
 
-
 /*!
     \enum QMediaPlaylist::PlaybackMode
 
@@ -134,8 +131,6 @@ int QMediaPlaylistPrivate::prevPosition(int steps) const
 
     \value Random             Play items in random order.
 */
-
-
 
 /*!
   Create a new playlist object with the given \a parent.
@@ -229,7 +224,6 @@ int QMediaPlaylist::previousIndex(int steps) const
 {
     return d_func()->prevPosition(steps);
 }
-
 
 /*!
   Returns the number of items in the playlist.
@@ -344,8 +338,7 @@ bool QMediaPlaylist::insertMedia(int pos, const QList<QUrl> &items)
 bool QMediaPlaylist::moveMedia(int from, int to)
 {
     Q_D(QMediaPlaylist);
-    if (from < 0 || from > d->playlist.count() ||
-        to < 0 || to > d->playlist.count())
+    if (from < 0 || from > d->playlist.count() || to < 0 || to > d->playlist.count())
         return false;
 
     d->playlist.move(from, to);
@@ -515,14 +508,14 @@ void QMediaPlaylist::shuffle()
         current = d->playlist.takeAt(d->currentPos);
 
     while (!d->playlist.isEmpty())
-        playlist.append(d->playlist.takeAt(QRandomGenerator::global()->bounded(int(d->playlist.size()))));
+        playlist.append(
+            d->playlist.takeAt(QRandomGenerator::global()->bounded(int(d->playlist.size()))));
 
     if (d->currentPos != -1)
         playlist.insert(d->currentPos, current);
     d->playlist = playlist;
     emit mediaChanged(0, d->playlist.count());
 }
-
 
 /*!
     Advance to the next media content in playlist.

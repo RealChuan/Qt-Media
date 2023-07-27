@@ -29,19 +29,22 @@ public slots:
     void onReadSpeedChanged(qint64 speed);
 
 signals:
+    void previous();
+    void next();
     void seek(int value);
     void hoverPosition(int pos, int value);
     void leavePosition();
-    void play(bool);
+    void play(bool state);
     void volumeChanged(int value);
-    void speedChanged(double);
+    void speedChanged(double value);
+    void modelChanged(int model);
     void showList();
 
 private slots:
     void onSpeedChanged();
+    void onModelChanged();
 
 private:
-    void setupUI();
     void buildConnect();
 
     class ControlWidgetPrivate;

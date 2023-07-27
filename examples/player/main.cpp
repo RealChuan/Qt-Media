@@ -10,14 +10,16 @@
 #include <QNetworkProxyFactory>
 #include <QStyle>
 
+#define AppName QObject::tr("QFfmpegPlayer")
+
 void setAppInfo()
 {
-    qApp->setApplicationVersion(QObject::tr("0.0.1"));
-    qApp->setApplicationDisplayName(QObject::tr("QFfmpegPlayer"));
-    qApp->setApplicationName(QObject::tr("QFfmpegPlayer"));
-    qApp->setDesktopFileName(QObject::tr("QFfmpegPlayer"));
-    qApp->setOrganizationDomain(QObject::tr("Youth"));
-    qApp->setOrganizationName(QObject::tr("Youth"));
+    qApp->setApplicationVersion("0.0.1");
+    qApp->setApplicationDisplayName(AppName);
+    qApp->setApplicationName(AppName);
+    qApp->setDesktopFileName(AppName);
+    qApp->setOrganizationDomain("Youth");
+    qApp->setOrganizationName("Youth");
 }
 
 int main(int argc, char *argv[])
@@ -30,7 +32,7 @@ int main(int argc, char *argv[])
 #endif
     Utils::setHighDpiEnvironmentVariable();
     SharedTools::QtSingleApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-    SharedTools::QtSingleApplication app("QFfmpegPlayer", argc, argv);
+    SharedTools::QtSingleApplication app(AppName, argc, argv);
     if (app.isRunning()) {
         qWarning() << "This is already running";
         if (app.sendMessage("raise_window_noop", 5000)) {

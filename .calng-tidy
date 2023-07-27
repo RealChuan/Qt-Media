@@ -1,0 +1,17 @@
+Checks: '-*,clang-diagnostic-*,bugprone-*,modernize-*,performance-*,readability-*,llvm-*,misc-*,-misc-unused-parameters,-misc-non-private-member-variables-in-classes'
+  # 类名改为大驼峰
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  # 函数名改为小驼峰
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  # 变量名改为小驼峰
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  # 关闭一些过于严苛或者不适合的检查
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: '0'
+  - key: readability-magic-numbers.IgnorePowersOf2IntegerLiterals
+    value: '1'
+  - key: modernize-use-trailing-return-type.UseEastWestConst
+    value: '1'

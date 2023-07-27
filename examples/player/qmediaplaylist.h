@@ -6,9 +6,8 @@
 
 #include <QtCore/qobject.h>
 
-#include <QtMultimedia/qtmultimediaglobal.h>
 #include <QtMultimedia/qmediaenumdebug.h>
-
+#include <QtMultimedia/qtmultimediaglobal.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -16,12 +15,13 @@ class QMediaPlaylistPrivate;
 class QMediaPlaylist : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QMediaPlaylist::PlaybackMode playbackMode READ playbackMode WRITE setPlaybackMode NOTIFY playbackModeChanged)
+    Q_PROPERTY(QMediaPlaylist::PlaybackMode playbackMode READ playbackMode WRITE setPlaybackMode
+                   NOTIFY playbackModeChanged)
     Q_PROPERTY(QUrl currentMedia READ currentMedia NOTIFY currentMediaChanged)
     Q_PROPERTY(int currentIndex READ currentIndex WRITE setCurrentIndex NOTIFY currentIndexChanged)
 
 public:
-    enum PlaybackMode { CurrentItemOnce, CurrentItemInLoop, Sequential, Loop };
+    enum PlaybackMode { CurrentItemOnce, CurrentItemInLoop, Sequential, Loop, Random };
     Q_ENUM(PlaybackMode)
     enum Error { NoError, FormatError, FormatNotSupportedError, NetworkError, AccessDeniedError };
     Q_ENUM(Error)
@@ -72,7 +72,7 @@ public Q_SLOTS:
 Q_SIGNALS:
     void currentIndexChanged(int index);
     void playbackModeChanged(QMediaPlaylist::PlaybackMode mode);
-    void currentMediaChanged(const QUrl&);
+    void currentMediaChanged(const QUrl &);
 
     void mediaAboutToBeInserted(int start, int end);
     void mediaInserted(int start, int end);
@@ -93,4 +93,4 @@ QT_END_NAMESPACE
 Q_MEDIA_ENUM_DEBUG(QMediaPlaylist, PlaybackMode)
 Q_MEDIA_ENUM_DEBUG(QMediaPlaylist, Error)
 
-#endif  // QMEDIAPLAYLIST_H
+#endif // QMEDIAPLAYLIST_H
