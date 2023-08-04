@@ -2,9 +2,8 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS += \
-    3rdparty \
     utils \
-    crashhandler\
+    3rdparty \
     ffmpeg \
     tests \
     examples

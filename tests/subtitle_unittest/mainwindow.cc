@@ -9,18 +9,18 @@ class MainWindow::MainWindowPrivate
 {
 public:
     MainWindowPrivate(QWidget *parent)
-        : owner(parent)
+        : q_ptr(parent)
     {
-        inTextEdit = new QTextEdit(owner);
-
-        startButton = new QToolButton(owner);
+        inTextEdit = new QTextEdit(q_ptr);
+        
+        startButton = new QToolButton(q_ptr);
         startButton->setText(QObject::tr("Start"));
         startButton->setMinimumSize(BUTTON_SIZE);
-
-        subtitleThread = new SubtitleThread(owner);
+        
+        subtitleThread = new SubtitleThread(q_ptr);
     }
-
-    QWidget *owner;
+    
+    QWidget *q_ptr;
 
     QTextEdit *inTextEdit;
     QToolButton *startButton;

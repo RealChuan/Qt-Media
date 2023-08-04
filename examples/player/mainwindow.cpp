@@ -27,34 +27,34 @@ static bool isPlaylist(const QUrl &url) // Check for ".m3u" playlists.
 class MainWindow::MainWindowPrivate
 {
 public:
-    MainWindowPrivate(QWidget *parent)
-        : owner(parent)
+    MainWindowPrivate(MainWindow *q)
+        : q_ptr(q)
         , playerPtr(new Ffmpeg::Player)
     {
-        controlWidget = new ControlWidget(owner);
+        controlWidget = new ControlWidget(q_ptr);
         controlWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-        titleWidget = new TitleWidget(owner);
+        titleWidget = new TitleWidget(q_ptr);
 
-        playlistModel = new PlaylistModel(owner);
-        playlistView = new PlayListView(owner);
+        playlistModel = new PlaylistModel(q_ptr);
+        playlistView = new PlayListView(q_ptr);
         playlistView->setModel(playlistModel);
         playlistView->setCurrentIndex(
             playlistModel->index(playlistModel->playlist()->currentIndex(), 0));
         //playlistView->setMaximumWidth(250);
 
-        menu = new QMenu(owner);
-        audioTracksMenu = new QMenu(QObject::tr("Select audio track"), owner);
-        subTracksMenu = new QMenu(QObject::tr("Select subtitle track"), owner);
-        audioTracksGroup = new QActionGroup(owner);
+        menu = new QMenu(q_ptr);
+        audioTracksMenu = new QMenu(QObject::tr("Select audio track"), q_ptr);
+        subTracksMenu = new QMenu(QObject::tr("Select subtitle track"), q_ptr);
+        audioTracksGroup = new QActionGroup(q_ptr);
         audioTracksGroup->setExclusive(true);
-        subTracksGroup = new QActionGroup(owner);
+        subTracksGroup = new QActionGroup(q_ptr);
         subTracksGroup->setExclusive(true);
 
-        playListMenu = new QMenu(owner);
+        playListMenu = new QMenu(q_ptr);
 
-        fpsTimer = new QTimer(owner);
+        fpsTimer = new QTimer(q_ptr);
 
-        splitter = new QSplitter(owner);
+        splitter = new QSplitter(q_ptr);
         splitter->addWidget(playlistView);
 
         initShortcut();
@@ -64,13 +64,13 @@ public:
 
     void initShortcut()
     {
-        new QShortcut(QKeySequence::MoveToNextChar, owner, owner, [this] {
+        new QShortcut(QKeySequence::MoveToNextChar, q_ptr, q_ptr, [this] {
             playerPtr->onSeek(controlWidget->position() + 5);
             titleWidget->setText(tr("Fast forward: 5 seconds"));
             titleWidget->setAutoHide(3000);
             setTitleWidgetGeometry(true);
         });
-        new QShortcut(QKeySequence::MoveToPreviousChar, owner, owner, [this] {
+        new QShortcut(QKeySequence::MoveToPreviousChar, q_ptr, q_ptr, [this] {
             auto value = controlWidget->position() - 10;
             if (value < 0) {
                 value = 0;
@@ -80,13 +80,13 @@ public:
             titleWidget->setAutoHide(3000);
             setTitleWidgetGeometry(true);
         });
-        new QShortcut(QKeySequence::MoveToPreviousLine, owner, owner, [this] {
+        new QShortcut(QKeySequence::MoveToPreviousLine, q_ptr, q_ptr, [this] {
             controlWidget->setVolume(controlWidget->volume() + 5);
         });
-        new QShortcut(QKeySequence::MoveToNextLine, owner, owner, [this] {
+        new QShortcut(QKeySequence::MoveToNextLine, q_ptr, q_ptr, [this] {
             controlWidget->setVolume(controlWidget->volume() - 5);
         });
-        new QShortcut(Qt::Key_Space, owner, owner, [this] { controlWidget->clickPlayButton(); });
+        new QShortcut(Qt::Key_Space, q_ptr, q_ptr, [this] { controlWidget->clickPlayButton(); });
     }
 
     void setControlWidgetGeometry(bool show = true)
@@ -104,7 +104,7 @@ public:
         auto geometry = videoRender->widget()->geometry();
         auto p1 = QPoint(geometry.x() + (geometry.width() - controlWidget->width()) / 2.0,
                          geometry.bottomLeft().y() - controlWidget->height() - margain);
-        globalControlWidgetGeometry = {owner->mapToGlobal(p1), controlWidget->size()};
+        globalControlWidgetGeometry = {q_ptr->mapToGlobal(p1), controlWidget->size()};
         controlWidget->setFixedSize(globalControlWidgetGeometry.size());
         controlWidget->setGeometry(globalControlWidgetGeometry);
         controlWidget->setVisible(show);
@@ -119,13 +119,13 @@ public:
         auto geometry = videoRender->widget()->geometry();
         auto p1 = QPoint(geometry.x() + margain, geometry.y() + margain);
         auto p2 = QPoint(geometry.topRight().x() - margain, geometry.y() + margain + 80);
-        globalTitlelWidgetGeometry = {owner->mapToGlobal(p1), owner->mapToGlobal(p2)};
+        globalTitlelWidgetGeometry = {q_ptr->mapToGlobal(p1), q_ptr->mapToGlobal(p2)};
         titleWidget->setFixedSize(globalTitlelWidgetGeometry.size());
         titleWidget->setGeometry(globalTitlelWidgetGeometry);
         titleWidget->setVisible(show);
     }
 
-    QWidget *owner;
+    MainWindow *q_ptr;
     QScopedPointer<Ffmpeg::Player> playerPtr;
     QScopedPointer<Ffmpeg::VideoRender> videoRender;
     QScopedPointer<Ffmpeg::VideoPreviewWidget> videoPreviewWidgetPtr;

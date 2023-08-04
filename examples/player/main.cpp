@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 
+#include <3rdparty/breakpad.hpp>
 #include <3rdparty/qtsingleapplication/qtsingleapplication.h>
-#include <crashhandler/breakpad.hpp>
 #include <utils/logasync.h>
 #include <utils/utils.h>
 
@@ -10,7 +10,7 @@
 #include <QNetworkProxyFactory>
 #include <QStyle>
 
-#define AppName QObject::tr("QFfmpegPlayer")
+#define AppName "QFfmpegPlayer"
 
 void setAppInfo()
 {
@@ -20,6 +20,7 @@ void setAppInfo()
     qApp->setDesktopFileName(AppName);
     qApp->setOrganizationDomain("Youth");
     qApp->setOrganizationName("Youth");
+    qApp->setWindowIcon(qApp->style()->standardIcon(QStyle::SP_MediaPlay));
 }
 
 int main(int argc, char *argv[])
@@ -54,7 +55,7 @@ int main(int argc, char *argv[])
     app.setAttribute(Qt::AA_DisableWindowContextHelpButton);
 #endif
 
-    Utils::BreakPad breakPad;
+    Utils::BreakPad::instance();
     QDir::setCurrent(app.applicationDirPath());
 
     // 异步日志
@@ -67,7 +68,6 @@ int main(int argc, char *argv[])
     Utils::setGlobalThreadPoolMaxSize();
 
     setAppInfo();
-    app.setWindowIcon(app.style()->standardIcon(QStyle::SP_MediaPlay));
 
     // Make sure we honor the system's proxy settings
     QNetworkProxyFactory::setUseSystemConfiguration(true);

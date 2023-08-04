@@ -1,7 +1,7 @@
 #include "mainwindow.hpp"
 
+#include <3rdparty/breakpad.hpp>
 #include <3rdparty/qtsingleapplication/qtsingleapplication.h>
-#include <crashhandler/breakpad.hpp>
 #include <utils/logasync.h>
 #include <utils/utils.h>
 
@@ -10,14 +10,17 @@
 #include <QNetworkProxyFactory>
 #include <QStyle>
 
+#define AppnName "QFfmpegTranscoder"
+
 void setAppInfo()
 {
-    qApp->setApplicationVersion(QObject::tr("0.0.1"));
-    qApp->setApplicationDisplayName(QObject::tr("QFfmpegTranscoder"));
-    qApp->setApplicationName(QObject::tr("QFfmpegTranscoder"));
-    qApp->setDesktopFileName(QObject::tr("QFfmpegTranscoder"));
-    qApp->setOrganizationDomain(QObject::tr("Youth"));
-    qApp->setOrganizationName(QObject::tr("Youth"));
+    qApp->setApplicationVersion("0.0.1");
+    qApp->setApplicationDisplayName(AppnName);
+    qApp->setApplicationName(AppnName);
+    qApp->setDesktopFileName(AppnName);
+    qApp->setOrganizationDomain("Youth");
+    qApp->setOrganizationName("Youth");
+    qApp->setWindowIcon(qApp->style()->standardIcon(QStyle::SP_DriveDVDIcon));
 }
 
 int main(int argc, char *argv[])
@@ -30,7 +33,7 @@ int main(int argc, char *argv[])
 #endif
     Utils::setHighDpiEnvironmentVariable();
     SharedTools::QtSingleApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-    SharedTools::QtSingleApplication app("QFfmpegTranscoder", argc, argv);
+    SharedTools::QtSingleApplication app(AppnName, argc, argv);
     if (app.isRunning()) {
         qWarning() << "This is already running";
         if (app.sendMessage("raise_window_noop", 5000)) {
@@ -52,7 +55,7 @@ int main(int argc, char *argv[])
     app.setAttribute(Qt::AA_DisableWindowContextHelpButton);
 #endif
 
-    Utils::BreakPad breakPad;
+    Utils::BreakPad::instance();
     QDir::setCurrent(app.applicationDirPath());
 
     // 异步日志
@@ -65,7 +68,6 @@ int main(int argc, char *argv[])
     Utils::setGlobalThreadPoolMaxSize();
 
     setAppInfo();
-    app.setWindowIcon(app.style()->standardIcon(QStyle::SP_DriveDVDIcon));
 
     // Make sure we honor the system's proxy settings
     QNetworkProxyFactory::setUseSystemConfiguration(true);

@@ -5,8 +5,11 @@ include(qtsingleapplication/qtsingleapplication.pri)
 DEFINES += THRIDPARTY_LIBRARY
 TARGET = $$replaceLibName(thirdparty)
 
-QMAKE_TARGET_PRODUCT = ThirdParty
-QMAKE_TARGET_DESCRIPTION = Third Party
+LIBS += -l$$replaceLibName(utils)
 
 HEADERS += \
+    breakpad.hpp \
     thirdparty_global.hpp
+
+SOURCES += \
+    breakpad.cc

@@ -14,6 +14,9 @@ elseif(CMAKE_HOST_UNIX)
       CACHE STRING "Vcpkg toolchain file")
 endif()
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(utils)
+
 if(CMAKE_HOST_WIN32)
   list(APPEND CMAKE_PREFIX_PATH "C:\\Qt\\6.5.2\\msvc2019_64")
 elseif(CMAKE_HOST_APPLE)
@@ -63,17 +66,10 @@ message(STATUS "Current Platform is ${CURRENT_PLATFORM}")
 # 设定可执行二进制文件的目录
 set(EXECUTABLE_OUTPUT_PATH
     ${PROJECT_SOURCE_DIR}/bin${CURRENT_PLATFORM}/${CMAKE_BUILD_TYPE}) # 源文件目录
-# SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)     #输出文件目录
-
 # 设定存放编译出来的库文件的目录
-set(LIBRARY_OUTPUT_PATH
-    ${PROJECT_SOURCE_DIR}/bin${CURRENT_PLATFORM}/${CMAKE_BUILD_TYPE})
-# SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
-
+set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin${CURRENT_PLATFORM}/libs)
 # 并且把该目录设为连接目录
-link_directories(
-  ${PROJECT_SOURCE_DIR}/bin${CURRENT_PLATFORM}/${CMAKE_BUILD_TYPE})
-# LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
+link_directories(${LIBRARY_OUTPUT_PATH})
 
 include_directories(${PROJECT_SOURCE_DIR})
 
@@ -158,7 +154,6 @@ endif()
 
 add_subdirectory(utils)
 add_subdirectory(3rdparty)
-add_subdirectory(crashhandler)
 add_subdirectory(ffmpeg)
 add_subdirectory(tests)
 add_subdirectory(examples)

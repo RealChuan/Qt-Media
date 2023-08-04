@@ -12,84 +12,84 @@ class MainWindow::MainWindowPrivate
 {
 public:
     MainWindowPrivate(QWidget *parent)
-        : owner(parent)
+        : q_ptr(parent)
     {
-        transcode = new Ffmpeg::Transcode(owner);
-
-        inTextEdit = new QTextEdit(owner);
-        subtitleTextEdit = new QTextEdit(owner);
-        outTextEdit = new QTextEdit(owner);
-
-        audioCodecCbx = new QComboBox(owner);
+        transcode = new Ffmpeg::Transcode(q_ptr);
+        
+        inTextEdit = new QTextEdit(q_ptr);
+        subtitleTextEdit = new QTextEdit(q_ptr);
+        outTextEdit = new QTextEdit(q_ptr);
+        
+        audioCodecCbx = new QComboBox(q_ptr);
         audioCodecCbx->setView(new QListView(audioCodecCbx));
         audioCodecCbx->setMaxVisibleItems(10);
         audioCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
         audioCodecCbx->addItems(Ffmpeg::Utils::getCurrentSupportCodecs(AVMEDIA_TYPE_AUDIO, true));
         audioCodecCbx->setCurrentIndex(audioCodecCbx->findData(AV_CODEC_ID_AAC));
         audioCodecCbx->setCurrentText(avcodec_get_name(AV_CODEC_ID_AAC));
-
-        videoCodecCbx = new QComboBox(owner);
+        
+        videoCodecCbx = new QComboBox(q_ptr);
         videoCodecCbx->setView(new QListView(videoCodecCbx));
         videoCodecCbx->setMaxVisibleItems(10);
         videoCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
         videoCodecCbx->addItems(Ffmpeg::Utils::getCurrentSupportCodecs(AVMEDIA_TYPE_VIDEO, true));
         videoCodecCbx->setCurrentText(avcodec_get_name(AV_CODEC_ID_H264));
-
-        quailtySbx = new QSpinBox(owner);
+        
+        quailtySbx = new QSpinBox(q_ptr);
         quailtySbx->setRange(2, 31);
         quailtySbx->setToolTip(tr("smaller -> better"));
-        crfSbx = new QSpinBox(owner);
+        crfSbx = new QSpinBox(q_ptr);
         crfSbx->setRange(0, 51);
         crfSbx->setToolTip(tr("smaller -> better"));
         crfSbx->setValue(18);
-        presetCbx = new QComboBox(owner);
+        presetCbx = new QComboBox(q_ptr);
         presetCbx->setView(new QListView(presetCbx));
         presetCbx->addItems(transcode->presets());
         presetCbx->setCurrentText(transcode->preset());
-        tuneCbx = new QComboBox(owner);
+        tuneCbx = new QComboBox(q_ptr);
         tuneCbx->setView(new QListView(tuneCbx));
         tuneCbx->addItems(transcode->tunes());
         tuneCbx->setCurrentText(transcode->tune());
-        profileCbx = new QComboBox(owner);
+        profileCbx = new QComboBox(q_ptr);
         profileCbx->setView(new QListView(profileCbx));
         profileCbx->addItems(transcode->profiles());
         profileCbx->setCurrentText(transcode->profile());
-
-        widthLineEdit = new QLineEdit(owner);
+        
+        widthLineEdit = new QLineEdit(q_ptr);
         widthLineEdit->setValidator(new QIntValidator(0, INT_MAX, widthLineEdit));
-        heightLineEdit = new QLineEdit(owner);
+        heightLineEdit = new QLineEdit(q_ptr);
         heightLineEdit->setValidator(new QIntValidator(0, INT_MAX, heightLineEdit));
-        keepAspectRatioCkb = new QCheckBox(tr("keepAspectRatio"), owner);
+        keepAspectRatioCkb = new QCheckBox(tr("keepAspectRatio"), q_ptr);
         keepAspectRatioCkb->setChecked(true);
-
-        videoMinBitrateLineEdit = new QLineEdit(owner);
-        videoMaxBitrateLineEdit = new QLineEdit(owner);
-
-        startButton = new QToolButton(owner);
+        
+        videoMinBitrateLineEdit = new QLineEdit(q_ptr);
+        videoMaxBitrateLineEdit = new QLineEdit(q_ptr);
+        
+        startButton = new QToolButton(q_ptr);
         startButton->setText(QObject::tr("Start"));
         startButton->setMinimumSize(BUTTON_SIZE);
-        progressBar = new QProgressBar(owner);
+        progressBar = new QProgressBar(q_ptr);
         progressBar->setRange(0, 100);
-        fpsLabel = new QLabel(owner);
+        fpsLabel = new QLabel(q_ptr);
         fpsLabel->setToolTip(QObject::tr("Video Encoder FPS."));
-        fpsTimer = new QTimer(owner);
+        fpsTimer = new QTimer(q_ptr);
     }
 
     QGroupBox *initVideoSetting()
     {
         auto layout1 = new QHBoxLayout;
-        layout1->addWidget(new QLabel(tr("Width:"), owner));
+        layout1->addWidget(new QLabel(tr("Width:"), q_ptr));
         layout1->addWidget(widthLineEdit);
-        layout1->addWidget(new QLabel(tr("height:"), owner));
+        layout1->addWidget(new QLabel(tr("height:"), q_ptr));
         layout1->addWidget(heightLineEdit);
         layout1->addWidget(keepAspectRatioCkb);
         auto layout2 = new QHBoxLayout;
-        layout2->addWidget(new QLabel(tr("Min Bitrate:"), owner));
+        layout2->addWidget(new QLabel(tr("Min Bitrate:"), q_ptr));
         layout2->addWidget(videoMinBitrateLineEdit);
-        layout2->addWidget(new QLabel(tr("Max Bitrate:"), owner));
+        layout2->addWidget(new QLabel(tr("Max Bitrate:"), q_ptr));
         layout2->addWidget(videoMaxBitrateLineEdit);
-
-        auto groupBox = new QGroupBox(tr("Video"), owner);
+        
+        auto groupBox = new QGroupBox(tr("Video"), q_ptr);
         auto layout = new QVBoxLayout(groupBox);
         layout->addLayout(layout1);
         layout->addLayout(layout2);
@@ -98,17 +98,17 @@ public:
 
     QGroupBox *invalidSetting()
     {
-        auto groupBox = new QGroupBox(tr("Invalid setting"), owner);
+        auto groupBox = new QGroupBox(tr("Invalid setting"), q_ptr);
         auto layout = new QHBoxLayout(groupBox);
-        layout->addWidget(new QLabel(tr("Quality:"), owner));
+        layout->addWidget(new QLabel(tr("Quality:"), q_ptr));
         layout->addWidget(quailtySbx);
-        layout->addWidget(new QLabel(tr("Crf:"), owner));
+        layout->addWidget(new QLabel(tr("Crf:"), q_ptr));
         layout->addWidget(crfSbx);
-        layout->addWidget(new QLabel(tr("Preset:"), owner));
+        layout->addWidget(new QLabel(tr("Preset:"), q_ptr));
         layout->addWidget(presetCbx);
-        layout->addWidget(new QLabel(tr("Tune:"), owner));
+        layout->addWidget(new QLabel(tr("Tune:"), q_ptr));
         layout->addWidget(tuneCbx);
-        layout->addWidget(new QLabel(tr("Profile:"), owner));
+        layout->addWidget(new QLabel(tr("Profile:"), q_ptr));
         layout->addWidget(profileCbx);
         return groupBox;
     }
@@ -162,8 +162,8 @@ public:
         videoMinBitrateLineEdit->setText(QString::number(w * h));
         videoMaxBitrateLineEdit->setText(QString::number(w * h * 4));
     }
-
-    QWidget *owner;
+    
+    QWidget *q_ptr;
 
     Ffmpeg::Transcode *transcode;
 
