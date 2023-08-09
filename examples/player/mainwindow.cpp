@@ -34,6 +34,15 @@ public:
         controlWidget = new ControlWidget(q_ptr);
         controlWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
         titleWidget = new TitleWidget(q_ptr);
+        titleWidget->setMinimumHeight(80);
+        auto bottomLayout = new QHBoxLayout;
+        bottomLayout->addStretch();
+        bottomLayout->addWidget(controlWidget);
+        bottomLayout->addStretch();
+        controlLayout = new QVBoxLayout;
+        controlLayout->addWidget(titleWidget);
+        controlLayout->addStretch();
+        controlLayout->addLayout(bottomLayout);
 
         playlistModel = new PlaylistModel(q_ptr);
         playlistView = new PlayListView(q_ptr);
@@ -68,7 +77,7 @@ public:
             playerPtr->onSeek(controlWidget->position() + 5);
             titleWidget->setText(tr("Fast forward: 5 seconds"));
             titleWidget->setAutoHide(3000);
-            setTitleWidgetGeometry(true);
+            setTitleWidgetVisible(true);
         });
         new QShortcut(QKeySequence::MoveToPreviousChar, q_ptr, q_ptr, [this] {
             auto value = controlWidget->position() - 10;
@@ -78,7 +87,7 @@ public:
             playerPtr->onSeek(value);
             titleWidget->setText(tr("Fast return: 10 seconds"));
             titleWidget->setAutoHide(3000);
-            setTitleWidgetGeometry(true);
+            setTitleWidgetVisible(true);
         });
         new QShortcut(QKeySequence::MoveToPreviousLine, q_ptr, q_ptr, [this] {
             controlWidget->setVolume(controlWidget->volume() + 5);
@@ -89,40 +98,20 @@ public:
         new QShortcut(Qt::Key_Space, q_ptr, q_ptr, [this] { controlWidget->clickPlayButton(); });
     }
 
-    void setControlWidgetGeometry(bool show = true)
+    void setControlWidgetVisible(bool visible)
     {
         if (videoRender.isNull()) {
             return;
         }
-        controlWidget->setFixedSize({QWIDGETSIZE_MAX, QWIDGETSIZE_MAX});
-        controlWidget->setMinimumWidth(videoRender->widget()->width() / 2);
-        controlWidget->adjustSize();
-        if (controlWidget->width() * 2 < videoRender->widget()->width()) {
-            controlWidget->setMinimumWidth(videoRender->widget()->width() / 2);
-        }
-        auto margain = 10;
-        auto geometry = videoRender->widget()->geometry();
-        auto p1 = QPoint(geometry.x() + (geometry.width() - controlWidget->width()) / 2.0,
-                         geometry.bottomLeft().y() - controlWidget->height() - margain);
-        globalControlWidgetGeometry = {q_ptr->mapToGlobal(p1), controlWidget->size()};
-        controlWidget->setFixedSize(globalControlWidgetGeometry.size());
-        controlWidget->setGeometry(globalControlWidgetGeometry);
-        controlWidget->setVisible(show);
+        controlWidget->setVisible(visible);
     }
 
-    void setTitleWidgetGeometry(bool show = true)
+    void setTitleWidgetVisible(bool visible)
     {
         if (videoRender.isNull()) {
             return;
         }
-        auto margain = 10;
-        auto geometry = videoRender->widget()->geometry();
-        auto p1 = QPoint(geometry.x() + margain, geometry.y() + margain);
-        auto p2 = QPoint(geometry.topRight().x() - margain, geometry.y() + margain + 80);
-        globalTitlelWidgetGeometry = {q_ptr->mapToGlobal(p1), q_ptr->mapToGlobal(p2)};
-        titleWidget->setFixedSize(globalTitlelWidgetGeometry.size());
-        titleWidget->setGeometry(globalTitlelWidgetGeometry);
-        titleWidget->setVisible(show);
+        titleWidget->setVisible(visible);
     }
 
     MainWindow *q_ptr;
@@ -131,9 +120,8 @@ public:
     QScopedPointer<Ffmpeg::VideoPreviewWidget> videoPreviewWidgetPtr;
 
     ControlWidget *controlWidget;
-    QRect globalControlWidgetGeometry;
     TitleWidget *titleWidget;
-    QRect globalTitlelWidgetGeometry;
+    QVBoxLayout *controlLayout;
 
     PlayListView *playlistView;
     PlaylistModel *playlistModel;
@@ -277,18 +265,20 @@ void MainWindow::onOpenWebMedia()
 
 void MainWindow::onRenderChanged(QAction *action)
 {
-    Ffmpeg::VideoRenderCreate::RenderType renderType = Ffmpeg::VideoRenderCreate::Opengl;
+    auto renderType = Ffmpeg::VideoRenderCreate::Opengl;
     auto type = action->data().toInt();
     switch (type) {
     case 1: renderType = Ffmpeg::VideoRenderCreate::Widget; break;
     default: renderType = Ffmpeg::VideoRenderCreate::Opengl; break;
     }
     auto videoRender = Ffmpeg::VideoRenderCreate::create(renderType);
+    videoRender->widget()->setLayout(d_ptr->controlLayout);
     videoRender->widget()->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     videoRender->widget()->setAcceptDrops(true);
     videoRender->widget()->installEventFilter(this);
     d_ptr->playerPtr->setVideoRenders({videoRender});
     d_ptr->splitter->insertWidget(0, videoRender->widget());
+
     // 为什么切换成widget还是有使用GPU 0-3D，而且使用量是切换为opengl的两倍！！！
     d_ptr->videoRender.reset(videoRender);
 }
@@ -333,15 +323,6 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
             auto e = static_cast<QContextMenuEvent *>(event);
             d_ptr->menu->exec(e->globalPos());
         } break;
-        case QEvent::Resize:
-            QMetaObject::invokeMethod(
-                this,
-                [=] {
-                    d_ptr->setControlWidgetGeometry(d_ptr->controlWidget->isVisible());
-                    d_ptr->setTitleWidgetGeometry(d_ptr->titleWidget->isVisible());
-                },
-                Qt::QueuedConnection);
-            break;
             //        case QEvent::MouseButtonPress: {
             //            auto e = static_cast<QMouseEvent *>(event);
             //            if (e->button() & Qt::LeftButton) {
@@ -368,42 +349,22 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
         }
     } else if (watched == this) {
         switch (event->type()) {
-        case QEvent::Show:
-        case QEvent::Move:
-            QMetaObject::invokeMethod(
-                this,
-                [=] {
-                    d_ptr->setControlWidgetGeometry(d_ptr->controlWidget->isVisible());
-                    d_ptr->setTitleWidgetGeometry(d_ptr->titleWidget->isVisible());
-                },
-                Qt::QueuedConnection);
-            break;
-        case QEvent::Hide: d_ptr->controlWidget->hide(); break;
-        case QEvent::HoverMove:
-            if (d_ptr->globalControlWidgetGeometry.isValid()) {
-                auto e = static_cast<QHoverEvent *>(event);
-                bool contain = d_ptr->globalControlWidgetGeometry.contains(
-                    e->globalPosition().toPoint());
-                bool isVisible = d_ptr->controlWidget->isVisible();
-                if (contain && !isVisible) {
-                    d_ptr->setControlWidgetGeometry(true);
-                } else if (!contain && isVisible) {
-                    d_ptr->controlWidget->hide();
-                }
-            }
-            if (d_ptr->globalTitlelWidgetGeometry.isValid() && isFullScreen()) {
-                auto e = static_cast<QHoverEvent *>(event);
-                bool contain = d_ptr->globalTitlelWidgetGeometry.contains(
-                    e->globalPosition().toPoint());
-                bool isVisible = d_ptr->titleWidget->isVisible();
-                if (contain && !isVisible) {
-                    d_ptr->titleWidget->setText(windowTitle());
-                    d_ptr->titleWidget->show();
-                } else if (!contain && isVisible) {
-                    d_ptr->titleWidget->hide();
-                }
+        case QEvent::HoverMove: {
+            d_ptr->controlWidget->show();
+            d_ptr->controlWidget->hide();
+            auto controlWidgetGeometry = d_ptr->controlWidget->geometry();
+            auto e = static_cast<QHoverEvent *>(event);
+            bool contain = controlWidgetGeometry.contains(e->position().toPoint());
+            d_ptr->setControlWidgetVisible(contain);
+            if (isFullScreen()) {
+                d_ptr->titleWidget->show();
+                d_ptr->titleWidget->hide();
+                auto titleWidgetGeometry = d_ptr->titleWidget->geometry();
+                contain = titleWidgetGeometry.contains(e->position().toPoint());
+                d_ptr->setTitleWidgetVisible(contain);
             }
             break;
+        }
         default: break;
         }
     }
@@ -538,7 +499,7 @@ void MainWindow::buildConnect()
             tr("Fast forward to: %1")
                 .arg(QTime::fromMSecsSinceStartOfDay(value * 1000).toString("hh:mm:ss")));
         d_ptr->titleWidget->setAutoHide(3000);
-        d_ptr->setTitleWidgetGeometry(true);
+        d_ptr->setTitleWidgetVisible(true);
     });
     connect(d_ptr->controlWidget, &ControlWidget::play, this, [this](bool checked) {
         if (checked && !d_ptr->playerPtr->isRunning())
@@ -554,7 +515,7 @@ void MainWindow::buildConnect()
                 d_ptr->playerPtr->setVolume(value / 100.0);
                 d_ptr->titleWidget->setText(tr("Volume: %1").arg(value));
                 d_ptr->titleWidget->setAutoHide(3000);
-                d_ptr->setTitleWidgetGeometry(true);
+                d_ptr->setTitleWidgetVisible(true);
             });
     d_ptr->controlWidget->setVolume(50);
     connect(d_ptr->controlWidget,
@@ -564,7 +525,7 @@ void MainWindow::buildConnect()
                 d_ptr->playerPtr->setSpeed(value);
                 d_ptr->titleWidget->setText(tr("Speed: %1").arg(value));
                 d_ptr->titleWidget->setAutoHide(3000);
-                d_ptr->setTitleWidgetGeometry(true);
+                d_ptr->setTitleWidgetVisible(true);
             });
     connect(d_ptr->controlWidget,
             &ControlWidget::modelChanged,

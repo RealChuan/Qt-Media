@@ -44,6 +44,7 @@ jobs:
             ${{ runner.os }}-vcpkg-installed-
       - name: Install dependencies on windows
         if: startsWith(matrix.os, 'windows')
+        shell: bash
         run: |
           choco install ninja
           ninja --version
@@ -60,6 +61,7 @@ jobs:
           vcpkg install breakpad ffmpeg[opengl,ass,bzip2,freetype,fribidi,zlib] --triplet x64-osx
       - name: Install dependencies on ubuntu
         if: startsWith(matrix.os, 'ubuntu')
+        shell: bash
         run: |
           sudo apt-get update
           sudo apt-get install ninja-build nasm build-essential libgl1-mesa-dev
@@ -89,6 +91,7 @@ jobs:
           nmake
       - name: build macos or ubuntu
         if: startsWith(matrix.os, 'macos') || startsWith(matrix.os, 'ubuntu')
+        shell: bash
         run: |
           qmake
           make -j4

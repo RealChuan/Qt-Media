@@ -4,14 +4,14 @@ on:
   # push代码时触发workflow
   push:
     paths-ignore: # 下列文件的变更不触发部署，可以自行添加
-        - 'doc'
+        - 'doc/**'
         - '.clang-format'
         - '.gitignore'
         - 'LICENSE'
         - 'README*'
   pull_request:
     paths-ignore: # 下列文件的变更不触发部署，可以自行添加
-        - 'doc'
+        - 'doc/**'
         - '.clang-format'
         - '.gitignore'
         - 'LICENSE'
@@ -48,6 +48,7 @@ jobs:
             ${{ runner.os }}-vcpkg-installed-
       - name: Install dependencies on windows
         if: startsWith(matrix.os, 'windows')
+        shell: bash
         run: |
           choco install ninja
           ninja --version
@@ -64,6 +65,7 @@ jobs:
           vcpkg install breakpad ffmpeg[opengl,ass,bzip2,freetype,fribidi,zlib] --triplet x64-osx
       - name: Install dependencies on ubuntu
         if: startsWith(matrix.os, 'ubuntu')
+        shell: bash
         run: |
           sudo apt-get update
           sudo apt-get install ninja-build nasm build-essential libgl1-mesa-dev
