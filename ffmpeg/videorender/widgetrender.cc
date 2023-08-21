@@ -138,7 +138,7 @@ void WidgetRender::updateSubTitleFrame(QSharedPointer<Subtitle> frame)
 void WidgetRender::displayFrame(QSharedPointer<Frame> framePtr)
 {
     d_ptr->framePtr = framePtr;
-    d_ptr->videoImage = framePtr->convertToImage();
+    d_ptr->videoImage = framePtr->toImage();
     d_ptr->videoImage.setDevicePixelRatio(devicePixelRatio());
     update();
 }

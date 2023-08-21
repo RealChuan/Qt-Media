@@ -13,10 +13,15 @@ namespace Ffmpeg {
 class FFMPEG_EXPORT Packet
 {
 public:
-    explicit Packet();
+    Packet();
     Packet(const Packet &other);
-    Packet &operator=(const Packet &other);
+    Packet(Packet &&other);
     ~Packet();
+
+    Packet &operator=(const Packet &other);
+    Packet &operator=(Packet &&other);
+
+    bool isValid();
 
     bool isKey();
 

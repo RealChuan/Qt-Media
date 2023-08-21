@@ -9,13 +9,13 @@ namespace Ffmpeg {
 class AssData : public QSharedData
 {
 public:
-    AssData() {}
+    AssData() = default;
     AssData(const AssData &other)
         : QSharedData(other)
         , rgba(other.rgba)
         , rect(other.rect)
     {}
-    ~AssData() {}
+    ~AssData() = default;
 
     QByteArray rgba;
     QRect rect;
@@ -36,13 +36,13 @@ public:
     AssDataInfo(const AssDataInfo &other)
         : d_ptr(other.d_ptr)
     {}
-    ~AssDataInfo() {}
+    ~AssDataInfo() = default;
 
     void setRGBA(const QByteArray &rgba) { d_ptr->rgba = rgba; }
-    QByteArray rgba() const { return d_ptr->rgba; }
+    [[nodiscard]] auto rgba() const -> QByteArray { return d_ptr->rgba; }
 
     void setRect(const QRect &rect) { d_ptr->rect = rect; }
-    QRect rect() const { return d_ptr->rect; }
+    [[nodiscard]] auto rect() const -> QRect { return d_ptr->rect; }
 
 private:
     QExplicitlySharedDataPointer<AssData> d_ptr;

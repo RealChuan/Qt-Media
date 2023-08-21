@@ -17,8 +17,8 @@ namespace Ffmpeg {
 class Subtitle::SubtitlePrivate
 {
 public:
-    SubtitlePrivate(QObject *parent)
-        : owner(parent)
+    explicit SubtitlePrivate(Subtitle *q)
+        : q_ptr(q)
     {}
     ~SubtitlePrivate() { freeSubtitle(); }
 
@@ -63,7 +63,7 @@ public:
     {
         pts = QString::asprintf("%.2f", pts).toDouble(); // libass只支持0.01秒，还要四舍五入
         for (size_t i = 0; i < subtitle.num_rects; i++) {
-            AVSubtitleRect *sub_rect = subtitle.rects[i];
+            auto sub_rect = subtitle.rects[i];
             QByteArray text;
             switch (sub_rect->type) {
             case AVSubtitleType::SUBTITLE_TEXT:
@@ -81,7 +81,8 @@ public:
         }
     }
 
-    QObject *owner;
+    Subtitle *q_ptr;
+
     AVSubtitle subtitle;
     double pts = 0;
     double duration = 0;
@@ -101,7 +102,7 @@ Subtitle::Subtitle(QObject *parent)
     , d_ptr(new SubtitlePrivate(this))
 {}
 
-Subtitle::~Subtitle() {}
+Subtitle::~Subtitle() = default;
 
 void Subtitle::setDefault(double pts, double duration, const QString &text)
 {
@@ -121,12 +122,12 @@ void Subtitle::parse(SwsContext *swsContext)
     }
 }
 
-QByteArrayList Subtitle::texts() const
+auto Subtitle::texts() const -> QByteArrayList
 {
     return d_ptr->texts;
 }
 
-AVSubtitle *Subtitle::avSubtitle()
+auto Subtitle::avSubtitle() -> AVSubtitle *
 {
     return &d_ptr->subtitle;
 }
@@ -136,17 +137,17 @@ void Subtitle::clear()
     return d_ptr->freeSubtitle();
 }
 
-double Subtitle::pts()
+auto Subtitle::pts() -> double
 {
     return d_ptr->pts;
 }
 
-double Subtitle::duration()
+auto Subtitle::duration() -> double
 {
     return d_ptr->duration;
 }
 
-Subtitle::Type Subtitle::type() const
+auto Subtitle::type() const -> Subtitle::Type
 {
     return d_ptr->type;
 }
@@ -159,12 +160,12 @@ void Subtitle::setVideoResolutionRatio(const QSize &size)
     d_ptr->videoResolutionRatio = size;
 }
 
-QSize Subtitle::videoResolutionRatio() const
+auto Subtitle::videoResolutionRatio() const -> QSize
 {
     return d_ptr->videoResolutionRatio;
 }
 
-bool Subtitle::resolveAss(Ass *ass)
+auto Subtitle::resolveAss(Ass *ass) -> bool
 {
     if (d_ptr->type != Type::ASS) {
         return false;
@@ -190,7 +191,7 @@ AssDataInfoList Subtitle::list() const
     return d_ptr->assList;
 }
 
-QImage Subtitle::generateImage() const
+auto Subtitle::generateImage() const -> QImage
 {
     if (d_ptr->type != Type::ASS) {
         return QImage();
@@ -214,7 +215,7 @@ QImage Subtitle::generateImage() const
     return d_ptr->image;
 }
 
-QImage Subtitle::image() const
+auto Subtitle::image() const -> QImage
 {
     return d_ptr->image;
 }

@@ -410,9 +410,6 @@ void MainWindow::buildConnect()
             d_ptr->controlWidget,
             [this](const QStringList &tracks) {
                 qDeleteAll(d_ptr->audioTracksGroup->actions());
-                if (tracks.size() < 2) {
-                    return;
-                }
                 for (const auto &item : qAsConst(tracks)) {
                     auto action = new QAction(item, this);
                     action->setCheckable(true);
@@ -438,9 +435,6 @@ void MainWindow::buildConnect()
             d_ptr->controlWidget,
             [this](const QStringList &tracks) {
                 qDeleteAll(d_ptr->subTracksGroup->actions());
-                if (tracks.size() < 2) {
-                    return;
-                }
                 for (const auto &item : qAsConst(tracks)) {
                     auto action = new QAction(item, this);
                     action->setCheckable(true);

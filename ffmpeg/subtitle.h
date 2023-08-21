@@ -21,31 +21,31 @@ public:
     enum Type { Unknown, Graphics, TEXT, ASS };
 
     explicit Subtitle(QObject *parent = nullptr);
-    ~Subtitle();
+    ~Subtitle() override;
 
     void setDefault(double pts, double duration, const QString &text);
 
     void parse(SwsContext *swsContext);
-    QByteArrayList texts() const;
+    [[nodiscard]] auto texts() const -> QByteArrayList;
 
     void setVideoResolutionRatio(const QSize &size);
-    QSize videoResolutionRatio() const;
+    [[nodiscard]] auto videoResolutionRatio() const -> QSize;
 
-    bool resolveAss(Ass *ass);
+    auto resolveAss(Ass *ass) -> bool;
     void setAssDataInfoList(const AssDataInfoList &list);
-    AssDataInfoList list() const;
+    [[nodiscard]] AssDataInfoList list() const;
 
-    QImage generateImage() const;
-    QImage image() const;
+    [[nodiscard]] auto generateImage() const -> QImage;
+    [[nodiscard]] auto image() const -> QImage;
 
     void clear();
 
-    Type type() const;
+    [[nodiscard]] auto type() const -> Type;
 
-    double pts();
-    double duration();
+    auto pts() -> double;
+    auto duration() -> double;
 
-    AVSubtitle *avSubtitle();
+    auto avSubtitle() -> AVSubtitle *;
 
 private:
     class SubtitlePrivate;

@@ -5,14 +5,14 @@ on:
   push:
     paths-ignore: # 下列文件的变更不触发部署，可以自行添加
         - 'doc/**'
-        - '.clang-format'
+        - '.clang*'
         - '.gitignore'
         - 'LICENSE'
         - 'README*'
   pull_request:
     paths-ignore: # 下列文件的变更不触发部署，可以自行添加
         - 'doc/**'
-        - '.clang-format'
+        - '.clang*'
         - '.gitignore'
         - 'LICENSE'
         - 'README*'
@@ -31,7 +31,7 @@ jobs:
         qt_ver: 
           - 6.5.2
         build_type:
-          - "Release"
+          - "RelWithDebInfo"
         generators:
           - "Ninja"
 

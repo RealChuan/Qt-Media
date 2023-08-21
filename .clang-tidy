@@ -1,5 +1,12 @@
-Checks: '-*,clang-diagnostic-*,bugprone-*,modernize-*,performance-*,readability-*,llvm-*,misc-*,-misc-unused-parameters,-misc-non-private-member-variables-in-classes'
-  # 类名改为大驼峰
+---
+Checks:          '-*,clang-analyzer-*,readability-*,performance-*,modernize-*,bugprone-*,cert-,cppcoreguidelines-,portability-*,llvm-*,google-*'
+WarningsAsErrors: ''
+HeaderFilterRegex: '.'
+AnalyzeTemporaryDtors: false
+FormatStyle:     file
+User:            user
+CheckOptions:
+    # 类名改为大驼峰
   - key: readability-identifier-naming.ClassCase
     value: CamelCase
   # 函数名改为小驼峰
@@ -15,3 +22,9 @@ Checks: '-*,clang-diagnostic-*,bugprone-*,modernize-*,performance-*,readability-
     value: '1'
   - key: modernize-use-trailing-return-type.UseEastWestConst
     value: '1'
+  - key: readability-identifier-naming.ClassMemberPrefix
+    value: 'm_'
+  - key: readability-identifier-naming.ConstexprVariablePrefix
+    value: 'k'
+  - key: readability-identifier-naming.GlobalVariablePrefix
+    value: 'g_'

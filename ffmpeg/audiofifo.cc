@@ -13,8 +13,8 @@ namespace Ffmpeg {
 class AudioFifo::AudioFifoPrivtate
 {
 public:
-    AudioFifoPrivtate(QObject *parent)
-        : owner(parent)
+    AudioFifoPrivtate(AudioFifo *q)
+        : q_ptr(q)
     {}
 
     ~AudioFifoPrivtate()
@@ -26,7 +26,7 @@ public:
 
     void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
 
-    QObject *owner;
+    AudioFifo *q_ptr;
 
     AVAudioFifo *audioFifo = nullptr;
 };

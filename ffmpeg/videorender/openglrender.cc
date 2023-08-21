@@ -92,7 +92,11 @@ QSharedPointer<Frame> OpenglRender::convertSupported_pix_fmt(QSharedPointer<Fram
         d_ptr->frameConverterPtr->flush(frame.data(), size, dst_pix_fmt);
     }
     QSharedPointer<Frame> frameRgbPtr(new Frame);
-    frameRgbPtr->imageAlloc(size, dst_pix_fmt);
+    auto ret = frameRgbPtr->imageAlloc(size, dst_pix_fmt);
+    if (!ret) {
+        qWarning() << "imageAlloc failed";
+        return QSharedPointer<Frame>();
+    }
     d_ptr->frameConverterPtr->scale(frame.data(), frameRgbPtr.data());
     //    qDebug() << frameRgbPtr->avFrame()->width << frameRgbPtr->avFrame()->height
     //             << frameRgbPtr->avFrame()->format;

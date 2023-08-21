@@ -11,7 +11,7 @@ class UTILS_EXPORT CountDownLatch
 {
     Q_DISABLE_COPY_MOVE(CountDownLatch)
 public:
-    CountDownLatch(int count);
+    explicit CountDownLatch(int count);
     ~CountDownLatch();
 
     void wait();

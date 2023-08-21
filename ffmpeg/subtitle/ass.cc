@@ -47,14 +47,14 @@ void print_font_providers(ASS_Library *ass_library)
 class Ass::AssPrivate
 {
 public:
-    AssPrivate(QObject *parent)
-        : owner(parent)
+    explicit AssPrivate(Ass *q)
+        : q_ptr(q)
     {
         qInfo() << "ass_library_version: " << ass_library_version();
 
         print_font_providers(ass_library);
         ass_library = ass_library_init();
-        ass_set_message_cb(ass_library, msg_callback, NULL);
+        ass_set_message_cb(ass_library, msg_callback, nullptr);
         ass_set_extract_fonts(ass_library, 1);
 
         ass_renderer = ass_renderer_init(ass_library);
@@ -64,7 +64,7 @@ public:
         //        acc_track->styles[0].ScaleX = acc_track->styles[0].ScaleY = 1;
 
         /* Initialize fonts */
-        ass_set_fonts(ass_renderer, nullptr, nullptr, 1, NULL, 1);
+        ass_set_fonts(ass_renderer, nullptr, nullptr, 1, nullptr, 1);
     }
     ~AssPrivate()
     {
@@ -74,7 +74,7 @@ public:
         ass_library_done(ass_library);
     }
 
-    QObject *owner;
+    Ass *q_ptr;
 
     ASS_Library *ass_library;
     ASS_Renderer *ass_renderer;
@@ -87,7 +87,7 @@ Ass::Ass(QObject *parent)
     , d_ptr(new AssPrivate(this))
 {}
 
-Ass::~Ass() {}
+Ass::~Ass() = default;
 
 void Ass::init(uint8_t *extradata, int extradata_size)
 {
@@ -117,8 +117,8 @@ void Ass::setFont(const QString &fontFamily)
 void Ass::addFont(const QByteArray &name, const QByteArray &data)
 {
     ass_add_font(d_ptr->ass_library,
-                 (char *) name.constData(),
-                 (char *) data.constData(),
+                 const_cast<char *>(name.constData()),
+                 const_cast<char *>(data.constData()),
                  data.size());
 }
 

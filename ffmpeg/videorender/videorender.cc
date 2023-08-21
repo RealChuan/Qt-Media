@@ -61,7 +61,7 @@ void VideoRender::setImage(const QImage &image)
     if (image.isNull()) {
         return;
     }
-    QSharedPointer<Frame> frame(new Frame(image));
+    QSharedPointer<Frame> frame(Frame::fromQImage(image));
     setFrame(frame);
 }
 

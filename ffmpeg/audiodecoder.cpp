@@ -9,12 +9,14 @@ namespace Ffmpeg {
 class AudioDecoder::AudioDecoderPrivate
 {
 public:
-    AudioDecoderPrivate(QObject *parent)
-        : owner(parent)
+    AudioDecoderPrivate(AudioDecoder *q)
+        : q_ptr(q)
     {
-        decoderAudioFrame = new DecoderAudioFrame(owner);
+        decoderAudioFrame = new DecoderAudioFrame(q_ptr);
     }
-    QObject *owner;
+
+    AudioDecoder *q_ptr;
+
     DecoderAudioFrame *decoderAudioFrame;
 };
 

@@ -18,7 +18,7 @@ namespace Ffmpeg {
 class DecoderSubtitleFrame::DecoderSubtitleFramePrivate
 {
 public:
-    DecoderSubtitleFramePrivate(QObject *parent)
+    explicit DecoderSubtitleFramePrivate(QObject *parent)
         : owner(parent)
     {}
 

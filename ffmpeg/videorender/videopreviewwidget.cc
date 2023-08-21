@@ -60,9 +60,12 @@ public:
 private:
     void loop(FormatContext *formatContext, AVContextInfo *videoInfo)
     {
-        while (m_runing && !m_videoPreviewWidgetPtr.isNull()
+        while (!m_videoPreviewWidgetPtr.isNull()
                && m_taskId == m_videoPreviewWidgetPtr->currentTaskId()) {
             auto framePtr(getKeyFrame(formatContext, videoInfo));
+            if (!m_runing) {
+                return;
+            }
             if (framePtr.isNull()) {
                 continue;
             }
@@ -81,7 +84,7 @@ private:
             frameRgbPtr->imageAlloc(dstSize, dst_pix_fmt);
             //frameConverterPtr->flush(framePtr.data(), dstSize);
             frameConverterPtr->scale(framePtr.data(), frameRgbPtr.data());
-            auto image = frameRgbPtr->convertToImage();
+            auto image = frameRgbPtr->toImage();
             if (!m_videoPreviewWidgetPtr.isNull()
                 && m_taskId == m_videoPreviewWidgetPtr->currentTaskId()) {
                 image.setDevicePixelRatio(m_videoPreviewWidgetPtr->devicePixelRatio());
@@ -96,6 +99,7 @@ private:
         QSharedPointer<Frame> framePtr;
         QScopedPointer<Packet> packetPtr(new Packet);
         if (!formatContext->readFrame(packetPtr.get()) || m_videoPreviewWidgetPtr.isNull()) {
+            m_runing = false;
             return framePtr;
         }
         if (!formatContext->checkPktPlayRange(packetPtr.get())) {

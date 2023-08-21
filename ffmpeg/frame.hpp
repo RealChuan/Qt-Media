@@ -16,15 +16,19 @@ namespace Ffmpeg {
 class FFMPEG_EXPORT Frame
 {
 public:
-    explicit Frame();
-    Frame(const QImage &image);
+    Frame();
     Frame(const Frame &other);
-    Frame &operator=(const Frame &other);
+    Frame(Frame &&other);
     ~Frame();
+
+    Frame &operator=(const Frame &other);
+    Frame &operator=(Frame &&other);
 
     void copyPropsFrom(Frame *src);
 
     bool isKey();
+
+    void unref();
 
     bool imageAlloc(const QSize &size, AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA, int align = 1);
     void freeImageAlloc();
@@ -37,22 +41,20 @@ public:
     void setDuration(double duration);
     double duration();
 
-    int format() const;
+    int format();
 
     void setAVFrameNull();
 
-    void setQImageFormat(QImage::Format format);
-    QImage::Format qImageformat() const;
-    QImage convertToImage() const; // maybe null
+    QImage toImage(); // maybe null
 
     bool getBuffer();
 
-    void unref();
-
     AVFrame *avFrame();
 
+    static Frame *fromQImage(const QImage &image);
+
 private:
-    struct FramePrivate;
+    class FramePrivate;
     QScopedPointer<FramePrivate> d_ptr;
 };
 

@@ -93,6 +93,11 @@ void Slider::enterEvent(QEnterEvent *event)
 void Slider::leaveEvent(QEvent *e)
 {
     QSlider::leaveEvent(e);
+
+    auto pos = QCursor::pos();
+    if (rect().contains(mapFromGlobal(pos))) {
+        return;
+    }
     emit onLeave();
     unsetCursor();
 }

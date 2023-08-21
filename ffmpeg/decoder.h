@@ -31,7 +31,7 @@ template<typename T>
 class Decoder : public QThread
 {
 public:
-    Decoder(QObject *parent = nullptr)
+    explicit Decoder(QObject *parent = nullptr)
         : QThread(parent)
     {}
     virtual ~Decoder() override { stopDecoder(); }

@@ -119,13 +119,13 @@ int VideoFrameConverter::scale(Frame *in, Frame *out)
     Q_ASSERT(d_ptr->swsContext != nullptr);
     auto inFrame = in->avFrame();
     auto outFrame = out->avFrame();
-    int ret = sws_scale(d_ptr->swsContext,
-                        static_cast<const unsigned char *const *>(inFrame->data),
-                        inFrame->linesize,
-                        0,
-                        inFrame->height,
-                        outFrame->data,
-                        outFrame->linesize);
+    auto ret = sws_scale(d_ptr->swsContext,
+                         static_cast<const unsigned char *const *>(inFrame->data),
+                         inFrame->linesize,
+                         0,
+                         inFrame->height,
+                         outFrame->data,
+                         outFrame->linesize);
     if (ret < 0) {
         d_ptr->setError(ret);
     }
@@ -135,8 +135,6 @@ int VideoFrameConverter::scale(Frame *in, Frame *out)
     outFrame->pts = inFrame->pts;
     out->setPts(in->pts());
     out->setDuration(in->duration());
-    out->setQImageFormat(
-        VideoFormat::qFormatMaps.value(AVPixelFormat(outFrame->format), QImage::Format_Invalid));
     return ret;
 }
 

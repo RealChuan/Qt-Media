@@ -102,13 +102,13 @@ QAudioFormat::SampleFormat getSampleFormat(AVSampleFormat format)
 class AudioFrameConverter::AudioFrameConverterPrivate
 {
 public:
-    AudioFrameConverterPrivate(QObject *parent)
-        : owner(parent)
+    AudioFrameConverterPrivate(AudioFrameConverter *q)
+        : q_ptr(q)
     {}
 
     void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
 
-    QObject *owner;
+    AudioFrameConverter *q_ptr;
 
     SwrContext *swrContext;
     QAudioFormat format;

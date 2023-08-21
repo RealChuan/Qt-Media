@@ -5,6 +5,7 @@
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/ffmpegutils.hpp>
 #include <ffmpeg/frame.hpp>
+#include <ffmpeg/videoframeconverter.hpp>
 
 #include <QDebug>
 
@@ -32,17 +33,18 @@ AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_f
 class HardWareDecode::HardWareDecodePrivate
 {
 public:
-    HardWareDecodePrivate(QObject *parent)
-        : owner(parent)
+    HardWareDecodePrivate(HardWareDecode *q)
+        : q_ptr(q)
     {
-        bufferRef = new BufferRef(owner);
+        bufferRef = new BufferRef(q_ptr);
     }
 
     ~HardWareDecodePrivate() { hw_pix_fmt = AV_PIX_FMT_NONE; }
 
     void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
 
-    QObject *owner;
+    HardWareDecode *q_ptr;
+
     QVector<AVHWDeviceType> hwDeviceTypes = Utils::getCurrentHWDeviceTypes();
     AVHWDeviceType hwDeviceType = AV_HWDEVICE_TYPE_NONE;
     BufferRef *bufferRef;
@@ -66,7 +68,8 @@ bool HardWareDecode::initPixelFormat(const AVCodec *decoder)
     }
     for (AVHWDeviceType type : qAsConst(d_ptr->hwDeviceTypes)) {
         hw_pix_fmt = Utils::getPixelFormat(decoder, type);
-        if (hw_pix_fmt != AV_PIX_FMT_NONE) {
+        if (hw_pix_fmt != AV_PIX_FMT_NONE
+            && VideoFrameConverter::isSupportedInput_pix_fmt(hw_pix_fmt)) {
             d_ptr->hwDeviceType = type;
             break;
         }

@@ -93,7 +93,9 @@ target_link_libraries(
           unofficial::brotli::brotlidec
           unofficial::brotli::brotlienc)
 
-if(CMAKE_HOST_APPLE)
+if(CMAKE_HOST_WIN32)
+  target_compile_definitions(ffmpeg PRIVATE "FFMPEG_LIBRARY")
+elseif(CMAKE_HOST_APPLE)
   target_link_libraries(
     ffmpeg
     PRIVATE ${Foundation_LIBRARY}
@@ -111,8 +113,4 @@ if(CMAKE_HOST_APPLE)
             ${CoreMedia_LIBRARY}
             ${CoreVideo_LIBRARY}
             ${CoreServices_LIBRARY})
-endif()
-
-if(CMAKE_HOST_WIN32)
-  target_compile_definitions(ffmpeg PRIVATE "FFMPEG_LIBRARY")
 endif()
