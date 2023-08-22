@@ -52,7 +52,7 @@ bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Fr
             = QString::asprintf("video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
                                 dec_ctx->width,
                                 dec_ctx->height,
-                                frame->format(), //dec_ctx->pix_fmt,
+                                frame->avFrame()->format, //dec_ctx->pix_fmt,
                                 time_base.num,
                                 time_base.den,
                                 dec_ctx->sample_aspect_ratio.num,
@@ -233,29 +233,29 @@ public:
                                                 ? audioEncoderName
                                                 : videoEncoderName);
                 //contextInfoPtr->initEncoder(decContextInfo->codecCtx()->avCodecCtx()->codec_id);
-                decContextInfo->copyToCodecParameters(contextInfoPtr.data());
+                auto codecCtx = contextInfoPtr->codecCtx();
+                auto avCodecCtx = codecCtx->avCodecCtx();
+                decContextInfo->codecCtx()->copyToCodecParameters(codecCtx);
                 // ffmpeg example transcoding.c ? framerate, sample_rate
-                contextInfoPtr->codecCtx()->avCodecCtx()->time_base = decContextInfo->timebase();
-
-                contextInfoPtr->setQuailty(quailty);
-                contextInfoPtr->setCrf(crf);
-                contextInfoPtr->setPreset(preset);
-                contextInfoPtr->setTune(tune);
+                codecCtx->avCodecCtx()->time_base = decContextInfo->timebase();
+                codecCtx->setQuailty(quailty);
+                codecCtx->setCrf(crf);
+                codecCtx->setPreset(preset);
+                codecCtx->setTune(tune);
                 if (decContextInfo->mediaType() == AVMEDIA_TYPE_VIDEO) {
-                    contextInfoPtr->setSize(size);
-                    contextInfoPtr->setMinBitrate(minBitrate);
-                    contextInfoPtr->setMaxBitrate(maxBitrate);
-                    contextInfoPtr->setProfile(profile);
+                    codecCtx->setSize(size);
+                    codecCtx->setMinBitrate(minBitrate);
+                    codecCtx->setMaxBitrate(maxBitrate);
+                    codecCtx->setProfile(profile);
                 }
                 if (outFormatContext->avFormatContext()->oformat->flags & AVFMT_GLOBALHEADER) {
-                    contextInfoPtr->codecCtx()->setFlags(contextInfoPtr->codecCtx()->flags()
-                                                         | AV_CODEC_FLAG_GLOBAL_HEADER);
+                    avCodecCtx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
                 }
                 contextInfoPtr->openCodec(AVContextInfo::GpuEncode);
                 auto ret = avcodec_parameters_from_context(stream->codecpar,
                                                            contextInfoPtr->codecCtx()->avCodecCtx());
                 if (ret < 0) {
-                    setError(ret);
+                    SET_ERROR_CODE(ret);
                     return ret;
                 }
                 stream->time_base = decContextInfo->timebase();
@@ -267,7 +267,7 @@ public:
             default: {
                 auto ret = avcodec_parameters_copy(stream->codecpar, inStream->codecpar);
                 if (ret < 0) {
-                    setError(ret);
+                    SET_ERROR_CODE(ret);
                     return ret;
                 }
                 stream->time_base = inStream->time_base;
@@ -341,7 +341,7 @@ public:
                 fliterAudioFifo(i, nullptr, true);
             }
             QScopedPointer<Frame> framePtr(new Frame);
-            framePtr->setAVFrameNull();
+            framePtr->destroyFrame();
             filterEncodeWriteframe(framePtr.data(), i);
             flushEncoder(i);
         }
@@ -426,7 +426,7 @@ public:
         }
         // fix me?
         frame->pts = transcodeCtx->audioPts / av_q2d(transcodeCtx->decContextInfoPtr->timebase())
-                     / transcodeCtx->decContextInfoPtr->codecCtx()->sampleRate();
+                     / transcodeCtx->decContextInfoPtr->codecCtx()->avCodecCtx()->sample_rate;
         transcodeCtx->audioPts += frame->nb_samples;
         //qDebug() << "new: " << stream_index << frame->pts;
 
@@ -439,7 +439,7 @@ public:
         QVector<Packet *> packets{};
         if (flush) {
             QSharedPointer<Frame> frame_tmp_ptr(new Frame);
-            frame_tmp_ptr->setAVFrameNull();
+            frame_tmp_ptr->destroyFrame();
             packets = transcodeCtx->encContextInfoPtr->encodeFrame(frame_tmp_ptr);
         } else {
             packets = transcodeCtx->encContextInfoPtr->encodeFrame(framePtr);
@@ -448,7 +448,7 @@ public:
             packet->setStreamIndex(stream_index);
             packet->rescaleTs(transcodeCtx->encContextInfoPtr->timebase(),
                               outFormatContext->stream(stream_index)->time_base);
-            outFormatContext->writeFrame(packet);
+            outFormatContext->writePacket(packet);
         }
         return true;
     }
@@ -484,8 +484,6 @@ public:
         fps = 0;
         fpsPtr->reset();
     }
-
-    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
 
     QObject *owner;
 
@@ -727,7 +725,7 @@ void Transcode::loop()
         if (encContextInfoPtr.isNull()) {
             packetPtr->rescaleTs(d_ptr->inFormatContext->stream(stream_index)->time_base,
                                  d_ptr->outFormatContext->stream(stream_index)->time_base);
-            d_ptr->outFormatContext->writeFrame(packetPtr.data());
+            d_ptr->outFormatContext->writePacket(packetPtr.data());
         } else {
             packetPtr->rescaleTs(d_ptr->inFormatContext->stream(stream_index)->time_base,
                                  transcodeCtx->decContextInfoPtr->timebase());

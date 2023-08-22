@@ -18,11 +18,11 @@ namespace Ffmpeg {
 class DecoderSubtitleFrame::DecoderSubtitleFramePrivate
 {
 public:
-    explicit DecoderSubtitleFramePrivate(QObject *parent)
-        : owner(parent)
+    explicit DecoderSubtitleFramePrivate(DecoderSubtitleFrame *q)
+        : q_ptr(q)
     {}
 
-    QObject *owner;
+    DecoderSubtitleFrame *q_ptr;
 
     bool pause = false;
     QMutex mutex;
@@ -38,7 +38,7 @@ DecoderSubtitleFrame::DecoderSubtitleFrame(QObject *parent)
     , d_ptr(new DecoderSubtitleFramePrivate(this))
 {}
 
-DecoderSubtitleFrame::~DecoderSubtitleFrame() {}
+DecoderSubtitleFrame::~DecoderSubtitleFrame() = default;
 
 void DecoderSubtitleFrame::stopDecoder()
 {

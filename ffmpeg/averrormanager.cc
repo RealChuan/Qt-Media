@@ -6,11 +6,12 @@ namespace Ffmpeg {
 class AVErrorManager::AVErrorManagerPrivate
 {
 public:
-    AVErrorManagerPrivate(QObject *parent)
-        : owner(parent)
+    AVErrorManagerPrivate(AVErrorManager *q)
+        : q_ptr(q)
     {}
 
-    QObject *owner;
+    AVErrorManager *q_ptr;
+
     bool print = false;
     int max = 100;
     QVector<int> errorCodes{};

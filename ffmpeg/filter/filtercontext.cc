@@ -17,8 +17,8 @@ namespace Ffmpeg {
 class FilterContext::FilterContextPrivate
 {
 public:
-    FilterContextPrivate(QObject *parent)
-        : owner(parent)
+    FilterContextPrivate(FilterContext *q)
+        : q_ptr(q)
     {}
 
     void createFilter(const QString &name)
@@ -27,9 +27,7 @@ public:
         Q_ASSERT(nullptr != filter);
     }
 
-    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
-
-    QObject *owner;
+    FilterContext *q_ptr;
 
     const AVFilter *filter = nullptr;
     AVFilterContext *filterContext = nullptr;
@@ -57,11 +55,7 @@ bool FilterContext::create(const QString &name, const QString &args, FilterGraph
                                             args.toLocal8Bit().constData(),
                                             nullptr,
                                             filterGraph->avFilterGraph());
-    if (ret < 0) {
-        d_ptr->setError(ret);
-        return false;
-    }
-    return true;
+    ERROR_RETURN(ret)
 }
 
 bool FilterContext::buffersrc_addFrameFlags(Frame *frame)
@@ -69,11 +63,7 @@ bool FilterContext::buffersrc_addFrameFlags(Frame *frame)
     auto ret = av_buffersrc_add_frame_flags(d_ptr->filterContext,
                                             frame->avFrame(),
                                             AV_BUFFERSRC_FLAG_KEEP_REF | AV_BUFFERSRC_FLAG_PUSH);
-    if (ret < 0) {
-        d_ptr->setError(ret);
-        return false;
-    }
-    return true;
+    ERROR_RETURN(ret)
 }
 
 bool FilterContext::buffersink_getFrame(Frame *frame)
@@ -82,11 +72,7 @@ bool FilterContext::buffersink_getFrame(Frame *frame)
     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
         return false;
     }
-    if (ret < 0) {
-        d_ptr->setError(ret);
-        return false;
-    }
-    return true;
+    ERROR_RETURN(ret)
 }
 
 void FilterContext::buffersink_setFrameSize(int size)

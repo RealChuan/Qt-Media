@@ -47,14 +47,14 @@ Packet::Packet(const Packet &other)
     }
 }
 
-Packet::Packet(Packet &&other)
+Packet::Packet(Packet &&other) noexcept
     : d_ptr(new PacketPrivate(this))
 {
     d_ptr->packet = other.d_ptr->packet;
     other.d_ptr->packet = nullptr;
 }
 
-Packet::~Packet() {}
+Packet::~Packet() = default;
 
 Packet &Packet::operator=(const Packet &other)
 {
@@ -69,7 +69,7 @@ Packet &Packet::operator=(const Packet &other)
     return *this;
 }
 
-Packet &Packet::operator=(Packet &&other)
+Packet &Packet::operator=(Packet &&other) noexcept
 {
     if (this != &other) {
         d_ptr->packet = other.d_ptr->packet;

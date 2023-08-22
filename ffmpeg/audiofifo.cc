@@ -5,7 +5,8 @@
 #include <QDebug>
 
 extern "C" {
-#include "libavutil/audio_fifo.h"
+#include <libavcodec/avcodec.h>
+#include <libavutil/audio_fifo.h>
 }
 
 namespace Ffmpeg {
@@ -24,8 +25,6 @@ public:
         }
     }
 
-    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
-
     AudioFifo *q_ptr;
 
     AVAudioFifo *audioFifo = nullptr;
@@ -35,7 +34,8 @@ AudioFifo::AudioFifo(CodecContext *ctx, QObject *parent)
     : QObject{parent}
     , d_ptr(new AudioFifoPrivtate(this))
 {
-    d_ptr->audioFifo = av_audio_fifo_alloc(ctx->sampleFmt(), ctx->channels(), 1);
+    auto avCodecCtx = ctx->avCodecCtx();
+    d_ptr->audioFifo = av_audio_fifo_alloc(avCodecCtx->sample_fmt, ctx->channels(), 1);
     Q_ASSERT(nullptr != d_ptr->audioFifo);
 }
 
@@ -44,11 +44,7 @@ AudioFifo::~AudioFifo() {}
 bool AudioFifo::realloc(int nb_samples)
 {
     auto ret = av_audio_fifo_realloc(d_ptr->audioFifo, nb_samples);
-    if (ret < 0) {
-        d_ptr->setError(ret);
-        return false;
-    }
-    return true;
+    ERROR_RETURN(ret)
 }
 
 bool AudioFifo::write(void **data, int nb_samples)

@@ -20,7 +20,7 @@ void FFMPEG_EXPORT printFfmpegInfo();
 
 QVector<AVHWDeviceType> getCurrentHWDeviceTypes();
 
-AVPixelFormat getPixelFormat(const AVCodec *codec, AVHWDeviceType type);
+auto getPixelFormat(const AVCodec *codec, AVHWDeviceType type) -> AVPixelFormat;
 
 struct CodecInfo
 {
@@ -34,7 +34,7 @@ QVector<CodecInfo> FFMPEG_EXPORT getFileCodecInfo(const QString &filePath);
 
 QPair<int, int> FFMPEG_EXPORT getCodecQuantizer(const QString &codecname);
 
-QStringList FFMPEG_EXPORT getCurrentSupportCodecs(AVMediaType mediaType, bool encoder);
+auto FFMPEG_EXPORT getCurrentSupportCodecs(AVMediaType mediaType, bool encoder) -> QStringList;
 
 } // namespace Utils
 

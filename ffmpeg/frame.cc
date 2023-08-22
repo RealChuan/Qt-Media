@@ -14,14 +14,16 @@ namespace Ffmpeg {
 class Frame::FramePrivate
 {
 public:
-    FramePrivate(Frame *q)
+    explicit FramePrivate(Frame *q)
         : q_ptr(q)
     {}
-    ~FramePrivate()
+    ~FramePrivate() { destroyFrame(); }
+
+    void destroyFrame()
     {
         if (frame) {
             freeImageAlloc();
-            av_frame_free(&frame);
+            av_frame_unref(frame);
         }
     }
 
@@ -33,14 +35,10 @@ public:
         }
     }
 
-    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
-
     Frame *q_ptr;
 
-    AVFrame *frame;
+    AVFrame *frame = nullptr;
     bool imageAlloc = false;
-
-    bool useNull = false;
 };
 
 Frame::Frame()
@@ -56,16 +54,16 @@ Frame::Frame(const Frame &other)
     av_frame_ref(d_ptr->frame, other.d_ptr->frame);
 }
 
-Frame::Frame(Frame &&other)
+Frame::Frame(Frame &&other) noexcept
     : d_ptr(new FramePrivate(this))
 {
     d_ptr->frame = other.d_ptr->frame;
     other.d_ptr->frame = nullptr;
 }
 
-Frame::~Frame() {}
+Frame::~Frame() = default;
 
-Frame &Frame::operator=(const Frame &other)
+auto Frame::operator=(const Frame &other) -> Frame &
 {
     if (this != &other) {
         d_ptr->freeImageAlloc();
@@ -76,7 +74,7 @@ Frame &Frame::operator=(const Frame &other)
     return *this;
 }
 
-Frame &Frame::operator=(Frame &&other)
+auto Frame::operator=(Frame &&other) noexcept -> Frame &
 {
     if (this != &other) {
         d_ptr->freeImageAlloc();
@@ -90,7 +88,7 @@ Frame &Frame::operator=(Frame &&other)
 void Frame::copyPropsFrom(Frame *src)
 {
     Q_ASSERT(src != nullptr);
-    auto srcFrame = src->avFrame();
+    auto *srcFrame = src->avFrame();
     Q_ASSERT(srcFrame != nullptr);
     Q_ASSERT(d_ptr->frame != nullptr);
 
@@ -104,7 +102,7 @@ void Frame::copyPropsFrom(Frame *src)
     d_ptr->frame->format = srcFrame->format;
 }
 
-bool Frame::imageAlloc(const QSize &size, AVPixelFormat pix_fmt, int align)
+auto Frame::imageAlloc(const QSize &size, AVPixelFormat pix_fmt, int align) -> bool
 {
     Q_ASSERT(d_ptr->frame != nullptr);
     Q_ASSERT(size.width() > 0);
@@ -118,7 +116,7 @@ bool Frame::imageAlloc(const QSize &size, AVPixelFormat pix_fmt, int align)
                               pix_fmt,
                               align);
     if (ret < 0) {
-        d_ptr->setError(ret);
+        SET_ERROR_CODE(ret);
         return false;
     }
 
@@ -146,7 +144,7 @@ void Frame::setPts(double pts)
     d_ptr->frame->pts = pts * AV_TIME_BASE;
 }
 
-double Frame::pts()
+auto Frame::pts() -> double
 {
     return d_ptr->frame->pts / (double) AV_TIME_BASE;
 }
@@ -156,22 +154,17 @@ void Frame::setDuration(double duration)
     d_ptr->frame->pkt_duration = duration * AV_TIME_BASE;
 }
 
-double Frame::duration()
+auto Frame::duration() -> double
 {
     return d_ptr->frame->pkt_duration / (double) AV_TIME_BASE;
 }
 
-int Frame::format()
+void Frame::destroyFrame()
 {
-    return d_ptr->frame->format;
+    d_ptr->destroyFrame();
 }
 
-void Frame::setAVFrameNull()
-{
-    d_ptr->useNull = true;
-}
-
-QImage Frame::toImage()
+auto Frame::toImage() -> QImage
 {
     Q_ASSERT(d_ptr->frame != nullptr);
     Q_ASSERT(d_ptr->frame->data[0] != nullptr);
@@ -193,31 +186,23 @@ QImage Frame::toImage()
     return image;
 }
 
-bool Frame::getBuffer()
+auto Frame::getBuffer() -> bool
 {
     auto ret = av_frame_get_buffer(d_ptr->frame, 0);
-    if (ret < 0) {
-        d_ptr->setError(ret);
-        return false;
-    }
-    return true;
+    ERROR_RETURN(ret)
 }
 
-bool Frame::isKey()
+auto Frame::isKey() -> bool
 {
     return d_ptr->frame->key_frame == 1;
 }
 
-AVFrame *Frame::avFrame()
+auto Frame::avFrame() -> AVFrame *
 {
-    if (d_ptr->useNull) {
-        return nullptr;
-    }
-    Q_ASSERT(d_ptr->frame != nullptr);
     return d_ptr->frame;
 }
 
-Frame *Frame::fromQImage(const QImage &image)
+auto Frame::fromQImage(const QImage &image) -> Frame *
 {
     Q_ASSERT(!image.isNull());
     Q_ASSERT(image.format() != QImage::Format_Invalid);

@@ -22,31 +22,14 @@ class CodecContext : public QObject
 {
 public:
     explicit CodecContext(const AVCodec *codec, QObject *parent = nullptr);
-    ~CodecContext();
+    ~CodecContext() override;
 
     void copyToCodecParameters(CodecContext *dst);
 
-    bool setParameters(const AVCodecParameters *par);
-    void setFrameRate(const AVRational &frameRate);
-
+    auto setParameters(const AVCodecParameters *par) -> bool;
     void setPixfmt(AVPixelFormat pixfmt);
-    AVPixelFormat pixfmt() const;
-
     void setSampleRate(int sampleRate);
-    int sampleRate() const;
-
     void setSampleFmt(AVSampleFormat sampleFmt);
-    AVSampleFormat sampleFmt() const;
-
-    void setChannelLayout(uint64_t channelLayout);
-    uint64_t channelLayout() const;
-    int channels() const;
-
-    void setSize(const QSize &size);
-    QSize size() const;
-
-    void setQuailty(int quailty);
-    QPair<int, int> quantizer() const;
 
     void setMinBitrate(int64_t bitrate);
     void setMaxBitrate(int64_t bitrate);
@@ -55,34 +38,36 @@ public:
     void setTune(const QString &tune);
     void setProfile(const QString &profile);
 
-    QVector<AVPixelFormat> supportPixFmts() const;
-    QVector<AVSampleFormat> supportSampleFmts() const;
+    void setChannelLayout(uint64_t channelLayout);
+    [[nodiscard]] auto channels() const -> int;
 
-    void setTimebase(const AVRational &timebase);
+    void setSize(const QSize &size);
+    [[nodiscard]] auto size() const -> QSize;
+
+    void setQuailty(int quailty);
+    [[nodiscard]] QPair<int, int> quantizer() const;
+
+    [[nodiscard]] QVector<AVPixelFormat> supportPixFmts() const;
+    [[nodiscard]] QVector<AVSampleFormat> supportSampleFmts() const;
+
     // Set before open, Soft solution is effective
     void setThreadCount(int threadCount);
-    bool open();
+    auto open() -> bool;
 
-    void setFlags(int flags);
-    int flags() const;
+    auto sendPacket(Packet *packet) -> bool;
+    auto receiveFrame(Frame *frame) -> bool;
+    auto decodeSubtitle2(Subtitle *subtitle, Packet *packet) -> bool;
 
-    bool sendPacket(Packet *packet);
-    bool receiveFrame(Frame *frame);
-    bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
+    auto sendFrame(Frame *frame) -> bool;
+    auto receivePacket(Packet *packet) -> bool;
 
-    bool sendFrame(Frame *frame);
-    bool receivePacket(Packet *packet);
-
-    int width() const;
-    int height() const;
-    AVMediaType mediaType() const;
-    QString mediaTypeString() const;
-    bool isDecoder() const;
+    [[nodiscard]] auto mediaTypeString() const -> QString;
+    [[nodiscard]] auto isDecoder() const -> bool;
 
     void flush();
 
-    const AVCodec *codec();
-    AVCodecContext *avCodecCtx();
+    auto codec() -> const AVCodec *;
+    auto avCodecCtx() -> AVCodecContext *;
 
 private:
     class CodecContextPrivate;

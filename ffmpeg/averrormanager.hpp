@@ -5,6 +5,15 @@
 
 #include <utils/singleton.hpp>
 
+#define SET_ERROR_CODE(errorCode) AVErrorManager::instance()->setErrorCode(errorCode)
+
+#define ERROR_RETURN(errorCode) \
+    if (errorCode < 0) { \
+        SET_ERROR_CODE(errorCode); \
+        return false; \
+    } \
+    return true;
+
 namespace Ffmpeg {
 
 class AVError;
@@ -17,15 +26,15 @@ public:
     void setMaxCaches(int max);
 
     void setErrorCode(int errorCode);
-    QString lastErrorString() const;
-    QVector<int> errorCodes() const;
+    [[nodiscard]] auto lastErrorString() const -> QString;
+    [[nodiscard]] QVector<int> errorCodes() const;
 
 signals:
     void error(const Ffmpeg::AVError &avError);
 
 private:
-    AVErrorManager(QObject *parent = nullptr);
-    ~AVErrorManager();
+    explicit AVErrorManager(QObject *parent = nullptr);
+    ~AVErrorManager() override;
 
     class AVErrorManagerPrivate;
     QScopedPointer<AVErrorManagerPrivate> d_ptr;

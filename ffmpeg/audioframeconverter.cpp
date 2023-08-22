@@ -14,7 +14,7 @@ extern "C" {
 
 namespace Ffmpeg {
 
-qint64 getChannaLayoutFromChannalCount(int nb_channals)
+auto getChannaLayoutFromChannalCount(int nb_channals) -> qint64
 {
     qint64 channalLayout = 0;
     switch (nb_channals) {
@@ -33,7 +33,7 @@ qint64 getChannaLayoutFromChannalCount(int nb_channals)
     return channalLayout;
 }
 
-qint64 getChannelLayout(QAudioFormat::ChannelConfig channelConfig)
+auto getChannelLayout(QAudioFormat::ChannelConfig channelConfig) -> qint64
 {
     qint64 channal = 0;
     switch (channelConfig) {
@@ -52,7 +52,7 @@ qint64 getChannelLayout(QAudioFormat::ChannelConfig channelConfig)
 
     return channal;
 }
-QAudioFormat::ChannelConfig getChannelConfig(qint64 channalLayout)
+auto getChannelConfig(qint64 channalLayout) -> QAudioFormat::ChannelConfig
 {
     auto config = QAudioFormat::ChannelConfigUnknown;
     switch (channalLayout) {
@@ -71,7 +71,7 @@ QAudioFormat::ChannelConfig getChannelConfig(qint64 channalLayout)
     return config;
 }
 
-AVSampleFormat getAVSampleFormat(QAudioFormat::SampleFormat format)
+auto getAVSampleFormat(QAudioFormat::SampleFormat format) -> AVSampleFormat
 {
     auto sampleFormat = AV_SAMPLE_FMT_NONE;
     switch (format) {
@@ -85,7 +85,7 @@ AVSampleFormat getAVSampleFormat(QAudioFormat::SampleFormat format)
     return sampleFormat;
 }
 
-QAudioFormat::SampleFormat getSampleFormat(AVSampleFormat format)
+auto getSampleFormat(AVSampleFormat format) -> QAudioFormat::SampleFormat
 {
     auto sampleFormat = QAudioFormat::Unknown;
     switch (format) {
@@ -102,11 +102,9 @@ QAudioFormat::SampleFormat getSampleFormat(AVSampleFormat format)
 class AudioFrameConverter::AudioFrameConverterPrivate
 {
 public:
-    AudioFrameConverterPrivate(AudioFrameConverter *q)
+    explicit AudioFrameConverterPrivate(AudioFrameConverter *q)
         : q_ptr(q)
     {}
-
-    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
 
     AudioFrameConverter *q_ptr;
 
@@ -124,19 +122,20 @@ AudioFrameConverter::AudioFrameConverter(CodecContext *codecCtx,
     d_ptr->format = format;
     d_ptr->avSampleFormat = getAVSampleFormat(d_ptr->format.sampleFormat());
     auto channelLayout = getChannelLayout(d_ptr->format.channelConfig());
+    auto *avCodecCtx = codecCtx->avCodecCtx();
     d_ptr->swrContext = swr_alloc_set_opts(nullptr,
                                            channelLayout,
                                            d_ptr->avSampleFormat,
                                            d_ptr->format.sampleRate(),
-                                           codecCtx->channelLayout(),
-                                           codecCtx->sampleFmt(),
-                                           codecCtx->sampleRate(),
+                                           avCodecCtx->channel_layout,
+                                           avCodecCtx->sample_fmt,
+                                           avCodecCtx->sample_rate,
                                            0,
                                            nullptr);
 
     int ret = swr_init(d_ptr->swrContext);
     if (ret < 0) {
-        d_ptr->setError(ret);
+        SET_ERROR_CODE(ret);
     }
     Q_ASSERT(d_ptr->swrContext != nullptr);
 }
@@ -147,7 +146,7 @@ AudioFrameConverter::~AudioFrameConverter()
     swr_free(&d_ptr->swrContext);
 }
 
-QByteArray AudioFrameConverter::convert(Frame *frame)
+auto AudioFrameConverter::convert(Frame *frame) -> QByteArray
 {
     auto nb_samples = frame->avFrame()->nb_samples;
     int size = av_samples_get_buffer_size(nullptr,
@@ -166,15 +165,15 @@ QByteArray AudioFrameConverter::convert(Frame *frame)
                           nb_samples);
     if (len <= 0) {
         data.clear();
-        d_ptr->setError(len);
+        SET_ERROR_CODE(len);
     }
 
     return data;
 }
 
-QAudioFormat getAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize)
+auto getAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize) -> QAudioFormat
 {
-    auto ctx = codecCtx->avCodecCtx();
+    auto *ctx = codecCtx->avCodecCtx();
     QAudioFormat autioFormat;
     //autioFormat.setCodec("audio/pcm");
     autioFormat.setSampleRate(ctx->sample_rate);

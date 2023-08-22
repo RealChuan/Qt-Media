@@ -26,54 +26,40 @@ public:
     enum GpuType { NotUseGpu, GpuDecode, GpuEncode };
 
     explicit AVContextInfo(QObject *parent = nullptr);
-    ~AVContextInfo();
-
-    void copyToCodecParameters(AVContextInfo *dst);
-
-    // encoder
-    void setSize(const QSize &size);
-    void setQuailty(int quailty);
-    void setMinBitrate(int64_t bitrate);
-    void setMaxBitrate(int64_t bitrate);
-    void setCrf(int crf);
-    void setPreset(const QString &preset);
-    void setTune(const QString &tune);
-    void setProfile(const QString &profile);
+    ~AVContextInfo() override;
 
     void resetIndex();
     void setIndex(int index);
-    int index();
+    auto index() -> int;
 
-    bool isIndexVaild();
+    auto isIndexVaild() -> bool;
 
     void setStream(AVStream *stream);
-    AVStream *stream();
+    auto stream() -> AVStream *;
 
-    bool initDecoder(const AVRational &frameRate);
-    bool initEncoder(AVCodecID codecId);
-    bool initEncoder(const QString &name);
-    bool openCodec(GpuType type = NotUseGpu);
+    auto initDecoder(const AVRational &frameRate) -> bool;
+    auto initEncoder(AVCodecID codecId) -> bool;
+    auto initEncoder(const QString &name) -> bool;
+    auto openCodec(GpuType type = NotUseGpu) -> bool;
 
-    bool decodeSubtitle2(Subtitle *subtitle, Packet *packet);
+    auto decodeSubtitle2(Subtitle *subtitle, Packet *packet) -> bool;
     // sendPacket and receiveFrame
     QVector<Frame *> decodeFrame(Packet *packet);
     QVector<Packet *> encodeFrame(QSharedPointer<Frame> framePtr);
 
-    void flush();
+    [[nodiscard]] auto calTimebase() const -> double;
+    [[nodiscard]] auto timebase() const -> AVRational;
+    [[nodiscard]] auto fps() const -> double;
+    [[nodiscard]] auto fames() const -> qint64;
+    [[nodiscard]] auto resolutionRatio() const -> QSize;
+    [[nodiscard]] auto mediaType() const -> AVMediaType;
+    [[nodiscard]] auto mediaTypeString() const -> QString;
+    [[nodiscard]] auto isDecoder() const -> bool;
 
-    double cal_timebase() const;
-    AVRational timebase() const;
-    double fps() const;
-    qint64 fames() const;
-    QSize resolutionRatio() const;
-    AVMediaType mediaType() const;
-    QString mediaTypeString() const;
-    bool isDecoder() const;
+    [[nodiscard]] auto gpuType() const -> GpuType;
+    [[nodiscard]] auto pixfmt() const -> AVPixelFormat;
 
-    GpuType gpuType() const;
-    AVPixelFormat pixfmt() const;
-
-    CodecContext *codecCtx();
+    auto codecCtx() -> CodecContext *;
 
 private:
     class AVContextInfoPrivate;

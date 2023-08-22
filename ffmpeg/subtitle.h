@@ -24,6 +24,8 @@ public:
     ~Subtitle() override;
 
     void setDefault(double pts, double duration, const QString &text);
+    auto pts() -> double;
+    auto duration() -> double;
 
     void parse(SwsContext *swsContext);
     [[nodiscard]] auto texts() const -> QByteArrayList;
@@ -38,12 +40,7 @@ public:
     [[nodiscard]] auto generateImage() const -> QImage;
     [[nodiscard]] auto image() const -> QImage;
 
-    void clear();
-
     [[nodiscard]] auto type() const -> Type;
-
-    auto pts() -> double;
-    auto duration() -> double;
 
     auto avSubtitle() -> AVSubtitle *;
 

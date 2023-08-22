@@ -21,9 +21,11 @@ namespace Ffmpeg {
 class AVContextInfo::AVContextInfoPrivate
 {
 public:
-    AVContextInfoPrivate() {}
+    AVContextInfoPrivate(AVContextInfo *q)
+        : q_ptr(q)
+    {}
 
-    void showCodecpar()
+    void printCodecpar()
     {
         auto codecpar = stream->codecpar;
         qInfo() << "start_time: " << stream->start_time;
@@ -53,7 +55,7 @@ public:
         }
     }
 
-    void showMetaData()
+    void printMetaData()
     {
         QMap<QString, QString> maps;
         AVDictionaryEntry *tag = nullptr;
@@ -62,6 +64,8 @@ public:
         }
         qDebug() << maps;
     }
+
+    AVContextInfo *q_ptr;
 
     QScopedPointer<CodecContext> codecCtx; //解码器上下文
     AVStream *stream = nullptr;            //流
@@ -73,55 +77,10 @@ public:
 
 AVContextInfo::AVContextInfo(QObject *parent)
     : QObject(parent)
-    , d_ptr(new AVContextInfoPrivate)
+    , d_ptr(new AVContextInfoPrivate(this))
 {}
 
 AVContextInfo::~AVContextInfo() {}
-
-void AVContextInfo::copyToCodecParameters(AVContextInfo *dst)
-{
-    d_ptr->codecCtx->copyToCodecParameters(dst->d_ptr->codecCtx.data());
-}
-
-void AVContextInfo::setSize(const QSize &size)
-{
-    d_ptr->codecCtx->setSize(size);
-}
-
-void AVContextInfo::setQuailty(int quailty)
-{
-    d_ptr->codecCtx->setQuailty(quailty);
-}
-
-void AVContextInfo::setMinBitrate(int64_t bitrate)
-{
-    d_ptr->codecCtx->setMinBitrate(bitrate);
-}
-
-void AVContextInfo::setMaxBitrate(int64_t bitrate)
-{
-    d_ptr->codecCtx->setMaxBitrate(bitrate);
-}
-
-void AVContextInfo::setCrf(int crf)
-{
-    d_ptr->codecCtx->setCrf(crf);
-}
-
-void AVContextInfo::setPreset(const QString &preset)
-{
-    d_ptr->codecCtx->setPreset(preset);
-}
-
-void AVContextInfo::setTune(const QString &tune)
-{
-    d_ptr->codecCtx->setTune(tune);
-}
-
-void AVContextInfo::setProfile(const QString &profile)
-{
-    d_ptr->codecCtx->setProfile(profile);
-}
 
 CodecContext *AVContextInfo::codecCtx()
 {
@@ -151,8 +110,8 @@ bool AVContextInfo::isIndexVaild()
 void AVContextInfo::setStream(AVStream *stream)
 {
     d_ptr->stream = stream;
-    //    d_ptr->showCodecpar();
-    //    d_ptr->showMetaData();
+    //    d_ptr->printCodecpar();
+    //    d_ptr->printMetaData();
 }
 
 AVStream *AVContextInfo::stream()
@@ -173,10 +132,11 @@ bool AVContextInfo::initDecoder(const AVRational &frameRate)
     if (!d_ptr->codecCtx->setParameters(d_ptr->stream->codecpar)) {
         return false;
     }
-    d_ptr->codecCtx->setTimebase(d_ptr->stream->time_base);
+    auto avCodecCtx = d_ptr->codecCtx->avCodecCtx();
+    avCodecCtx->pkt_timebase = d_ptr->stream->time_base;
     d_ptr->codecCtx->setThreadCount(4);
     if (d_ptr->stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-        d_ptr->codecCtx->setFrameRate(frameRate);
+        avCodecCtx->framerate = frameRate;
     }
 
     qInfo() << tr("Decoder name: ") << codec->name;
@@ -281,12 +241,7 @@ QVector<Packet *> AVContextInfo::encodeFrame(QSharedPointer<Frame> framePtr)
     return packets;
 }
 
-void AVContextInfo::flush()
-{
-    d_ptr->codecCtx->flush();
-}
-
-double AVContextInfo::cal_timebase() const
+double AVContextInfo::calTimebase() const
 {
     return av_q2d(d_ptr->stream->time_base);
 }
@@ -337,7 +292,7 @@ AVPixelFormat AVContextInfo::pixfmt() const
         && d_ptr->hardWareEncodePtr->isVaild()) {
         return d_ptr->hardWareEncodePtr->swFormat();
     }
-    return d_ptr->codecCtx->pixfmt();
+    return d_ptr->codecCtx->avCodecCtx()->pix_fmt;
 }
 
 } // namespace Ffmpeg

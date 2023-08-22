@@ -10,13 +10,13 @@ namespace Ffmpeg {
 class VideoDecoder::VideoDecoderPrivate
 {
 public:
-    VideoDecoderPrivate(QObject *parent)
-        : owner(parent)
+    VideoDecoderPrivate(VideoDecoder *q)
+        : q_ptr(q)
     {
-        decoderVideoFrame = new DecoderVideoFrame(owner);
+        decoderVideoFrame = new DecoderVideoFrame(q_ptr);
     }
 
-    QObject *owner;
+    VideoDecoder *q_ptr;
 
     DecoderVideoFrame *decoderVideoFrame;
 };

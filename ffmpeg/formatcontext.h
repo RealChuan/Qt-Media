@@ -23,52 +23,52 @@ public:
     enum OpenMode { ReadOnly = 1, WriteOnly };
 
     explicit FormatContext(QObject *parent = nullptr);
-    ~FormatContext();
+    ~FormatContext() override;
 
     void copyChapterFrom(FormatContext *src);
 
-    bool isOpen();
-    bool openFilePath(const QString &filepath, OpenMode mode = ReadOnly);
+    auto isOpen() -> bool;
+    auto openFilePath(const QString &filepath, OpenMode mode = ReadOnly) -> bool;
     void close();
 
-    bool avio_open();
+    auto avio_open() -> bool;
     void avio_close();
 
-    bool writeHeader();
-    bool writeFrame(Packet *packet);
-    bool writeTrailer();
+    auto writeHeader() -> bool;
+    auto writePacket(Packet *packet) -> bool;
+    auto writeTrailer() -> bool;
 
-    bool findStream();
-    int streams() const;
-    AVStream *stream(int index); //音频流
-    AVStream *createStream();
+    auto findStream() -> bool;
+    [[nodiscard]] auto streams() const -> int;
+    auto stream(int index) -> AVStream *; //音频流
+    auto createStream() -> AVStream *;
 
-    QMap<int, QString> audioMap() const;
-    QVector<int> videoIndexs() const;
-    QMap<int, QString> subtitleMap() const;
+    [[nodiscard]] auto audioMap() const -> QMap<int, QString>;
+    [[nodiscard]] QVector<int> videoIndexs() const;
+    [[nodiscard]] auto subtitleMap() const -> QMap<int, QString>;
 
-    int findBestStreamIndex(AVMediaType type) const;
+    [[nodiscard]] auto findBestStreamIndex(AVMediaType type) const -> int;
     // 丢弃除indexs中包含的音视频流，优化av_read_frame性能
     void discardStreamExcluded(QVector<int> indexs);
 
-    bool seekFirstFrame();
-    bool seek(int64_t timestamp);
-    bool seek(int index, int64_t timestamp); // s
+    auto seekFirstFrame() -> bool;
+    auto seek(int64_t timestamp) -> bool;            // second
+    auto seek(int index, int64_t timestamp) -> bool; // second
 
-    bool readFrame(Packet *packet);
+    auto readFrame(Packet *packet) -> bool;
 
-    bool checkPktPlayRange(Packet *packet);
+    auto checkPktPlayRange(Packet *packet) -> bool;
 
-    AVRational guessFrameRate(int index) const;
-    AVRational guessFrameRate(AVStream *stream) const;
+    [[nodiscard]] auto guessFrameRate(int index) const -> AVRational;
+    auto guessFrameRate(AVStream *stream) const -> AVRational;
 
-    qint64 duration() const; // ms
+    [[nodiscard]] auto duration() const -> qint64; // millisecond
 
-    QImage &coverImage() const;
+    [[nodiscard]] auto coverImage() const -> QImage &;
 
     void dumpFormat();
 
-    AVFormatContext *avFormatContext();
+    auto avFormatContext() -> AVFormatContext *;
 
 private:
     class FormatContextPrivate;

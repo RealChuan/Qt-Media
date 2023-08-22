@@ -23,17 +23,17 @@ public:
     VideoRender();
     virtual ~VideoRender();
 
-    virtual bool isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) = 0;
+    virtual auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool = 0;
     virtual QVector<AVPixelFormat> supportedOutput_pix_fmt() = 0;
-    virtual QSharedPointer<Frame> convertSupported_pix_fmt(QSharedPointer<Frame> frame) = 0;
+    virtual auto convertSupported_pix_fmt(QSharedPointer<Frame> frame) -> QSharedPointer<Frame> = 0;
     void setFrame(QSharedPointer<Frame> frame);
     void setImage(const QImage &image);
     void setSubTitleFrame(QSharedPointer<Subtitle> frame);
     virtual void resetAllFrame() = 0;
 
-    virtual QWidget *widget() = 0;
+    virtual auto widget() -> QWidget * = 0;
 
-    float fps();
+    auto fps() -> float;
     void resetFps();
 
 protected:

@@ -11,13 +11,13 @@ namespace Ffmpeg {
 class SubtitleDecoder::SubtitleDecoderPrivate
 {
 public:
-    SubtitleDecoderPrivate(QObject *parent)
-        : owner(parent)
+    explicit SubtitleDecoderPrivate(SubtitleDecoder *q)
+        : q_ptr(q)
     {
-        decoderSubtitleFrame = new DecoderSubtitleFrame(owner);
+        decoderSubtitleFrame = new DecoderSubtitleFrame(q_ptr);
     }
 
-    QObject *owner;
+    SubtitleDecoder *q_ptr;
 
     DecoderSubtitleFrame *decoderSubtitleFrame;
 };
@@ -27,7 +27,7 @@ SubtitleDecoder::SubtitleDecoder(QObject *parent)
     , d_ptr(new SubtitleDecoderPrivate(this))
 {}
 
-SubtitleDecoder::~SubtitleDecoder() {}
+SubtitleDecoder::~SubtitleDecoder() = default;
 
 void SubtitleDecoder::pause(bool state)
 {

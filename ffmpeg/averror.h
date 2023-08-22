@@ -12,15 +12,18 @@ class FFMPEG_EXPORT AVError
 public:
     explicit AVError(int error = 0);
     AVError(const AVError &other);
-    AVError &operator=(const AVError &other);
+    AVError(AVError &&other) noexcept;
     ~AVError();
 
+    auto operator=(const AVError &other) -> AVError &;
+    auto operator=(AVError &&other) noexcept -> AVError &;
+
     void setErrorCode(int error);
-    int errorCode() const;
+    [[nodiscard]] auto errorCode() const -> int;
 
-    QString errorString() const;
+    [[nodiscard]] auto errorString() const -> QString;
 
-    static QString avErrorString(int error);
+    static auto avErrorString(int error) -> QString;
 
 private:
     class AVErrorPrivate;

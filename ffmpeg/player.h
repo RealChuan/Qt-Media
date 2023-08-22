@@ -21,34 +21,34 @@ public:
     ~Player() override;
 
     void openMedia(const QString &filepath);
-    QString &filePath() const;
+    [[nodiscard]] auto filePath() const -> QString &;
 
-    bool isOpen();
+    auto isOpen() -> bool;
 
     void setVolume(qreal volume);
 
     void setSpeed(double speed);
-    double speed();
+    auto speed() -> double;
 
     void pause(bool status = true);
 
     void setUseGpuDecode(bool on);
-    bool isGpuDecode();
+    auto isGpuDecode() -> bool;
 
     void setAudioTrack(const QString &text);
     void setSubtitleTrack(const QString &text);
 
-    MediaState mediaState();
+    auto mediaState() -> MediaState;
 
-    qint64 duration() const; // ms
-    qint64 position() const; // ms
-    qint64 fames() const;
-    QSize resolutionRatio() const;
-    double fps() const;
+    [[nodiscard]] auto duration() const -> qint64; // ms
+    [[nodiscard]] auto position() const -> qint64; // ms
+    [[nodiscard]] auto fames() const -> qint64;
+    [[nodiscard]] auto resolutionRatio() const -> QSize;
+    [[nodiscard]] auto fps() const -> double;
 
-    int audioIndex() const;
-    int videoIndex() const;
-    int subtitleIndex() const;
+    [[nodiscard]] auto audioIndex() const -> int;
+    [[nodiscard]] auto videoIndex() const -> int;
+    [[nodiscard]] auto subtitleIndex() const -> int;
 
     void setVideoRenders(QVector<VideoRender *> videoRenders);
     QVector<VideoRender *> videoRenders();
@@ -79,11 +79,11 @@ protected:
 private:
     void buildConnect(bool state = true);
     void buildErrorConnect();
-    bool initAvCodec();
+    auto initAvCodec() -> bool;
     void playVideo();
     void checkSeek();
     void setMediaState(MediaState mediaState);
-    bool setMediaIndex(AVContextInfo *contextInfo, int index);
+    auto setMediaIndex(AVContextInfo *contextInfo, int index) -> bool;
     void calculateSpeed(QElapsedTimer &timer, qint64 &readSize, qint64 addSize);
 
     class PlayerPrivate;

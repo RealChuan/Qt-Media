@@ -19,20 +19,20 @@ public:
                                  const QSize &size = QSize(-1, -1),
                                  AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA,
                                  QObject *parent = nullptr);
-    VideoFrameConverter(Frame *frame,
+    explicit VideoFrameConverter(Frame *frame,
                         const QSize &size = QSize(-1, -1),
                         AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA,
                         QObject *parent = nullptr);
-    ~VideoFrameConverter();
+    ~VideoFrameConverter() override;
 
     void flush(Frame *frame,
                const QSize &dstSize = QSize(-1, -1),
                AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA);
 
-    int scale(Frame *in, Frame *out);
+    auto scale(Frame *in, Frame *out) -> int;
 
-    static bool isSupportedInput_pix_fmt(AVPixelFormat pix_fmt);
-    static bool isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt);
+    static auto isSupportedInput_pix_fmt(AVPixelFormat pix_fmt) -> bool;
+    static auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool;
 
 private:
     class VideoFrameConverterPrivate;

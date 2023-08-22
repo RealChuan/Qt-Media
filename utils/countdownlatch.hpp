@@ -16,7 +16,7 @@ public:
 
     void wait();
     void countDown();
-    int getCount() const;
+    [[nodiscard]] auto getCount() const -> int;
 
 private:
     struct CountDownLatchPrivate;

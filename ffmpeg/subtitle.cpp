@@ -20,9 +20,7 @@ public:
     explicit SubtitlePrivate(Subtitle *q)
         : q_ptr(q)
     {}
-    ~SubtitlePrivate() { freeSubtitle(); }
-
-    void freeSubtitle() { avsubtitle_free(&subtitle); }
+    ~SubtitlePrivate() { avsubtitle_free(&subtitle); }
 
     void parseImage(SwsContext *swsContext)
     {
@@ -49,9 +47,9 @@ public:
                                               nullptr);
             sws_scale(swsContext, sub_rect->data, sub_rect->linesize, 0, sub_rect->h, pixels, pitch);
             //这里也使用RGBA
-            auto image = QImage(pixels[0], sub_rect->w, sub_rect->h, QImage::Format_RGBA8888);
-            if (!image.isNull()) {
-                painter.drawImage(QRect(sub_rect->x, sub_rect->y, sub_rect->w, sub_rect->h), image);
+            auto img = QImage(pixels[0], sub_rect->w, sub_rect->h, QImage::Format_RGBA8888);
+            if (!img.isNull()) {
+                painter.drawImage(QRect(sub_rect->x, sub_rect->y, sub_rect->w, sub_rect->h), img);
             }
             av_freep(&pixels[0]);
         }
@@ -88,7 +86,6 @@ public:
     double duration = 0;
     QString text;
 
-    SwsContext *swsContext;
     Subtitle::Type type = Subtitle::Unknown;
     QSize videoResolutionRatio = QSize(1280, 720);
 
@@ -130,11 +127,6 @@ auto Subtitle::texts() const -> QByteArrayList
 auto Subtitle::avSubtitle() -> AVSubtitle *
 {
     return &d_ptr->subtitle;
-}
-
-void Subtitle::clear()
-{
-    return d_ptr->freeSubtitle();
 }
 
 auto Subtitle::pts() -> double
@@ -194,7 +186,7 @@ AssDataInfoList Subtitle::list() const
 auto Subtitle::generateImage() const -> QImage
 {
     if (d_ptr->type != Type::ASS) {
-        return QImage();
+        return {};
     }
     d_ptr->image = QImage(d_ptr->videoResolutionRatio, QImage::Format_RGBA8888);
     d_ptr->image.fill(Qt::transparent);

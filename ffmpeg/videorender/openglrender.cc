@@ -18,12 +18,12 @@ namespace Ffmpeg {
 class OpenglRender::OpenglRenderPrivate
 {
 public:
-    OpenglRenderPrivate(QWidget *parnet)
-        : owner(parnet)
+    explicit OpenglRenderPrivate(OpenglRender *q)
+        : q_ptr(q)
     {}
-    ~OpenglRenderPrivate() {}
+    ~OpenglRenderPrivate() = default;
 
-    QWidget *owner;
+    OpenglRender *q_ptr;
 
     QScopedPointer<QOpenGLShaderProgram> programPtr;
     GLuint textureY;
@@ -33,7 +33,7 @@ public:
     GLuint textureRGBA;
     QOpenGLBuffer vbo = QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
     QOpenGLBuffer ebo = QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-    //GLuint vao = 0; // 顶点数组对象,任何随后的顶点属性调用都会储存在这个VAO中，一个VAO可以有多个VBO
+    GLuint vao = 0; // 顶点数组对象,任何随后的顶点属性调用都会储存在这个VAO中，一个VAO可以有多个VBO
 
     const QVector<AVPixelFormat> supportFormats
         = {AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUYV422,     AV_PIX_FMT_RGB24,   AV_PIX_FMT_BGR24,
@@ -54,6 +54,12 @@ OpenglRender::OpenglRender(QWidget *parent)
     : QOpenGLWidget(parent)
     , d_ptr(new OpenglRenderPrivate(this))
 {
+    QSurfaceFormat surfaceFormat;
+    surfaceFormat.setVersion(3, 3);
+    surfaceFormat.setProfile(QSurfaceFormat::CoreProfile);
+    setFormat(surfaceFormat);
+    QSurfaceFormat::setDefaultFormat(surfaceFormat);
+
     auto format = this->format();
     qInfo() << "OpenGL Version:" << format.minorVersion() << "~" << format.majorVersion();
 }
@@ -67,7 +73,7 @@ OpenglRender::~OpenglRender()
     d_ptr->programPtr.reset();
     d_ptr->vbo.destroy();
     d_ptr->ebo.destroy();
-    //glDeleteVertexArrays(1, &d_ptr->vao);
+    glDeleteVertexArrays(1, &d_ptr->vao);
     glDeleteTextures(1, &d_ptr->textureY);
     glDeleteTextures(1, &d_ptr->textureU);
     glDeleteTextures(1, &d_ptr->textureV);
@@ -75,12 +81,12 @@ OpenglRender::~OpenglRender()
     doneCurrent();
 }
 
-bool OpenglRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
+auto OpenglRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool
 {
     return d_ptr->supportFormats.contains(pix_fmt);
 }
 
-QSharedPointer<Frame> OpenglRender::convertSupported_pix_fmt(QSharedPointer<Frame> frame)
+auto OpenglRender::convertSupported_pix_fmt(QSharedPointer<Frame> frame) -> QSharedPointer<Frame>
 {
     auto dst_pix_fmt = AV_PIX_FMT_RGBA;
     auto avframe = frame->avFrame();
@@ -114,7 +120,7 @@ void OpenglRender::resetAllFrame()
     d_ptr->subTitleFramePtr.reset();
 }
 
-QWidget *OpenglRender::widget()
+auto OpenglRender::widget() -> QWidget *
 {
     return this;
 }
@@ -635,7 +641,9 @@ void OpenglRender::paintSubTitleFrame()
     glEnable(GL_BLEND);
     d_ptr->programPtr->bind();
     d_ptr->programPtr->setUniformValue("format", 26);
+    glBindVertexArray(d_ptr->vao);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+    glBindVertexArray(0);
     d_ptr->programPtr->release();
     glDisable(GL_BLEND);
 }
@@ -679,7 +687,7 @@ void OpenglRender::paintGL()
 
     resizeViewport();
 
-    auto format = d_ptr->framePtr->format();
+    auto format = d_ptr->framePtr->avFrame()->format;
     //qDebug() << format;
     // 绑定纹理
     switch (format) {
@@ -713,13 +721,13 @@ void OpenglRender::paintGL()
 
     setColorSpace();
 
-    //glBindVertexArray(d_ptr->vao); // 绑定VAO
+    glBindVertexArray(d_ptr->vao); // 绑定VAO
     glDrawElements(
         GL_TRIANGLES,    // 绘制的图元类型
         6,               // 指定要渲染的元素数(点数)
         GL_UNSIGNED_INT, // 指定索引中值的类型(indices)
         nullptr); // 指定当前绑定到GL_ELEMENT_array_buffer目标的缓冲区的数据存储中数组中第一个索引的偏移量。
-    //glBindVertexArray(0);
+    glBindVertexArray(0);
 
     d_ptr->programPtr->release();
 
@@ -731,7 +739,8 @@ void OpenglRender::initVbo()
     GLuint posAttr = GLuint(d_ptr->programPtr->attributeLocation("aPos"));
     GLuint texCord = GLuint(d_ptr->programPtr->attributeLocation("aTexCord"));
 
-    //glBindVertexArray(d_ptr->vao);
+    glGenVertexArrays(1, &d_ptr->vao);
+    glBindVertexArray(d_ptr->vao);
 
     float vertices[] = {
         // positions             // texture coords
@@ -759,11 +768,11 @@ void OpenglRender::initVbo()
 
     // 启用通用顶点属性数组
     // 属性索引是从调用glGetAttribLocation接收的，或者传递给glBindAttribLocation。
-    //glEnableVertexAttribArray(texCord);
+    glEnableVertexAttribArray(texCord);
 
     // 释放
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //glBindVertexArray(0); // 设置为零以破坏现有的顶点数组对象绑定}
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0); // 设置为零以破坏现有的顶点数组对象绑定}
 }
 
 } // namespace Ffmpeg

@@ -12,8 +12,8 @@ namespace Ffmpeg {
 class FilterGraph::FilterGraphPrivate
 {
 public:
-    FilterGraphPrivate(QObject *parent)
-        : owner(parent)
+    FilterGraphPrivate(FilterGraph *q)
+        : q_ptr(q)
     {
         filterGraph = avfilter_graph_alloc();
         Q_ASSERT(nullptr != filterGraph);
@@ -25,9 +25,8 @@ public:
         avfilter_graph_free(&filterGraph);
     }
 
-    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
+    FilterGraph *q_ptr;
 
-    QObject *owner;
     AVFilterGraph *filterGraph = nullptr;
 };
 
@@ -49,21 +48,13 @@ bool FilterGraph::parse(const QString &filters, FilterInOut *in, FilterInOut *ou
                                         nullptr);
     in->setAVFilterInOut(inputs);
     out->setAVFilterInOut(outputs);
-    if (ret < 0) {
-        d_ptr->setError(ret);
-        return false;
-    }
-    return true;
+    ERROR_RETURN(ret)
 }
 
 bool FilterGraph::config()
 {
     auto ret = avfilter_graph_config(d_ptr->filterGraph, nullptr);
-    if (ret < 0) {
-        d_ptr->setError(ret);
-        return false;
-    }
-    return true;
+    ERROR_RETURN(ret)
 }
 
 AVFilterGraph *FilterGraph::avFilterGraph()

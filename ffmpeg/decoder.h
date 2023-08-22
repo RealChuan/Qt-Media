@@ -8,6 +8,7 @@
 #include <utils/taskqueue.h>
 
 #include "avcontextinfo.h"
+#include "codeccontext.h"
 #include "formatcontext.h"
 
 #define Sleep_Queue_Full_Milliseconds 50
@@ -22,10 +23,10 @@ void calculateTime(Frame *frame, AVContextInfo *contextInfo, FormatContext *form
 void calculateTime(Packet *packet, AVContextInfo *contextInfo);
 
 void setMediaClock(double value);
-double mediaClock();
+auto mediaClock() -> double;
 
 void setMediaSpeed(double speed);
-double mediaSpeed();
+auto mediaSpeed() -> double;
 
 template<typename T>
 class Decoder : public QThread
@@ -34,7 +35,7 @@ public:
     explicit Decoder(QObject *parent = nullptr)
         : QThread(parent)
     {}
-    virtual ~Decoder() override { stopDecoder(); }
+    ~Decoder() override { stopDecoder(); }
 
     void startDecoder(FormatContext *formatContext, AVContextInfo *contextInfo)
     {
@@ -58,7 +59,7 @@ public:
 
     void append(const T &t) { m_queue.enqueue(t); }
 
-    int size() { return m_queue.size(); }
+    auto size() -> int { return m_queue.size(); }
 
     void clear() { m_queue.clearPoints(); }
 
@@ -77,12 +78,12 @@ public:
         pause(false);
     }
 
-    bool isSeek() { return m_seek; }
+    auto isSeek() -> bool { return m_seek; }
 
 protected:
     virtual void runDecoder() = 0;
 
-    void run() override final
+    void run() final
     {
         assertVaild();
         if (!m_contextInfo->isIndexVaild()) {
@@ -93,8 +94,8 @@ protected:
 
     void seekCodec(qint64 seekTime)
     {
-        m_formatContext->seek(m_contextInfo->index(), seekTime / m_contextInfo->cal_timebase());
-        m_contextInfo->flush();
+        m_formatContext->seek(m_contextInfo->index(), seekTime / m_contextInfo->calTimebase());
+        m_contextInfo->codecCtx()->flush();
     }
 
     void seekFinish() { m_seek = false; }

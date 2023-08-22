@@ -3,26 +3,28 @@
 
 #include "videorender.hpp"
 
-#include <QOpenGLFunctions>
+#include <QOpenGLFunctions_3_3_Core>
 #include <QOpenGLWidget>
 
 struct AVFrame;
 
 namespace Ffmpeg {
 
-class FFMPEG_EXPORT OpenglRender : public VideoRender, public QOpenGLWidget, public QOpenGLFunctions
+class FFMPEG_EXPORT OpenglRender : public VideoRender,
+                                   public QOpenGLWidget,
+                                   public QOpenGLFunctions_3_3_Core
 {
 public:
     explicit OpenglRender(QWidget *parent = nullptr);
     ~OpenglRender() override;
 
-    bool isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) override;
-    QSharedPointer<Frame> convertSupported_pix_fmt(QSharedPointer<Frame> frame) override;
+    auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool override;
+    auto convertSupported_pix_fmt(QSharedPointer<Frame> frame) -> QSharedPointer<Frame> override;
     QVector<AVPixelFormat> supportedOutput_pix_fmt() override;
 
     void resetAllFrame() override;
 
-    QWidget *widget() override;
+    auto widget() -> QWidget * override;
 
 protected:
     void initializeGL() override;

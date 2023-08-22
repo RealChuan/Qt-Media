@@ -41,8 +41,6 @@ public:
 
     ~HardWareDecodePrivate() { hw_pix_fmt = AV_PIX_FMT_NONE; }
 
-    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
-
     HardWareDecode *q_ptr;
 
     QVector<AVHWDeviceType> hwDeviceTypes = Utils::getCurrentHWDeviceTypes();
@@ -99,7 +97,7 @@ Frame *HardWareDecode::transFromGpu(Frame *in, bool &ok)
     if (!isVaild()) {
         return inPtr.release();
     }
-    if (in->format() != hw_pix_fmt) {
+    if (in->avFrame()->format != hw_pix_fmt) {
         return inPtr.release();
     }
     std::unique_ptr<Frame> outPtr(new Frame);
@@ -110,7 +108,7 @@ Frame *HardWareDecode::transFromGpu(Frame *in, bool &ok)
     //auto ret = av_hwframe_map(out->avFrame(), in->avFrame(), 0);
     if (ret < 0) {
         qWarning() << "Error transferring the data to system memory";
-        d_ptr->setError(ret);
+        SET_ERROR_CODE(ret);
         ok = false;
         return inPtr.release();
     }

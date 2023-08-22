@@ -2,6 +2,7 @@
 #include "audiodecoder.h"
 #include "avcontextinfo.h"
 #include "averrormanager.hpp"
+#include "codeccontext.h"
 #include "formatcontext.h"
 #include "packet.h"
 #include "subtitledecoder.h"
@@ -351,13 +352,13 @@ void Player::checkSeek()
     latchPtr->wait();
     d_ptr->formatCtx->seek(d_ptr->seekTime);
     if (d_ptr->videoInfo->isIndexVaild()) {
-        d_ptr->videoInfo->flush();
+        d_ptr->videoInfo->codecCtx()->flush();
     }
     if (d_ptr->audioInfo->isIndexVaild()) {
-        d_ptr->audioInfo->flush();
+        d_ptr->audioInfo->codecCtx()->flush();
     }
     if (d_ptr->subtitleInfo->isIndexVaild()) {
-        d_ptr->subtitleInfo->flush();
+        d_ptr->subtitleInfo->codecCtx()->flush();
     }
     d_ptr->seek = false;
     blockSignals(false);

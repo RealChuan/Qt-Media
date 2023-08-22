@@ -18,40 +18,39 @@ class FFMPEG_EXPORT Frame
 public:
     Frame();
     Frame(const Frame &other);
-    Frame(Frame &&other);
+    Frame(Frame &&other) noexcept;
     ~Frame();
 
-    Frame &operator=(const Frame &other);
-    Frame &operator=(Frame &&other);
+    auto operator=(const Frame &other) -> Frame &;
+    auto operator=(Frame &&other) noexcept -> Frame &;
 
     void copyPropsFrom(Frame *src);
 
-    bool isKey();
+    auto isKey() -> bool;
 
     void unref();
 
-    bool imageAlloc(const QSize &size, AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA, int align = 1);
+    auto imageAlloc(const QSize &size, AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA, int align = 1)
+        -> bool;
     void freeImageAlloc();
 
     void setPictType(AVPictureType type);
 
     void setPts(double pts);
-    double pts();
+    auto pts() -> double;
 
     void setDuration(double duration);
-    double duration();
+    auto duration() -> double;
 
-    int format();
+    auto toImage() -> QImage; // maybe null
 
-    void setAVFrameNull();
+    auto getBuffer() -> bool;
 
-    QImage toImage(); // maybe null
+    void destroyFrame();
 
-    bool getBuffer();
+    auto avFrame() -> AVFrame *;
 
-    AVFrame *avFrame();
-
-    static Frame *fromQImage(const QImage &image);
+    static auto fromQImage(const QImage &image) -> Frame *;
 
 private:
     class FramePrivate;

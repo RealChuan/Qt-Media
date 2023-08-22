@@ -19,7 +19,7 @@ class FFMPEG_EXPORT Transcode : public QThread
     Q_OBJECT
 public:
     explicit Transcode(QObject *parent = nullptr);
-    ~Transcode();
+    ~Transcode() override;
 
     void setUseGpuDecode(bool useGpu);
 
@@ -40,21 +40,21 @@ public:
     void setCrf(int crf);
 
     void setPreset(const QString &preset);
-    QString preset() const;
-    QStringList presets() const;
+    [[nodiscard]] auto preset() const -> QString;
+    [[nodiscard]] auto presets() const -> QStringList;
 
     void setTune(const QString &tune);
-    QString tune() const;
-    QStringList tunes() const;
+    [[nodiscard]] auto tune() const -> QString;
+    [[nodiscard]] auto tunes() const -> QStringList;
 
     void setProfile(const QString &profile);
-    QString profile() const;
-    QStringList profiles() const;
+    [[nodiscard]] auto profile() const -> QString;
+    [[nodiscard]] auto profiles() const -> QStringList;
 
     void startTranscode();
     void stopTranscode();
 
-    float fps();
+    auto fps() -> float;
 
 signals:
     void error(const Ffmpeg::AVError &avError);

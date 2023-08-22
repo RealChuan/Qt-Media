@@ -18,11 +18,9 @@ namespace Ffmpeg {
 class VideoFrameConverter::VideoFrameConverterPrivate
 {
 public:
-    VideoFrameConverterPrivate(QObject *parent)
-        : owner(parent)
+    VideoFrameConverterPrivate(VideoFrameConverter *q)
+        : q_ptr(q)
     {}
-
-    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
 
     inline void debugMessage()
     {
@@ -40,7 +38,7 @@ public:
 #endif
     }
 
-    QObject *owner;
+    VideoFrameConverter *q_ptr;
 
     struct SwsContext *swsContext = nullptr;
     AVPixelFormat src_pix_fmt = AVPixelFormat::AV_PIX_FMT_NONE;
@@ -127,7 +125,7 @@ int VideoFrameConverter::scale(Frame *in, Frame *out)
                          outFrame->data,
                          outFrame->linesize);
     if (ret < 0) {
-        d_ptr->setError(ret);
+        SET_ERROR_CODE(ret);
     }
     outFrame->width = d_ptr->dstSize.width();
     outFrame->height = d_ptr->dstSize.height();

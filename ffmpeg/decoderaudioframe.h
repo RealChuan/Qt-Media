@@ -21,7 +21,7 @@ public:
     void stopDecoder() override;
 
     void pause(bool state) override;
-    bool isPause();
+    auto isPause() -> bool;
 
     void setVolume(qreal volume);
 
@@ -46,9 +46,9 @@ private:
     void checkSpeed(QElapsedTimer &timer, qint64 &pauseTime);
 
     void writeToDevice(QByteArray &audioBuf);
-    QAudioFormat resetAudioOutput();
+    auto resetAudioOutput() -> QAudioFormat;
 
-    struct DecoderAudioFramePrivate;
+    class DecoderAudioFramePrivate;
     QScopedPointer<DecoderAudioFramePrivate> d_ptr;
 };
 

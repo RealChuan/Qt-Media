@@ -17,17 +17,16 @@ namespace Ffmpeg {
 class HardWareEncode::HardWareEncodePrivate
 {
 public:
-    HardWareEncodePrivate(QObject *parent)
-        : owner(parent)
+    HardWareEncodePrivate(HardWareEncode *q)
+        : q_ptr(q)
     {
-        bufferRef = new BufferRef(owner);
+        bufferRef = new BufferRef(q_ptr);
     }
 
     ~HardWareEncodePrivate() {}
 
-    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
+    HardWareEncode *q_ptr;
 
-    QObject *owner;
     QVector<AVHWDeviceType> hwDeviceTypes = Utils::getCurrentHWDeviceTypes();
     AVHWDeviceType hwDeviceType = AV_HWDEVICE_TYPE_NONE;
     BufferRef *bufferRef;
@@ -117,7 +116,7 @@ QSharedPointer<Frame> HardWareEncode::transToGpu(CodecContext *codecContext,
     auto err = av_hwframe_get_buffer(avctx->hw_frames_ctx, hw_frame, 0);
     if (err < 0) {
         ok = false;
-        d_ptr->setError(err);
+        SET_ERROR_CODE(err);
         return inPtr;
     }
     if (!hw_frame->hw_frames_ctx) {
@@ -126,7 +125,7 @@ QSharedPointer<Frame> HardWareEncode::transToGpu(CodecContext *codecContext,
     }
     if ((err = av_hwframe_transfer_data(hw_frame, sw_frame, 0)) < 0) {
         ok = false;
-        d_ptr->setError(err);
+        SET_ERROR_CODE(err);
         return inPtr;
     }
     outPtr->copyPropsFrom(inPtr.data());

@@ -47,7 +47,7 @@ void VideoRender::setFrame(QSharedPointer<Frame> frame)
         return;
     }
 
-    if (!isSupportedOutput_pix_fmt(AVPixelFormat(frame->format()))) {
+    if (!isSupportedOutput_pix_fmt(AVPixelFormat(avFrame->format))) {
         frame = convertSupported_pix_fmt(frame);
     }
     updateFrame(frame);

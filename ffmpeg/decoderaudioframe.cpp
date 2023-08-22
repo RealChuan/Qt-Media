@@ -11,8 +11,16 @@
 
 namespace Ffmpeg {
 
-struct DecoderAudioFrame::DecoderAudioFramePrivate
+class DecoderAudioFrame::DecoderAudioFramePrivate
 {
+public:
+    explicit DecoderAudioFramePrivate(DecoderAudioFrame *q)
+        : q_ptr(q)
+    {}
+    ~DecoderAudioFramePrivate() = default;
+
+    DecoderAudioFrame *q_ptr;
+
     QScopedPointer<QAudioSink> audioSinkPtr;
     QIODevice *audioDevice = nullptr;
     qreal volume = 0.5;
@@ -32,12 +40,12 @@ struct DecoderAudioFrame::DecoderAudioFramePrivate
 
 DecoderAudioFrame::DecoderAudioFrame(QObject *parent)
     : Decoder<Frame *>(parent)
-    , d_ptr(new DecoderAudioFramePrivate)
+    , d_ptr(new DecoderAudioFramePrivate(this))
 {
     buildConnect();
 }
 
-DecoderAudioFrame::~DecoderAudioFrame() {}
+DecoderAudioFrame::~DecoderAudioFrame() = default;
 
 void DecoderAudioFrame::stopDecoder()
 {

@@ -44,7 +44,7 @@ void setMediaClock(double value)
     g_meidaClock.store(value);
 }
 
-double mediaClock()
+auto mediaClock() -> double
 {
     return g_meidaClock.load();
 }
@@ -57,7 +57,7 @@ void setMediaSpeed(double speed)
     g_mediaSpeed.store(speed);
 }
 
-double mediaSpeed()
+auto mediaSpeed() -> double
 {
     return g_mediaSpeed.load();
 }

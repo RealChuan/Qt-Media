@@ -13,15 +13,14 @@ namespace Ffmpeg {
 class BufferRef::BufferRefPrivate
 {
 public:
-    BufferRefPrivate(QObject *parent)
-        : owner(parent)
+    BufferRefPrivate(BufferRef *q)
+        : q_ptr(q)
     {}
 
     ~BufferRefPrivate() { av_buffer_unref(&bufferRef); }
 
-    void setError(int errorCode) { AVErrorManager::instance()->setErrorCode(errorCode); }
+    BufferRef *q_ptr;
 
-    QObject *owner;
     AVBufferRef *bufferRef = nullptr;
 };
 
@@ -37,7 +36,7 @@ bool BufferRef::hwdeviceCtxCreate(AVHWDeviceType hwDeviceType)
     auto ret = av_hwdevice_ctx_create(&d_ptr->bufferRef, hwDeviceType, nullptr, nullptr, 0);
     if (ret < 0) {
         qWarning() << "Failed to create specified HW device.";
-        d_ptr->setError(ret);
+        SET_ERROR_CODE(ret);
         return false;
     }
     return true;
@@ -58,11 +57,7 @@ BufferRef *BufferRef::hwframeCtxAlloc()
 bool BufferRef::hwframeCtxInit()
 {
     auto ret = av_hwframe_ctx_init(d_ptr->bufferRef);
-    if (ret < 0) {
-        d_ptr->setError(ret);
-        return false;
-    }
-    return true;
+    ERROR_RETURN(ret)
 }
 
 AVBufferRef *BufferRef::ref()

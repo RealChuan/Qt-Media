@@ -10,7 +10,7 @@ class AudioFifo : public QObject
 {
 public:
     explicit AudioFifo(CodecContext *ctx, QObject *parent = nullptr);
-    ~AudioFifo();
+    ~AudioFifo() override;
 
     bool realloc(int nb_samples);
 

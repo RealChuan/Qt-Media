@@ -51,7 +51,7 @@ public:
         }
         videoInfoPtr->openCodec(); // 软解
         formatCtxPtr->seek(m_timestamp);
-        videoInfoPtr->flush();
+        videoInfoPtr->codecCtx()->flush();
         formatCtxPtr->discardStreamExcluded({-1, m_videoIndex, -1});
 
         loop(formatCtxPtr.data(), videoInfoPtr.data());

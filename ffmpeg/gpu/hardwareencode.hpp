@@ -19,15 +19,15 @@ public:
     explicit HardWareEncode(QObject *parent = nullptr);
     ~HardWareEncode();
 
-    bool initEncoder(const AVCodec *encoder);
-    bool initHardWareDevice(CodecContext *codecContext);
+    auto initEncoder(const AVCodec *encoder) -> bool;
+    auto initHardWareDevice(CodecContext *codecContext) -> bool;
     QSharedPointer<Frame> transToGpu(CodecContext *codecContext,
                                      QSharedPointer<Frame> inPtr,
                                      bool &ok);
 
-    AVPixelFormat swFormat() const;
+    [[nodiscard]] AVPixelFormat swFormat() const;
 
-    bool isVaild();
+    auto isVaild() -> bool;
 
 private:
     class HardWareEncodePrivate;

@@ -12,15 +12,15 @@ public:
     explicit AudioFrameConverter(CodecContext *codecCtx,
                                  QAudioFormat &format,
                                  QObject *parent = nullptr);
-    ~AudioFrameConverter();
+    ~AudioFrameConverter() override;
 
-    QByteArray convert(Frame *frame);
+    auto convert(Frame *frame) -> QByteArray;
 
 private:
     class AudioFrameConverterPrivate;
     QScopedPointer<AudioFrameConverterPrivate> d_ptr;
 };
 
-QAudioFormat getAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize);
+auto getAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize) -> QAudioFormat;
 
 } // namespace Ffmpeg

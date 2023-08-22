@@ -10,11 +10,12 @@ namespace Ffmpeg {
 class DecoderVideoFrame::DecoderVideoFramePrivate
 {
 public:
-    DecoderVideoFramePrivate(QObject *parent)
-        : owner(parent)
+    explicit DecoderVideoFramePrivate(DecoderVideoFrame *q)
+        : q_ptr(q)
     {}
 
-    QObject *owner;
+    DecoderVideoFrame *q_ptr;
+
     bool pause = false;
     QMutex mutex;
     QWaitCondition waitCondition;

@@ -9,7 +9,7 @@ namespace Ffmpeg {
 class AudioDecoder::AudioDecoderPrivate
 {
 public:
-    AudioDecoderPrivate(AudioDecoder *q)
+    explicit AudioDecoderPrivate(AudioDecoder *q)
         : q_ptr(q)
     {
         decoderAudioFrame = new DecoderAudioFrame(q_ptr);

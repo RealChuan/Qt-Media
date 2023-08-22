@@ -15,11 +15,11 @@ public:
     explicit HardWareDecode(QObject *parent = nullptr);
     ~HardWareDecode();
 
-    bool initPixelFormat(const AVCodec *decoder);
-    bool initHardWareDevice(CodecContext *codecContext);
-    Frame *transFromGpu(Frame *in, bool &ok);
+    auto initPixelFormat(const AVCodec *decoder) -> bool;
+    auto initHardWareDevice(CodecContext *codecContext) -> bool;
+    auto transFromGpu(Frame *in, bool &ok) -> Frame *;
 
-    bool isVaild();
+    auto isVaild() -> bool;
 
 private:
     class HardWareDecodePrivate;
