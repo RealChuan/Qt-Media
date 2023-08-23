@@ -221,6 +221,7 @@ void FormatContext::close()
 
 bool FormatContext::avio_open()
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     if (d_ptr->formatCtx->oformat->flags & AVFMT_NOFILE) {
         return false;
     }
@@ -245,24 +246,28 @@ void FormatContext::avio_close()
 
 bool FormatContext::writeHeader()
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     auto ret = avformat_write_header(d_ptr->formatCtx, nullptr);
     ERROR_RETURN(ret)
 }
 
 bool FormatContext::writePacket(Packet *packet)
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     auto ret = av_interleaved_write_frame(d_ptr->formatCtx, packet->avPacket());
     ERROR_RETURN(ret)
 }
 
 bool FormatContext::writeTrailer()
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     auto ret = av_write_trailer(d_ptr->formatCtx);
     ERROR_RETURN(ret)
 }
 
 bool FormatContext::findStream()
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     //获取音视频流数据信息
     int ret = avformat_find_stream_info(d_ptr->formatCtx, nullptr);
     if (ret < 0) {
@@ -299,11 +304,13 @@ QMap<int, QString> FormatContext::subtitleMap() const
 
 int FormatContext::findBestStreamIndex(AVMediaType type) const
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     return av_find_best_stream(d_ptr->formatCtx, type, -1, -1, nullptr, 0);
 }
 
 void FormatContext::discardStreamExcluded(QVector<int> indexs)
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     for (uint i = 0; i < d_ptr->formatCtx->nb_streams; i++) {
         if (indexs.contains(i)) {
             continue;
@@ -320,6 +327,7 @@ AVStream *FormatContext::stream(int index)
 
 AVStream *FormatContext::createStream()
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     auto stream = avformat_new_stream(d_ptr->formatCtx, nullptr);
     if (!stream) {
         qWarning() << "Failed allocating output stream\n";
@@ -336,6 +344,7 @@ bool FormatContext::readFrame(Packet *packet)
 
 bool FormatContext::checkPktPlayRange(Packet *packet)
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     auto avPacket = packet->avPacket();
     /* check if packet is in play range specified by user, then queue, otherwise discard */
     auto start_time = AV_NOPTS_VALUE;
@@ -353,11 +362,13 @@ bool FormatContext::checkPktPlayRange(Packet *packet)
 
 AVRational FormatContext::guessFrameRate(int index) const
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     return guessFrameRate(d_ptr->formatCtx->streams[index]);
 }
 
 AVRational FormatContext::guessFrameRate(AVStream *stream) const
 {
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
     return av_guess_frame_rate(d_ptr->formatCtx, stream, nullptr);
 }
 
@@ -372,17 +383,16 @@ bool FormatContext::seekFirstFrame()
     ERROR_RETURN(ret)
 }
 
-bool FormatContext::seek(int64_t timestamp)
+bool FormatContext::seek(qint64 timestamp)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     Q_ASSERT(timestamp >= 0);
-    int64_t seek_min = timestamp - Seek_Offset;
+    auto seek_min = timestamp - Seek_Offset;
     if (seek_min < 0) {
         seek_min = 0;
     }
-    int64_t seek_max = timestamp + Seek_Offset;
-    // qDebug() << "seek: " << timestamp;
-    // AV_TIME_BASE
+    auto seek_max = timestamp + Seek_Offset;
+    // qDebug() << "Seek To:" << seek_min << timestamp << seek_max;
     int ret = avformat_seek_file(d_ptr->formatCtx,
                                  -1,
                                  seek_min * AV_TIME_BASE,
@@ -392,7 +402,7 @@ bool FormatContext::seek(int64_t timestamp)
     ERROR_RETURN(ret)
 }
 
-bool FormatContext::seek(int index, int64_t timestamp)
+bool FormatContext::seek(int index, qint64 timestamp)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     int ret = av_seek_frame(d_ptr->formatCtx, index, timestamp, AVSEEK_FLAG_BACKWARD);
@@ -413,7 +423,7 @@ AVFormatContext *FormatContext::avFormatContext()
 
 qint64 FormatContext::duration() const
 {
-    return d_ptr->isOpen ? (d_ptr->formatCtx->duration / 1000) : 0;
+    return d_ptr->isOpen ? d_ptr->formatCtx->duration : 0;
 }
 
 QImage &FormatContext::coverImage() const

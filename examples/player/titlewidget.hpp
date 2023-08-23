@@ -8,7 +8,7 @@ class TitleWidget : public QWidget
     Q_OBJECT
 public:
     explicit TitleWidget(QWidget *parent = nullptr);
-    ~TitleWidget();
+    ~TitleWidget() override;
 
     void setText(const QString &text);
     void setAutoHide(int msec);

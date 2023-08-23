@@ -2,6 +2,7 @@
 
 #include <3rdparty/breakpad.hpp>
 #include <3rdparty/qtsingleapplication/qtsingleapplication.h>
+#include <ffmpeg/videorender/videorendercreate.hpp>
 #include <utils/logasync.h>
 #include <utils/utils.h>
 
@@ -23,7 +24,7 @@ void setAppInfo()
     qApp->setWindowIcon(qApp->style()->standardIcon(QStyle::SP_MediaPlay));
 }
 
-int main(int argc, char *argv[])
+auto main(int argc, char *argv[]) -> int
 {
 #if defined(Q_OS_WIN) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     if (!qEnvironmentVariableIsSet("QT_OPENGL"))
@@ -32,6 +33,9 @@ int main(int argc, char *argv[])
     qputenv("QSG_RHI_BACKEND", "opengl");
 #endif
     Utils::setHighDpiEnvironmentVariable();
+
+    Ffmpeg::VideoRenderCreate::setSurfaceFormatVersion(3, 3);
+
     SharedTools::QtSingleApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     SharedTools::QtSingleApplication app(AppName, argc, argv);
     if (app.isRunning()) {

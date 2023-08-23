@@ -70,17 +70,17 @@ void DecoderVideoFrame::runDecoder()
             msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
-        double pts = framePtr->pts();
+        auto pts = framePtr->pts();
         if (m_seekTime > pts) {
             continue;
         }
-        double diff = (pts - mediaClock()) * 1000;
-        if (diff < Drop_Milliseconds || (mediaSpeed() > 1.0 && qAbs(diff) > UnWait_Milliseconds)) {
+        auto diff = pts - mediaClock();
+        if (diff < Drop_Microseconds || (mediaSpeed() > 1.0 && qAbs(diff) > UnWait_Microseconds)) {
             dropNum++;
             continue;
-        } else if (diff > UnWait_Milliseconds && !m_seek && !d_ptr->pause) {
+        } else if (diff > UnWait_Microseconds && !m_seek && !d_ptr->pause) {
             QMutexLocker locker(&d_ptr->mutex);
-            d_ptr->waitCondition.wait(&d_ptr->mutex, diff);
+            d_ptr->waitCondition.wait(&d_ptr->mutex, diff / 1000);
         }
         // 略慢于音频
         renderFrame(framePtr);

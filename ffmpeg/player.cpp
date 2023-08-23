@@ -158,7 +158,7 @@ void Player::setAudioTrack(const QString &text) // 停止再播放最简单 之�
         return;
     }
     emit audioTrackChanged(text);
-    onSeek(mediaClock());
+    onSeek(mediaClock() / AV_TIME_BASE);
     onPlay();
 }
 
@@ -184,7 +184,7 @@ void Player::setSubtitleTrack(const QString &text)
         return;
     }
     emit subTrackChanged(text);
-    onSeek(mediaClock());
+    onSeek(mediaClock() / AV_TIME_BASE);
     onPlay();
 }
 
@@ -346,9 +346,10 @@ void Player::checkSeek()
     timer.start();
 
     QSharedPointer<Utils::CountDownLatch> latchPtr(new Utils::CountDownLatch(3));
-    d_ptr->videoDecoder->seek(d_ptr->seekTime, latchPtr);
-    d_ptr->audioDecoder->seek(d_ptr->seekTime, latchPtr);
-    d_ptr->subtitleDecoder->seek(d_ptr->seekTime, latchPtr);
+    auto seekMicroseconds = d_ptr->seekTime * AV_TIME_BASE;
+    d_ptr->videoDecoder->seek(seekMicroseconds, latchPtr);
+    d_ptr->audioDecoder->seek(seekMicroseconds, latchPtr);
+    d_ptr->subtitleDecoder->seek(seekMicroseconds, latchPtr);
     latchPtr->wait();
     d_ptr->formatCtx->seek(d_ptr->seekTime);
     if (d_ptr->videoInfo->isIndexVaild()) {
@@ -432,7 +433,7 @@ void Player::setUseGpuDecode(bool on)
         }
         emit subTrackChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
     }
-    onSeek(mediaClock());
+    onSeek(mediaClock() / AV_TIME_BASE);
     onPlay();
 }
 
@@ -453,7 +454,7 @@ qint64 Player::duration() const
 
 qint64 Player::position() const
 {
-    return mediaClock() * 1000;
+    return mediaClock();
 }
 
 qint64 Player::fames() const

@@ -50,7 +50,7 @@ public:
             return;
         }
         videoInfoPtr->openCodec(); // 软解
-        formatCtxPtr->seek(m_timestamp);
+        formatCtxPtr->seek(m_timestamp / AV_TIME_BASE);
         videoInfoPtr->codecCtx()->flush();
         formatCtxPtr->discardStreamExcluded({-1, m_videoIndex, -1});
 
@@ -263,8 +263,8 @@ void VideoPreviewWidget::paintTime(QPainter *painter)
     painter->setPen(Qt::white);
     painter->setOpacity(0.8);
     auto timeStr = QString("%1/%2").arg(
-        QTime::fromMSecsSinceStartOfDay(d_ptr->timestamp * 1000).toString("hh:mm:ss"),
-        QTime::fromMSecsSinceStartOfDay(d_ptr->duration * 1000).toString("hh:mm:ss"));
+        QTime::fromMSecsSinceStartOfDay(d_ptr->timestamp / 1000).toString("hh:mm:ss"),
+        QTime::fromMSecsSinceStartOfDay(d_ptr->duration / 1000).toString("hh:mm:ss"));
     painter->drawText(rect().adjusted(0, 5, 0, 0), timeStr, Qt::AlignTop | Qt::AlignHCenter);
 }
 

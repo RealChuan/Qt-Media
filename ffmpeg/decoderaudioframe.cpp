@@ -133,27 +133,26 @@ void DecoderAudioFrame::runDecoder()
             if (!timer.isValid()) {
                 timer.start();
             }
-            double pts = framePtr->pts();
+            auto pts = framePtr->pts();
             if (m_seekTime > pts) {
                 continue;
             }
             if (d_ptr->firstSeekFrame) {
-                d_ptr->seekTime = pts * 1000;
+                d_ptr->seekTime = pts;
                 d_ptr->firstSeekFrame = false;
                 timer.restart();
             }
 
-            QByteArray audioBuf = audioConverter.convert(framePtr.data());
-            double diff = pts * 1000 - d_ptr->seekTime
-                          - (timer.elapsed() - pauseTime) * d_ptr->speed;
+            auto audioBuf = audioConverter.convert(framePtr.data());
+            auto diff = pts - d_ptr->seekTime - (timer.elapsed() - pauseTime) * d_ptr->speed * 1000;
             {
                 auto cleanup = qScopeGuard([&] {
                     setMediaClock(pts);
-                    emit positionChanged(pts * 1000);
+                    emit positionChanged(pts);
                 });
-                if (diff > UnWait_Milliseconds && !m_seek && !d_ptr->pause) {
+                if (qAbs(diff) > UnWait_Microseconds && !m_seek && !d_ptr->pause) {
                     QMutexLocker locker(&d_ptr->mutex);
-                    d_ptr->waitCondition.wait(&d_ptr->mutex, diff);
+                    d_ptr->waitCondition.wait(&d_ptr->mutex, diff / 1000);
                     //msleep(diff);
                 } else if (d_ptr->speed > 1.0) {
                     continue; // speed > 1.0 drop
@@ -176,27 +175,26 @@ void DecoderAudioFrame::runDecoder()
                 msleep(Sleep_Queue_Empty_Milliseconds);
                 continue;
             }
-            double pts = framePtr->pts();
+            auto pts = framePtr->pts();
             if (m_seekTime > pts) {
                 continue;
             }
 
             QByteArray audioBuf = audioConverter.convert(framePtr.data());
             double diff = 0;
-            auto pts_ms = pts * 1000;
             if (lastPts > 0) {
-                diff = pts_ms - lastPts - (durationTimer.elapsed() - pauseTime) * d_ptr->speed;
+                diff = pts - lastPts - (durationTimer.elapsed() - pauseTime) * d_ptr->speed * 1000;
             }
-            lastPts = pts_ms;
+            lastPts = pts;
             {
                 auto cleanup = qScopeGuard([&] {
                     durationTimer.restart();
                     setMediaClock(pts);
-                    emit positionChanged(pts_ms);
+                    emit positionChanged(pts);
                 });
                 if (diff > 0 && !m_seek && !d_ptr->pause) {
                     QMutexLocker locker(&d_ptr->mutex);
-                    d_ptr->waitCondition.wait(&d_ptr->mutex, diff);
+                    d_ptr->waitCondition.wait(&d_ptr->mutex, diff / 1000);
                     //msleep(diff);
                 } else if (d_ptr->speed > 1.0) {
                     continue; // speed > 1.0 drop

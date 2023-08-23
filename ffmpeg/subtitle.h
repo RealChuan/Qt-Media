@@ -23,9 +23,9 @@ public:
     explicit Subtitle(QObject *parent = nullptr);
     ~Subtitle() override;
 
-    void setDefault(double pts, double duration, const QString &text);
-    auto pts() -> double;
-    auto duration() -> double;
+    void setDefault(qint64 pts, qint64 duration, const QString &text); // microseconds
+    auto pts() -> qint64;                                              // microseconds
+    auto duration() -> qint64;                                         // microseconds
 
     void parse(SwsContext *swsContext);
     [[nodiscard]] auto texts() const -> QByteArrayList;

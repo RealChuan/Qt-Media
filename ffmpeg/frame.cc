@@ -139,24 +139,24 @@ void Frame::unref()
     av_frame_unref(d_ptr->frame);
 }
 
-void Frame::setPts(double pts)
+void Frame::setPts(qint64 pts)
 {
-    d_ptr->frame->pts = pts * AV_TIME_BASE;
+    d_ptr->frame->pts = pts;
 }
 
-auto Frame::pts() -> double
+auto Frame::pts() -> qint64
 {
-    return d_ptr->frame->pts / (double) AV_TIME_BASE;
+    return d_ptr->frame->pts;
 }
 
-void Frame::setDuration(double duration)
+void Frame::setDuration(qint64 duration)
 {
-    d_ptr->frame->pkt_duration = duration * AV_TIME_BASE;
+    d_ptr->frame->pkt_duration = duration;
 }
 
-auto Frame::duration() -> double
+auto Frame::duration() -> qint64
 {
-    return d_ptr->frame->pkt_duration / (double) AV_TIME_BASE;
+    return d_ptr->frame->pkt_duration;
 }
 
 void Frame::destroyFrame()
@@ -175,7 +175,7 @@ auto Frame::toImage() -> QImage
     auto format = VideoFormat::qFormatMaps.value(static_cast<AVPixelFormat>(d_ptr->frame->format),
                                                  QImage::Format_Invalid);
     if (format == QImage::Format_Invalid) {
-        return QImage();
+        return {};
     }
 
     QImage image(d_ptr->frame->data[0],

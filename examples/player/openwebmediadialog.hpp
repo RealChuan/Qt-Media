@@ -7,10 +7,10 @@ class OpenWebMediaDialog : public QDialog
 {
     Q_OBJECT
 public:
-    OpenWebMediaDialog(QWidget *parent = nullptr);
-    ~OpenWebMediaDialog();
+    explicit OpenWebMediaDialog(QWidget *parent = nullptr);
+    ~OpenWebMediaDialog() override;
 
-    QString url() const;
+    [[nodiscard]] auto url() const -> QString;
 
 private slots:
     void onOk();

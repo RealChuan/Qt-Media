@@ -40,8 +40,8 @@ public:
 
     auto mediaState() -> MediaState;
 
-    [[nodiscard]] auto duration() const -> qint64; // ms
-    [[nodiscard]] auto position() const -> qint64; // ms
+    [[nodiscard]] auto duration() const -> qint64; // microsecond
+    [[nodiscard]] auto position() const -> qint64; // microsecond
     [[nodiscard]] auto fames() const -> qint64;
     [[nodiscard]] auto resolutionRatio() const -> QSize;
     [[nodiscard]] auto fps() const -> double;
@@ -56,11 +56,11 @@ public:
 public slots:
     void onPlay();
     void onStop();
-    void onSeek(int timestamp); // s
+    void onSeek(int timestamp); // second
 
 signals:
-    void durationChanged(qint64 duration); // ms
-    void positionChanged(qint64 position); // ms
+    void durationChanged(qint64 duration); // microsecond
+    void positionChanged(qint64 position); // microsecond
     void stateChanged(Ffmpeg::Player::MediaState);
     void audioTracksChanged(const QStringList &tracks);
     void audioTrackChanged(const QString &track);

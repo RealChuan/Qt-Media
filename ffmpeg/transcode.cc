@@ -742,7 +742,7 @@ void Transcode::loop()
             Ffmpeg::calculateTime(packetPtr.data(),
                                   d_ptr->transcodeContexts.at(stream_index)
                                       ->decContextInfoPtr.data());
-            emit progressChanged(packetPtr->pts() * 1000 / duration);
+            emit progressChanged(packetPtr->pts() / duration);
             if (transcodeCtx->decContextInfoPtr->mediaType() == AVMEDIA_TYPE_VIDEO) {
                 d_ptr->fps = d_ptr->fpsPtr->calculate();
             }

@@ -13,13 +13,13 @@ public:
     explicit WidgetRender(QWidget *parent = nullptr);
     ~WidgetRender() override;
 
-    bool isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) override;
-    QSharedPointer<Frame> convertSupported_pix_fmt(QSharedPointer<Frame> frame) override;
+    auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool override;
+    auto convertSupported_pix_fmt(QSharedPointer<Frame> frame) -> QSharedPointer<Frame> override;
     QVector<AVPixelFormat> supportedOutput_pix_fmt() override;
 
     void resetAllFrame() override;
 
-    QWidget *widget() override;
+    auto widget() -> QWidget * override;
 
 protected:
     void paintEvent(QPaintEvent *event) override;

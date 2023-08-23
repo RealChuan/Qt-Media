@@ -22,10 +22,10 @@ public:
     void addFont(const QByteArray &name, const QByteArray &data);
 
     void addSubtitleEvent(const QByteArray &data);
-    void addSubtitleEvent(const QByteArray &data, double pts, double duration);
-    void addSubtitleChunk(const QByteArray &data, double pts, double duration);
+    void addSubtitleEvent(const QByteArray &data, qint64 pts, qint64 duration);
+    void addSubtitleChunk(const QByteArray &data, qint64 pts, qint64 duration);
 
-    void getRGBAData(AssDataInfoList &list, double pts);
+    void getRGBAData(AssDataInfoList &list, qint64 pts);
 
     void flushASSEvents();
 

@@ -8,11 +8,15 @@ class ControlWidget : public QWidget
     Q_OBJECT
 public:
     explicit ControlWidget(QWidget *parent = nullptr);
-    ~ControlWidget();
+    ~ControlWidget() override;
 
-    int position() const;
-    int duration() const;
-    QPoint sliderGlobalPos() const;
+    void setPosition(int value);
+    [[nodiscard]] auto position() const -> int;
+
+    void setDuration(int value);
+    [[nodiscard]] auto duration() const -> int;
+
+    [[nodiscard]] auto sliderGlobalPos() const -> QPoint;
 
     void setSourceFPS(float fps);
     void setCurrentFPS(float fps);
@@ -21,11 +25,9 @@ public:
     void setPlayButtonChecked(bool checked);
 
     void setVolume(int value);
-    int volume() const;
+    [[nodiscard]] auto volume() const -> int;
 
 public slots:
-    void onDurationChanged(double value);
-    void onPositionChanged(double value);
     void onReadSpeedChanged(qint64 speed);
 
 signals:

@@ -23,19 +23,19 @@ public:
     };
 
     explicit PlaylistModel(QObject *parent = nullptr);
-    ~PlaylistModel();
+    ~PlaylistModel() override;
 
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+    [[nodiscard]] auto rowCount(const QModelIndex &parent = QModelIndex()) const -> int override;
+    [[nodiscard]] auto columnCount(const QModelIndex &parent = QModelIndex()) const -> int override;
 
-    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
-    QModelIndex parent(const QModelIndex &child) const override;
+    [[nodiscard]] auto index(int row, int column, const QModelIndex &parent = QModelIndex()) const -> QModelIndex override;
+    [[nodiscard]] auto parent(const QModelIndex &child) const -> QModelIndex override;
 
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    [[nodiscard]] auto data(const QModelIndex &index, int role = Qt::DisplayRole) const -> QVariant override;
 
-    QMediaPlaylist *playlist() const;
+    [[nodiscard]] auto playlist() const -> QMediaPlaylist *;
 
-    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::DisplayRole) override;
+    auto setData(const QModelIndex &index, const QVariant &value, int role = Qt::DisplayRole) -> bool override;
 
 private slots:
     void beginInsertItems(int start, int end);

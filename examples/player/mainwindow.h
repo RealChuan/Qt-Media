@@ -12,7 +12,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 public:
     explicit MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    ~MainWindow() override;
 
 private slots:
     void onError(const Ffmpeg::AVError &averror);
@@ -30,7 +30,7 @@ private slots:
     void jump(const QModelIndex &index);
 
 protected:
-    bool eventFilter(QObject *watched, QEvent *event) override;
+    auto eventFilter(QObject *watched, QEvent *event) -> bool override;
     void keyPressEvent(QKeyEvent *ev) override;
 
 private:

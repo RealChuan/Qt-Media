@@ -7,9 +7,9 @@ class PlayListView : public QListView
 {
 public:
     explicit PlayListView(QWidget *parent = nullptr);
-    ~PlayListView();
+    ~PlayListView() override;
 
-    QModelIndexList selectedAllIndexs() const;
+    [[nodiscard]] auto selectedAllIndexs() const -> QModelIndexList;
 };
 
 #endif // PLAYLISTVIEW_HPP

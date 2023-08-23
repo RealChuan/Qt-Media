@@ -9,7 +9,9 @@ namespace VideoRenderCreate {
 
 enum RenderType { Widget = 1, Opengl };
 
-FFMPEG_EXPORT VideoRender *create(RenderType type);
+FFMPEG_EXPORT auto create(RenderType type) -> VideoRender *;
+
+FFMPEG_EXPORT void setSurfaceFormatVersion(int major, int minor);
 
 } // namespace VideoRenderCreate
 

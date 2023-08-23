@@ -14,7 +14,7 @@
 
 #include <QtWidgets>
 
-static bool isPlaylist(const QUrl &url) // Check for ".m3u" playlists.
+static auto isPlaylist(const QUrl &url) -> bool // Check for ".m3u" playlists.
 {
     if (!url.isLocalFile()) {
         return false;
@@ -52,6 +52,7 @@ public:
         //playlistView->setMaximumWidth(250);
 
         menu = new QMenu(q_ptr);
+        menu->setParent(q_ptr);
         audioTracksMenu = new QMenu(QObject::tr("Select audio track"), q_ptr);
         subTracksMenu = new QMenu(QObject::tr("Select subtitle track"), q_ptr);
         audioTracksGroup = new QActionGroup(q_ptr);
@@ -186,8 +187,8 @@ void MainWindow::onStarted()
 void MainWindow::onFinished()
 {
     d_ptr->fpsTimer->stop();
-    d_ptr->controlWidget->onDurationChanged(0);
-    d_ptr->controlWidget->onPositionChanged(0);
+    d_ptr->controlWidget->setDuration(0);
+    d_ptr->controlWidget->setPosition(0);
 }
 
 void MainWindow::onHoverSlider(int pos, int value)
@@ -211,8 +212,9 @@ void MainWindow::onHoverSlider(int pos, int value)
     }
     d_ptr->videoPreviewWidgetPtr->startPreview(filePath,
                                                index,
-                                               value,
-                                               d_ptr->controlWidget->duration());
+                                               static_cast<qint64>(value) * AV_TIME_BASE,
+                                               static_cast<qint64>(d_ptr->controlWidget->duration())
+                                                   * AV_TIME_BASE);
 
     int w = 320;
     int h = 200;
@@ -400,11 +402,11 @@ void MainWindow::buildConnect()
     connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::durationChanged,
             d_ptr->controlWidget,
-            [this](qint64 duration) { d_ptr->controlWidget->onDurationChanged(duration / 1000); });
+            [this](qint64 duration) { d_ptr->controlWidget->setDuration(duration / AV_TIME_BASE); });
     connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::positionChanged,
             d_ptr->controlWidget,
-            [this](qint64 position) { d_ptr->controlWidget->onPositionChanged(position / 1000); });
+            [this](qint64 position) { d_ptr->controlWidget->setPosition(position / AV_TIME_BASE); });
     connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::audioTracksChanged,
             d_ptr->controlWidget,

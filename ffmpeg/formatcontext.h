@@ -52,8 +52,8 @@ public:
     void discardStreamExcluded(QVector<int> indexs);
 
     auto seekFirstFrame() -> bool;
-    auto seek(int64_t timestamp) -> bool;            // second
-    auto seek(int index, int64_t timestamp) -> bool; // second
+    auto seek(qint64 timestamp) -> bool;            // second
+    auto seek(int index, qint64 timestamp) -> bool; // second
 
     auto readFrame(Packet *packet) -> bool;
 
@@ -62,7 +62,7 @@ public:
     [[nodiscard]] auto guessFrameRate(int index) const -> AVRational;
     auto guessFrameRate(AVStream *stream) const -> AVRational;
 
-    [[nodiscard]] auto duration() const -> qint64; // millisecond
+    [[nodiscard]] auto duration() const -> qint64; // microsecond
 
     [[nodiscard]] auto coverImage() const -> QImage &;
 

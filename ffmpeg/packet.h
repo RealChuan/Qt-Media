@@ -27,14 +27,14 @@ public:
 
     void unref();
 
-    void setPts(double pts);
-    auto pts() -> double;
+    void setPts(qint64 pts); // microseconds
+    auto pts() -> qint64;
 
-    void setDuration(double duration);
-    auto duration() -> double;
+    void setDuration(qint64 duration); // microseconds
+    auto duration() -> qint64;
 
     void setStreamIndex(int index);
-    [[nodiscard]] [[nodiscard]] auto streamIndex() const -> int;
+    [[nodiscard]] auto streamIndex() const -> int;
 
     void rescaleTs(const AVRational &srcTimeBase, const AVRational &dstTimeBase);
 

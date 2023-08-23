@@ -56,7 +56,7 @@ Packet::Packet(Packet &&other) noexcept
 
 Packet::~Packet() = default;
 
-Packet &Packet::operator=(const Packet &other)
+auto Packet::operator=(const Packet &other) -> Packet &
 {
     if (this != &other) {
         d_ptr->packet = av_packet_clone(other.d_ptr->packet);
@@ -69,7 +69,7 @@ Packet &Packet::operator=(const Packet &other)
     return *this;
 }
 
-Packet &Packet::operator=(Packet &&other) noexcept
+auto Packet::operator=(Packet &&other) noexcept -> Packet &
 {
     if (this != &other) {
         d_ptr->packet = other.d_ptr->packet;
@@ -79,7 +79,7 @@ Packet &Packet::operator=(Packet &&other) noexcept
     return *this;
 }
 
-bool Packet::isValid()
+auto Packet::isValid() -> bool
 {
     if (nullptr == d_ptr->packet) {
         return false;
@@ -87,7 +87,7 @@ bool Packet::isValid()
     return d_ptr->packet->size > 0;
 }
 
-bool Packet::isKey()
+auto Packet::isKey() -> bool
 {
     Q_ASSERT(nullptr != d_ptr->packet);
     return d_ptr->packet->flags & AV_PKT_FLAG_KEY;
@@ -99,28 +99,28 @@ void Packet::unref()
     av_packet_unref(d_ptr->packet);
 }
 
-void Packet::setPts(double pts)
+void Packet::setPts(qint64 pts)
 {
     Q_ASSERT(nullptr != d_ptr->packet);
-    d_ptr->packet->pts = pts * AV_TIME_BASE;
+    d_ptr->packet->pts = pts;
 }
 
-double Packet::pts()
+auto Packet::pts() -> qint64
 {
     Q_ASSERT(nullptr != d_ptr->packet);
-    return d_ptr->packet->pts / (double) AV_TIME_BASE;
+    return d_ptr->packet->pts;
 }
 
-void Packet::setDuration(double duration)
+void Packet::setDuration(qint64 duration)
 {
     Q_ASSERT(nullptr != d_ptr->packet);
-    d_ptr->packet->duration = duration * AV_TIME_BASE;
+    d_ptr->packet->duration = duration;
 }
 
-double Packet::duration()
+auto Packet::duration() -> qint64
 {
     Q_ASSERT(nullptr != d_ptr->packet);
-    return d_ptr->packet->duration / (double) AV_TIME_BASE;
+    return d_ptr->packet->duration;
 }
 
 void Packet::setStreamIndex(int index)
@@ -129,7 +129,7 @@ void Packet::setStreamIndex(int index)
     d_ptr->packet->stream_index = index;
 }
 
-int Packet::streamIndex() const
+auto Packet::streamIndex() const -> int
 {
     Q_ASSERT(nullptr != d_ptr->packet);
     return d_ptr->packet->stream_index;
@@ -141,7 +141,7 @@ void Packet::rescaleTs(const AVRational &srcTimeBase, const AVRational &dstTimeB
     av_packet_rescale_ts(d_ptr->packet, srcTimeBase, dstTimeBase);
 }
 
-AVPacket *Packet::avPacket()
+auto Packet::avPacket() -> AVPacket *
 {
     Q_ASSERT(nullptr != d_ptr->packet);
     return d_ptr->packet;

@@ -6,7 +6,7 @@ namespace Ffmpeg {
 
 namespace VideoRenderCreate {
 
-VideoRender *create(RenderType type)
+auto create(RenderType type) -> VideoRender *
 {
     VideoRender *render = nullptr;
     switch (type) {
@@ -15,6 +15,14 @@ VideoRender *create(RenderType type)
     default: render = new WidgetRender; break;
     }
     return render;
+}
+
+void setSurfaceFormatVersion(int major, int minor)
+{
+    auto surfaceFormat = QSurfaceFormat::defaultFormat();
+    surfaceFormat.setVersion(major, minor);
+    surfaceFormat.setProfile(QSurfaceFormat::CoreProfile);
+    QSurfaceFormat::setDefaultFormat(surfaceFormat);
 }
 
 } // namespace VideoRenderCreate

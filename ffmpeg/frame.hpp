@@ -36,11 +36,11 @@ public:
 
     void setPictType(AVPictureType type);
 
-    void setPts(double pts);
-    auto pts() -> double;
+    void setPts(qint64 pts); // microseconds
+    auto pts() -> qint64;
 
-    void setDuration(double duration);
-    auto duration() -> double;
+    void setDuration(qint64 duration); // microseconds
+    auto duration() -> qint64;
 
     auto toImage() -> QImage; // maybe null
 

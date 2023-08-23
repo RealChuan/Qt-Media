@@ -101,15 +101,15 @@ void DecoderSubtitleFrame::runDecoder()
             subtitlePtr->resolveAss(assPtr.data());
             subtitlePtr->generateImage();
         }
-        double diffPts = (pts - mediaClock()) * 1000;
-        double difDuration = diffPts + duration * 1000;
-        if (difDuration < Drop_Milliseconds
-            || (mediaSpeed() > 1.0 && qAbs(difDuration) > UnWait_Milliseconds)) {
+        auto diffPts = pts - mediaClock();
+        auto difDuration = diffPts + duration;
+        if (difDuration < Drop_Microseconds
+            || (mediaSpeed() > 1.0 && qAbs(difDuration) > UnWait_Microseconds)) {
             dropNum++;
             continue;
-        } else if (diffPts > UnWait_Milliseconds && !m_seek && !d_ptr->pause) {
+        } else if (diffPts > UnWait_Microseconds && !m_seek && !d_ptr->pause) {
             QMutexLocker locker(&d_ptr->mutex);
-            d_ptr->waitCondition.wait(&d_ptr->mutex, diffPts);
+            d_ptr->waitCondition.wait(&d_ptr->mutex, diffPts / 1000);
         }
         // 略慢于音频
         renderFrame(subtitlePtr);

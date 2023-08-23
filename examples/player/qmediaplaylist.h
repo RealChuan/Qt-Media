@@ -27,39 +27,39 @@ public:
     Q_ENUM(Error)
 
     explicit QMediaPlaylist(QObject *parent = nullptr);
-    virtual ~QMediaPlaylist();
+    ~QMediaPlaylist() override;
 
-    PlaybackMode playbackMode() const;
+    [[nodiscard]] auto playbackMode() const -> PlaybackMode;
     void setPlaybackMode(PlaybackMode mode);
 
-    int currentIndex() const;
-    QUrl currentMedia() const;
+    [[nodiscard]] auto currentIndex() const -> int;
+    [[nodiscard]] auto currentMedia() const -> QUrl;
 
-    int nextIndex(int steps = 1) const;
-    int previousIndex(int steps = 1) const;
+    [[nodiscard]] auto nextIndex(int steps = 1) const -> int;
+    [[nodiscard]] auto previousIndex(int steps = 1) const -> int;
 
-    QUrl media(int index) const;
+    [[nodiscard]] auto media(int index) const -> QUrl;
 
-    int mediaCount() const;
-    bool isEmpty() const;
+    [[nodiscard]] auto mediaCount() const -> int;
+    [[nodiscard]] auto isEmpty() const -> bool;
 
     void addMedia(const QUrl &content);
     void addMedia(const QList<QUrl> &items);
-    bool insertMedia(int index, const QUrl &content);
-    bool insertMedia(int index, const QList<QUrl> &items);
-    bool moveMedia(int from, int to);
-    bool removeMedia(int pos);
-    bool removeMedia(int start, int end);
+    auto insertMedia(int index, const QUrl &content) -> bool;
+    auto insertMedia(int index, const QList<QUrl> &items) -> bool;
+    auto moveMedia(int from, int to) -> bool;
+    auto removeMedia(int pos) -> bool;
+    auto removeMedia(int start, int end) -> bool;
     void clear();
 
     void load(const QUrl &location, const char *format = nullptr);
     void load(QIODevice *device, const char *format = nullptr);
 
-    bool save(const QUrl &location, const char *format = nullptr) const;
-    bool save(QIODevice *device, const char *format) const;
+    auto save(const QUrl &location, const char *format = nullptr) const -> bool;
+    auto save(QIODevice *device, const char *format) const -> bool;
 
-    Error error() const;
-    QString errorString() const;
+    [[nodiscard]] auto error() const -> Error;
+    [[nodiscard]] auto errorString() const -> QString;
 
 public Q_SLOTS:
     void shuffle();

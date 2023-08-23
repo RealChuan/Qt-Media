@@ -19,9 +19,10 @@ void calculateTime(Frame *frame, AVContextInfo *contextInfo, FormatContext *form
     // 当前帧显示时间戳
     auto avFrame = frame->avFrame();
     auto pts = (avFrame->pts == AV_NOPTS_VALUE) ? NAN : avFrame->pts * av_q2d(tb);
-    frame->setDuration(duration);
-    frame->setPts(pts);
-    //qDebug() << duration << pts;
+    frame->setDuration(duration * AV_TIME_BASE);
+    frame->setPts(pts * AV_TIME_BASE);
+    // qDebug() << "Frame duration:" << duration << "pts:" << pts << "tb:" << tb.num << tb.den
+    //          << "frame_rate:" << frame_rate.num << frame_rate.den;
 }
 
 void calculateTime(Packet *packet, AVContextInfo *contextInfo)
@@ -32,19 +33,19 @@ void calculateTime(Packet *packet, AVContextInfo *contextInfo)
     auto duration = avPacket->duration * av_q2d(tb);
     // 当前帧显示时间戳
     auto pts = (avPacket->pts == AV_NOPTS_VALUE) ? NAN : avPacket->pts * av_q2d(tb);
-    packet->setDuration(duration);
-    packet->setPts(pts);
-    //qDebug() << duration << pts;
+    packet->setDuration(duration * AV_TIME_BASE);
+    packet->setPts(pts * AV_TIME_BASE);
+    // qDebug() << "Packet duration:" << duration << "pts:" << pts << "tb:" << tb.num << tb.den;
 }
 
-static std::atomic<double> g_meidaClock;
+static std::atomic<qint64> g_meidaClock;
 
-void setMediaClock(double value)
+void setMediaClock(qint64 value)
 {
     g_meidaClock.store(value);
 }
 
-auto mediaClock() -> double
+auto mediaClock() -> qint64
 {
     return g_meidaClock.load();
 }

@@ -14,14 +14,14 @@ class FFMPEG_EXPORT VideoPreviewWidget : public QWidget
     Q_OBJECT
 public:
     explicit VideoPreviewWidget(QWidget *parent = nullptr);
-    ~VideoPreviewWidget();
+    ~VideoPreviewWidget() override;
 
     void startPreview(const QString &filepath, int videoIndex, qint64 timestamp, qint64 duration);
     void clearAllTask();
 
     void setDisplayImage(QSharedPointer<Ffmpeg::Frame> frame, const QImage &image, qint64 pts);
 
-    int currentTaskId() const;
+    [[nodiscard]] auto currentTaskId() const -> int;
 
 protected:
     void paintEvent(QPaintEvent *event) override;

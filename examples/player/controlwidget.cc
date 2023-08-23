@@ -196,17 +196,17 @@ int ControlWidget::volume() const
     return d_ptr->volumeSlider->value();
 }
 
-void ControlWidget::onDurationChanged(double value)
+void ControlWidget::setDuration(int value)
 {
     auto str = QTime::fromMSecsSinceStartOfDay(value * 1000).toString("hh:mm:ss");
     d_ptr->durationLabel->setText(str);
     d_ptr->slider->blockSignals(true);
     d_ptr->slider->setRange(0, value);
     d_ptr->slider->blockSignals(false);
-    onPositionChanged(0);
+    setPosition(0);
 }
 
-void ControlWidget::onPositionChanged(double value)
+void ControlWidget::setPosition(int value)
 {
     auto str = QTime::fromMSecsSinceStartOfDay(value * 1000).toString("hh:mm:ss");
     d_ptr->positionLabel->setText(str);

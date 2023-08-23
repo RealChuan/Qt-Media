@@ -53,13 +53,15 @@ public:
             }
             av_freep(&pixels[0]);
         }
-        pts = subtitle.start_display_time / 1000.0;
-        duration = (subtitle.end_display_time - subtitle.start_display_time) / 1000.0;
+        pts = pts + static_cast<qint64>(subtitle.start_display_time) * 1000;
+        duration = static_cast<qint64>(subtitle.end_display_time - subtitle.start_display_time)
+                   * 1000;
     }
 
     void parseText()
     {
-        pts = QString::asprintf("%.2f", pts).toDouble(); // libass只支持0.01秒，还要四舍五入
+        auto timeBase = 10 * 1000; // libass只支持0.01秒，还要四舍五入
+        pts = pts / timeBase * timeBase;
         for (size_t i = 0; i < subtitle.num_rects; i++) {
             auto sub_rect = subtitle.rects[i];
             QByteArray text;
@@ -82,8 +84,8 @@ public:
     Subtitle *q_ptr;
 
     AVSubtitle subtitle;
-    double pts = 0;
-    double duration = 0;
+    qint64 pts = 0;
+    qint64 duration = 0;
     QString text;
 
     Subtitle::Type type = Subtitle::Unknown;
@@ -101,7 +103,7 @@ Subtitle::Subtitle(QObject *parent)
 
 Subtitle::~Subtitle() = default;
 
-void Subtitle::setDefault(double pts, double duration, const QString &text)
+void Subtitle::setDefault(qint64 pts, qint64 duration, const QString &text)
 {
     d_ptr->pts = pts;
     d_ptr->duration = duration;
@@ -129,12 +131,12 @@ auto Subtitle::avSubtitle() -> AVSubtitle *
     return &d_ptr->subtitle;
 }
 
-auto Subtitle::pts() -> double
+auto Subtitle::pts() -> qint64
 {
     return d_ptr->pts;
 }
 
-auto Subtitle::duration() -> double
+auto Subtitle::duration() -> qint64
 {
     return d_ptr->duration;
 }

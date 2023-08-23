@@ -14,16 +14,16 @@
 #define Sleep_Queue_Full_Milliseconds 50
 #define Sleep_Queue_Empty_Milliseconds 10
 #define Max_Frame_Size 25
-#define UnWait_Milliseconds 50
-#define Drop_Milliseconds -100
+#define UnWait_Microseconds (50 * 1000)
+#define Drop_Microseconds (-100 * 1000)
 
 namespace Ffmpeg {
 
 void calculateTime(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext);
 void calculateTime(Packet *packet, AVContextInfo *contextInfo);
 
-void setMediaClock(double value);
-auto mediaClock() -> double;
+void setMediaClock(qint64 value);
+auto mediaClock() -> qint64;
 
 void setMediaSpeed(double speed);
 auto mediaSpeed() -> double;
@@ -65,7 +65,7 @@ public:
 
     virtual void pause(bool state) = 0;
 
-    void seek(qint64 seekTime, QSharedPointer<Utils::CountDownLatch> latchPtr)
+    void seek(qint64 seekTime, QSharedPointer<Utils::CountDownLatch> latchPtr) // microsecond
     {
         assertVaild();
         if (!m_contextInfo->isIndexVaild()) {

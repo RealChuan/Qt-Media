@@ -80,6 +80,8 @@ public:
     ASS_Renderer *ass_renderer;
     ASS_Track *acc_track;
     QSize size;
+
+    const int microToMillon = 1000;
 };
 
 Ass::Ass(QObject *parent)
@@ -130,7 +132,7 @@ void Ass::addSubtitleEvent(const QByteArray &data)
     ass_process_data(d_ptr->acc_track, (char *) data.constData(), data.size());
 }
 
-void Ass::addSubtitleEvent(const QByteArray &data, double pts, double duration)
+void Ass::addSubtitleEvent(const QByteArray &data, qint64 pts, qint64 duration)
 {
     if (data.isEmpty() || pts < 0 || duration < 0) {
         return;
@@ -138,25 +140,28 @@ void Ass::addSubtitleEvent(const QByteArray &data, double pts, double duration)
     int eventID = ass_alloc_event(d_ptr->acc_track);
     ASS_Event *event = &d_ptr->acc_track->events[eventID];
     event->Text = strdup(data.constData());
-    event->Start = pts * 1000;
-    event->Duration = duration * 1000;
+    event->Start = pts / d_ptr->microToMillon;
+    event->Duration = duration / d_ptr->microToMillon;
     event->Style = 0;
     event->ReadOrder = eventID;
 }
 
-void Ass::addSubtitleChunk(const QByteArray &data, double pts, double duration)
+void Ass::addSubtitleChunk(const QByteArray &data, qint64 pts, qint64 duration)
 {
     ass_process_chunk(d_ptr->acc_track,
                       (char *) data.constData(),
                       data.size(),
-                      pts * 1000,
-                      duration * 1000);
+                      pts / d_ptr->microToMillon,
+                      duration / d_ptr->microToMillon);
 }
 
-void Ass::getRGBAData(AssDataInfoList &list, double pts)
+void Ass::getRGBAData(AssDataInfoList &list, qint64 pts)
 {
     int ch;
-    auto img = ass_render_frame(d_ptr->ass_renderer, d_ptr->acc_track, pts * 1000, &ch);
+    auto img = ass_render_frame(d_ptr->ass_renderer,
+                                d_ptr->acc_track,
+                                pts / d_ptr->microToMillon,
+                                &ch);
     while (img) {
         auto rect = QRect(img->dst_x, img->dst_y, img->w, img->h);
         auto rgba = QByteArray(img->w * img->h * sizeof(uint32_t), Qt::Uninitialized);

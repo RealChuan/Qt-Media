@@ -54,12 +54,6 @@ OpenglRender::OpenglRender(QWidget *parent)
     : QOpenGLWidget(parent)
     , d_ptr(new OpenglRenderPrivate(this))
 {
-    QSurfaceFormat surfaceFormat;
-    surfaceFormat.setVersion(3, 3);
-    surfaceFormat.setProfile(QSurfaceFormat::CoreProfile);
-    setFormat(surfaceFormat);
-    QSurfaceFormat::setDefaultFormat(surfaceFormat);
-
     auto format = this->format();
     qInfo() << "OpenGL Version:" << format.minorVersion() << "~" << format.majorVersion();
 }
