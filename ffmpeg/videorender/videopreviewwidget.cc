@@ -50,9 +50,9 @@ public:
             return;
         }
         videoInfoPtr->openCodec(); // 软解
-        formatCtxPtr->seek(m_timestamp / AV_TIME_BASE);
+        formatCtxPtr->seek(m_timestamp);
         videoInfoPtr->codecCtx()->flush();
-        formatCtxPtr->discardStreamExcluded({-1, m_videoIndex, -1});
+        formatCtxPtr->discardStreamExcluded({m_videoIndex});
 
         loop(formatCtxPtr.data(), videoInfoPtr.data());
     }

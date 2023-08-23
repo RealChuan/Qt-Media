@@ -92,12 +92,6 @@ protected:
         runDecoder();
     }
 
-    void seekCodec(qint64 seekTime)
-    {
-        m_formatContext->seek(m_contextInfo->index(), seekTime / m_contextInfo->calTimebase());
-        m_contextInfo->codecCtx()->flush();
-    }
-
     void seekFinish() { m_seek = false; }
 
     void assertVaild()

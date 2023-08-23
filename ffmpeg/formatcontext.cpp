@@ -109,6 +109,8 @@ public:
     QMap<int, QString> audioMap;
     QMap<int, QString> subtitleMap;
     QImage coverImage;
+
+    const qint64 seekOffset = 2 * AV_TIME_BASE;
 };
 
 FormatContext::FormatContext(QObject *parent)
@@ -387,18 +389,16 @@ bool FormatContext::seek(qint64 timestamp)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     Q_ASSERT(timestamp >= 0);
-    auto seek_min = timestamp - Seek_Offset;
-    if (seek_min < 0) {
-        seek_min = 0;
+    auto seekMin = timestamp - d_ptr->seekOffset;
+    if (seekMin < 0) {
+        seekMin = 0;
     }
-    auto seek_max = timestamp + Seek_Offset;
-    // qDebug() << "Seek To:" << seek_min << timestamp << seek_max;
-    int ret = avformat_seek_file(d_ptr->formatCtx,
-                                 -1,
-                                 seek_min * AV_TIME_BASE,
-                                 timestamp * AV_TIME_BASE,
-                                 seek_max * AV_TIME_BASE,
-                                 0);
+    auto seekMax = timestamp + d_ptr->seekOffset;
+    if (seekMax > d_ptr->formatCtx->duration) {
+        seekMax = d_ptr->formatCtx->duration;
+    }
+    // qDebug() << "seekMin:" << seekMin << "seekMax:" << seekMax << "timestamp:" << timestamp;
+    auto ret = avformat_seek_file(d_ptr->formatCtx, -1, seekMin, timestamp, seekMax, 0);
     ERROR_RETURN(ret)
 }
 

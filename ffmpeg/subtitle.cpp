@@ -54,8 +54,8 @@ public:
             av_freep(&pixels[0]);
         }
         pts = pts + static_cast<qint64>(subtitle.start_display_time) * 1000;
-        duration = static_cast<qint64>(subtitle.end_display_time - subtitle.start_display_time)
-                   * 1000;
+        duration = subtitle.end_display_time - subtitle.start_display_time;
+        duration = duration * 1000;
     }
 
     void parseText()

@@ -9,8 +9,6 @@ extern "C" {
 #include <libavutil/avutil.h>
 }
 
-#define Seek_Offset 2 // S
-
 struct AVStream;
 struct AVFormatContext;
 
@@ -52,8 +50,8 @@ public:
     void discardStreamExcluded(QVector<int> indexs);
 
     auto seekFirstFrame() -> bool;
-    auto seek(qint64 timestamp) -> bool;            // second
-    auto seek(int index, qint64 timestamp) -> bool; // second
+    auto seek(qint64 timestamp) -> bool;            // microsecond
+    auto seek(int index, qint64 timestamp) -> bool; // microsecond
 
     auto readFrame(Packet *packet) -> bool;
 

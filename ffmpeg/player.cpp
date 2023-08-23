@@ -122,9 +122,10 @@ void Player::onStop()
     setMediaState(MediaState::StoppedState);
 }
 
-void Player::onSeek(int timestamp)
+void Player::seek(qint64 position)
 {
-    qDebug() << "Seek: " << timestamp;
+    qInfo() << "Seek To: "
+            << QTime::fromMSecsSinceStartOfDay(position / 1000).toString("hh:mm:ss.zzz");
 
     if (d_ptr->seek) {
         return;
@@ -133,7 +134,7 @@ void Player::onSeek(int timestamp)
         blockSignals(true);
     }
     d_ptr->seek = true;
-    d_ptr->seekTime = timestamp;
+    d_ptr->seekTime = position;
 }
 
 void Player::setAudioTrack(const QString &text) // 停止再播放最简单 之后在优化
@@ -158,7 +159,7 @@ void Player::setAudioTrack(const QString &text) // 停止再播放最简单 之�
         return;
     }
     emit audioTrackChanged(text);
-    onSeek(mediaClock() / AV_TIME_BASE);
+    seek(mediaClock());
     onPlay();
 }
 
@@ -184,7 +185,7 @@ void Player::setSubtitleTrack(const QString &text)
         return;
     }
     emit subTrackChanged(text);
-    onSeek(mediaClock() / AV_TIME_BASE);
+    seek(mediaClock());
     onPlay();
 }
 
@@ -346,10 +347,9 @@ void Player::checkSeek()
     timer.start();
 
     QSharedPointer<Utils::CountDownLatch> latchPtr(new Utils::CountDownLatch(3));
-    auto seekMicroseconds = d_ptr->seekTime * AV_TIME_BASE;
-    d_ptr->videoDecoder->seek(seekMicroseconds, latchPtr);
-    d_ptr->audioDecoder->seek(seekMicroseconds, latchPtr);
-    d_ptr->subtitleDecoder->seek(seekMicroseconds, latchPtr);
+    d_ptr->videoDecoder->seek(d_ptr->seekTime, latchPtr);
+    d_ptr->audioDecoder->seek(d_ptr->seekTime, latchPtr);
+    d_ptr->subtitleDecoder->seek(d_ptr->seekTime, latchPtr);
     latchPtr->wait();
     d_ptr->formatCtx->seek(d_ptr->seekTime);
     if (d_ptr->videoInfo->isIndexVaild()) {
@@ -364,7 +364,7 @@ void Player::checkSeek()
     d_ptr->seek = false;
     blockSignals(false);
     setMediaState(MediaState::PlayingState);
-    qDebug() << "Seek ElapsedTimer: " << timer.elapsed();
+    qInfo() << "Seek ElapsedTimer: " << timer.elapsed();
     emit seekFinished();
 }
 
@@ -433,7 +433,7 @@ void Player::setUseGpuDecode(bool on)
         }
         emit subTrackChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
     }
-    onSeek(mediaClock() / AV_TIME_BASE);
+    seek(mediaClock());
     onPlay();
 }
 

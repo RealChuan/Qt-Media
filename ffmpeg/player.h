@@ -25,6 +25,8 @@ public:
 
     auto isOpen() -> bool;
 
+    void seek(qint64 position); // microsecond
+
     void setVolume(qreal volume);
 
     void setSpeed(double speed);
@@ -56,7 +58,6 @@ public:
 public slots:
     void onPlay();
     void onStop();
-    void onSeek(int timestamp); // second
 
 signals:
     void durationChanged(qint64 duration); // microsecond

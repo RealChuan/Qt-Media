@@ -75,17 +75,23 @@ public:
     void initShortcut()
     {
         new QShortcut(QKeySequence::MoveToNextChar, q_ptr, q_ptr, [this] {
-            playerPtr->onSeek(controlWidget->position() + 5);
+            qint64 value = controlWidget->position();
+            value += 5;
+            if (value > controlWidget->duration()) {
+                value = controlWidget->duration();
+            }
+            playerPtr->seek(value * AV_TIME_BASE);
             titleWidget->setText(tr("Fast forward: 5 seconds"));
             titleWidget->setAutoHide(3000);
             setTitleWidgetVisible(true);
         });
         new QShortcut(QKeySequence::MoveToPreviousChar, q_ptr, q_ptr, [this] {
-            auto value = controlWidget->position() - 10;
+            qint64 value = controlWidget->position();
+            value -= 10;
             if (value < 0) {
                 value = 0;
             }
-            playerPtr->onSeek(value);
+            playerPtr->seek(value * AV_TIME_BASE);
             titleWidget->setText(tr("Fast return: 10 seconds"));
             titleWidget->setAutoHide(3000);
             setTitleWidgetVisible(true);
@@ -210,11 +216,12 @@ void MainWindow::onHoverSlider(int pos, int value)
                                                      | Qt::Tool | Qt::FramelessWindowHint
                                                      | Qt::WindowStaysOnTopHint);
     }
+    qint64 position = value;
+    qint64 duration = d_ptr->controlWidget->duration();
     d_ptr->videoPreviewWidgetPtr->startPreview(filePath,
                                                index,
-                                               static_cast<qint64>(value) * AV_TIME_BASE,
-                                               static_cast<qint64>(d_ptr->controlWidget->duration())
-                                                   * AV_TIME_BASE);
+                                               position * AV_TIME_BASE,
+                                               duration * AV_TIME_BASE);
 
     int w = 320;
     int h = 200;
@@ -490,7 +497,8 @@ void MainWindow::buildConnect()
     connect(d_ptr->controlWidget, &ControlWidget::hoverPosition, this, &MainWindow::onHoverSlider);
     connect(d_ptr->controlWidget, &ControlWidget::leavePosition, this, &MainWindow::onLeaveSlider);
     connect(d_ptr->controlWidget, &ControlWidget::seek, d_ptr->playerPtr.data(), [this](int value) {
-        d_ptr->playerPtr->onSeek(value);
+        qint64 position = value;
+        d_ptr->playerPtr->seek(position * AV_TIME_BASE);
         d_ptr->titleWidget->setText(
             tr("Fast forward to: %1")
                 .arg(QTime::fromMSecsSinceStartOfDay(value * 1000).toString("hh:mm:ss")));
