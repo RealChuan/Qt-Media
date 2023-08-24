@@ -22,11 +22,17 @@ public:
 };
 
 VideoDecoder::VideoDecoder(QObject *parent)
-    : Decoder<Packet *>(parent)
+    : Decoder<PacketPtr>(parent)
     , d_ptr(new VideoDecoderPrivate(this))
 {}
 
-VideoDecoder::~VideoDecoder() {}
+VideoDecoder::~VideoDecoder() = default;
+
+void VideoDecoder::seek(qint64 seekTime)
+{
+    Decoder<PacketPtr>::seek(seekTime);
+    d_ptr->decoderVideoFrame->seek(seekTime);
+}
 
 void VideoDecoder::pause(bool state)
 {
@@ -43,25 +49,14 @@ void VideoDecoder::runDecoder()
     d_ptr->decoderVideoFrame->startDecoder(m_formatContext, m_contextInfo);
 
     while (m_runing) {
-        if (m_seek) {
-            clear();
-            d_ptr->decoderVideoFrame->seek(m_seekTime, m_latchPtr.lock());
-            seekFinish();
-        }
-
-        QScopedPointer<Packet> packetPtr(m_queue.dequeue());
+        auto packetPtr(m_queue.take());
         if (packetPtr.isNull()) {
-            msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
         auto frames(m_contextInfo->decodeFrame(packetPtr.data()));
         for (auto frame : frames) {
             Ffmpeg::calculateTime(frame, m_contextInfo, m_formatContext);
-            d_ptr->decoderVideoFrame->append(frame);
-        }
-
-        while (m_runing && d_ptr->decoderVideoFrame->size() > Max_Frame_Size && !m_seek) {
-            msleep(Sleep_Queue_Full_Milliseconds);
+            d_ptr->decoderVideoFrame->append(FramePtr(frame));
         }
     }
     while (m_runing && d_ptr->decoderVideoFrame->size() != 0) {

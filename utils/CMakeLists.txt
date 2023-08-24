@@ -1,4 +1,5 @@
 set(PROJECT_SOURCES
+    boundedblockingqueue.hpp
     countdownlatch.cc
     countdownlatch.hpp
     fps.cc
@@ -9,7 +10,6 @@ set(PROJECT_SOURCES
     logasync.h
     osspecificaspects.h
     singleton.hpp
-    taskqueue.h
     utils_global.h
     utils.cpp
     utils.h)

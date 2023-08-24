@@ -8,7 +8,7 @@ namespace Ffmpeg {
 
 class VideoRender;
 
-class DecoderVideoFrame : public Decoder<Frame *>
+class DecoderVideoFrame : public Decoder<FramePtr>
 {
 public:
     explicit DecoderVideoFrame(QObject *parent = nullptr);
@@ -25,7 +25,6 @@ protected:
 
 private:
     void checkPause();
-    void checkSeek();
     void renderFrame(const QSharedPointer<Frame> &framePtr);
 
     class DecoderVideoFramePrivate;

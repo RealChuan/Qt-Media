@@ -11,7 +11,7 @@ class QAudioDevice;
 
 namespace Ffmpeg {
 
-class DecoderAudioFrame : public Decoder<Frame *>
+class DecoderAudioFrame : public Decoder<FramePtr>
 {
     Q_OBJECT
 public:
@@ -19,6 +19,8 @@ public:
     ~DecoderAudioFrame();
 
     void stopDecoder() override;
+
+    void seek(qint64 seekTime) override;
 
     void pause(bool state) override;
     auto isPause() -> bool;
@@ -42,7 +44,6 @@ private:
 
     void checkDefaultAudioOutput(QAudioDevice &audioDevice);
     void checkPause(qint64 &pauseTime);
-    void checkSeek(qint64 &pauseTime);
     void checkSpeed(QElapsedTimer &timer, qint64 &pauseTime);
 
     void writeToDevice(QByteArray &audioBuf);

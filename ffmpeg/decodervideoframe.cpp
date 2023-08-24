@@ -25,7 +25,7 @@ public:
 };
 
 DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
-    : Decoder<Frame *>(parent)
+    : Decoder<FramePtr>(parent)
     , d_ptr(new DecoderVideoFramePrivate(this))
 {}
 
@@ -34,7 +34,7 @@ DecoderVideoFrame::~DecoderVideoFrame() {}
 void DecoderVideoFrame::stopDecoder()
 {
     pause(false);
-    Decoder<Frame *>::stopDecoder();
+    Decoder<FramePtr>::stopDecoder();
 }
 
 void DecoderVideoFrame::pause(bool state)
@@ -63,11 +63,9 @@ void DecoderVideoFrame::runDecoder()
     quint64 dropNum = 0;
     while (m_runing) {
         checkPause();
-        checkSeek();
 
-        QSharedPointer<Frame> framePtr(m_queue.dequeue());
+        auto framePtr(m_queue.take());
         if (framePtr.isNull()) {
-            msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
         auto pts = framePtr->pts();
@@ -78,14 +76,14 @@ void DecoderVideoFrame::runDecoder()
         if (diff < Drop_Microseconds || (mediaSpeed() > 1.0 && qAbs(diff) > UnWait_Microseconds)) {
             dropNum++;
             continue;
-        } else if (diff > UnWait_Microseconds && !m_seek && !d_ptr->pause) {
+        } else if (diff > UnWait_Microseconds && !d_ptr->pause) {
             QMutexLocker locker(&d_ptr->mutex);
             d_ptr->waitCondition.wait(&d_ptr->mutex, diff / 1000);
         }
         // 略慢于音频
         renderFrame(framePtr);
     }
-    qInfo() << dropNum;
+    qInfo() << "Video Drop Num:" << dropNum;
 }
 
 void DecoderVideoFrame::checkPause()
@@ -94,19 +92,6 @@ void DecoderVideoFrame::checkPause()
         QMutexLocker locker(&d_ptr->mutex);
         d_ptr->waitCondition.wait(&d_ptr->mutex);
     }
-}
-
-void DecoderVideoFrame::checkSeek()
-{
-    if (!m_seek) {
-        return;
-    }
-    clear();
-    auto latchPtr = m_latchPtr.lock();
-    if (latchPtr) {
-        latchPtr->countDown();
-    }
-    seekFinish();
 }
 
 void DecoderVideoFrame::renderFrame(const QSharedPointer<Frame> &framePtr)

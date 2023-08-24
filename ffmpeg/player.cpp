@@ -49,13 +49,13 @@ public:
     SubtitleDecoder *subtitleDecoder;
 
     QString filepath;
-    volatile bool isopen = true;
-    volatile bool runing = true;
-    volatile bool seek = false;
+    std::atomic_bool isopen = true;
+    std::atomic_bool runing = true;
+    std::atomic_bool seek = false;
     qint64 seekTime = 0; // seconds
     bool gpuDecode = false;
 
-    volatile Player::MediaState mediaState = Player::MediaState::StoppedState;
+    std::atomic<Player::MediaState> mediaState = Player::MediaState::StoppedState;
 
     QVector<VideoRender *> videoRenders = {};
 };
@@ -303,30 +303,25 @@ void Player::playVideo()
     while (d_ptr->runing) {
         checkSeek();
 
-        std::unique_ptr<Packet> packetPtr(new Packet);
-        if (!d_ptr->formatCtx->readFrame(packetPtr.get())) {
+        PacketPtr packetPtr(new Packet);
+        if (!d_ptr->formatCtx->readFrame(packetPtr.data())) {
             break;
         }
 
         calculateSpeed(elapsedTimer, readSize, packetPtr->avPacket()->size);
 
         auto stream_index = packetPtr->streamIndex();
-        if (!d_ptr->formatCtx->checkPktPlayRange(packetPtr.get())) {
+        if (!d_ptr->formatCtx->checkPktPlayRange(packetPtr.data())) {
         } else if (d_ptr->audioInfo->isIndexVaild()
                    && stream_index == d_ptr->audioInfo->index()) { // 如果是音频数据
-            d_ptr->audioDecoder->append(packetPtr.release());
+            d_ptr->audioDecoder->append(packetPtr);
         } else if (d_ptr->videoInfo->isIndexVaild() && stream_index == d_ptr->videoInfo->index()
                    && !(d_ptr->videoInfo->stream()->disposition
                         & AV_DISPOSITION_ATTACHED_PIC)) { // 如果是视频数据
-            d_ptr->videoDecoder->append(packetPtr.release());
+            d_ptr->videoDecoder->append(packetPtr);
         } else if (d_ptr->subtitleInfo->isIndexVaild()
-                   && stream_index == d_ptr->subtitleInfo->index()) {
-            d_ptr->subtitleDecoder->append(packetPtr.release());
-        }
-        while (d_ptr->runing && !d_ptr->seek
-               && (d_ptr->videoDecoder->size() > Max_Frame_Size
-                   || d_ptr->audioDecoder->size() > Max_Frame_Size)) {
-            msleep(Sleep_Queue_Full_Milliseconds);
+                   && stream_index == d_ptr->subtitleInfo->index()) { // 如果是字幕数据
+            d_ptr->subtitleDecoder->append(packetPtr);
         }
     }
     while (d_ptr->runing && (d_ptr->videoDecoder->size() > 0 || d_ptr->audioDecoder->size() > 0)) {
@@ -347,11 +342,9 @@ void Player::checkSeek()
     QElapsedTimer timer;
     timer.start();
 
-    QSharedPointer<Utils::CountDownLatch> latchPtr(new Utils::CountDownLatch(3));
-    d_ptr->videoDecoder->seek(d_ptr->seekTime, latchPtr);
-    d_ptr->audioDecoder->seek(d_ptr->seekTime, latchPtr);
-    d_ptr->subtitleDecoder->seek(d_ptr->seekTime, latchPtr);
-    latchPtr->wait();
+    d_ptr->videoDecoder->seek(d_ptr->seekTime);
+    d_ptr->audioDecoder->seek(d_ptr->seekTime);
+    d_ptr->subtitleDecoder->seek(d_ptr->seekTime);
     d_ptr->formatCtx->seek(d_ptr->seekTime);
     if (d_ptr->videoInfo->isIndexVaild()) {
         d_ptr->videoInfo->codecCtx()->flush();

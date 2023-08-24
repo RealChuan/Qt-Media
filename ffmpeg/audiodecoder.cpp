@@ -21,7 +21,7 @@ public:
 };
 
 AudioDecoder::AudioDecoder(QObject *parent)
-    : Decoder<Packet *>(parent)
+    : Decoder<PacketPtr>(parent)
     , d_ptr(new AudioDecoderPrivate(this))
 {
     connect(d_ptr->decoderAudioFrame,
@@ -30,7 +30,13 @@ AudioDecoder::AudioDecoder(QObject *parent)
             &AudioDecoder::positionChanged);
 }
 
-AudioDecoder::~AudioDecoder() {}
+AudioDecoder::~AudioDecoder() = default;
+
+void AudioDecoder::seek(qint64 seekTime)
+{
+    Decoder<PacketPtr>::seek(seekTime);
+    d_ptr->decoderAudioFrame->seek(seekTime);
+}
 
 void AudioDecoder::pause(bool state)
 {
@@ -52,25 +58,14 @@ void AudioDecoder::runDecoder()
     d_ptr->decoderAudioFrame->startDecoder(m_formatContext, m_contextInfo);
 
     while (m_runing) {
-        if (m_seek) {
-            clear();
-            d_ptr->decoderAudioFrame->seek(m_seekTime, m_latchPtr.lock());
-            seekFinish();
-        }
-
-        QScopedPointer<Packet> packetPtr(m_queue.dequeue());
+        auto packetPtr(m_queue.take());
         if (packetPtr.isNull()) {
-            msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
         auto frames(m_contextInfo->decodeFrame(packetPtr.data()));
         for (auto frame : frames) {
             Ffmpeg::calculateTime(frame, m_contextInfo, m_formatContext);
-            d_ptr->decoderAudioFrame->append(frame);
-        }
-
-        while (m_runing && d_ptr->decoderAudioFrame->size() > Max_Frame_Size && !m_seek) {
-            msleep(Sleep_Queue_Full_Milliseconds);
+            d_ptr->decoderAudioFrame->append(FramePtr(frame));
         }
     }
     while (m_runing && d_ptr->decoderAudioFrame->size() != 0) {

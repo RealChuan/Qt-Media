@@ -49,6 +49,8 @@ private:
     QScopedPointer<SubtitlePrivate> d_ptr;
 };
 
+using SubtitlePtr = QSharedPointer<Subtitle>;
+
 } // namespace Ffmpeg
 
 #endif // SUBTITLE_H

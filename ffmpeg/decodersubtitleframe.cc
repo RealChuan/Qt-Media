@@ -34,7 +34,7 @@ public:
 };
 
 DecoderSubtitleFrame::DecoderSubtitleFrame(QObject *parent)
-    : Decoder<Subtitle *>(parent)
+    : Decoder<SubtitlePtr>(parent)
     , d_ptr(new DecoderSubtitleFramePrivate(this))
 {}
 
@@ -43,7 +43,7 @@ DecoderSubtitleFrame::~DecoderSubtitleFrame() = default;
 void DecoderSubtitleFrame::stopDecoder()
 {
     pause(false);
-    Decoder<Subtitle *>::stopDecoder();
+    Decoder<SubtitlePtr>::stopDecoder();
 }
 
 void DecoderSubtitleFrame::pause(bool state)
@@ -83,11 +83,9 @@ void DecoderSubtitleFrame::runDecoder()
     quint64 dropNum = 0;
     while (m_runing) {
         checkPause();
-        checkSeek(assPtr.data());
 
-        QSharedPointer<Subtitle> subtitlePtr(m_queue.dequeue());
+        auto subtitlePtr(m_queue.take());
         if (subtitlePtr.isNull()) {
-            msleep(Sleep_Queue_Empty_Milliseconds);
             continue;
         }
         subtitlePtr->setVideoResolutionRatio(d_ptr->videoResolutionRatio);
@@ -95,6 +93,7 @@ void DecoderSubtitleFrame::runDecoder()
         auto pts = subtitlePtr->pts();
         auto duration = subtitlePtr->duration();
         if (m_seekTime > (pts + duration)) {
+            assPtr->flushASSEvents();
             continue;
         }
         if (subtitlePtr->type() == Subtitle::Type::ASS) {
@@ -107,7 +106,7 @@ void DecoderSubtitleFrame::runDecoder()
             || (mediaSpeed() > 1.0 && qAbs(difDuration) > UnWait_Microseconds)) {
             dropNum++;
             continue;
-        } else if (diffPts > UnWait_Microseconds && !m_seek && !d_ptr->pause) {
+        } else if (diffPts > UnWait_Microseconds && !d_ptr->pause) {
             QMutexLocker locker(&d_ptr->mutex);
             d_ptr->waitCondition.wait(&d_ptr->mutex, diffPts / 1000);
         }
@@ -115,7 +114,7 @@ void DecoderSubtitleFrame::runDecoder()
         renderFrame(subtitlePtr);
     }
     sws_freeContext(swsContext);
-    qInfo() << dropNum;
+    qInfo() << "Subtitle Drop Num:" << dropNum;
 }
 
 void DecoderSubtitleFrame::checkPause()
@@ -124,20 +123,6 @@ void DecoderSubtitleFrame::checkPause()
         QMutexLocker locker(&d_ptr->mutex);
         d_ptr->waitCondition.wait(&d_ptr->mutex);
     }
-}
-
-void DecoderSubtitleFrame::checkSeek(Ass *ass)
-{
-    if (!m_seek) {
-        return;
-    }
-    clear();
-    ass->flushASSEvents();
-    auto latchPtr = m_latchPtr.lock();
-    if (latchPtr) {
-        latchPtr->countDown();
-    }
-    seekFinish();
 }
 
 void DecoderSubtitleFrame::renderFrame(const QSharedPointer<Subtitle> &subtitlePtr)

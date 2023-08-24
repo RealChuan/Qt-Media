@@ -4,20 +4,19 @@
 #include <QSharedPointer>
 #include <QThread>
 
-#include <utils/countdownlatch.hpp>
-#include <utils/taskqueue.h>
+#include <utils/boundedblockingqueue.hpp>
 
 #include "avcontextinfo.h"
 #include "codeccontext.h"
 #include "formatcontext.h"
 
 #define Sleep_Queue_Full_Milliseconds 50
-#define Sleep_Queue_Empty_Milliseconds 10
-#define Max_Frame_Size 25
 #define UnWait_Microseconds (50 * 1000)
 #define Drop_Microseconds (-100 * 1000)
 
 namespace Ffmpeg {
+
+static const auto g_frameQueueSize = 25;
 
 void calculateTime(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext);
 void calculateTime(Packet *packet, AVContextInfo *contextInfo);
@@ -34,6 +33,7 @@ class Decoder : public QThread
 public:
     explicit Decoder(QObject *parent = nullptr)
         : QThread(parent)
+        , m_queue(g_frameQueueSize)
     {}
     ~Decoder() override { stopDecoder(); }
 
@@ -49,36 +49,36 @@ public:
     virtual void stopDecoder()
     {
         m_runing = false;
+        clear();
+        wakeup();
         if (isRunning()) {
             quit();
             wait();
         }
-        clear();
         m_seekTime = 0;
     }
 
-    void append(const T &t) { m_queue.enqueue(t); }
+    void append(const T &t) { m_queue.put(t); }
+    void append(const T &&t) { m_queue.put(t); }
 
-    auto size() -> int { return m_queue.size(); }
+    auto size() -> size_t { return m_queue.size(); }
 
-    void clear() { m_queue.clearPoints(); }
+    void clear() { m_queue.clear(); }
+
+    void wakeup() { m_queue.put(T()); }
 
     virtual void pause(bool state) = 0;
 
-    void seek(qint64 seekTime, QSharedPointer<Utils::CountDownLatch> latchPtr) // microsecond
+    virtual void seek(qint64 seekTime) // microsecond
     {
+        clear();
+        m_seekTime = seekTime;
         assertVaild();
         if (!m_contextInfo->isIndexVaild()) {
-            latchPtr->countDown();
             return;
         }
-        m_seek = true;
-        m_seekTime = seekTime;
-        m_latchPtr = latchPtr;
         pause(false);
     }
-
-    auto isSeek() -> bool { return m_seek; }
 
 protected:
     virtual void runDecoder() = 0;
@@ -92,21 +92,17 @@ protected:
         runDecoder();
     }
 
-    void seekFinish() { m_seek = false; }
-
     void assertVaild()
     {
         Q_ASSERT(m_formatContext != nullptr);
         Q_ASSERT(m_contextInfo != nullptr);
     }
 
-    Utils::Queue<T> m_queue;
+    Utils::BoundedBlockingQueue<T> m_queue;
     AVContextInfo *m_contextInfo = nullptr;
     FormatContext *m_formatContext = nullptr;
-    volatile bool m_runing = true;
-    volatile bool m_seek = false;
-    qint64 m_seekTime = 0; // seconds
-    QWeakPointer<Utils::CountDownLatch> m_latchPtr;
+    std::atomic_bool m_runing = true;
+    qint64 m_seekTime = 0; // microsecond
 };
 
 } // namespace Ffmpeg

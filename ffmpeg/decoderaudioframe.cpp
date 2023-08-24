@@ -7,6 +7,7 @@
 #include <QCoreApplication>
 #include <QMediaDevices>
 #include <QMediaFormat>
+#include <QTime>
 #include <QWaitCondition>
 
 namespace Ffmpeg {
@@ -25,21 +26,22 @@ public:
     QIODevice *audioDevice = nullptr;
     qreal volume = 0.5;
 
-    volatile bool pause = false;
+    std::atomic_bool pause = false;
     double speed = 0;
+    qint64 pauseTime;
     QMutex mutex;
     QWaitCondition waitCondition;
 
     qint64 seekTime = 0; // milliseconds
-    volatile bool firstSeekFrame = false;
+    std::atomic_bool firstSeekFrame = false;
 
     QScopedPointer<QMediaDevices> mediaDevicesPtr;
-    volatile bool audioOutputsChanged = false;
-    volatile bool isLocalFile = true;
+    std::atomic_bool audioOutputsChanged = false;
+    std::atomic_bool isLocalFile = true;
 };
 
 DecoderAudioFrame::DecoderAudioFrame(QObject *parent)
-    : Decoder<Frame *>(parent)
+    : Decoder<FramePtr>(parent)
     , d_ptr(new DecoderAudioFramePrivate(this))
 {
     buildConnect();
@@ -50,7 +52,15 @@ DecoderAudioFrame::~DecoderAudioFrame() = default;
 void DecoderAudioFrame::stopDecoder()
 {
     pause(false);
-    Decoder<Frame *>::stopDecoder();
+    Decoder<FramePtr>::stopDecoder();
+}
+
+void DecoderAudioFrame::seek(qint64 seekTime)
+{
+    Decoder<FramePtr>::seek(seekTime);
+    setMediaClock(m_seekTime);
+    d_ptr->firstSeekFrame = true;
+    d_ptr->pauseTime = 0;
 }
 
 void DecoderAudioFrame::pause(bool state)
@@ -112,22 +122,21 @@ void DecoderAudioFrame::onAudioOutputsChanged()
 
 void DecoderAudioFrame::runDecoder()
 {
+    quint64 dropNum = 0;
     QAudioDevice audioDevice(QMediaDevices::defaultAudioOutput());
     auto format = resetAudioOutput();
     d_ptr->seekTime = 0;
+    d_ptr->pauseTime = 0;
     AudioFrameConverter audioConverter(m_contextInfo->codecCtx(), format);
     QElapsedTimer timer;
     if (d_ptr->isLocalFile) { // 音频播放依赖外部时钟，适用于本地文件播放
-        qint64 pauseTime = 0;
         while (m_runing) {
             checkDefaultAudioOutput(audioDevice);
-            checkPause(pauseTime);
-            checkSeek(pauseTime);
-            checkSpeed(timer, pauseTime);
+            checkPause(d_ptr->pauseTime);
+            checkSpeed(timer, d_ptr->pauseTime);
 
-            QScopedPointer<Frame> framePtr(m_queue.dequeue());
+            auto framePtr(m_queue.take());
             if (framePtr.isNull()) {
-                msleep(Sleep_Queue_Empty_Milliseconds);
                 continue;
             }
             if (!timer.isValid()) {
@@ -144,17 +153,24 @@ void DecoderAudioFrame::runDecoder()
             }
 
             auto audioBuf = audioConverter.convert(framePtr.data());
-            auto diff = pts - d_ptr->seekTime - (timer.elapsed() - pauseTime) * d_ptr->speed * 1000;
+            auto diff = pts - d_ptr->seekTime
+                        - (timer.elapsed() - d_ptr->pauseTime) * d_ptr->speed * 1000;
+            // qDebug() << "PTS:"
+            //          << QTime::fromMSecsSinceStartOfDay(pts / 1000).toString("hh:mm:ss.zzz")
+            //          << "SeekTime:"
+            //          << QTime::fromMSecsSinceStartOfDay(d_ptr->seekTime / 1000)
+            //                 .toString("hh:mm:ss.zzz")
+            //          << "Diff:" << diff;
             {
                 auto cleanup = qScopeGuard([&] {
                     setMediaClock(pts);
                     emit positionChanged(pts);
                 });
-                if (qAbs(diff) > UnWait_Microseconds && !m_seek && !d_ptr->pause) {
+                if (qAbs(diff) > UnWait_Microseconds && !d_ptr->pause) {
                     QMutexLocker locker(&d_ptr->mutex);
-                    d_ptr->waitCondition.wait(&d_ptr->mutex, diff / 1000);
-                    //msleep(diff);
+                    d_ptr->waitCondition.wait(&d_ptr->mutex, qAbs(diff) / 1000);
                 } else if (d_ptr->speed > 1.0) {
+                    dropNum++;
                     continue; // speed > 1.0 drop
                 }
             }
@@ -165,25 +181,28 @@ void DecoderAudioFrame::runDecoder()
         qint64 lastPts = 0;
         while (m_runing) {
             checkDefaultAudioOutput(audioDevice);
-            qint64 pauseTime = 0;
-            checkPause(pauseTime);
-            checkSeek(lastPts);
+            checkPause(d_ptr->pauseTime);
             checkSpeed(timer, lastPts);
 
-            QScopedPointer<Frame> framePtr(m_queue.dequeue());
+            auto framePtr(m_queue.take());
             if (framePtr.isNull()) {
-                msleep(Sleep_Queue_Empty_Milliseconds);
                 continue;
             }
             auto pts = framePtr->pts();
             if (m_seekTime > pts) {
                 continue;
             }
+            if (d_ptr->firstSeekFrame) {
+                d_ptr->seekTime = pts;
+                d_ptr->firstSeekFrame = false;
+                lastPts = 0;
+            }
 
-            QByteArray audioBuf = audioConverter.convert(framePtr.data());
+            auto audioBuf = audioConverter.convert(framePtr.data());
             double diff = 0;
             if (lastPts > 0) {
-                diff = pts - lastPts - (durationTimer.elapsed() - pauseTime) * d_ptr->speed * 1000;
+                diff = pts - lastPts
+                       - (durationTimer.elapsed() - d_ptr->pauseTime) * d_ptr->speed * 1000;
             }
             lastPts = pts;
             {
@@ -192,11 +211,11 @@ void DecoderAudioFrame::runDecoder()
                     setMediaClock(pts);
                     emit positionChanged(pts);
                 });
-                if (diff > 0 && !m_seek && !d_ptr->pause) {
+                if (diff > 0 && !d_ptr->pause) {
                     QMutexLocker locker(&d_ptr->mutex);
                     d_ptr->waitCondition.wait(&d_ptr->mutex, diff / 1000);
-                    //msleep(diff);
                 } else if (d_ptr->speed > 1.0) {
+                    dropNum++;
                     continue; // speed > 1.0 drop
                 }
             }
@@ -204,6 +223,7 @@ void DecoderAudioFrame::runDecoder()
         }
     }
     d_ptr->audioSinkPtr.reset();
+    qInfo() << "Audio Drop Num:" << dropNum;
 }
 
 void DecoderAudioFrame::buildConnect()
@@ -245,23 +265,6 @@ void DecoderAudioFrame::checkPause(qint64 &pauseTime)
     }
 }
 
-void DecoderAudioFrame::checkSeek(qint64 &pauseTime)
-{
-    if (!m_seek) {
-        return;
-    }
-    clear();
-    pauseTime = 0;
-    setMediaClock(m_seekTime);
-    d_ptr->seekTime = m_seekTime * 1000;
-    auto latchPtr = m_latchPtr.lock();
-    if (latchPtr) {
-        latchPtr->countDown();
-    }
-    seekFinish();
-    d_ptr->firstSeekFrame = true;
-}
-
 void DecoderAudioFrame::checkSpeed(QElapsedTimer &timer, qint64 &pauseTime)
 {
     auto speed = mediaSpeed();
@@ -279,7 +282,7 @@ void DecoderAudioFrame::writeToDevice(QByteArray &audioBuf)
     if (!d_ptr->audioDevice) {
         return;
     }
-    while (audioBuf.size() > 0 && !m_seek && !d_ptr->pause) {
+    while (audioBuf.size() > 0 && !d_ptr->pause) {
         int byteFree = d_ptr->audioSinkPtr->bytesFree();
         if (byteFree > 0 && byteFree < audioBuf.size()) {
             d_ptr->audioDevice->write(audioBuf.data(), byteFree); // Memory leak

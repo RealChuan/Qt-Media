@@ -9,7 +9,7 @@ namespace Ffmpeg {
 class VideoRender;
 class Ass;
 
-class DecoderSubtitleFrame : public Decoder<Subtitle *>
+class DecoderSubtitleFrame : public Decoder<SubtitlePtr>
 {
 public:
     explicit DecoderSubtitleFrame(QObject *parent = nullptr);
@@ -28,7 +28,6 @@ protected:
 
 private:
     void checkPause();
-    void checkSeek(Ass *ass);
     void renderFrame(const QSharedPointer<Subtitle> &subtitlePtr);
 
     class DecoderSubtitleFramePrivate;

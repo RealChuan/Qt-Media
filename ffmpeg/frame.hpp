@@ -3,6 +3,7 @@
 #include "ffmepg_global.h"
 
 #include <QImage>
+#include <QSharedPointer>
 
 extern "C" {
 #include <libavutil/avutil.h>
@@ -56,5 +57,7 @@ private:
     class FramePrivate;
     QScopedPointer<FramePrivate> d_ptr;
 };
+
+using FramePtr = QSharedPointer<Frame>;
 
 } // namespace Ffmpeg

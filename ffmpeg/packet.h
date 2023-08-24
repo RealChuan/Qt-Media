@@ -45,6 +45,8 @@ private:
     QScopedPointer<PacketPrivate> d_ptr;
 };
 
+using PacketPtr = QSharedPointer<Packet>;
+
 } // namespace Ffmpeg
 
 #endif // PACKET_H

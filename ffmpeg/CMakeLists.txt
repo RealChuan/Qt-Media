@@ -48,6 +48,8 @@ set(PROJECT_SOURCES
     decodersubtitleframe.hpp
     decodervideoframe.cpp
     decodervideoframe.h
+    event.cc
+    event.hpp
     ffmepg_global.h
     ffmpegutils.cc
     ffmpegutils.hpp

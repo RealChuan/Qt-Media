@@ -17,12 +17,12 @@ SOURCES += \
     utils.cpp
 
 HEADERS += \
+    boundedblockingqueue.hpp \
     countdownlatch.hpp \
     fps.hpp \
     hostosinfo.h \
     logasync.h \
     osspecificaspects.h \
     singleton.hpp \
-    taskqueue.h \
     utils_global.h \
     utils.h

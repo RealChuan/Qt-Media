@@ -24,6 +24,7 @@ SOURCES += \
     decoderaudioframe.cpp \
     decodersubtitleframe.cc \
     decodervideoframe.cpp \
+    event.cc \
     ffmpegutils.cc \
     formatcontext.cpp \
     frame.cc \
@@ -49,6 +50,7 @@ HEADERS += \
     decoderaudioframe.h \
     decodersubtitleframe.hpp \
     decodervideoframe.h \
+    event.hpp \
     ffmepg_global.h \
     ffmpegutils.hpp \
     formatcontext.h \

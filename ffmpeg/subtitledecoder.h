@@ -8,11 +8,13 @@ namespace Ffmpeg {
 
 class VideoRender;
 
-class SubtitleDecoder : public Decoder<Packet *>
+class SubtitleDecoder : public Decoder<PacketPtr>
 {
 public:
     explicit SubtitleDecoder(QObject *parent = nullptr);
     ~SubtitleDecoder();
+
+    void seek(qint64 seekTime) override;
 
     void pause(bool state) override;
 

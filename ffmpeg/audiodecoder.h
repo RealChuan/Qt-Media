@@ -6,12 +6,14 @@
 
 namespace Ffmpeg {
 
-class AudioDecoder : public Decoder<Packet *>
+class AudioDecoder : public Decoder<PacketPtr>
 {
     Q_OBJECT
 public:
     explicit AudioDecoder(QObject *parent = nullptr);
     ~AudioDecoder() override;
+
+    void seek(qint64 seekTime) override;
 
     void pause(bool state) override;
 
