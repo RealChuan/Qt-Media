@@ -28,10 +28,12 @@ VideoDecoder::VideoDecoder(QObject *parent)
 
 VideoDecoder::~VideoDecoder() = default;
 
-void VideoDecoder::seek(qint64 seekTime)
+bool VideoDecoder::seek(qint64 seekTime)
 {
-    Decoder<PacketPtr>::seek(seekTime);
-    d_ptr->decoderVideoFrame->seek(seekTime);
+    if (!Decoder<PacketPtr>::seek(seekTime)) {
+        return false;
+    }
+    return d_ptr->decoderVideoFrame->seek(seekTime);
 }
 
 void VideoDecoder::pause(bool state)

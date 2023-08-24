@@ -20,7 +20,7 @@ public:
 
     void stopDecoder() override;
 
-    void seek(qint64 seekTime) override;
+    bool seek(qint64 seekTime) override;
 
     void pause(bool state) override;
     auto isPause() -> bool;

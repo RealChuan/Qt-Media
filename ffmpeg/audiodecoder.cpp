@@ -32,10 +32,12 @@ AudioDecoder::AudioDecoder(QObject *parent)
 
 AudioDecoder::~AudioDecoder() = default;
 
-void AudioDecoder::seek(qint64 seekTime)
+bool AudioDecoder::seek(qint64 seekTime)
 {
-    Decoder<PacketPtr>::seek(seekTime);
-    d_ptr->decoderAudioFrame->seek(seekTime);
+    if (!Decoder<PacketPtr>::seek(seekTime)) {
+        return false;
+    }
+    return d_ptr->decoderAudioFrame->seek(seekTime);
 }
 
 void AudioDecoder::pause(bool state)

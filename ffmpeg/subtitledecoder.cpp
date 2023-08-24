@@ -29,10 +29,12 @@ SubtitleDecoder::SubtitleDecoder(QObject *parent)
 
 SubtitleDecoder::~SubtitleDecoder() = default;
 
-void SubtitleDecoder::seek(qint64 seekTime)
+bool SubtitleDecoder::seek(qint64 seekTime)
 {
-    Decoder<PacketPtr>::seek(seekTime);
-    d_ptr->decoderSubtitleFrame->seek(seekTime);
+    if (!Decoder<PacketPtr>::seek(seekTime)) {
+        return false;
+    }
+    return d_ptr->decoderSubtitleFrame->seek(seekTime);
 }
 
 void SubtitleDecoder::pause(bool state)

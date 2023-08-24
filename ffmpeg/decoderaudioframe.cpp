@@ -55,12 +55,15 @@ void DecoderAudioFrame::stopDecoder()
     Decoder<FramePtr>::stopDecoder();
 }
 
-void DecoderAudioFrame::seek(qint64 seekTime)
+bool DecoderAudioFrame::seek(qint64 seekTime)
 {
-    Decoder<FramePtr>::seek(seekTime);
+    if (!Decoder<FramePtr>::seek(seekTime)) {
+        return false;
+    }
     setMediaClock(m_seekTime);
     d_ptr->firstSeekFrame = true;
     d_ptr->pauseTime = 0;
+    return true;
 }
 
 void DecoderAudioFrame::pause(bool state)

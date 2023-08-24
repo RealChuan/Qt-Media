@@ -14,7 +14,7 @@ public:
     explicit VideoDecoder(QObject *parent = nullptr);
     ~VideoDecoder();
 
-    void seek(qint64 seekTime) override;
+    bool seek(qint64 seekTime) override;
 
     void pause(bool state) override;
 

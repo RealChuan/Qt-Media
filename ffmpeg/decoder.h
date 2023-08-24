@@ -69,15 +69,16 @@ public:
 
     virtual void pause(bool state) = 0;
 
-    virtual void seek(qint64 seekTime) // microsecond
+    virtual bool seek(qint64 seekTime) // microsecond
     {
         clear();
         m_seekTime = seekTime;
         assertVaild();
         if (!m_contextInfo->isIndexVaild()) {
-            return;
+            return false;
         }
         pause(false);
+        return true;
     }
 
 protected:

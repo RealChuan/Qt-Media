@@ -13,7 +13,7 @@ public:
     explicit AudioDecoder(QObject *parent = nullptr);
     ~AudioDecoder() override;
 
-    void seek(qint64 seekTime) override;
+    bool seek(qint64 seekTime) override;
 
     void pause(bool state) override;
 
