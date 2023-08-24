@@ -64,6 +64,8 @@ public:
 
     [[nodiscard]] auto coverImage() const -> QImage &;
 
+    void printFileInfo();
+
     void dumpFormat();
 
     auto avFormatContext() -> AVFormatContext *;

@@ -35,7 +35,7 @@ bool BufferRef::hwdeviceCtxCreate(AVHWDeviceType hwDeviceType)
 {
     auto ret = av_hwdevice_ctx_create(&d_ptr->bufferRef, hwDeviceType, nullptr, nullptr, 0);
     if (ret < 0) {
-        qWarning() << "Failed to create specified HW device.";
+        qWarning() << "Failed to create Gpu device context: " << hwDeviceType;
         SET_ERROR_CODE(ret);
         return false;
     }

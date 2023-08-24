@@ -99,7 +99,6 @@ void Frame::copyPropsFrom(Frame *src)
     d_ptr->frame->key_frame = srcFrame->key_frame;
     d_ptr->frame->width = srcFrame->width;
     d_ptr->frame->height = srcFrame->height;
-    d_ptr->frame->format = srcFrame->format;
 }
 
 auto Frame::imageAlloc(const QSize &size, AVPixelFormat pix_fmt, int align) -> bool

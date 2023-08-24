@@ -78,26 +78,6 @@ public:
         }
     }
 
-    void printMetaData()
-    {
-        AVDictionaryEntry *tag = nullptr;
-        while (nullptr != (tag = av_dict_get(formatCtx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
-            qDebug() << tag->key << QString::fromUtf8(tag->value);
-        }
-    }
-
-    void printInformation()
-    {
-        qInfo() << tr("AV Format Name: ") << formatCtx->iformat->name;
-        QTime time(QTime::fromMSecsSinceStartOfDay(formatCtx->duration / 1000));
-        qInfo() << QObject::tr("Duration:") << time.toString("hh:mm:ss.zzz");
-
-        if (formatCtx->pb) {
-            // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
-            formatCtx->pb->eof_reached = 0;
-        }
-    }
-
     FormatContext *q_ptr;
 
     AVFormatContext *formatCtx = nullptr;
@@ -276,10 +256,10 @@ bool FormatContext::findStream()
         SET_ERROR_CODE(ret);
         return false;
     }
-    qDebug() << "The video file contains the number of stream information:"
-             << d_ptr->formatCtx->nb_streams;
-    d_ptr->printInformation();
-    d_ptr->printMetaData();
+    if (d_ptr->formatCtx->pb) {
+        // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
+        d_ptr->formatCtx->pb->eof_reached = 0;
+    }
     d_ptr->findStreamIndex();
     return true;
 }
@@ -407,6 +387,21 @@ bool FormatContext::seek(int index, qint64 timestamp)
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     int ret = av_seek_frame(d_ptr->formatCtx, index, timestamp, AVSEEK_FLAG_BACKWARD);
     ERROR_RETURN(ret)
+}
+
+void FormatContext::printFileInfo()
+{
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
+    qInfo() << "AV Format Name:" << d_ptr->formatCtx->iformat->name;
+    QTime time(QTime::fromMSecsSinceStartOfDay(d_ptr->formatCtx->duration / 1000));
+    qInfo() << "Duration:" << time.toString("hh:mm:ss.zzz");
+
+    // Metadata
+    AVDictionaryEntry *tag = nullptr;
+    while (nullptr
+           != (tag = av_dict_get(d_ptr->formatCtx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
+        qInfo() << tag->key << QString::fromUtf8(tag->value);
+    }
 }
 
 void FormatContext::dumpFormat()

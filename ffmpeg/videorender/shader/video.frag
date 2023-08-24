@@ -46,10 +46,10 @@ void main()
     } else if (format == 23 || format == 159) { // NV12 P010LE
         yuv.x = texture(tex_y, TexCord).r;
         yuv.y = texture(tex_uv, TexCord).r;
-        yuv.z = texture(tex_uv, TexCord).a;
+        yuv.z = texture(tex_uv, TexCord).g;
     } else if (format == 24) { // NV21
         yuv.x = texture(tex_y, TexCord).r;
-        yuv.y = texture(tex_uv, TexCord).a;
+        yuv.y = texture(tex_uv, TexCord).g;
         yuv.z = texture(tex_uv, TexCord).r;
     } else if (format == 25) { // ARGB
         FragColor = texture(tex_rgba, TexCord).gbar;

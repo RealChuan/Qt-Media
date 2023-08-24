@@ -477,11 +477,11 @@ void OpenglRender::updateNV12()
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureUV);
     glTexImage2D(GL_TEXTURE_2D,
                  0,
-                 GL_LUMINANCE_ALPHA, //GL_RG, GL_LUMINANCE_ALPHA
+                 GL_RG, // GL_RG GL_LUMINANCE_ALPHA
                  frame->width / 2,
                  frame->height / 2,
                  0,
-                 GL_LUMINANCE_ALPHA, //GL_RG, GL_LUMINANCE_ALPHA
+                 GL_RG, // GL_RG GL_LUMINANCE_ALPHA
                  GL_UNSIGNED_BYTE,
                  frame->data[1]);
 }

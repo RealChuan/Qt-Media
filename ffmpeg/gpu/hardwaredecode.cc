@@ -5,7 +5,6 @@
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/ffmpegutils.hpp>
 #include <ffmpeg/frame.hpp>
-#include <ffmpeg/videoframeconverter.hpp>
 
 #include <QDebug>
 
@@ -66,8 +65,7 @@ bool HardWareDecode::initPixelFormat(const AVCodec *decoder)
     }
     for (AVHWDeviceType type : qAsConst(d_ptr->hwDeviceTypes)) {
         hw_pix_fmt = Utils::getPixelFormat(decoder, type);
-        if (hw_pix_fmt != AV_PIX_FMT_NONE
-            && VideoFrameConverter::isSupportedInput_pix_fmt(hw_pix_fmt)) {
+        if (hw_pix_fmt != AV_PIX_FMT_NONE) {
             d_ptr->hwDeviceType = type;
             break;
         }

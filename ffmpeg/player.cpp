@@ -278,6 +278,7 @@ bool Player::initAvCodec()
     }
 
     d_ptr->isopen = true;
+    d_ptr->formatCtx->printFileInfo();
     d_ptr->formatCtx->dumpFormat();
     return true;
 }
