@@ -37,6 +37,8 @@ set(PROJECT_SOURCES
     averror.h
     averrormanager.cc
     averrormanager.hpp
+    clock.cc
+    clock.hpp
     codeccontext.cpp
     codeccontext.h
     colorspace.hpp

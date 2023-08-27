@@ -29,19 +29,6 @@ SubtitleDecoder::SubtitleDecoder(QObject *parent)
 
 SubtitleDecoder::~SubtitleDecoder() = default;
 
-bool SubtitleDecoder::seek(qint64 seekTime)
-{
-    if (!Decoder<PacketPtr>::seek(seekTime)) {
-        return false;
-    }
-    return d_ptr->decoderSubtitleFrame->seek(seekTime);
-}
-
-void SubtitleDecoder::pause(bool state)
-{
-    d_ptr->decoderSubtitleFrame->pause(state);
-}
-
 void SubtitleDecoder::setVideoResolutionRatio(const QSize &size)
 {
     d_ptr->decoderSubtitleFrame->setVideoResolutionRatio(size);

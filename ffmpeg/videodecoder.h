@@ -10,15 +10,17 @@ class VideoRender;
 
 class VideoDecoder : public Decoder<PacketPtr>
 {
+    Q_OBJECT
 public:
     explicit VideoDecoder(QObject *parent = nullptr);
     ~VideoDecoder();
 
-    bool seek(qint64 seekTime) override;
-
-    void pause(bool state) override;
-
     void setVideoRenders(QVector<VideoRender *> videoRenders);
+
+    void setMasterClock();
+
+signals:
+    void positionChanged(qint64 position); // microsecond
 
 protected:
     void runDecoder() override;

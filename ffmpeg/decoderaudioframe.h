@@ -18,19 +18,12 @@ public:
     explicit DecoderAudioFrame(QObject *parent = nullptr);
     ~DecoderAudioFrame();
 
-    void stopDecoder() override;
-
-    bool seek(qint64 seekTime) override;
-
-    void pause(bool state) override;
-    auto isPause() -> bool;
-
     void setVolume(qreal volume);
 
-    void setIsLocalFile(bool isLocalFile);
+    void setMasterClock();
 
 signals:
-    void positionChanged(qint64 position); // ms
+    void positionChanged(qint64 position); // microsecond
 
 private slots:
     void onStateChanged(QAudio::State state);
@@ -43,8 +36,6 @@ private:
     void buildConnect();
 
     void checkDefaultAudioOutput(QAudioDevice &audioDevice);
-    void checkPause(qint64 &pauseTime);
-    void checkSpeed(QElapsedTimer &timer, qint64 &pauseTime);
 
     void writeToDevice(QByteArray &audioBuf);
     auto resetAudioOutput() -> QAudioFormat;

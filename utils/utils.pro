@@ -24,5 +24,6 @@ HEADERS += \
     logasync.h \
     osspecificaspects.h \
     singleton.hpp \
+    threadsafequeue.hpp \
     utils_global.h \
     utils.h

@@ -15,10 +15,6 @@ public:
     explicit DecoderSubtitleFrame(QObject *parent = nullptr);
     ~DecoderSubtitleFrame();
 
-    void stopDecoder() override;
-
-    void pause(bool state) override;
-
     void setVideoResolutionRatio(const QSize &size);
 
     void setVideoRenders(QVector<VideoRender *> videoRenders);
@@ -27,7 +23,6 @@ protected:
     void runDecoder() override;
 
 private:
-    void checkPause();
     void renderFrame(const QSharedPointer<Subtitle> &subtitlePtr);
 
     class DecoderSubtitleFramePrivate;

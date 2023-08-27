@@ -32,27 +32,14 @@ AudioDecoder::AudioDecoder(QObject *parent)
 
 AudioDecoder::~AudioDecoder() = default;
 
-bool AudioDecoder::seek(qint64 seekTime)
-{
-    if (!Decoder<PacketPtr>::seek(seekTime)) {
-        return false;
-    }
-    return d_ptr->decoderAudioFrame->seek(seekTime);
-}
-
-void AudioDecoder::pause(bool state)
-{
-    d_ptr->decoderAudioFrame->pause(state);
-}
-
 void AudioDecoder::setVolume(qreal volume)
 {
     d_ptr->decoderAudioFrame->setVolume(volume);
 }
 
-void AudioDecoder::setIsLocalFile(bool isLocalFile)
+void AudioDecoder::setMasterClock()
 {
-    d_ptr->decoderAudioFrame->setIsLocalFile(isLocalFile);
+    d_ptr->decoderAudioFrame->setMasterClock();
 }
 
 void AudioDecoder::runDecoder()

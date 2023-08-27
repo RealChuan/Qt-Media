@@ -19,6 +19,7 @@ SOURCES += \
     avcontextinfo.cpp \
     averror.cpp \
     averrormanager.cc \
+    clock.cc \
     codeccontext.cpp \
     decoder.cc \
     decoderaudioframe.cpp \
@@ -44,6 +45,7 @@ HEADERS += \
     avcontextinfo.h \
     averror.h \
     averrormanager.hpp \
+    clock.hpp \
     codeccontext.h \
     colorspace.hpp \
     decoder.h \

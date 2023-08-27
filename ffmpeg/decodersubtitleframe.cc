@@ -1,4 +1,5 @@
 #include "decodersubtitleframe.hpp"
+#include "clock.hpp"
 #include "codeccontext.h"
 
 #include <subtitle/ass.hpp>
@@ -10,6 +11,7 @@
 
 extern "C" {
 #include <libavcodec/avcodec.h>
+#include <libavutil/time.h>
 #include <libswscale/swscale.h>
 }
 
@@ -20,11 +22,14 @@ class DecoderSubtitleFrame::DecoderSubtitleFramePrivate
 public:
     explicit DecoderSubtitleFramePrivate(DecoderSubtitleFrame *q)
         : q_ptr(q)
-    {}
+    {
+        clock = new Clock(q);
+    }
 
     DecoderSubtitleFrame *q_ptr;
 
-    bool pause = false;
+    Clock *clock;
+
     QMutex mutex;
     QWaitCondition waitCondition;
     QSize videoResolutionRatio = QSize(1280, 720);
@@ -39,24 +44,6 @@ DecoderSubtitleFrame::DecoderSubtitleFrame(QObject *parent)
 {}
 
 DecoderSubtitleFrame::~DecoderSubtitleFrame() = default;
-
-void DecoderSubtitleFrame::stopDecoder()
-{
-    pause(false);
-    Decoder<SubtitlePtr>::stopDecoder();
-}
-
-void DecoderSubtitleFrame::pause(bool state)
-{
-    if (!isRunning()) {
-        return;
-    }
-    d_ptr->pause = state;
-    if (state) {
-        return;
-    }
-    d_ptr->waitCondition.wakeOne();
-}
 
 void DecoderSubtitleFrame::setVideoResolutionRatio(const QSize &size)
 {
@@ -73,6 +60,7 @@ void DecoderSubtitleFrame::setVideoRenders(QVector<VideoRender *> videoRenders)
 
 void DecoderSubtitleFrame::runDecoder()
 {
+    quint64 dropNum = 0;
     auto ctx = m_contextInfo->codecCtx()->avCodecCtx();
     QScopedPointer<Ass> assPtr(new Ass);
     if (ctx->subtitle_header) {
@@ -80,49 +68,39 @@ void DecoderSubtitleFrame::runDecoder()
     }
     assPtr->setWindowSize(d_ptr->videoResolutionRatio);
     SwsContext *swsContext = nullptr;
-    quint64 dropNum = 0;
-    while (m_runing) {
-        checkPause();
-
+    d_ptr->clock->reset();
+    while (m_runing.load()) {
         auto subtitlePtr(m_queue.take());
         if (subtitlePtr.isNull()) {
             continue;
         }
         subtitlePtr->setVideoResolutionRatio(d_ptr->videoResolutionRatio);
         subtitlePtr->parse(swsContext);
-        auto pts = subtitlePtr->pts();
-        auto duration = subtitlePtr->duration();
-        if (m_seekTime > (pts + duration)) {
-            assPtr->flushASSEvents();
-            continue;
-        }
         if (subtitlePtr->type() == Subtitle::Type::ASS) {
             subtitlePtr->resolveAss(assPtr.data());
             subtitlePtr->generateImage();
         }
-        auto diffPts = pts - mediaClock();
-        auto difDuration = diffPts + duration;
-        if (difDuration < Drop_Microseconds
-            || (mediaSpeed() > 1.0 && qAbs(difDuration) > UnWait_Microseconds)) {
+        d_ptr->clock->update(subtitlePtr->pts(), av_gettime_relative());
+        qint64 delay = 0;
+        if (!d_ptr->clock->getDelayWithMaster(delay)) {
+            continue;
+        }
+        auto delayDuration = delay + subtitlePtr->duration();
+        if (!Clock::adjustDelay(delayDuration)) {
             dropNum++;
             continue;
-        } else if (diffPts > UnWait_Microseconds && !d_ptr->pause) {
-            QMutexLocker locker(&d_ptr->mutex);
-            d_ptr->waitCondition.wait(&d_ptr->mutex, diffPts / 1000);
         }
-        // 略慢于音频
+        if (Clock::adjustDelay(delay)) {
+            if (delay > 0) {
+                QMutexLocker locker(&d_ptr->mutex);
+                d_ptr->waitCondition.wait(&d_ptr->mutex, delay / 1000);
+            }
+        }
+
         renderFrame(subtitlePtr);
     }
     sws_freeContext(swsContext);
     qInfo() << "Subtitle Drop Num:" << dropNum;
-}
-
-void DecoderSubtitleFrame::checkPause()
-{
-    while (d_ptr->pause) {
-        QMutexLocker locker(&d_ptr->mutex);
-        d_ptr->waitCondition.wait(&d_ptr->mutex);
-    }
 }
 
 void DecoderSubtitleFrame::renderFrame(const QSharedPointer<Subtitle> &subtitlePtr)

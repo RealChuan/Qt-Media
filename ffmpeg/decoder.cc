@@ -38,29 +38,4 @@ void calculateTime(Packet *packet, AVContextInfo *contextInfo)
     // qDebug() << "Packet duration:" << duration << "pts:" << pts << "tb:" << tb.num << tb.den;
 }
 
-static std::atomic<qint64> g_meidaClock;
-
-void setMediaClock(qint64 value)
-{
-    g_meidaClock.store(value);
-}
-
-auto mediaClock() -> qint64
-{
-    return g_meidaClock.load();
-}
-
-std::atomic<double> g_mediaSpeed = 1.0;
-
-void setMediaSpeed(double speed)
-{
-    Q_ASSERT(speed > 0);
-    g_mediaSpeed.store(speed);
-}
-
-auto mediaSpeed() -> double
-{
-    return g_mediaSpeed.load();
-}
-
 } // namespace Ffmpeg

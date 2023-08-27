@@ -59,6 +59,9 @@ public slots:
     void onPlay();
     void onStop();
 
+private slots:
+    void onPositionChanged(qint64 position);
+
 signals:
     void durationChanged(qint64 duration); // microsecond
     void positionChanged(qint64 position); // microsecond
@@ -80,12 +83,6 @@ protected:
 private:
     void buildConnect(bool state = true);
     void buildErrorConnect();
-    auto initAvCodec() -> bool;
-    void playVideo();
-    void checkSeek();
-    void setMediaState(MediaState mediaState);
-    auto setMediaIndex(AVContextInfo *contextInfo, int index) -> bool;
-    void calculateSpeed(QElapsedTimer &timer, qint64 &readSize, qint64 addSize);
 
     class PlayerPrivate;
     QScopedPointer<PlayerPrivate> d_ptr;

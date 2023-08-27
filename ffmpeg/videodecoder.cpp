@@ -24,26 +24,23 @@ public:
 VideoDecoder::VideoDecoder(QObject *parent)
     : Decoder<PacketPtr>(parent)
     , d_ptr(new VideoDecoderPrivate(this))
-{}
+{
+    connect(d_ptr->decoderVideoFrame,
+            &DecoderVideoFrame::positionChanged,
+            this,
+            &VideoDecoder::positionChanged);
+}
 
 VideoDecoder::~VideoDecoder() = default;
-
-bool VideoDecoder::seek(qint64 seekTime)
-{
-    if (!Decoder<PacketPtr>::seek(seekTime)) {
-        return false;
-    }
-    return d_ptr->decoderVideoFrame->seek(seekTime);
-}
-
-void VideoDecoder::pause(bool state)
-{
-    d_ptr->decoderVideoFrame->pause(state);
-}
 
 void VideoDecoder::setVideoRenders(QVector<VideoRender *> videoRenders)
 {
     d_ptr->decoderVideoFrame->setVideoRenders(videoRenders);
+}
+
+void VideoDecoder::setMasterClock()
+{
+    d_ptr->decoderVideoFrame->setMasterClock();
 }
 
 void VideoDecoder::runDecoder()

@@ -14,10 +14,6 @@ public:
     explicit SubtitleDecoder(QObject *parent = nullptr);
     ~SubtitleDecoder();
 
-    bool seek(qint64 seekTime) override;
-
-    void pause(bool state) override;
-
     void setVideoResolutionRatio(const QSize &size);
 
     void setVideoRenders(QVector<VideoRender *> videoRenders);

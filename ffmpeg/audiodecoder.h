@@ -13,13 +13,9 @@ public:
     explicit AudioDecoder(QObject *parent = nullptr);
     ~AudioDecoder() override;
 
-    bool seek(qint64 seekTime) override;
-
-    void pause(bool state) override;
-
     void setVolume(qreal volume);
 
-    void setIsLocalFile(bool isLocalFile);
+    void setMasterClock();
 
 signals:
     void positionChanged(qint64 position); // ms

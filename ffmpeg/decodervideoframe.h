@@ -10,21 +10,22 @@ class VideoRender;
 
 class DecoderVideoFrame : public Decoder<FramePtr>
 {
+    Q_OBJECT
 public:
     explicit DecoderVideoFrame(QObject *parent = nullptr);
     ~DecoderVideoFrame();
 
-    void stopDecoder() override;
-
-    void pause(bool state) override;
-
     void setVideoRenders(QVector<VideoRender *> videoRenders);
+
+    void setMasterClock();
+
+signals:
+    void positionChanged(qint64 position); // microsecond
 
 protected:
     void runDecoder() override;
 
 private:
-    void checkPause();
     void renderFrame(const QSharedPointer<Frame> &framePtr);
 
     class DecoderVideoFramePrivate;
