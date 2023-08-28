@@ -1,51 +1,45 @@
 #include "fps.hpp"
 
+#include <QDateTime>
 #include <QDebug>
-#include <QElapsedTimer>
+#include <QQueue>
 
 namespace Utils {
 
 class Fps::FpsPrivate
 {
 public:
-    FpsPrivate(QObject *parent)
-        : owner(parent)
-    {}
-
-    float fps(int deltaTime) // ms
+    FpsPrivate(Fps *q)
+        : q_ptr(q)
     {
-        ++frameCount;
-        if (1 == frameCount) {
-            avgDuration = static_cast<float>(deltaTime);
-        } else {
-            avgDuration = avgDuration * (1 - alpha) + deltaTime * alpha;
+        reset();
+    }
+
+    auto update() -> float
+    {
+        auto now = QDateTime::currentMSecsSinceEpoch();
+        timePoints.enqueue(now);
+        if (timePoints.size() > maxQueueSize) {
+            timePoints.dequeue();
         }
-        return (1.f / avgDuration * 1000);
-    }
-
-    float calculate()
-    {
-        float fps_ = 0;
-        if (timer.isValid()) {
-            fps_ = fps(timer.elapsed());
+        double fps = 0;
+        if (timePoints.size() < 2) {
+            return fps;
         }
-        timer.restart();
-        return fps_;
+        auto diff = timePoints.last() - timePoints.first();
+        if (diff <= 0) {
+            return fps;
+        }
+        fps = (timePoints.size() - 1) * 1000.0 / diff;
+        return fps;
     }
 
-    void reset()
-    {
-        avgDuration = 0.f;
-        frameCount = 0;
-        timer.invalidate();
-    }
+    void reset() { timePoints.clear(); }
 
-    QObject *owner;
+    Fps *q_ptr;
 
-    float avgDuration = 0.f;
-    float alpha = 1.f / 100.f; // 采样数设置为100
-    int frameCount = 0;
-    QElapsedTimer timer;
+    int maxQueueSize = 100;
+    QQueue<qint64> timePoints;
 };
 
 Fps::Fps(QObject *parent)
@@ -57,7 +51,7 @@ Fps::~Fps() {}
 
 float Fps::calculate()
 {
-    return d_ptr->calculate();
+    return d_ptr->update();
 }
 
 void Fps::reset()
