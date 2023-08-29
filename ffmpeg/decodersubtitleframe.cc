@@ -68,11 +68,14 @@ void DecoderSubtitleFrame::runDecoder()
     }
     assPtr->setWindowSize(d_ptr->videoResolutionRatio);
     SwsContext *swsContext = nullptr;
-    d_ptr->clock->reset();
+    bool firstFrame = false;
     while (m_runing.load()) {
         auto subtitlePtr(m_queue.take());
         if (subtitlePtr.isNull()) {
             continue;
+        } else if (!firstFrame) {
+            firstFrame = true;
+            d_ptr->clock->reset(subtitlePtr->pts());
         }
         subtitlePtr->setVideoResolutionRatio(d_ptr->videoResolutionRatio);
         subtitlePtr->parse(swsContext);

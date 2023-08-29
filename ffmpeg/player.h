@@ -2,6 +2,9 @@
 #define PLAYER_H
 
 #include "ffmepg_global.h"
+#include "mediainfo.hpp"
+
+#include <ffmpeg/event/event.hpp>
 
 #include <QThread>
 
@@ -15,8 +18,6 @@ class FFMPEG_EXPORT Player : public QThread
 {
     Q_OBJECT
 public:
-    enum MediaState { StoppedState, PlayingState, PausedState };
-
     explicit Player(QObject *parent = nullptr);
     ~Player() override;
 
@@ -55,6 +56,9 @@ public:
     void setVideoRenders(QVector<VideoRender *> videoRenders);
     QVector<VideoRender *> videoRenders();
 
+    size_t eventCount() const;
+    EventPtr takeEvent();
+
 public slots:
     void onPlay();
     void onStop();
@@ -63,19 +67,13 @@ private slots:
     void onPositionChanged(qint64 position);
 
 signals:
-    void durationChanged(qint64 duration); // microsecond
-    void positionChanged(qint64 position); // microsecond
-    void stateChanged(Ffmpeg::Player::MediaState);
     void audioTracksChanged(const QStringList &tracks);
     void audioTrackChanged(const QString &track);
     void subTracksChanged(const QStringList &streams);
     void subTrackChanged(const QString &stream);
     void error(const Ffmpeg::AVError &avError);
 
-    void playStarted();
-    void seekFinished();
-
-    void readSpeedChanged(qint64);
+    void eventIncrease();
 
 protected:
     void run() override;

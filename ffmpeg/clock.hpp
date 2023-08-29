@@ -11,22 +11,25 @@ public:
     explicit Clock(QObject *parent = nullptr);
     ~Clock() override;
 
-    void reset();
+    void reset(qint64 pts);
 
-    auto pts() -> qint64;
-    auto ptsDrift() -> qint64;
-    auto lastUpdated() -> qint64;
+    void invalidate();
+    [[nodiscard]] auto isVaild() const -> bool;
+
+    [[nodiscard]] auto pts() const -> qint64;
+    [[nodiscard]] auto ptsDrift() const -> qint64;
+    [[nodiscard]] auto lastUpdated() const -> qint64;
 
     void resetSerial();
-    auto serial() -> qint64;
+    [[nodiscard]] auto serial() const -> qint64;
 
     void setPaused(bool value);
-    auto paused() -> bool;
+    [[nodiscard]] auto paused() const -> bool;
 
     void update(qint64 pts, qint64 time);
 
     // return true if delay is valid
-    auto getDelayWithMaster(qint64 &delay) -> bool;
+    auto getDelayWithMaster(qint64 &delay) const -> bool;
 
     // return true if delay is valid
     static auto adjustDelay(qint64 &delay) -> bool;
@@ -41,6 +44,7 @@ public:
 
     // not thread safe and not delete clock
     static void setMaster(Clock *clock);
+    static auto master() -> Clock *;
 
 private:
     class ClockPrivate;

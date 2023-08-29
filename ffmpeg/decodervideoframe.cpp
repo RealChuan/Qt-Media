@@ -57,11 +57,14 @@ void DecoderVideoFrame::runDecoder()
         render->resetFps();
     }
     quint64 dropNum = 0;
-    d_ptr->clock->reset();
+    bool firstFrame = false;
     while (m_runing.load()) {
         auto framePtr(m_queue.take());
         if (framePtr.isNull()) {
             continue;
+        } else if (!firstFrame) {
+            firstFrame = true;
+            d_ptr->clock->reset(framePtr->pts());
         }
         auto pts = framePtr->pts();
         auto emitPosition = qScopeGuard([=]() { emit positionChanged(pts); });

@@ -216,7 +216,7 @@ void ControlWidget::setPosition(int value)
     d_ptr->slider->blockSignals(false);
 }
 
-void ControlWidget::onReadSpeedChanged(qint64 speed)
+void ControlWidget::setCacheSpeed(qint64 speed)
 {
     d_ptr->readSpeedLabel->setText(Utils::convertBytesToString(speed) + "/S");
 }

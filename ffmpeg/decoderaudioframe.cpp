@@ -96,13 +96,16 @@ void DecoderAudioFrame::runDecoder()
     QAudioDevice audioDevice(QMediaDevices::defaultAudioOutput());
     auto format = resetAudioOutput();
     AudioFrameConverter audioConverter(m_contextInfo->codecCtx(), format);
-    d_ptr->clock->reset();
+    bool firstFrame = false;
     while (m_runing.load()) {
         checkDefaultAudioOutput(audioDevice);
 
         auto framePtr(m_queue.take());
         if (framePtr.isNull()) {
             continue;
+        } else if (!firstFrame) {
+            firstFrame = true;
+            d_ptr->clock->reset(framePtr->pts());
         }
         auto audioBuf = audioConverter.convert(framePtr.data());
         auto pts = framePtr->pts();

@@ -4,6 +4,7 @@ include(videorender/videorender.pri)
 include(subtitle/subtitle.pri)
 include(filter/filter.pri)
 include(gpu/gpu.pri)
+include(event/event.pri)
 
 QT += widgets multimedia openglwidgets
 
@@ -25,7 +26,6 @@ SOURCES += \
     decoderaudioframe.cpp \
     decodersubtitleframe.cc \
     decodervideoframe.cpp \
-    event.cc \
     ffmpegutils.cc \
     formatcontext.cpp \
     frame.cc \
@@ -52,11 +52,11 @@ HEADERS += \
     decoderaudioframe.h \
     decodersubtitleframe.hpp \
     decodervideoframe.h \
-    event.hpp \
     ffmepg_global.h \
     ffmpegutils.hpp \
     formatcontext.h \
     frame.hpp \
+    mediainfo.hpp \
     packet.h \
     player.h \
     subtitle.h \

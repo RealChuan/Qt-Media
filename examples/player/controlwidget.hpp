@@ -27,8 +27,7 @@ public:
     void setVolume(int value);
     [[nodiscard]] auto volume() const -> int;
 
-public slots:
-    void onReadSpeedChanged(qint64 speed);
+    void setCacheSpeed(qint64 speed);
 
 signals:
     void previous();

@@ -2,18 +2,19 @@
 #include "audiodecoder.h"
 #include "avcontextinfo.h"
 #include "averrormanager.hpp"
+#include "clock.hpp"
 #include "codeccontext.h"
 #include "formatcontext.h"
 #include "packet.h"
 #include "subtitledecoder.h"
 #include "videodecoder.h"
 
+#include <event/valueevent.hpp>
+#include <utils/threadsafequeue.hpp>
 #include <utils/utils.h>
 #include <videorender/videorender.hpp>
 
 #include <QImage>
-
-#include <memory>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -40,7 +41,7 @@ public:
 
     auto initAvCodec() -> bool
     {
-        isopen = false;
+        isOpen = false;
 
         //初始化pFormatCtx结构
         if (!formatCtx->openFilePath(filepath)) {
@@ -52,7 +53,7 @@ public:
             return false;
         }
 
-        emit q_ptr->durationChanged(formatCtx->duration());
+        addEvent(new DurationChangedEvent(formatCtx->duration()));
         q_ptr->onPositionChanged(0);
 
         audioInfo->resetIndex();
@@ -98,7 +99,7 @@ public:
             return false;
         }
 
-        isopen = true;
+        isOpen = true;
         // formatCtx->printFileInfo();
         formatCtx->dumpFormat();
         return true;
@@ -106,7 +107,9 @@ public:
 
     void playVideo()
     {
-        Q_ASSERT(isopen);
+        Q_ASSERT(isOpen);
+
+        setMediaState(Playing);
 
         formatCtx->discardStreamExcluded(
             {audioInfo->index(), videoInfo->index(), subtitleInfo->index()});
@@ -123,8 +126,7 @@ public:
         } else {
             Q_ASSERT(false);
         }
-
-        emit q_ptr->playStarted();
+        Clock::master()->invalidate();
 
         qint64 readSize = 0;
         QElapsedTimer elapsedTimer;
@@ -160,6 +162,8 @@ public:
         audioDecoder->stopDecoder();
 
         qInfo() << "play finish";
+
+        setMediaState(Stopped);
     }
 
     auto setMediaIndex(AVContextInfo *contextInfo, int index) -> bool
@@ -173,10 +177,10 @@ public:
                                                 : AVContextInfo::GpuType::NotUseGpu);
     }
 
-    void setMediaState(MediaState mediaState)
+    void setMediaState(MediaState mediaState_)
     {
-        mediaState = mediaState;
-        emit q_ptr->stateChanged(mediaState);
+        mediaState = mediaState_;
+        addEvent(new MediaStateChangedEvent(mediaState));
     }
 
     QSize resolutionRatio() const
@@ -191,11 +195,20 @@ public:
         if (elapsed < 5000) {
             return;
         }
-
         auto speed = readSize * 1000 / elapsed;
-        emit q_ptr->readSpeedChanged(speed);
+        addEvent(new CacheSpeedChangedEvent(speed));
         timer.restart();
         readSize = 0;
+    }
+
+    void addEvent(Event *event)
+    {
+        EventPtr eventPtr(event);
+        eventQueue.put(eventPtr);
+        while (eventQueue.size() > maxEventCount) {
+            eventQueue.take();
+        }
+        emit q_ptr->eventIncrease();
     }
 
     Player *q_ptr;
@@ -210,12 +223,15 @@ public:
     SubtitleDecoder *subtitleDecoder;
 
     QString filepath;
-    std::atomic_bool isopen = true;
+    std::atomic_bool isOpen = true;
     std::atomic_bool runing = true;
     bool gpuDecode = false;
     qint64 position = 0;
 
-    std::atomic<Player::MediaState> mediaState = Player::MediaState::StoppedState;
+    std::atomic<MediaState> mediaState = MediaState::Stopped;
+
+    Utils::ThreadSafeQueue<EventPtr> eventQueue;
+    int maxEventCount = 100;
 
     QVector<VideoRender *> videoRenders = {};
 };
@@ -244,8 +260,10 @@ void Player::openMedia(const QString &filepath)
 {
     onStop();
     d_ptr->filepath = filepath;
+    d_ptr->setMediaState(Opening);
     d_ptr->initAvCodec();
-    if (!d_ptr->isopen) {
+    if (!d_ptr->isOpen) {
+        d_ptr->setMediaState(Stopped);
         qWarning() << "initAvCode Error";
         return;
     }
@@ -255,7 +273,6 @@ void Player::openMedia(const QString &filepath)
 void Player::onPlay()
 {
     buildConnect(true);
-    d_ptr->setMediaState(MediaState::PlayingState);
     d_ptr->runing = true;
     start();
 }
@@ -278,7 +295,6 @@ void Player::onStop()
         render->resetAllFrame();
     }
     d_ptr->formatCtx->close();
-    d_ptr->setMediaState(MediaState::StoppedState);
 }
 
 void Player::onPositionChanged(qint64 position)
@@ -288,7 +304,7 @@ void Player::onPositionChanged(qint64 position)
         return;
     }
     d_ptr->position = position;
-    emit positionChanged(position);
+    d_ptr->addEvent(new PositionChangedEvent(position));
 }
 
 void Player::seek(qint64 position)
@@ -351,7 +367,7 @@ void Player::setSubtitleTrack(const QString &text)
 
 bool Player::isOpen()
 {
-    return d_ptr->isopen;
+    return d_ptr->isOpen;
 }
 
 void Player::setVolume(qreal volume)
@@ -378,11 +394,11 @@ double Player::speed()
 void Player::pause(bool status)
 {
     if (status) {
-        d_ptr->setMediaState(MediaState::PausedState);
+        d_ptr->setMediaState(MediaState::Pausing);
     } else if (isRunning()) {
-        d_ptr->setMediaState(MediaState::PlayingState);
+        d_ptr->setMediaState(d_ptr->isOpen ? MediaState::Playing : MediaState::Opening);
     } else {
-        d_ptr->setMediaState(MediaState::StoppedState);
+        d_ptr->setMediaState(MediaState::Stopped);
     }
 }
 
@@ -417,7 +433,7 @@ bool Player::isGpuDecode()
     return d_ptr->gpuDecode;
 }
 
-Player::MediaState Player::mediaState()
+MediaState Player::mediaState()
 {
     return d_ptr->mediaState;
 }
@@ -474,9 +490,19 @@ QVector<VideoRender *> Player::videoRenders()
     return d_ptr->videoRenders;
 }
 
+size_t Player::eventCount() const
+{
+    return d_ptr->eventQueue.size();
+}
+
+EventPtr Player::takeEvent()
+{
+    return d_ptr->eventQueue.take();
+}
+
 void Player::run()
 {
-    if (!d_ptr->isopen) {
+    if (!d_ptr->isOpen) {
         return;
     }
     d_ptr->playVideo();

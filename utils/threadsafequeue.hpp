@@ -49,13 +49,13 @@ public:
         }
     }
 
-    auto size() const -> int
+    [[nodiscard]] auto size() const -> int
     {
         QMutexLocker locker(&m_mutex);
         return m_queue.size();
     }
 
-    auto empty() const -> bool
+    [[nodiscard]] auto empty() const -> bool
     {
         QMutexLocker locker(&m_mutex);
         return m_queue.empty();

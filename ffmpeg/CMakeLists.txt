@@ -1,4 +1,10 @@
 set(PROJECT_SOURCES
+    event/errorevent.hpp
+    event/event.hpp
+    event/pauseevent.hpp
+    event/seekevent.hpp
+    event/trackevent.hpp
+    event/valueevent.hpp
     filter/filtercontext.cc
     filter/filtercontext.hpp
     filter/filtergraph.cc
@@ -50,8 +56,6 @@ set(PROJECT_SOURCES
     decodersubtitleframe.hpp
     decodervideoframe.cpp
     decodervideoframe.h
-    event.cc
-    event.hpp
     ffmepg_global.h
     ffmpegutils.cc
     ffmpegutils.hpp
@@ -59,6 +63,7 @@ set(PROJECT_SOURCES
     formatcontext.h
     frame.cc
     frame.hpp
+    mediainfo.hpp
     packet.cpp
     packet.h
     player.cpp

@@ -19,11 +19,11 @@ public:
     Clock *q_ptr;
 
     mutable QMutex mutex;
-    qint64 pts = 0;       // 当前 AVFrame 的时间戳 microseconds
-    qint64 pts_drift = 0; // 时钟漂移量，用于计算当前时钟的状态 microseconds
-    qint64 last_updated = av_gettime_relative(); // 上一次更新时钟状态的时间 microseconds
-    qint64 serial = s_serial.load();             // 时钟序列号 for seek
-    bool paused = false;                         // 是否暂停播放
+    qint64 pts = 0;          // 当前 AVFrame 的时间戳 microseconds
+    qint64 pts_drift = 0;    // 时钟漂移量，用于计算当前时钟的状态 microseconds
+    qint64 last_updated = 0; // 上一次更新时钟状态的时间 microseconds
+    qint64 serial = s_serial.load(); // 时钟序列号 for seek
+    bool paused = false;             // 是否暂停播放
 
     static std::atomic<qint64> s_serial;
     static constexpr QPair<double, double> s_speedRange = {0.5, 3.0};
@@ -44,29 +44,41 @@ Clock::Clock(QObject *parent)
 
 Clock::~Clock() = default;
 
-void Clock::reset()
+void Clock::reset(qint64 pts)
 {
     QMutexLocker locker(&d_ptr->mutex);
-    d_ptr->pts = 0;
+    d_ptr->pts = pts;
     d_ptr->pts_drift = 0;
     d_ptr->last_updated = av_gettime_relative();
     d_ptr->serial = Clock::ClockPrivate::s_serial.load();
     d_ptr->paused = false;
 }
 
-auto Clock::pts() -> qint64
+void Clock::invalidate()
+{
+    QMutexLocker locker(&d_ptr->mutex);
+    d_ptr->last_updated = 0;
+}
+
+auto Clock::isVaild() const -> bool
+{
+    QMutexLocker locker(&d_ptr->mutex);
+    return d_ptr->last_updated != 0;
+}
+
+auto Clock::pts() const -> qint64
 {
     QMutexLocker locker(&d_ptr->mutex);
     return d_ptr->pts;
 }
 
-auto Clock::ptsDrift() -> qint64
+auto Clock::ptsDrift() const -> qint64
 {
     QMutexLocker locker(&d_ptr->mutex);
     return d_ptr->pts_drift;
 }
 
-auto Clock::lastUpdated() -> qint64
+auto Clock::lastUpdated() const -> qint64
 {
     QMutexLocker locker(&d_ptr->mutex);
     return d_ptr->last_updated;
@@ -78,13 +90,13 @@ void Clock::resetSerial()
     d_ptr->serial = Clock::ClockPrivate::s_serial.load();
 }
 
-auto Clock::serial() -> qint64
+auto Clock::serial() const -> qint64
 {
     QMutexLocker locker(&d_ptr->mutex);
     return d_ptr->serial;
 }
 
-auto Clock::paused() -> bool
+auto Clock::paused() const -> bool
 {
     QMutexLocker locker(&d_ptr->mutex);
     return d_ptr->paused;
@@ -105,7 +117,8 @@ void Clock::update(qint64 pts, qint64 time)
 
     QMutexLocker locker(&d_ptr->mutex);
     if (d_ptr->last_updated && !d_ptr->paused) {
-        if (this == Clock::ClockPrivate::s_clock) {
+        if (this == Clock::ClockPrivate::s_clock
+            || Clock::ClockPrivate::s_clock->d_ptr->last_updated == 0) {
             qint64 timediff = (time - d_ptr->last_updated) * speed();
             d_ptr->pts_drift += pts - d_ptr->pts - timediff;
         } else {
@@ -119,7 +132,7 @@ void Clock::update(qint64 pts, qint64 time)
     d_ptr->last_updated = time;
 }
 
-auto Clock::getDelayWithMaster(qint64 &delay) -> bool
+auto Clock::getDelayWithMaster(qint64 &delay) const -> bool
 {
     if (serial() != Clock::ClockPrivate::s_serial.load()) {
         return false;
@@ -175,6 +188,11 @@ auto Clock::speed() -> double
 void Clock::setMaster(Clock *clock)
 {
     Clock::ClockPrivate::s_clock = clock;
+}
+
+auto Clock::master() -> Clock *
+{
+    return Clock::ClockPrivate::s_clock;
 }
 
 } // namespace Ffmpeg

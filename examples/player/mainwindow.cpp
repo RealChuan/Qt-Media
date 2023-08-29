@@ -7,6 +7,7 @@
 #include "titlewidget.hpp"
 
 #include <ffmpeg/averror.h>
+#include <ffmpeg/event/valueevent.hpp>
 #include <ffmpeg/ffmpegutils.hpp>
 #include <ffmpeg/player.h>
 #include <ffmpeg/videorender/videopreviewwidget.hpp>
@@ -121,7 +122,28 @@ public:
         titleWidget->setVisible(visible);
     }
 
+    void started()
+    {
+        controlWidget->setSourceFPS(playerPtr->fps());
+
+        auto size = playerPtr->resolutionRatio();
+        q_ptr->setWindowTitle(QString("%1[%2x%3]")
+                                  .arg(playlistModel->playlist()->currentMedia().fileName(),
+                                       QString::number(size.width()),
+                                       QString::number(size.height())));
+
+        fpsTimer->start(1000);
+    }
+
+    void finished()
+    {
+        fpsTimer->stop();
+        controlWidget->setDuration(0);
+        controlWidget->setPosition(0);
+    }
+
     MainWindow *q_ptr;
+
     QScopedPointer<Ffmpeg::Player> playerPtr;
     QScopedPointer<Ffmpeg::VideoRender> videoRender;
     QScopedPointer<Ffmpeg::VideoPreviewWidget> videoPreviewWidgetPtr;
@@ -177,26 +199,6 @@ void MainWindow::onError(const Ffmpeg::AVError &avError)
     qWarning() << str;
 }
 
-void MainWindow::onStarted()
-{
-    d_ptr->controlWidget->setSourceFPS(d_ptr->playerPtr->fps());
-
-    auto size = d_ptr->playerPtr->resolutionRatio();
-    setWindowTitle(QString("%1[%2x%3]")
-                       .arg(d_ptr->playlistModel->playlist()->currentMedia().fileName(),
-                            QString::number(size.width()),
-                            QString::number(size.height())));
-
-    d_ptr->fpsTimer->start(1000);
-}
-
-void MainWindow::onFinished()
-{
-    d_ptr->fpsTimer->stop();
-    d_ptr->controlWidget->setDuration(0);
-    d_ptr->controlWidget->setPosition(0);
-}
-
 void MainWindow::onHoverSlider(int pos, int value)
 {
     auto index = d_ptr->playerPtr->videoIndex();
@@ -250,12 +252,14 @@ void MainWindow::onShowCurrentFPS()
 
 void MainWindow::onOpenLocalMedia()
 {
-    const QString path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation)
-                             .value(0, QDir::homePath());
+    const auto path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation)
+                          .value(0, QDir::homePath());
+    const auto filter = tr("Media (*.mp4 *.flv *.ts *.avi *.rmvb *.mkv *.wmv *.mp3 *.wav *.flac "
+                           "*.ape *.m4a *.aac *.ogg *.ac3 *.mpg)");
     const auto urls = QFileDialog::getOpenFileUrls(this,
-                                                   tr("Open File"),
-                                                   path,
-                                                   tr("Audio Video (*.mp3 *.mp4 *.mkv *.rmvb)"));
+                                                   tr("Open Media"),
+                                                   QUrl::fromUserInput(path),
+                                                   filter);
     if (urls.isEmpty()) {
         return;
     }
@@ -306,6 +310,48 @@ void MainWindow::jump(const QModelIndex &index)
 {
     if (index.isValid()) {
         d_ptr->playlistModel->playlist()->setCurrentIndex(index.row());
+    }
+}
+
+void MainWindow::onProcessEvents()
+{
+    while (d_ptr->playerPtr->eventCount() > 0) {
+        auto eventPtr = d_ptr->playerPtr->takeEvent();
+        switch (eventPtr->type()) {
+        case Ffmpeg::Event::EventType::DurationChanged: {
+            auto duration = static_cast<Ffmpeg::DurationChangedEvent *>(eventPtr.data());
+            d_ptr->controlWidget->setDuration(duration->duration() / AV_TIME_BASE);
+        } break;
+        case Ffmpeg::Event::EventType::PositionChanged: {
+            auto position = static_cast<Ffmpeg::PositionChangedEvent *>(eventPtr.data());
+            d_ptr->controlWidget->setPosition(position->position() / AV_TIME_BASE);
+        } break;
+        case Ffmpeg::Event::EventType::MediaStateChanged: {
+            auto state = static_cast<Ffmpeg::MediaStateChangedEvent *>(eventPtr.data());
+            switch (state->state()) {
+            case Ffmpeg::MediaState::Stopped:
+                d_ptr->controlWidget->setPlayButtonChecked(false);
+                d_ptr->finished();
+                break;
+            case Ffmpeg::MediaState::Pausing:
+                d_ptr->controlWidget->setPlayButtonChecked(false);
+                break;
+            case Ffmpeg::MediaState::Opening:
+                d_ptr->controlWidget->setPlayButtonChecked(true);
+                break;
+            case Ffmpeg::MediaState::Playing:
+                d_ptr->controlWidget->setPlayButtonChecked(true);
+                d_ptr->started();
+                break;
+            default: break;
+            }
+        } break;
+        case Ffmpeg::Event::EventType::CacheSpeedChanged: {
+            auto speed = static_cast<Ffmpeg::CacheSpeedChangedEvent *>(eventPtr.data());
+            d_ptr->controlWidget->setCacheSpeed(speed->speed());
+        } break;
+        default: break;
+        }
     }
 }
 
@@ -407,14 +453,6 @@ void MainWindow::buildConnect()
 {
     connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::error, this, &MainWindow::onError);
     connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::durationChanged,
-            d_ptr->controlWidget,
-            [this](qint64 duration) { d_ptr->controlWidget->setDuration(duration / AV_TIME_BASE); });
-    connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::positionChanged,
-            d_ptr->controlWidget,
-            [this](qint64 position) { d_ptr->controlWidget->setPosition(position / AV_TIME_BASE); });
-    connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::audioTracksChanged,
             d_ptr->controlWidget,
             [this](const QStringList &tracks) {
@@ -464,27 +502,11 @@ void MainWindow::buildConnect()
                     break;
                 }
             });
-    connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::playStarted, this, &MainWindow::onStarted);
-    connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::finished, this, &MainWindow::onFinished);
+
     connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::stateChanged,
-            d_ptr->controlWidget,
-            [this](Ffmpeg::Player::MediaState state) {
-                switch (state) {
-                case Ffmpeg::Player::MediaState::StoppedState:
-                case Ffmpeg::Player::MediaState::PausedState:
-                    d_ptr->controlWidget->setPlayButtonChecked(false);
-                    break;
-                case Ffmpeg::Player::MediaState::PlayingState:
-                    d_ptr->controlWidget->setPlayButtonChecked(true);
-                    break;
-                default: break;
-                }
-            });
-    connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::readSpeedChanged,
-            d_ptr->controlWidget,
-            &ControlWidget::onReadSpeedChanged);
+            &Ffmpeg::Player::eventIncrease,
+            this,
+            &MainWindow::onProcessEvents);
 
     connect(d_ptr->controlWidget,
             &ControlWidget::previous,

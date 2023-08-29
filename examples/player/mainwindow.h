@@ -16,8 +16,6 @@ public:
 
 private slots:
     void onError(const Ffmpeg::AVError &averror);
-    void onStarted();
-    void onFinished();
     void onHoverSlider(int pos, int value);
     void onLeaveSlider();
     void onShowCurrentFPS();
@@ -28,6 +26,8 @@ private slots:
 
     void playlistPositionChanged(int);
     void jump(const QModelIndex &index);
+
+    void onProcessEvents();
 
 protected:
     auto eventFilter(QObject *watched, QEvent *event) -> bool override;
