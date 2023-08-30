@@ -56,7 +56,7 @@ public:
     void setVideoRenders(QVector<VideoRender *> videoRenders);
     QVector<VideoRender *> videoRenders();
 
-    size_t eventCount() const;
+    [[nodiscard]] size_t eventCount() const;
     EventPtr takeEvent();
 
 public slots:
@@ -67,12 +67,6 @@ private slots:
     void onPositionChanged(qint64 position);
 
 signals:
-    void audioTracksChanged(const QStringList &tracks);
-    void audioTrackChanged(const QString &track);
-    void subTracksChanged(const QStringList &streams);
-    void subTrackChanged(const QString &stream);
-    void error(const Ffmpeg::AVError &avError);
-
     void eventIncrease();
 
 protected:
@@ -80,7 +74,6 @@ protected:
 
 private:
     void buildConnect(bool state = true);
-    void buildErrorConnect();
 
     class PlayerPrivate;
     QScopedPointer<PlayerPrivate> d_ptr;

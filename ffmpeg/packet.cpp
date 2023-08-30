@@ -11,15 +11,10 @@ namespace Ffmpeg {
 class Packet::PacketPrivate
 {
 public:
-    PacketPrivate(Packet *q)
+    explicit PacketPrivate(Packet *q)
         : q_ptr(q)
     {}
-    ~PacketPrivate()
-    {
-        if (packet) {
-            av_packet_free(&packet);
-        }
-    }
+    ~PacketPrivate() { av_packet_free(&packet); }
 
     Packet *q_ptr;
     AVPacket *packet = nullptr;

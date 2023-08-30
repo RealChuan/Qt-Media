@@ -29,6 +29,7 @@ SOURCES += \
     ffmpegutils.cc \
     formatcontext.cpp \
     frame.cc \
+    mediainfo.cc \
     packet.cpp \
     player.cpp \
     subtitle.cpp \

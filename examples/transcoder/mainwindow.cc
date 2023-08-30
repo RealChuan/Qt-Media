@@ -15,11 +15,11 @@ public:
         : q_ptr(parent)
     {
         transcode = new Ffmpeg::Transcode(q_ptr);
-        
+
         inTextEdit = new QTextEdit(q_ptr);
         subtitleTextEdit = new QTextEdit(q_ptr);
         outTextEdit = new QTextEdit(q_ptr);
-        
+
         audioCodecCbx = new QComboBox(q_ptr);
         audioCodecCbx->setView(new QListView(audioCodecCbx));
         audioCodecCbx->setMaxVisibleItems(10);
@@ -27,14 +27,14 @@ public:
         audioCodecCbx->addItems(Ffmpeg::Utils::getCurrentSupportCodecs(AVMEDIA_TYPE_AUDIO, true));
         audioCodecCbx->setCurrentIndex(audioCodecCbx->findData(AV_CODEC_ID_AAC));
         audioCodecCbx->setCurrentText(avcodec_get_name(AV_CODEC_ID_AAC));
-        
+
         videoCodecCbx = new QComboBox(q_ptr);
         videoCodecCbx->setView(new QListView(videoCodecCbx));
         videoCodecCbx->setMaxVisibleItems(10);
         videoCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
         videoCodecCbx->addItems(Ffmpeg::Utils::getCurrentSupportCodecs(AVMEDIA_TYPE_VIDEO, true));
         videoCodecCbx->setCurrentText(avcodec_get_name(AV_CODEC_ID_H264));
-        
+
         quailtySbx = new QSpinBox(q_ptr);
         quailtySbx->setRange(2, 31);
         quailtySbx->setToolTip(tr("smaller -> better"));
@@ -54,17 +54,17 @@ public:
         profileCbx->setView(new QListView(profileCbx));
         profileCbx->addItems(transcode->profiles());
         profileCbx->setCurrentText(transcode->profile());
-        
+
         widthLineEdit = new QLineEdit(q_ptr);
         widthLineEdit->setValidator(new QIntValidator(0, INT_MAX, widthLineEdit));
         heightLineEdit = new QLineEdit(q_ptr);
         heightLineEdit->setValidator(new QIntValidator(0, INT_MAX, heightLineEdit));
         keepAspectRatioCkb = new QCheckBox(tr("keepAspectRatio"), q_ptr);
         keepAspectRatioCkb->setChecked(true);
-        
+
         videoMinBitrateLineEdit = new QLineEdit(q_ptr);
         videoMaxBitrateLineEdit = new QLineEdit(q_ptr);
-        
+
         startButton = new QToolButton(q_ptr);
         startButton->setText(QObject::tr("Start"));
         startButton->setMinimumSize(BUTTON_SIZE);
@@ -88,7 +88,7 @@ public:
         layout2->addWidget(videoMinBitrateLineEdit);
         layout2->addWidget(new QLabel(tr("Max Bitrate:"), q_ptr));
         layout2->addWidget(videoMaxBitrateLineEdit);
-        
+
         auto groupBox = new QGroupBox(tr("Video"), q_ptr);
         auto layout = new QVBoxLayout(groupBox);
         layout->addLayout(layout1);
@@ -162,7 +162,7 @@ public:
         videoMinBitrateLineEdit->setText(QString::number(w * h));
         videoMaxBitrateLineEdit->setText(QString::number(w * h * 4));
     }
-    
+
     QWidget *q_ptr;
 
     Ffmpeg::Transcode *transcode;

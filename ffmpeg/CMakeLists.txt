@@ -63,6 +63,7 @@ set(PROJECT_SOURCES
     formatcontext.h
     frame.cc
     frame.hpp
+    mediainfo.cc
     mediainfo.hpp
     packet.cpp
     packet.h

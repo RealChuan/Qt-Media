@@ -16,9 +16,6 @@ namespace Ffmpeg {
 
 static const auto s_frameQueueSize = 25;
 
-void calculateTime(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext);
-void calculateTime(Packet *packet, AVContextInfo *contextInfo);
-
 template<typename T>
 class Decoder : public QThread
 {
@@ -50,7 +47,7 @@ public:
     }
 
     void append(const T &t) { m_queue.put(t); }
-    void append(const T &&t) { m_queue.put(t); }
+    void append(T &&t) { m_queue.put(t); }
 
     auto size() -> size_t { return m_queue.size(); }
 
@@ -81,6 +78,9 @@ protected:
     FormatContext *m_formatContext = nullptr;
     std::atomic_bool m_runing = true;
 };
+
+void calculatePts(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext);
+void calculatePts(Packet *packet, AVContextInfo *contextInfo);
 
 } // namespace Ffmpeg
 

@@ -42,10 +42,11 @@ public:
     auto initEncoder(const QString &name) -> bool;
     auto openCodec(GpuType type = NotUseGpu) -> bool;
 
-    auto decodeSubtitle2(Subtitle *subtitle, Packet *packet) -> bool;
     // sendPacket and receiveFrame
-    QVector<Frame *> decodeFrame(Packet *packet);
-    QVector<Packet *> encodeFrame(QSharedPointer<Frame> framePtr);
+    std::vector<QSharedPointer<Frame>> decodeFrame(const QSharedPointer<Packet> &packetPtr);
+    std::vector<QSharedPointer<Packet>> encodeFrame(const QSharedPointer<Frame> &framePtr);
+    auto decodeSubtitle2(const QSharedPointer<Subtitle> &subtitlePtr,
+                         const QSharedPointer<Packet> &packetPtr) -> bool;
 
     [[nodiscard]] auto calTimebase() const -> double;
     [[nodiscard]] auto timebase() const -> AVRational;

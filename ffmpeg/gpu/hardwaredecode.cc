@@ -88,17 +88,16 @@ bool HardWareDecode::initHardWareDevice(CodecContext *codecContext)
     return d_ptr->vaild;
 }
 
-Frame *HardWareDecode::transFromGpu(Frame *in, bool &ok)
+QSharedPointer<Frame> HardWareDecode::transFromGpu(const QSharedPointer<Frame> &inPtr, bool &ok)
 {
-    std::unique_ptr<Frame> inPtr(in);
     ok = true;
     if (!isVaild()) {
-        return inPtr.release();
+        return inPtr;
     }
-    if (in->avFrame()->format != hw_pix_fmt) {
-        return inPtr.release();
+    if (inPtr->avFrame()->format != hw_pix_fmt) {
+        return inPtr;
     }
-    std::unique_ptr<Frame> outPtr(new Frame);
+    FramePtr outPtr(new Frame);
     // 超级吃CPU 巨慢
     auto ret = av_hwframe_transfer_data(outPtr->avFrame(), inPtr->avFrame(), 0);
     // 如果把映射后的帧存起来，接下去解码会出问题；
@@ -108,11 +107,11 @@ Frame *HardWareDecode::transFromGpu(Frame *in, bool &ok)
         qWarning() << "Error transferring the data to system memory";
         SET_ERROR_CODE(ret);
         ok = false;
-        return inPtr.release();
+        return inPtr;
     }
     // 拷贝其他信息
-    outPtr->copyPropsFrom(inPtr.get());
-    return outPtr.release();
+    outPtr->copyPropsFrom(inPtr.data());
+    return outPtr;
 }
 
 bool HardWareDecode::isVaild()

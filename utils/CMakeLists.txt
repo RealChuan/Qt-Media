@@ -10,6 +10,8 @@ set(PROJECT_SOURCES
     logasync.h
     osspecificaspects.h
     singleton.hpp
+    speed.cc
+    speed.hpp
     threadsafequeue.hpp
     utils_global.h
     utils.cpp

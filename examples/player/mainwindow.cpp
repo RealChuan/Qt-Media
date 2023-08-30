@@ -7,6 +7,8 @@
 #include "titlewidget.hpp"
 
 #include <ffmpeg/averror.h>
+#include <ffmpeg/event/errorevent.hpp>
+#include <ffmpeg/event/trackevent.hpp>
 #include <ffmpeg/event/valueevent.hpp>
 #include <ffmpeg/ffmpegutils.hpp>
 #include <ffmpeg/player.h>
@@ -36,6 +38,7 @@ public:
         controlWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
         titleWidget = new TitleWidget(q_ptr);
         titleWidget->setMinimumHeight(80);
+        titleWidget->setVisible(false);
         auto bottomLayout = new QHBoxLayout;
         bottomLayout->addStretch();
         bottomLayout->addWidget(controlWidget);
@@ -55,9 +58,12 @@ public:
         menu = new QMenu(q_ptr);
         menu->setParent(q_ptr);
         audioTracksMenu = new QMenu(QObject::tr("Select audio track"), q_ptr);
+        videoTracksMenu = new QMenu(QObject::tr("Select video track"), q_ptr);
         subTracksMenu = new QMenu(QObject::tr("Select subtitle track"), q_ptr);
         audioTracksGroup = new QActionGroup(q_ptr);
         audioTracksGroup->setExclusive(true);
+        videoTracksGroup = new QActionGroup(q_ptr);
+        videoTracksGroup->setExclusive(true);
         subTracksGroup = new QActionGroup(q_ptr);
         subTracksGroup->setExclusive(true);
 
@@ -82,20 +88,16 @@ public:
                 value = controlWidget->duration();
             }
             playerPtr->seek(value * AV_TIME_BASE);
-            titleWidget->setText(tr("Fast forward: 5 seconds"));
-            titleWidget->setAutoHide(3000);
-            setTitleWidgetVisible(true);
+            setTitleWidgetText(tr("Fast forward: 5 seconds"));
         });
         new QShortcut(QKeySequence::MoveToPreviousChar, q_ptr, q_ptr, [this] {
             qint64 value = controlWidget->position();
-            value -= 10;
+            value -= 5;
             if (value < 0) {
                 value = 0;
             }
             playerPtr->seek(value * AV_TIME_BASE);
-            titleWidget->setText(tr("Fast return: 10 seconds"));
-            titleWidget->setAutoHide(3000);
-            setTitleWidgetVisible(true);
+            setTitleWidgetText(tr("Fast return: 5 seconds"));
         });
         new QShortcut(QKeySequence::MoveToPreviousLine, q_ptr, q_ptr, [this] {
             controlWidget->setVolume(controlWidget->volume() + 5);
@@ -114,12 +116,22 @@ public:
         controlWidget->setVisible(visible);
     }
 
-    void setTitleWidgetVisible(bool visible)
+    bool setTitleWidgetVisible(bool visible)
     {
         if (videoRender.isNull()) {
-            return;
+            return false;
         }
         titleWidget->setVisible(visible);
+        return true;
+    }
+
+    void setTitleWidgetText(const QString &text)
+    {
+        if (!setTitleWidgetVisible(true)) {
+            return;
+        }
+        titleWidget->setText(text);
+        titleWidget->setAutoHide(3000);
     }
 
     void started()
@@ -157,8 +169,10 @@ public:
 
     QMenu *menu;
     QMenu *audioTracksMenu;
+    QMenu *videoTracksMenu;
     QMenu *subTracksMenu;
     QActionGroup *audioTracksGroup;
+    QActionGroup *videoTracksGroup;
     QActionGroup *subTracksGroup;
 
     QMenu *playListMenu;
@@ -190,13 +204,6 @@ MainWindow::~MainWindow()
 {
     d_ptr->playerPtr->onStop();
     d_ptr->playerPtr->setVideoRenders({});
-}
-
-void MainWindow::onError(const Ffmpeg::AVError &avError)
-{
-    const QString str = tr("Error[%1]:%2.")
-                            .arg(QString::number(avError.errorCode()), avError.errorString());
-    qWarning() << str;
 }
 
 void MainWindow::onHoverSlider(int pos, int value)
@@ -246,6 +253,7 @@ void MainWindow::onShowCurrentFPS()
     auto renders = d_ptr->playerPtr->videoRenders();
     if (renders.isEmpty()) {
         d_ptr->fpsTimer->stop();
+        return;
     }
     d_ptr->controlWidget->setCurrentFPS(renders[0]->fps());
 }
@@ -319,16 +327,16 @@ void MainWindow::onProcessEvents()
         auto eventPtr = d_ptr->playerPtr->takeEvent();
         switch (eventPtr->type()) {
         case Ffmpeg::Event::EventType::DurationChanged: {
-            auto duration = static_cast<Ffmpeg::DurationChangedEvent *>(eventPtr.data());
-            d_ptr->controlWidget->setDuration(duration->duration() / AV_TIME_BASE);
+            auto durationEvent = static_cast<Ffmpeg::DurationChangedEvent *>(eventPtr.data());
+            d_ptr->controlWidget->setDuration(durationEvent->duration() / AV_TIME_BASE);
         } break;
         case Ffmpeg::Event::EventType::PositionChanged: {
-            auto position = static_cast<Ffmpeg::PositionChangedEvent *>(eventPtr.data());
-            d_ptr->controlWidget->setPosition(position->position() / AV_TIME_BASE);
+            auto positionEvent = static_cast<Ffmpeg::PositionChangedEvent *>(eventPtr.data());
+            d_ptr->controlWidget->setPosition(positionEvent->position() / AV_TIME_BASE);
         } break;
         case Ffmpeg::Event::EventType::MediaStateChanged: {
-            auto state = static_cast<Ffmpeg::MediaStateChangedEvent *>(eventPtr.data());
-            switch (state->state()) {
+            auto stateEvent = static_cast<Ffmpeg::MediaStateChangedEvent *>(eventPtr.data());
+            switch (stateEvent->state()) {
             case Ffmpeg::MediaState::Stopped:
                 d_ptr->controlWidget->setPlayButtonChecked(false);
                 d_ptr->finished();
@@ -347,8 +355,50 @@ void MainWindow::onProcessEvents()
             }
         } break;
         case Ffmpeg::Event::EventType::CacheSpeedChanged: {
-            auto speed = static_cast<Ffmpeg::CacheSpeedChangedEvent *>(eventPtr.data());
-            d_ptr->controlWidget->setCacheSpeed(speed->speed());
+            auto speedEvent = static_cast<Ffmpeg::CacheSpeedChangedEvent *>(eventPtr.data());
+            d_ptr->controlWidget->setCacheSpeed(speedEvent->speed());
+        } break;
+        case Ffmpeg::Event::MediaTracksChanged: {
+            qDeleteAll(d_ptr->audioTracksGroup->actions());
+            qDeleteAll(d_ptr->videoTracksGroup->actions());
+            qDeleteAll(d_ptr->subTracksGroup->actions());
+
+            auto tracksEvent = static_cast<Ffmpeg::TracksChangedEvent *>(eventPtr.data());
+            auto tracks = tracksEvent->tracks();
+            for (const auto &track : qAsConst(tracks)) {
+                std::unique_ptr<QAction> actionPtr(new QAction(track.info(), this));
+                actionPtr->setCheckable(true);
+                if (track.selected) {
+                    actionPtr->setChecked(true);
+                }
+                switch (track.type) {
+                case AVMEDIA_TYPE_AUDIO: {
+                    auto action = actionPtr.release();
+                    d_ptr->audioTracksMenu->addAction(action);
+                    d_ptr->audioTracksGroup->addAction(action);
+                } break;
+                case AVMEDIA_TYPE_VIDEO: {
+                    auto action = actionPtr.release();
+                    d_ptr->videoTracksMenu->addAction(action);
+                    d_ptr->videoTracksGroup->addAction(action);
+                } break;
+                case AVMEDIA_TYPE_SUBTITLE: {
+                    auto action = actionPtr.release();
+                    d_ptr->subTracksMenu->addAction(action);
+                    d_ptr->subTracksGroup->addAction(action);
+                } break;
+                default: break;
+                }
+            }
+        } break;
+        case Ffmpeg::Event::Error: {
+            auto errorEvent = static_cast<Ffmpeg::ErrorEvent *>(eventPtr.data());
+            const auto text = tr("Error[%1]:%2.")
+                                  .arg(QString::number(errorEvent->error().errorCode()),
+                                       errorEvent->error().errorString());
+            qWarning() << text;
+            d_ptr->setTitleWidgetText(text);
+
         } break;
         default: break;
         }
@@ -451,58 +501,6 @@ void MainWindow::setupUI()
 
 void MainWindow::buildConnect()
 {
-    connect(d_ptr->playerPtr.data(), &Ffmpeg::Player::error, this, &MainWindow::onError);
-    connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::audioTracksChanged,
-            d_ptr->controlWidget,
-            [this](const QStringList &tracks) {
-                qDeleteAll(d_ptr->audioTracksGroup->actions());
-                for (const auto &item : qAsConst(tracks)) {
-                    auto action = new QAction(item, this);
-                    action->setCheckable(true);
-                    d_ptr->audioTracksMenu->addAction(action);
-                    d_ptr->audioTracksGroup->addAction(action);
-                }
-            });
-    connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::audioTrackChanged,
-            d_ptr->controlWidget,
-            [this](const QString &track) {
-                auto actions = d_ptr->audioTracksGroup->actions();
-                for (const auto action : qAsConst(actions)) {
-                    if (action->text() != track) {
-                        continue;
-                    }
-                    action->setChecked(true);
-                    break;
-                }
-            });
-    connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::subTracksChanged,
-            d_ptr->controlWidget,
-            [this](const QStringList &tracks) {
-                qDeleteAll(d_ptr->subTracksGroup->actions());
-                for (const auto &item : qAsConst(tracks)) {
-                    auto action = new QAction(item, this);
-                    action->setCheckable(true);
-                    d_ptr->subTracksMenu->addAction(action);
-                    d_ptr->subTracksGroup->addAction(action);
-                }
-            });
-    connect(d_ptr->playerPtr.data(),
-            &Ffmpeg::Player::subTrackChanged,
-            d_ptr->controlWidget,
-            [this](const QString &track) {
-                auto actions = d_ptr->subTracksGroup->actions();
-                for (const auto action : qAsConst(actions)) {
-                    if (action->text() != track) {
-                        continue;
-                    }
-                    action->setChecked(true);
-                    break;
-                }
-            });
-
     connect(d_ptr->playerPtr.data(),
             &Ffmpeg::Player::eventIncrease,
             this,
@@ -521,11 +519,9 @@ void MainWindow::buildConnect()
     connect(d_ptr->controlWidget, &ControlWidget::seek, d_ptr->playerPtr.data(), [this](int value) {
         qint64 position = value;
         d_ptr->playerPtr->seek(position * AV_TIME_BASE);
-        d_ptr->titleWidget->setText(
+        d_ptr->setTitleWidgetText(
             tr("Fast forward to: %1")
                 .arg(QTime::fromMSecsSinceStartOfDay(value * 1000).toString("hh:mm:ss")));
-        d_ptr->titleWidget->setAutoHide(3000);
-        d_ptr->setTitleWidgetVisible(true);
     });
     connect(d_ptr->controlWidget, &ControlWidget::play, this, [this](bool checked) {
         if (checked && !d_ptr->playerPtr->isRunning())
@@ -539,9 +535,7 @@ void MainWindow::buildConnect()
             d_ptr->playerPtr.data(),
             [this](int value) {
                 d_ptr->playerPtr->setVolume(value / 100.0);
-                d_ptr->titleWidget->setText(tr("Volume: %1").arg(value));
-                d_ptr->titleWidget->setAutoHide(3000);
-                d_ptr->setTitleWidgetVisible(true);
+                d_ptr->setTitleWidgetText(tr("Volume: %1").arg(value));
             });
     d_ptr->controlWidget->setVolume(50);
     connect(d_ptr->controlWidget,
@@ -549,9 +543,7 @@ void MainWindow::buildConnect()
             d_ptr->playerPtr.data(),
             [this](double value) {
                 d_ptr->playerPtr->setSpeed(value);
-                d_ptr->titleWidget->setText(tr("Speed: %1").arg(value));
-                d_ptr->titleWidget->setAutoHide(3000);
-                d_ptr->setTitleWidgetVisible(true);
+                d_ptr->setTitleWidgetText(tr("Speed: %1").arg(value));
             });
     connect(d_ptr->controlWidget,
             &ControlWidget::modelChanged,
@@ -610,11 +602,13 @@ void MainWindow::initMenu()
     d_ptr->menu->addMenu(renderMenu);
 
     d_ptr->menu->addMenu(d_ptr->audioTracksMenu);
+    d_ptr->menu->addMenu(d_ptr->videoTracksMenu);
     d_ptr->menu->addMenu(d_ptr->subTracksMenu);
 
     connect(d_ptr->audioTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         d_ptr->playerPtr->setAudioTrack(action->text());
     });
+    connect(d_ptr->videoTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {});
     connect(d_ptr->subTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         d_ptr->playerPtr->setSubtitleTrack(action->text());
     });

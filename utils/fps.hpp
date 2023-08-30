@@ -10,10 +10,14 @@ namespace Utils {
 class UTILS_EXPORT Fps : public QObject
 {
 public:
-    explicit Fps(QObject *parent = nullptr);
-    ~Fps();
+    explicit Fps(int maxQueueSize = 100, QObject *parent = nullptr);
+    ~Fps() override;
 
-    float calculate(); // ms
+    void setMaxQueueSize(int maxQueueSize);
+
+    void update();
+
+    auto getFps() -> float; // ms
 
     void reset();
 

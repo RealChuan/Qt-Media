@@ -38,7 +38,7 @@ DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
     , d_ptr(new DecoderVideoFramePrivate(this))
 {}
 
-DecoderVideoFrame::~DecoderVideoFrame() {}
+DecoderVideoFrame::~DecoderVideoFrame() = default;
 
 void DecoderVideoFrame::setVideoRenders(QVector<VideoRender *> videoRenders)
 {

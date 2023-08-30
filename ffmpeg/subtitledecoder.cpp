@@ -49,12 +49,12 @@ void SubtitleDecoder::runDecoder()
             continue;
         }
         //qDebug() << "packet ass :" << QString::fromUtf8(packetPtr->avPacket()->data);
-        QSharedPointer<Subtitle> subtitlePtr(new Subtitle);
-        if (!m_contextInfo->decodeSubtitle2(subtitlePtr.data(), packetPtr.data())) {
+        SubtitlePtr subtitlePtr(new Subtitle);
+        if (!m_contextInfo->decodeSubtitle2(subtitlePtr, packetPtr)) {
             continue;
         }
 
-        Ffmpeg::calculateTime(packetPtr.data(), m_contextInfo);
+        Ffmpeg::calculatePts(packetPtr.data(), m_contextInfo);
         subtitlePtr->setDefault(packetPtr->pts(),
                                 packetPtr->duration(),
                                 (const char *) packetPtr->avPacket()->data);

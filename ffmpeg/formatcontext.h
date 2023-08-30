@@ -2,6 +2,7 @@
 #define FORMATCONTEXT_H
 
 #include "ffmepg_global.h"
+#include "mediainfo.hpp"
 
 #include <QObject>
 
@@ -41,9 +42,10 @@ public:
     auto stream(int index) -> AVStream *; //音频流
     auto createStream() -> AVStream *;
 
-    [[nodiscard]] auto audioMap() const -> QMap<int, QString>;
-    [[nodiscard]] QVector<int> videoIndexs() const;
-    [[nodiscard]] auto subtitleMap() const -> QMap<int, QString>;
+    [[nodiscard]] QVector<StreamInfo> audioTracks() const;
+    [[nodiscard]] QVector<StreamInfo> vidioTracks() const;
+    [[nodiscard]] QVector<StreamInfo> subtitleTracks() const;
+    [[nodiscard]] QVector<StreamInfo> attachmentTracks() const;
 
     [[nodiscard]] auto findBestStreamIndex(AVMediaType type) const -> int;
     // 丢弃除indexs中包含的音视频流，优化av_read_frame性能
@@ -61,8 +63,6 @@ public:
     auto guessFrameRate(AVStream *stream) const -> AVRational;
 
     [[nodiscard]] auto duration() const -> qint64; // microsecond
-
-    [[nodiscard]] auto coverImage() const -> QImage &;
 
     void printFileInfo();
 

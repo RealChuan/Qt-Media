@@ -27,7 +27,7 @@ public:
     auto pts() -> qint64;                                              // microseconds
     auto duration() -> qint64;                                         // microseconds
 
-    void parse(SwsContext *swsContext);
+    void parse(SwsContext **swsContext);
     [[nodiscard]] auto texts() const -> QByteArrayList;
 
     void setVideoResolutionRatio(const QSize &size);

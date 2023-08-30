@@ -21,10 +21,8 @@ public:
 
     void destroyFrame()
     {
-        if (frame) {
-            freeImageAlloc();
-            av_frame_unref(frame);
-        }
+        freeImageAlloc();
+        av_frame_free(&frame);
     }
 
     void freeImageAlloc()

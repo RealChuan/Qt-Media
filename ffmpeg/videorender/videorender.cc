@@ -20,18 +20,13 @@ public:
         : fpsPtr(new Utils::Fps)
     {}
 
-    ~VideoRenderPrivate() {}
+    ~VideoRenderPrivate() = default;
 
-    void flushFPS() { fps = fpsPtr->calculate(); }
+    void flushFPS() { fpsPtr->update(); }
 
-    void resetFps()
-    {
-        fps = 0;
-        fpsPtr->reset();
-    }
+    void resetFps() { fpsPtr->reset(); }
 
     QScopedPointer<Utils::Fps> fpsPtr;
-    float fps = 0;
 };
 
 VideoRender::VideoRender()
@@ -73,9 +68,9 @@ void VideoRender::setSubTitleFrame(QSharedPointer<Subtitle> frame)
     updateSubTitleFrame(frame);
 }
 
-float VideoRender::fps()
+auto VideoRender::fps() -> float
 {
-    return d_ptr->fps;
+    return d_ptr->fpsPtr->getFps();
 }
 
 void VideoRender::resetFps()

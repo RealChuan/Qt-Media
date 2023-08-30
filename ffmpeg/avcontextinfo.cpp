@@ -192,53 +192,54 @@ bool AVContextInfo::openCodec(GpuType type)
     return true;
 }
 
-bool AVContextInfo::decodeSubtitle2(Subtitle *subtitle, Packet *packet)
+bool AVContextInfo::decodeSubtitle2(const QSharedPointer<Subtitle> &subtitlePtr,
+                                    const QSharedPointer<Packet> &packetPtr)
 {
-    return d_ptr->codecCtx->decodeSubtitle2(subtitle, packet);
+    return d_ptr->codecCtx->decodeSubtitle2(subtitlePtr.data(), packetPtr.data());
 }
 
-QVector<Frame *> AVContextInfo::decodeFrame(Packet *packet)
+std::vector<QSharedPointer<Frame>> AVContextInfo::decodeFrame(const QSharedPointer<Packet> &packetPtr)
 {
-    QVector<Frame *> frames{};
-    if (!d_ptr->codecCtx->sendPacket(packet)) {
-        return frames;
+    std::vector<FramePtr> framePtrs;
+    if (!d_ptr->codecCtx->sendPacket(packetPtr.data())) {
+        return framePtrs;
     }
-    std::unique_ptr<Frame> framePtr(new Frame);
-    while (d_ptr->codecCtx->receiveFrame(framePtr.get())) {
+    FramePtr framePtr(new Frame);
+    while (d_ptr->codecCtx->receiveFrame(framePtr.data())) {
         if (d_ptr->gpuType == GpuDecode && mediaType() == AVMEDIA_TYPE_VIDEO) {
             bool ok = false;
-            framePtr.reset(d_ptr->hardWareDecodePtr->transFromGpu(framePtr.release(), ok));
+            framePtr = d_ptr->hardWareDecodePtr->transFromGpu(framePtr, ok);
             if (!ok) {
-                return frames;
+                return framePtrs;
             }
         }
-        frames.append(framePtr.release());
+        framePtrs.push_back(framePtr);
         framePtr.reset(new Frame);
     }
-    return frames;
+    return framePtrs;
 }
 
-QVector<Packet *> AVContextInfo::encodeFrame(QSharedPointer<Frame> framePtr)
+std::vector<QSharedPointer<Packet>> AVContextInfo::encodeFrame(const QSharedPointer<Frame> &framePtr)
 {
-    QVector<Packet *> packets{};
+    std::vector<PacketPtr> packetPtrs{};
     auto frame_tmp_ptr = framePtr;
     if (d_ptr->gpuType == GpuEncode && mediaType() == AVMEDIA_TYPE_VIDEO
         && framePtr->avFrame() != nullptr) {
         bool ok = false;
         frame_tmp_ptr = d_ptr->hardWareEncodePtr->transToGpu(d_ptr->codecCtx.data(), framePtr, ok);
         if (!ok) {
-            return packets;
+            return packetPtrs;
         }
     }
     if (!d_ptr->codecCtx->sendFrame(frame_tmp_ptr.data())) {
-        return packets;
+        return packetPtrs;
     }
-    std::unique_ptr<Packet> packetPtr(new Packet);
+    PacketPtr packetPtr(new Packet);
     while (d_ptr->codecCtx->receivePacket(packetPtr.get())) {
-        packets.append(packetPtr.release());
+        packetPtrs.push_back(packetPtr);
         packetPtr.reset(new Packet);
     }
-    return packets;
+    return packetPtrs;
 }
 
 double AVContextInfo::calTimebase() const

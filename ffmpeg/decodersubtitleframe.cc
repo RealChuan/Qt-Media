@@ -55,6 +55,7 @@ void DecoderSubtitleFrame::setVideoResolutionRatio(const QSize &size)
 
 void DecoderSubtitleFrame::setVideoRenders(QVector<VideoRender *> videoRenders)
 {
+    QMutexLocker locker(&d_ptr->mutex_render);
     d_ptr->videoRenders = videoRenders;
 }
 
@@ -78,7 +79,7 @@ void DecoderSubtitleFrame::runDecoder()
             d_ptr->clock->reset(subtitlePtr->pts());
         }
         subtitlePtr->setVideoResolutionRatio(d_ptr->videoResolutionRatio);
-        subtitlePtr->parse(swsContext);
+        subtitlePtr->parse(&swsContext);
         if (subtitlePtr->type() == Subtitle::Type::ASS) {
             subtitlePtr->resolveAss(assPtr.data());
             subtitlePtr->generateImage();

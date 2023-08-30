@@ -94,33 +94,32 @@ private:
         }
     }
 
-    QSharedPointer<Frame> getKeyFrame(FormatContext *formatContext, AVContextInfo *videoInfo)
+    FramePtr getKeyFrame(FormatContext *formatContext, AVContextInfo *videoInfo)
     {
-        QSharedPointer<Frame> framePtr;
-        QScopedPointer<Packet> packetPtr(new Packet);
+        FramePtr outPtr;
+        PacketPtr packetPtr(new Packet);
         if (!formatContext->readFrame(packetPtr.get()) || m_videoPreviewWidgetPtr.isNull()) {
             m_runing = false;
-            return framePtr;
+            return outPtr;
         }
         if (!formatContext->checkPktPlayRange(packetPtr.get())) {
         } else if (packetPtr->streamIndex() == videoInfo->index()
                    && !(videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC)
                    && packetPtr->isKey()) {
-            auto frames(videoInfo->decodeFrame(packetPtr.data()));
-            for (auto frame : frames) {
-                QSharedPointer<Frame> ptr(frame);
-                if (!ptr->isKey() && framePtr.isNull()) {
+            auto framePtrs = videoInfo->decodeFrame(packetPtr);
+            for (const auto &framePtr : framePtrs) {
+                if (!framePtr->isKey() && framePtr.isNull()) {
                     continue;
                 }
-                Ffmpeg::calculateTime(ptr.data(), videoInfo, formatContext);
-                auto pts = ptr->pts();
+                Ffmpeg::calculatePts(framePtr.data(), videoInfo, formatContext);
+                auto pts = framePtr->pts();
                 if (m_timestamp > pts) {
                     continue;
                 }
-                framePtr = ptr;
+                outPtr = framePtr;
             }
         }
-        return framePtr;
+        return outPtr;
     }
 
     QString m_filepath;

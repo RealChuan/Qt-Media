@@ -12,12 +12,7 @@ class FFMPEG_EXPORT Event : public QObject
 public:
     enum EventType {
         None,
-        AudioTracksChanged,
-        VideoTracksChanged,
-        SubtitleTracksChanged,
-        AudioTrackChanged,
-        VideoTrackChanged,
-        SubtitleTrackChanged,
+        MediaTracksChanged,
         DurationChanged,
         PositionChanged,
         MediaStateChanged,
@@ -32,8 +27,8 @@ public:
 
     using QObject::QObject;
 
-    bool operator==(const Event &other) const { return type() == other.type(); }
-    bool operator!=(const Event &other) const { return !(*this == other); }
+    auto operator==(const Event &other) const -> bool { return type() == other.type(); }
+    auto operator!=(const Event &other) const -> bool { return !(*this == other); }
 
     [[nodiscard]] virtual auto type() const -> EventType { return None; }
 };

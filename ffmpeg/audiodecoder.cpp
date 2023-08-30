@@ -51,10 +51,10 @@ void AudioDecoder::runDecoder()
         if (packetPtr.isNull()) {
             continue;
         }
-        auto frames(m_contextInfo->decodeFrame(packetPtr.data()));
-        for (auto frame : frames) {
-            Ffmpeg::calculateTime(frame, m_contextInfo, m_formatContext);
-            d_ptr->decoderAudioFrame->append(FramePtr(frame));
+        auto framePtrs = m_contextInfo->decodeFrame(packetPtr);
+        for (const auto &framePtr : framePtrs) {
+            Ffmpeg::calculatePts(framePtr.data(), m_contextInfo, m_formatContext);
+            d_ptr->decoderAudioFrame->append(framePtr);
         }
     }
     while (m_runing && d_ptr->decoderAudioFrame->size() != 0) {

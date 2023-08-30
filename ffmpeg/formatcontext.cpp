@@ -15,7 +15,7 @@ namespace Ffmpeg {
 class FormatContext::FormatContextPrivate
 {
 public:
-    FormatContextPrivate(FormatContext *q)
+    explicit FormatContextPrivate(FormatContext *q)
         : q_ptr(q)
     {
         avformat_network_init();
@@ -23,59 +23,62 @@ public:
 
     ~FormatContextPrivate() {}
 
-    void findStreamIndex()
+    void initStreamInfo()
     {
-        videoIndexs.clear();
-        audioMap.clear();
-        subtitleMap.clear();
-        coverImage = QImage();
+        audioTracks.clear();
+        videoTracks.clear();
+        subtitleTracks.clear();
+        attachmentTracks.clear();
+
+        const auto bestAudioIndex = findBestStreamIndex(AVMEDIA_TYPE_AUDIO);
+        const auto bestVideoIndex = findBestStreamIndex(AVMEDIA_TYPE_VIDEO);
+        const auto bestSubtitleIndex = findBestStreamIndex(AVMEDIA_TYPE_SUBTITLE);
+        const auto bestAttachmentIndex = findBestStreamIndex(AVMEDIA_TYPE_ATTACHMENT);
 
         //nb_streams视音频流的个数
         for (uint i = 0; i < formatCtx->nb_streams; i++) {
+            StreamInfo streamInfo;
+            streamInfo.index = i;
+            streamInfo.parseStreamData(formatCtx->streams[i]);
+
             switch (formatCtx->streams[i]->codecpar->codec_type) {
-            case AVMEDIA_TYPE_VIDEO: videoIndexs.append(i); break;
-            case AVMEDIA_TYPE_AUDIO: {
-                AVDictionaryEntry *tag = nullptr;
-                QString str = QString::number(audioMap.size() + 1) + ".";
-                while (nullptr
-                       != (tag = av_dict_get(formatCtx->streams[i]->metadata,
-                                             "",
-                                             tag,
-                                             AV_DICT_IGNORE_SUFFIX))) {
-                    QString key = tag->key;
-                    if (key == "language" || key == "title" || key == "NUMBER_OF_BYTES") {
-                        str = str + QString::fromUtf8(tag->value) + "-";
-                    }
-                    //qDebug() << key << ":" << QString::fromUtf8(tag->value);
+            case AVMEDIA_TYPE_AUDIO:
+                if (bestAudioIndex == i) {
+                    streamInfo.defaultSelected = true;
+                    streamInfo.selected = true;
                 }
-                str.chop(1);
-                audioMap.insert(i, str);
-            } break;
-            case AVMEDIA_TYPE_SUBTITLE: {
-                QString str = QString::number(subtitleMap.size() + 1) + ".";
-                AVDictionaryEntry *tag = nullptr;
-                while (nullptr
-                       != (tag = av_dict_get(formatCtx->streams[i]->metadata,
-                                             "",
-                                             tag,
-                                             AV_DICT_IGNORE_SUFFIX))) {
-                    QString key = tag->key;
-                    if (key == "language" || key == "title" || key == "NUMBER_OF_BYTES") {
-                        str = str + QString::fromUtf8(tag->value) + "-";
-                    }
-                    //qDebug() << key << ":" << QString::fromUtf8(tag->value);
+                audioTracks.append(streamInfo);
+                break;
+            case AVMEDIA_TYPE_VIDEO:
+                if (bestVideoIndex == i) {
+                    streamInfo.defaultSelected = true;
+                    streamInfo.selected = true;
                 }
-                str.chop(1);
-                subtitleMap.insert(i, str);
-            } break;
+                videoTracks.append(streamInfo);
+                break;
+            case AVMEDIA_TYPE_SUBTITLE:
+                if (bestSubtitleIndex == i) {
+                    streamInfo.defaultSelected = true;
+                    streamInfo.selected = true;
+                }
+                subtitleTracks.append(streamInfo);
+                break;
+            case AVMEDIA_TYPE_ATTACHMENT:
+                if (bestAttachmentIndex == i) {
+                    streamInfo.defaultSelected = true;
+                    streamInfo.selected = true;
+                }
+                attachmentTracks.append(streamInfo);
+                break;
             default: break;
             }
-
-            if (formatCtx->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) {
-                AVPacket &pkt = formatCtx->streams[i]->attached_pic;
-                coverImage = QImage::fromData((uchar *) pkt.data, pkt.size);
-            }
         }
+    }
+
+    [[nodiscard]] auto findBestStreamIndex(AVMediaType type) const -> int
+    {
+        Q_ASSERT(formatCtx != nullptr);
+        return av_find_best_stream(formatCtx, type, -1, -1, nullptr, 0);
     }
 
     FormatContext *q_ptr;
@@ -85,10 +88,10 @@ public:
     FormatContext::OpenMode mode = FormatContext::ReadOnly;
     bool isOpen = false;
 
-    QVector<int> videoIndexs;
-    QMap<int, QString> audioMap;
-    QMap<int, QString> subtitleMap;
-    QImage coverImage;
+    QVector<StreamInfo> audioTracks;
+    QVector<StreamInfo> videoTracks;
+    QVector<StreamInfo> subtitleTracks;
+    QVector<StreamInfo> attachmentTracks;
 
     const qint64 seekOffset = 2 * AV_TIME_BASE;
 };
@@ -144,12 +147,12 @@ void FormatContext::copyChapterFrom(FormatContext *src)
     }
 }
 
-bool FormatContext::isOpen()
+auto FormatContext::isOpen() -> bool
 {
     return d_ptr->isOpen;
 }
 
-bool FormatContext::openFilePath(const QString &filepath, OpenMode mode)
+auto FormatContext::openFilePath(const QString &filepath, OpenMode mode) -> bool
 {
     d_ptr->mode = mode;
     close();
@@ -201,7 +204,7 @@ void FormatContext::close()
     }
 }
 
-bool FormatContext::avio_open()
+auto FormatContext::avio_open() -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     if (d_ptr->formatCtx->oformat->flags & AVFMT_NOFILE) {
@@ -226,28 +229,28 @@ void FormatContext::avio_close()
     d_ptr->isOpen = false;
 }
 
-bool FormatContext::writeHeader()
+auto FormatContext::writeHeader() -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     auto ret = avformat_write_header(d_ptr->formatCtx, nullptr);
     ERROR_RETURN(ret)
 }
 
-bool FormatContext::writePacket(Packet *packet)
+auto FormatContext::writePacket(Packet *packet) -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     auto ret = av_interleaved_write_frame(d_ptr->formatCtx, packet->avPacket());
     ERROR_RETURN(ret)
 }
 
-bool FormatContext::writeTrailer()
+auto FormatContext::writeTrailer() -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     auto ret = av_write_trailer(d_ptr->formatCtx);
     ERROR_RETURN(ret)
 }
 
-bool FormatContext::findStream()
+auto FormatContext::findStream() -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     //获取音视频流数据信息
@@ -260,34 +263,38 @@ bool FormatContext::findStream()
         // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
         d_ptr->formatCtx->pb->eof_reached = 0;
     }
-    d_ptr->findStreamIndex();
+    d_ptr->initStreamInfo();
     return true;
 }
 
-int FormatContext::streams() const
+auto FormatContext::streams() const -> int
 {
     return d_ptr->formatCtx->nb_streams;
 }
 
-QMap<int, QString> FormatContext::audioMap() const
+QVector<StreamInfo> FormatContext::audioTracks() const
 {
-    return d_ptr->audioMap;
+    return d_ptr->audioTracks;
 }
 
-QVector<int> FormatContext::videoIndexs() const
+QVector<StreamInfo> FormatContext::vidioTracks() const
 {
-    return d_ptr->videoIndexs;
+    return d_ptr->videoTracks;
 }
 
-QMap<int, QString> FormatContext::subtitleMap() const
+QVector<StreamInfo> FormatContext::subtitleTracks() const
 {
-    return d_ptr->subtitleMap;
+    return d_ptr->subtitleTracks;
 }
 
-int FormatContext::findBestStreamIndex(AVMediaType type) const
+QVector<StreamInfo> FormatContext::attachmentTracks() const
 {
-    Q_ASSERT(d_ptr->formatCtx != nullptr);
-    return av_find_best_stream(d_ptr->formatCtx, type, -1, -1, nullptr, 0);
+    return d_ptr->attachmentTracks;
+}
+
+auto FormatContext::findBestStreamIndex(AVMediaType type) const -> int
+{
+    return d_ptr->findBestStreamIndex(type);
 }
 
 void FormatContext::discardStreamExcluded(QVector<int> indexs)
@@ -301,13 +308,13 @@ void FormatContext::discardStreamExcluded(QVector<int> indexs)
     }
 }
 
-AVStream *FormatContext::stream(int index)
+auto FormatContext::stream(int index) -> AVStream *
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     return d_ptr->formatCtx->streams[index];
 }
 
-AVStream *FormatContext::createStream()
+auto FormatContext::createStream() -> AVStream *
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     auto stream = avformat_new_stream(d_ptr->formatCtx, nullptr);
@@ -317,14 +324,14 @@ AVStream *FormatContext::createStream()
     return stream;
 }
 
-bool FormatContext::readFrame(Packet *packet)
+auto FormatContext::readFrame(Packet *packet) -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     int ret = av_read_frame(d_ptr->formatCtx, packet->avPacket());
     ERROR_RETURN(ret)
 }
 
-bool FormatContext::checkPktPlayRange(Packet *packet)
+auto FormatContext::checkPktPlayRange(Packet *packet) -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     auto avPacket = packet->avPacket();
@@ -342,19 +349,19 @@ bool FormatContext::checkPktPlayRange(Packet *packet)
     return pkt_in_play_range;
 }
 
-AVRational FormatContext::guessFrameRate(int index) const
+auto FormatContext::guessFrameRate(int index) const -> AVRational
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     return guessFrameRate(d_ptr->formatCtx->streams[index]);
 }
 
-AVRational FormatContext::guessFrameRate(AVStream *stream) const
+auto FormatContext::guessFrameRate(AVStream *stream) const -> AVRational
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     return av_guess_frame_rate(d_ptr->formatCtx, stream, nullptr);
 }
 
-bool FormatContext::seekFirstFrame()
+auto FormatContext::seekFirstFrame() -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     int64_t timestamp = 0;
@@ -365,7 +372,7 @@ bool FormatContext::seekFirstFrame()
     ERROR_RETURN(ret)
 }
 
-bool FormatContext::seek(qint64 timestamp)
+auto FormatContext::seek(qint64 timestamp) -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     Q_ASSERT(timestamp >= 0);
@@ -382,7 +389,7 @@ bool FormatContext::seek(qint64 timestamp)
     ERROR_RETURN(ret)
 }
 
-bool FormatContext::seek(int index, qint64 timestamp)
+auto FormatContext::seek(int index, qint64 timestamp) -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     int ret = av_seek_frame(d_ptr->formatCtx, index, timestamp, AVSEEK_FLAG_BACKWARD);
@@ -410,20 +417,15 @@ void FormatContext::dumpFormat()
     av_dump_format(d_ptr->formatCtx, 0, d_ptr->filepath.toLocal8Bit().constData(), d_ptr->mode - 1);
 }
 
-AVFormatContext *FormatContext::avFormatContext()
+auto FormatContext::avFormatContext() -> AVFormatContext *
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     return d_ptr->formatCtx;
 }
 
-qint64 FormatContext::duration() const
+auto FormatContext::duration() const -> qint64
 {
     return d_ptr->isOpen ? d_ptr->formatCtx->duration : 0;
-}
-
-QImage &FormatContext::coverImage() const
-{
-    return d_ptr->coverImage;
 }
 
 } // namespace Ffmpeg

@@ -15,7 +15,6 @@ public:
     ~MainWindow() override;
 
 private slots:
-    void onError(const Ffmpeg::AVError &averror);
     void onHoverSlider(int pos, int value);
     void onLeaveSlider();
     void onShowCurrentFPS();
@@ -43,4 +42,5 @@ private:
     class MainWindowPrivate;
     QScopedPointer<MainWindowPrivate> d_ptr;
 };
+
 #endif // MAINWINDOW_H

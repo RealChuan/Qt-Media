@@ -65,7 +65,12 @@ void SubtitleThread::run()
         return;
     }
     formatCtxPtr->seekFirstFrame();
-    auto indexs = formatCtxPtr->subtitleMap().keys();
+    auto tracks = formatCtxPtr->subtitleTracks();
+    QVector<int> indexs;
+    for (const auto &track : qAsConst(tracks)) {
+        indexs.append(track.index);
+    }
+
     formatCtxPtr->discardStreamExcluded(indexs);
     QMap<int, Ffmpeg::AVContextInfo *> subtitleInfos;
     auto clean = qScopeGuard([&] {
@@ -88,7 +93,7 @@ void SubtitleThread::run()
         }
     }
     while (d_ptr->runing.load()) {
-        QScopedPointer<Ffmpeg::Packet> packetPtr(new Ffmpeg::Packet);
+        Ffmpeg::PacketPtr packetPtr(new Ffmpeg::Packet);
         if (!formatCtxPtr->readFrame(packetPtr.data())) {
             break;
         }
@@ -102,8 +107,8 @@ void SubtitleThread::run()
         if (!info) {
             continue;
         }
-        QScopedPointer<Ffmpeg::Subtitle> subtitlePtr(new Ffmpeg::Subtitle);
-        if (!info->decodeSubtitle2(subtitlePtr.get(), packetPtr.data())) {
+        Ffmpeg::SubtitlePtr subtitlePtr(new Ffmpeg::Subtitle);
+        if (!info->decodeSubtitle2(subtitlePtr, packetPtr)) {
             continue;
         }
         subtitlePtr->parse(nullptr);

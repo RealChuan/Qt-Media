@@ -9,7 +9,10 @@
 #include "subtitledecoder.h"
 #include "videodecoder.h"
 
+#include <event/errorevent.hpp>
+#include <event/trackevent.hpp>
 #include <event/valueevent.hpp>
+#include <utils/speed.hpp>
 #include <utils/threadsafequeue.hpp>
 #include <utils/utils.h>
 #include <videorender/videorender.hpp>
@@ -25,7 +28,7 @@ namespace Ffmpeg {
 class Player::PlayerPrivate
 {
 public:
-    PlayerPrivate(Player *q)
+    explicit PlayerPrivate(Player *q)
         : q_ptr(q)
     {
         formatCtx = new FormatContext(q_ptr);
@@ -37,6 +40,11 @@ public:
         audioDecoder = new AudioDecoder(q_ptr);
         videoDecoder = new VideoDecoder(q_ptr);
         subtitleDecoder = new SubtitleDecoder(q_ptr);
+
+        QObject::connect(AVErrorManager::instance(),
+                         &AVErrorManager::error,
+                         q_ptr,
+                         [this](const AVError &error) { addEvent(new ErrorEvent(error)); });
     }
 
     auto initAvCodec() -> bool
@@ -56,45 +64,10 @@ public:
         addEvent(new DurationChangedEvent(formatCtx->duration()));
         q_ptr->onPositionChanged(0);
 
-        audioInfo->resetIndex();
-        auto audioTracks = formatCtx->audioMap();
-        if (!audioTracks.isEmpty()) {
-            int audioIndex = formatCtx->findBestStreamIndex(AVMEDIA_TYPE_AUDIO);
-            if (!setMediaIndex(audioInfo, audioIndex)) {
-                return false;
-            }
-            emit q_ptr->audioTracksChanged(audioTracks.values());
-            emit q_ptr->audioTrackChanged(audioTracks.value(audioIndex));
+        if (!setBestMediaIndex()) {
+            return false;
         }
 
-        if (!formatCtx->coverImage().isNull()) {
-            for (auto render : videoRenders) {
-                render->setImage(formatCtx->coverImage());
-            }
-        }
-
-        videoInfo->resetIndex();
-        auto videoIndexs = formatCtx->videoIndexs();
-        if (!videoIndexs.isEmpty()) {
-            int videoIndex = videoIndexs.first();
-            if (!setMediaIndex(videoInfo, videoIndex)) {
-                videoInfo->resetIndex();
-            }
-        }
-
-        subtitleInfo->resetIndex();
-        auto subtitleTracks = formatCtx->subtitleMap();
-        if (!subtitleTracks.isEmpty()) {
-            int subtitleIndex = formatCtx->findBestStreamIndex(AVMEDIA_TYPE_SUBTITLE);
-            if (!setMediaIndex(subtitleInfo, subtitleIndex)) {
-                return false;
-            }
-            subtitleDecoder->setVideoResolutionRatio(resolutionRatio());
-            emit q_ptr->subTracksChanged(subtitleTracks.values());
-            emit q_ptr->subTrackChanged(subtitleTracks.value(subtitleIndex));
-        }
-
-        qDebug() << audioInfo->index() << videoInfo->index() << subtitleInfo->index();
         if (!audioInfo->isIndexVaild() && !videoInfo->isIndexVaild()) {
             return false;
         }
@@ -103,6 +76,73 @@ public:
         // formatCtx->printFileInfo();
         formatCtx->dumpFormat();
         return true;
+    }
+
+    auto setBestMediaIndex() -> bool
+    {
+        audioInfo->resetIndex();
+        const auto audioTracks = formatCtx->audioTracks();
+        for (const auto &track : qAsConst(audioTracks)) {
+            if (!track.selected) {
+                continue;
+            }
+            if (!setMediaIndex(audioInfo, track.index)) {
+                audioInfo->resetIndex();
+                return false;
+            }
+        }
+
+        videoInfo->resetIndex();
+        const auto videoTracks = formatCtx->vidioTracks();
+        for (const auto &track : qAsConst(videoTracks)) {
+            if (!track.selected) {
+                continue;
+            }
+            if (!setMediaIndex(videoInfo, track.index)) {
+                videoInfo->resetIndex();
+                return false;
+            }
+            setMusicCover(track.image);
+        }
+
+        subtitleInfo->resetIndex();
+        const auto subtitleTracks = formatCtx->subtitleTracks();
+        for (const auto &track : qAsConst(subtitleTracks)) {
+            if (!track.selected) {
+                continue;
+            }
+            if (!setMediaIndex(subtitleInfo, track.index)) {
+                subtitleInfo->resetIndex();
+                return false;
+            }
+            subtitleDecoder->setVideoResolutionRatio(resolutionRatio());
+        }
+
+        const auto attachmentTracks = formatCtx->attachmentTracks();
+        for (const auto &track : qAsConst(subtitleTracks)) {
+            if (!track.selected) {
+                continue;
+            }
+            setMusicCover(track.image);
+        }
+
+        QVector<StreamInfo> tracks = audioTracks;
+        tracks.append(videoTracks);
+        tracks.append(subtitleTracks);
+        addEvent(new TracksChangedEvent(tracks));
+
+        qInfo() << audioInfo->index() << videoInfo->index() << subtitleInfo->index();
+        return true;
+    }
+
+    void setMusicCover(const QImage &image)
+    {
+        if (image.isNull()) {
+            return;
+        }
+        for (auto render : videoRenders) {
+            render->setImage(image);
+        }
     }
 
     void playVideo()
@@ -128,17 +168,20 @@ public:
         }
         Clock::master()->invalidate();
 
-        qint64 readSize = 0;
-        QElapsedTimer elapsedTimer;
-        elapsedTimer.start();
+        QScopedPointer<Utils::Speed> speedPtr(new Utils::Speed);
+        QElapsedTimer timer;
+        timer.start();
 
         while (runing) {
             PacketPtr packetPtr(new Packet);
             if (!formatCtx->readFrame(packetPtr.data())) {
                 break;
             }
-
-            calculateSpeed(elapsedTimer, readSize, packetPtr->avPacket()->size);
+            speedPtr->addSize(packetPtr->avPacket()->size);
+            if (timer.elapsed() > 1000) {
+                addEvent(new CacheSpeedChangedEvent(speedPtr->getSpeed()));
+                timer.restart();
+            }
 
             auto stream_index = packetPtr->streamIndex();
             if (!formatCtx->checkPktPlayRange(packetPtr.data())) {
@@ -166,7 +209,7 @@ public:
         setMediaState(Stopped);
     }
 
-    auto setMediaIndex(AVContextInfo *contextInfo, int index) -> bool
+    auto setMediaIndex(AVContextInfo *contextInfo, int index) const -> bool
     {
         contextInfo->setIndex(index);
         contextInfo->setStream(formatCtx->stream(index));
@@ -183,22 +226,9 @@ public:
         addEvent(new MediaStateChangedEvent(mediaState));
     }
 
-    QSize resolutionRatio() const
+    [[nodiscard]] QSize resolutionRatio() const
     {
         return videoInfo->isIndexVaild() ? videoInfo->resolutionRatio() : QSize();
-    }
-
-    void calculateSpeed(QElapsedTimer &timer, qint64 &readSize, qint64 addSize)
-    {
-        readSize += addSize;
-        auto elapsed = timer.elapsed();
-        if (elapsed < 5000) {
-            return;
-        }
-        auto speed = readSize * 1000 / elapsed;
-        addEvent(new CacheSpeedChangedEvent(speed));
-        timer.restart();
-        readSize = 0;
     }
 
     void addEvent(Event *event)
@@ -225,9 +255,8 @@ public:
     QString filepath;
     std::atomic_bool isOpen = true;
     std::atomic_bool runing = true;
-    bool gpuDecode = false;
+    bool gpuDecode = true;
     qint64 position = 0;
-
     std::atomic<MediaState> mediaState = MediaState::Stopped;
 
     Utils::ThreadSafeQueue<EventPtr> eventQueue;
@@ -243,7 +272,6 @@ Player::Player(QObject *parent)
     av_log_set_level(AV_LOG_INFO);
 
     buildConnect();
-    buildErrorConnect();
 }
 
 Player::~Player()
@@ -251,7 +279,7 @@ Player::~Player()
     onStop();
 }
 
-QString &Player::filePath() const
+auto Player::filePath() const -> QString &
 {
     return d_ptr->filepath;
 }
@@ -300,7 +328,7 @@ void Player::onStop()
 void Player::onPositionChanged(qint64 position)
 {
     auto diff = (position - d_ptr->position) / AV_TIME_BASE;
-    if (qAbs(diff) < 1) {
+    if (diff < 1) {
         return;
     }
     d_ptr->position = position;
@@ -315,57 +343,57 @@ void Player::seek(qint64 position)
 
 void Player::setAudioTrack(const QString &text) // 停止再播放最简单 之后在优化
 {
-    auto audioTracks = d_ptr->formatCtx->audioMap();
-    auto list = audioTracks.values();
-    if (!list.contains(text)) {
-        return;
-    }
-    int index = audioTracks.key(text);
-    int subtitleIndex = d_ptr->subtitleInfo->index();
+    // auto audioTracks = d_ptr->formatCtx->audioMap();
+    // auto list = audioTracks.values();
+    // if (!list.contains(text)) {
+    //     return;
+    // }
+    // int index = audioTracks.key(text);
+    // int subtitleIndex = d_ptr->subtitleInfo->index();
 
-    onStop();
-    d_ptr->initAvCodec();
-    if (subtitleIndex >= 0) {
-        if (!d_ptr->setMediaIndex(d_ptr->subtitleInfo, subtitleIndex)) {
-            return;
-        }
-        emit subTrackChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
-    }
-    if (!d_ptr->setMediaIndex(d_ptr->audioInfo, index)) {
-        return;
-    }
-    emit audioTrackChanged(text);
-    seek(d_ptr->position);
-    onPlay();
+    // onStop();
+    // d_ptr->initAvCodec();
+    // if (subtitleIndex >= 0) {
+    //     if (!d_ptr->setMediaIndex(d_ptr->subtitleInfo, subtitleIndex)) {
+    //         return;
+    //     }
+    //     emit subTrackChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
+    // }
+    // if (!d_ptr->setMediaIndex(d_ptr->audioInfo, index)) {
+    //     return;
+    // }
+    // emit audioTrackChanged(text);
+    // seek(d_ptr->position);
+    // onPlay();
 }
 
 void Player::setSubtitleTrack(const QString &text)
 {
-    auto subtitleTracks = d_ptr->formatCtx->subtitleMap();
-    auto list = subtitleTracks.values();
-    if (!list.contains(text)) {
-        return;
-    }
-    int index = subtitleTracks.key(text);
-    int audioIndex = d_ptr->audioInfo->index();
+    // auto subtitleTracks = d_ptr->formatCtx->subtitleMap();
+    // auto list = subtitleTracks.values();
+    // if (!list.contains(text)) {
+    //     return;
+    // }
+    // int index = subtitleTracks.key(text);
+    // int audioIndex = d_ptr->audioInfo->index();
 
-    onStop();
-    d_ptr->initAvCodec();
-    if (audioIndex >= 0) {
-        if (!d_ptr->setMediaIndex(d_ptr->audioInfo, audioIndex)) {
-            return;
-        }
-        emit audioTrackChanged(d_ptr->formatCtx->audioMap().value(audioIndex));
-    }
-    if (!d_ptr->setMediaIndex(d_ptr->subtitleInfo, index)) {
-        return;
-    }
-    emit subTrackChanged(text);
-    seek(d_ptr->position);
-    onPlay();
+    // onStop();
+    // d_ptr->initAvCodec();
+    // if (audioIndex >= 0) {
+    //     if (!d_ptr->setMediaIndex(d_ptr->audioInfo, audioIndex)) {
+    //         return;
+    //     }
+    //     emit audioTrackChanged(d_ptr->formatCtx->audioMap().value(audioIndex));
+    // }
+    // if (!d_ptr->setMediaIndex(d_ptr->subtitleInfo, index)) {
+    //     return;
+    // }
+    // emit subTrackChanged(text);
+    // seek(d_ptr->position);
+    // onPlay();
 }
 
-bool Player::isOpen()
+auto Player::isOpen() -> bool
 {
     return d_ptr->isOpen;
 }
@@ -386,7 +414,7 @@ void Player::setSpeed(double speed)
     }
 }
 
-double Player::speed()
+auto Player::speed() -> double
 {
     return 1.0;
 }
@@ -404,51 +432,51 @@ void Player::pause(bool status)
 
 void Player::setUseGpuDecode(bool on)
 {
-    d_ptr->gpuDecode = on;
-    if (!isRunning()) {
-        return;
-    }
-    int audioIndex = d_ptr->audioInfo->index();
-    int subtitleIndex = d_ptr->subtitleInfo->index();
-    onStop();
-    d_ptr->initAvCodec();
-    if (audioIndex >= 0) {
-        if (!d_ptr->setMediaIndex(d_ptr->audioInfo, audioIndex)) {
-            return;
-        }
-        emit audioTrackChanged(d_ptr->formatCtx->audioMap().value(audioIndex));
-    }
-    if (subtitleIndex >= 0) {
-        if (!d_ptr->setMediaIndex(d_ptr->subtitleInfo, subtitleIndex)) {
-            return;
-        }
-        emit subTrackChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
-    }
-    seek(d_ptr->position);
-    onPlay();
+    // d_ptr->gpuDecode = on;
+    // if (!isRunning()) {
+    //     return;
+    // }
+    // int audioIndex = d_ptr->audioInfo->index();
+    // int subtitleIndex = d_ptr->subtitleInfo->index();
+    // onStop();
+    // d_ptr->initAvCodec();
+    // if (audioIndex >= 0) {
+    //     if (!d_ptr->setMediaIndex(d_ptr->audioInfo, audioIndex)) {
+    //         return;
+    //     }
+    //     emit audioTrackChanged(d_ptr->formatCtx->audioMap().value(audioIndex));
+    // }
+    // if (subtitleIndex >= 0) {
+    //     if (!d_ptr->setMediaIndex(d_ptr->subtitleInfo, subtitleIndex)) {
+    //         return;
+    //     }
+    //     emit subTrackChanged(d_ptr->formatCtx->subtitleMap().value(subtitleIndex));
+    // }
+    // seek(d_ptr->position);
+    // onPlay();
 }
 
-bool Player::isGpuDecode()
+auto Player::isGpuDecode() -> bool
 {
     return d_ptr->gpuDecode;
 }
 
-MediaState Player::mediaState()
+auto Player::mediaState() -> MediaState
 {
     return d_ptr->mediaState;
 }
 
-qint64 Player::duration() const
+auto Player::duration() const -> qint64
 {
     return d_ptr->formatCtx->duration();
 }
 
-qint64 Player::position() const
+auto Player::position() const -> qint64
 {
     return d_ptr->position;
 }
 
-qint64 Player::fames() const
+auto Player::fames() const -> qint64
 {
     return d_ptr->videoInfo->isIndexVaild() ? d_ptr->videoInfo->fames() : 0;
 }
@@ -458,22 +486,22 @@ QSize Player::resolutionRatio() const
     return d_ptr->resolutionRatio();
 }
 
-double Player::fps() const
+auto Player::fps() const -> double
 {
     return d_ptr->videoInfo->isIndexVaild() ? d_ptr->videoInfo->fps() : 0;
 }
 
-int Player::audioIndex() const
+auto Player::audioIndex() const -> int
 {
     return d_ptr->audioInfo->index();
 }
 
-int Player::videoIndex() const
+auto Player::videoIndex() const -> int
 {
     return d_ptr->videoInfo->index();
 }
 
-int Player::subtitleIndex() const
+auto Player::subtitleIndex() const -> int
 {
     return d_ptr->subtitleInfo->index();
 }
@@ -531,11 +559,6 @@ void Player::buildConnect(bool state)
                    this,
                    &Player::onPositionChanged);
     }
-}
-
-void Player::buildErrorConnect()
-{
-    connect(AVErrorManager::instance(), &AVErrorManager::error, this, &Player::error);
 }
 
 } // namespace Ffmpeg

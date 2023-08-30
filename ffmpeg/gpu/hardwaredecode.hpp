@@ -17,7 +17,7 @@ public:
 
     auto initPixelFormat(const AVCodec *decoder) -> bool;
     auto initHardWareDevice(CodecContext *codecContext) -> bool;
-    auto transFromGpu(Frame *in, bool &ok) -> Frame *;
+    auto transFromGpu(const QSharedPointer<Frame> &inPtr, bool &ok) -> QSharedPointer<Frame>;
 
     auto isVaild() -> bool;
 

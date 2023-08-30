@@ -436,19 +436,19 @@ public:
     bool encodeWriteFrame(uint stream_index, int flush, QSharedPointer<Frame> framePtr)
     {
         auto transcodeCtx = transcodeContexts.at(stream_index);
-        QVector<Packet *> packets{};
+        std::vector<PacketPtr> packetPtrs{};
         if (flush) {
             QSharedPointer<Frame> frame_tmp_ptr(new Frame);
             frame_tmp_ptr->destroyFrame();
-            packets = transcodeCtx->encContextInfoPtr->encodeFrame(frame_tmp_ptr);
+            packetPtrs = transcodeCtx->encContextInfoPtr->encodeFrame(frame_tmp_ptr);
         } else {
-            packets = transcodeCtx->encContextInfoPtr->encodeFrame(framePtr);
+            packetPtrs = transcodeCtx->encContextInfoPtr->encodeFrame(framePtr);
         }
-        for (auto packet : packets) {
-            packet->setStreamIndex(stream_index);
-            packet->rescaleTs(transcodeCtx->encContextInfoPtr->timebase(),
-                              outFormatContext->stream(stream_index)->time_base);
-            outFormatContext->writePacket(packet);
+        for (const auto &packetPtr : packetPtrs) {
+            packetPtr->setStreamIndex(stream_index);
+            packetPtr->rescaleTs(transcodeCtx->encContextInfoPtr->timebase(),
+                                 outFormatContext->stream(stream_index)->time_base);
+            outFormatContext->writePacket(packetPtr.data());
         }
         return true;
     }
@@ -481,7 +481,6 @@ public:
 
         subtitleFilename.clear();
 
-        fps = 0;
         fpsPtr->reset();
     }
 
@@ -525,9 +524,8 @@ public:
 
     bool useGpuDecode = false;
 
-    volatile bool runing = true;
+    std::atomic_bool runing = true;
     QScopedPointer<Utils::Fps> fpsPtr;
-    float fps = 0;
 };
 
 Transcode::Transcode(QObject *parent)
@@ -683,7 +681,7 @@ void Transcode::stopTranscode()
 
 float Transcode::fps()
 {
-    return d_ptr->fps;
+    return d_ptr->fpsPtr->getFps();
 }
 
 void Transcode::run()
@@ -715,7 +713,7 @@ void Transcode::loop()
 {
     auto duration = d_ptr->inFormatContext->duration();
     while (d_ptr->runing) {
-        QScopedPointer<Packet> packetPtr(new Packet);
+        PacketPtr packetPtr(new Packet);
         if (!d_ptr->inFormatContext->readFrame(packetPtr.get())) {
             break;
         }
@@ -729,22 +727,20 @@ void Transcode::loop()
         } else {
             packetPtr->rescaleTs(d_ptr->inFormatContext->stream(stream_index)->time_base,
                                  transcodeCtx->decContextInfoPtr->timebase());
-            auto frames = transcodeCtx->decContextInfoPtr->decodeFrame(packetPtr.data());
-            for (auto frame : frames) {
+            auto framePtrs = transcodeCtx->decContextInfoPtr->decodeFrame(packetPtr);
+            for (const auto &framePtr : framePtrs) {
                 if (!transcodeCtx->initFilter) {
-                    d_ptr->initFilters(stream_index, frame);
+                    d_ptr->initFilters(stream_index, framePtr.data());
                     transcodeCtx->initFilter = true;
                 }
-                QScopedPointer<Frame> framePtr(frame);
-                d_ptr->filterEncodeWriteframe(frame, stream_index);
+                d_ptr->filterEncodeWriteframe(framePtr.data(), stream_index);
             }
 
-            Ffmpeg::calculateTime(packetPtr.data(),
-                                  d_ptr->transcodeContexts.at(stream_index)
-                                      ->decContextInfoPtr.data());
+            Ffmpeg::calculatePts(packetPtr.data(),
+                                 d_ptr->transcodeContexts.at(stream_index)->decContextInfoPtr.data());
             emit progressChanged(packetPtr->pts() / duration);
             if (transcodeCtx->decContextInfoPtr->mediaType() == AVMEDIA_TYPE_VIDEO) {
-                d_ptr->fps = d_ptr->fpsPtr->calculate();
+                d_ptr->fpsPtr->update();
             }
         }
     }

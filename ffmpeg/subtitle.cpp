@@ -22,7 +22,7 @@ public:
     {}
     ~SubtitlePrivate() { avsubtitle_free(&subtitle); }
 
-    void parseImage(SwsContext *swsContext)
+    void parseImage(SwsContext **swsContext)
     {
         image = QImage(videoResolutionRatio, QImage::Format_RGBA8888);
         image.fill(Qt::transparent);
@@ -34,18 +34,18 @@ public:
             int pitch[4];
             //注意，这里是RGBA格式，需要Alpha
             av_image_alloc(pixels, pitch, sub_rect->w, sub_rect->h, AV_PIX_FMT_RGBA, 1);
-            swsContext = sws_getCachedContext(swsContext,
-                                              sub_rect->w,
-                                              sub_rect->h,
-                                              AV_PIX_FMT_PAL8,
-                                              sub_rect->w,
-                                              sub_rect->h,
-                                              AV_PIX_FMT_RGBA,
-                                              SWS_BILINEAR,
-                                              nullptr,
-                                              nullptr,
-                                              nullptr);
-            sws_scale(swsContext, sub_rect->data, sub_rect->linesize, 0, sub_rect->h, pixels, pitch);
+            *swsContext = sws_getCachedContext(*swsContext,
+                                               sub_rect->w,
+                                               sub_rect->h,
+                                               AV_PIX_FMT_PAL8,
+                                               sub_rect->w,
+                                               sub_rect->h,
+                                               AV_PIX_FMT_RGBA,
+                                               SWS_BILINEAR,
+                                               nullptr,
+                                               nullptr,
+                                               nullptr);
+            sws_scale(*swsContext, sub_rect->data, sub_rect->linesize, 0, sub_rect->h, pixels, pitch);
             //这里也使用RGBA
             auto img = QImage(pixels[0], sub_rect->w, sub_rect->h, QImage::Format_RGBA8888);
             if (!img.isNull()) {
@@ -110,7 +110,7 @@ void Subtitle::setDefault(qint64 pts, qint64 duration, const QString &text)
     d_ptr->text = text;
 }
 
-void Subtitle::parse(SwsContext *swsContext)
+void Subtitle::parse(SwsContext **swsContext)
 {
     switch (d_ptr->subtitle.format) {
     case 0:
