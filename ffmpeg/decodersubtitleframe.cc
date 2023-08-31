@@ -2,6 +2,8 @@
 #include "clock.hpp"
 #include "codeccontext.h"
 
+#include <event/pauseevent.hpp>
+#include <event/seekevent.hpp>
 #include <subtitle/ass.hpp>
 #include <videorender/videorender.hpp>
 
@@ -26,6 +28,33 @@ public:
         clock = new Clock(q);
     }
 
+    void processEvent(Ass *ass, bool &firstFrame)
+    {
+        while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
+            qDebug() << "DecoderSubtitleFrame::processEvent";
+            auto eventPtr = q_ptr->m_eventQueue.take();
+            switch (eventPtr->type()) {
+            case Event::EventType::Pause: {
+                auto pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
+                auto paused = pauseEvent->paused();
+                clock->setPaused(paused);
+                if (paused) {
+                    firstFrame = false;
+                }
+            } break;
+            case Event::EventType::Seek: {
+                auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
+                auto position = seekEvent->position();
+                q_ptr->clear();
+                clock->reset(position);
+                ass->flushASSEvents();
+                firstFrame = false;
+            }
+            default: break;
+            }
+        }
+    }
+
     DecoderSubtitleFrame *q_ptr;
 
     Clock *clock;
@@ -43,7 +72,10 @@ DecoderSubtitleFrame::DecoderSubtitleFrame(QObject *parent)
     , d_ptr(new DecoderSubtitleFramePrivate(this))
 {}
 
-DecoderSubtitleFrame::~DecoderSubtitleFrame() = default;
+DecoderSubtitleFrame::~DecoderSubtitleFrame()
+{
+    stopDecoder();
+}
 
 void DecoderSubtitleFrame::setVideoResolutionRatio(const QSize &size)
 {
@@ -71,10 +103,15 @@ void DecoderSubtitleFrame::runDecoder()
     SwsContext *swsContext = nullptr;
     bool firstFrame = false;
     while (m_runing.load()) {
+        d_ptr->processEvent(assPtr.data(), firstFrame);
+
         auto subtitlePtr(m_queue.take());
         if (subtitlePtr.isNull()) {
             continue;
         } else if (!firstFrame) {
+            qDebug() << "Subtitle firstFrame: "
+                     << QTime::fromMSecsSinceStartOfDay(subtitlePtr->pts() / 1000)
+                            .toString("hh:mm:ss.zzz");
             firstFrame = true;
             d_ptr->clock->reset(subtitlePtr->pts());
         }
@@ -91,6 +128,7 @@ void DecoderSubtitleFrame::runDecoder()
         }
         auto delayDuration = delay + subtitlePtr->duration();
         if (!Clock::adjustDelay(delayDuration)) {
+            qDebug() << "Subtitle Delay: " << delay;
             dropNum++;
             continue;
         }

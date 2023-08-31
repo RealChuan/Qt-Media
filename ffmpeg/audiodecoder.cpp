@@ -1,6 +1,9 @@
 #include "audiodecoder.h"
 #include "avcontextinfo.h"
 #include "decoderaudioframe.h"
+#include "ffmpegutils.hpp"
+
+#include <event/seekevent.hpp>
 
 #include <QDebug>
 
@@ -13,6 +16,23 @@ public:
         : q_ptr(q)
     {
         decoderAudioFrame = new DecoderAudioFrame(q_ptr);
+    }
+
+    void processEvent()
+    {
+        while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
+            auto eventPtr = q_ptr->m_eventQueue.take();
+            switch (eventPtr->type()) {
+            case Event::EventType::Pause: decoderAudioFrame->addEvent(eventPtr); break;
+            case Event::EventType::Seek: {
+                decoderAudioFrame->clear();
+                decoderAudioFrame->addEvent(eventPtr);
+                auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
+                seekEvent->countDown();
+            } break;
+            default: break;
+            }
+        }
     }
 
     AudioDecoder *q_ptr;
@@ -30,7 +50,10 @@ AudioDecoder::AudioDecoder(QObject *parent)
             &AudioDecoder::positionChanged);
 }
 
-AudioDecoder::~AudioDecoder() = default;
+AudioDecoder::~AudioDecoder()
+{
+    stopDecoder();
+}
 
 void AudioDecoder::setVolume(qreal volume)
 {
@@ -47,18 +70,20 @@ void AudioDecoder::runDecoder()
     d_ptr->decoderAudioFrame->startDecoder(m_formatContext, m_contextInfo);
 
     while (m_runing) {
+        d_ptr->processEvent();
+
         auto packetPtr(m_queue.take());
         if (packetPtr.isNull()) {
             continue;
         }
         auto framePtrs = m_contextInfo->decodeFrame(packetPtr);
         for (const auto &framePtr : framePtrs) {
-            Ffmpeg::calculatePts(framePtr.data(), m_contextInfo, m_formatContext);
+            calculatePts(framePtr.data(), m_contextInfo, m_formatContext);
             d_ptr->decoderAudioFrame->append(framePtr);
         }
     }
     while (m_runing && d_ptr->decoderAudioFrame->size() != 0) {
-        msleep(Sleep_Queue_Full_Milliseconds);
+        msleep(s_waitQueueEmptyMilliseconds);
     }
 
     d_ptr->decoderAudioFrame->stopDecoder();

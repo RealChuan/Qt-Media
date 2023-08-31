@@ -16,6 +16,8 @@ public:
 
     void wait();
     void countDown();
+
+    void setCount(int count);
     [[nodiscard]] auto getCount() const -> int;
 
 private:

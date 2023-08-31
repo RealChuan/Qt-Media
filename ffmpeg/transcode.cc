@@ -3,7 +3,7 @@
 #include "avcontextinfo.h"
 #include "averrormanager.hpp"
 #include "codeccontext.h"
-#include "decoder.h"
+#include "ffmpegutils.hpp"
 #include "formatcontext.h"
 #include "frame.hpp"
 #include "packet.h"
@@ -736,8 +736,8 @@ void Transcode::loop()
                 d_ptr->filterEncodeWriteframe(framePtr.data(), stream_index);
             }
 
-            Ffmpeg::calculatePts(packetPtr.data(),
-                                 d_ptr->transcodeContexts.at(stream_index)->decContextInfoPtr.data());
+            calculatePts(packetPtr.data(),
+                         d_ptr->transcodeContexts.at(stream_index)->decContextInfoPtr.data());
             emit progressChanged(packetPtr->pts() / duration);
             if (transcodeCtx->decContextInfoPtr->mediaType() == AVMEDIA_TYPE_VIDEO) {
                 d_ptr->fpsPtr->update();

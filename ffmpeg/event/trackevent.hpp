@@ -6,15 +6,15 @@
 
 namespace Ffmpeg {
 
-class FFMPEG_EXPORT TracksChangedEvent : public Event
+class FFMPEG_EXPORT MediaTrackEvent : public PropertyChangeEvent
 {
 public:
-    explicit TracksChangedEvent(const QVector<StreamInfo> &tracks, QObject *parent = nullptr)
-        : Event(parent)
+    explicit MediaTrackEvent(const QVector<StreamInfo> &tracks, QObject *parent = nullptr)
+        : PropertyChangeEvent(parent)
         , m_tracks(tracks)
     {}
-
-    [[nodiscard]] auto type() const -> EventType override { return MediaTracksChanged; }
+    
+    [[nodiscard]] auto type() const -> EventType override { return MediaTrack; }
 
     void setTracks(const QVector<StreamInfo> &tracks) { m_tracks = tracks; }
     [[nodiscard]] auto tracks() const -> QVector<StreamInfo> { return m_tracks; }

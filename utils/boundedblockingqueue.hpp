@@ -38,6 +38,32 @@ public:
         m_notEmpty.wakeOne();
     }
 
+    void putHead(const T &x)
+    {
+        std::queue<T> temp;
+        temp.push(x);
+        QMutexLocker locker(&m_mutex);
+        while (!m_queue.empty()) {
+            temp.push(m_queue.front());
+            m_queue.pop();
+        }
+        m_queue.swap(temp);
+        m_notEmpty.wakeOne();
+    }
+
+    void putHead(T &&x)
+    {
+        std::queue<T> temp;
+        temp.push(x);
+        QMutexLocker locker(&m_mutex);
+        while (!m_queue.empty()) {
+            temp.push(m_queue.front());
+            m_queue.pop();
+        }
+        m_queue.swap(temp);
+        m_notEmpty.wakeOne();
+    }
+
     auto take() -> T
     {
         QMutexLocker locker(&m_mutex);

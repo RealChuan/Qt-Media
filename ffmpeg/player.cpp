@@ -10,6 +10,8 @@
 #include "videodecoder.h"
 
 #include <event/errorevent.hpp>
+#include <event/pauseevent.hpp>
+#include <event/seekevent.hpp>
 #include <event/trackevent.hpp>
 #include <event/valueevent.hpp>
 #include <utils/speed.hpp>
@@ -44,7 +46,9 @@ public:
         QObject::connect(AVErrorManager::instance(),
                          &AVErrorManager::error,
                          q_ptr,
-                         [this](const AVError &error) { addEvent(new ErrorEvent(error)); });
+                         [this](const AVError &error) {
+                             addPropertyChangeEventEvent(new ErrorEvent(error));
+                         });
     }
 
     auto initAvCodec() -> bool
@@ -61,7 +65,7 @@ public:
             return false;
         }
 
-        addEvent(new DurationChangedEvent(formatCtx->duration()));
+        addPropertyChangeEventEvent(new DurationEvent(formatCtx->duration()));
         q_ptr->onPositionChanged(0);
 
         if (!setBestMediaIndex()) {
@@ -129,7 +133,7 @@ public:
         QVector<StreamInfo> tracks = audioTracks;
         tracks.append(videoTracks);
         tracks.append(subtitleTracks);
-        addEvent(new TracksChangedEvent(tracks));
+        addPropertyChangeEventEvent(new MediaTrackEvent(tracks));
 
         qInfo() << audioInfo->index() << videoInfo->index() << subtitleInfo->index();
         return true;
@@ -173,13 +177,15 @@ public:
         timer.start();
 
         while (runing) {
+            processEvent();
+
             PacketPtr packetPtr(new Packet);
             if (!formatCtx->readFrame(packetPtr.data())) {
                 break;
             }
             speedPtr->addSize(packetPtr->avPacket()->size);
             if (timer.elapsed() > 1000) {
-                addEvent(new CacheSpeedChangedEvent(speedPtr->getSpeed()));
+                addPropertyChangeEventEvent(new CacheSpeedEvent(speedPtr->getSpeed()));
                 timer.restart();
             }
 
@@ -198,7 +204,7 @@ public:
             }
         }
         while (runing && (videoDecoder->size() > 0 || audioDecoder->size() > 0)) {
-            msleep(Sleep_Queue_Full_Milliseconds);
+            msleep(s_waitQueueEmptyMilliseconds);
         }
         subtitleDecoder->stopDecoder();
         videoDecoder->stopDecoder();
@@ -223,7 +229,7 @@ public:
     void setMediaState(MediaState mediaState_)
     {
         mediaState = mediaState_;
-        addEvent(new MediaStateChangedEvent(mediaState));
+        addPropertyChangeEventEvent(new MediaStateEvent(mediaState));
     }
 
     [[nodiscard]] QSize resolutionRatio() const
@@ -231,14 +237,125 @@ public:
         return videoInfo->isIndexVaild() ? videoInfo->resolutionRatio() : QSize();
     }
 
-    void addEvent(Event *event)
+    void addPropertyChangeEventEvent(PropertyChangeEvent *event)
     {
-        EventPtr eventPtr(event);
-        eventQueue.put(eventPtr);
-        while (eventQueue.size() > maxEventCount) {
-            eventQueue.take();
+        PropertyChangeEventPtr eventPtr(event);
+        propertyChangeEventQueue.put(eventPtr);
+        while (propertyChangeEventQueue.size() > maxPropertyEventQueueSize.load()) {
+            propertyChangeEventQueue.take();
         }
         emit q_ptr->eventIncrease();
+    }
+
+    void addEvent(const EventPtr &eventPtr)
+    {
+        eventQueue.put(eventPtr);
+        while (eventQueue.size() > maxEventQueueSize.load()) {
+            eventQueue.take();
+        }
+        if (!paused.load()) {
+            return;
+        }
+        switch (eventPtr->type()) {
+        case Event::EventType::Pause: break;
+        default: {
+            EventPtr eventPtr(new PauseEvent(true));
+            eventQueue.put(eventPtr);
+        } break;
+        }
+        waitCondition.wakeAll();
+    }
+
+    void processEvent()
+    {
+        while (eventQueue.size() > 0) {
+            auto eventPtr = eventQueue.take();
+            switch (eventPtr->type()) {
+            case Event::EventType::Pause: processPauseEvent(eventPtr); break;
+            case Event::EventType::Seek: processSeekEvent(eventPtr); break;
+            case Event::EventType::seekRelative: processSeekRelativeEvent(eventPtr); break;
+            default: break;
+            }
+        }
+    }
+
+    void processPauseEvent(const EventPtr &eventPtr)
+    {
+        auto pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
+        if (pauseEvent->paused()) {
+            setMediaState(MediaState::Pausing);
+        } else if (q_ptr->isRunning()) {
+            setMediaState(isOpen ? MediaState::Playing : MediaState::Opening);
+        } else {
+            setMediaState(MediaState::Stopped);
+        }
+        audioDecoder->addEvent(eventPtr);
+        videoDecoder->addEvent(eventPtr);
+        subtitleDecoder->addEvent(eventPtr);
+        paused.store(pauseEvent->paused());
+        if (paused.load()) {
+            QMutexLocker locker(&mutex);
+            waitCondition.wait(&mutex);
+        }
+    }
+
+    void processSeekEvent(const EventPtr &eventPtr)
+    {
+        qInfo() << "Seek To: "
+                << QTime::fromMSecsSinceStartOfDay(position / 1000).toString("hh:mm:ss.zzz");
+        QElapsedTimer timer;
+        timer.start();
+        q_ptr->blockSignals(true);
+        Clock::globalSerialRef();
+        int count = 0;
+        if (audioInfo->isIndexVaild()) {
+            count++;
+        }
+        if (videoInfo->isIndexVaild()) {
+            count++;
+        }
+        if (subtitleInfo->isIndexVaild()) {
+            count++;
+        }
+        auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
+        seekEvent->setWaitCountdown(count);
+        audioDecoder->clear();
+        audioDecoder->addEvent(eventPtr);
+        videoDecoder->clear();
+        videoDecoder->addEvent(eventPtr);
+        subtitleDecoder->clear();
+        subtitleDecoder->addEvent(eventPtr);
+        auto position = seekEvent->position();
+        seekEvent->wait();
+
+        formatCtx->seek(position);
+        if (audioInfo->isIndexVaild()) {
+            audioInfo->codecCtx()->flush();
+        }
+        if (videoInfo->isIndexVaild()) {
+            videoInfo->codecCtx()->flush();
+        }
+        if (subtitleInfo->isIndexVaild()) {
+            subtitleInfo->codecCtx()->flush();
+        }
+        q_ptr->blockSignals(false);
+        qInfo() << "Seeked elapsed: " << timer.elapsed();
+
+        addPropertyChangeEventEvent(new SeekChangedEvent(position));
+    }
+
+    void processSeekRelativeEvent(const EventPtr &eventPtr)
+    {
+        auto seekRelativeEvent = static_cast<SeekRelativeEvent *>(eventPtr.data());
+        auto relativePosition = seekRelativeEvent->relativePosition();
+        auto position = this->position + relativePosition * AV_TIME_BASE;
+        if (position < 0) {
+            position = 0;
+        } else if (position > q_ptr->duration()) {
+            position = q_ptr->duration();
+        }
+        EventPtr seekEventPtr(new SeekEvent(position));
+        eventQueue.putHead(seekEventPtr);
     }
 
     Player *q_ptr;
@@ -259,8 +376,14 @@ public:
     qint64 position = 0;
     std::atomic<MediaState> mediaState = MediaState::Stopped;
 
+    std::atomic_bool paused = false;
+    QMutex mutex;
+    QWaitCondition waitCondition;
+
+    Utils::ThreadSafeQueue<PropertyChangeEventPtr> propertyChangeEventQueue;
+    std::atomic<size_t> maxPropertyEventQueueSize = 100;
     Utils::ThreadSafeQueue<EventPtr> eventQueue;
-    int maxEventCount = 100;
+    std::atomic<size_t> maxEventQueueSize = 100;
 
     QVector<VideoRender *> videoRenders = {};
 };
@@ -309,6 +432,7 @@ void Player::onStop()
 {
     buildConnect(false);
     d_ptr->runing = false;
+    d_ptr->waitCondition.wakeAll();
     if (isRunning()) {
         quit();
     }
@@ -328,17 +452,11 @@ void Player::onStop()
 void Player::onPositionChanged(qint64 position)
 {
     auto diff = (position - d_ptr->position) / AV_TIME_BASE;
-    if (diff < 1) {
+    if (qAbs(diff) < 1) {
         return;
     }
     d_ptr->position = position;
-    d_ptr->addEvent(new PositionChangedEvent(position));
-}
-
-void Player::seek(qint64 position)
-{
-    qInfo() << "Seek To: "
-            << QTime::fromMSecsSinceStartOfDay(position / 1000).toString("hh:mm:ss.zzz");
+    d_ptr->addPropertyChangeEventEvent(new PositionEvent(position));
 }
 
 void Player::setAudioTrack(const QString &text) // 停止再播放最简单 之后在优化
@@ -417,17 +535,6 @@ void Player::setSpeed(double speed)
 auto Player::speed() -> double
 {
     return 1.0;
-}
-
-void Player::pause(bool status)
-{
-    if (status) {
-        d_ptr->setMediaState(MediaState::Pausing);
-    } else if (isRunning()) {
-        d_ptr->setMediaState(d_ptr->isOpen ? MediaState::Playing : MediaState::Opening);
-    } else {
-        d_ptr->setMediaState(MediaState::Stopped);
-    }
 }
 
 void Player::setUseGpuDecode(bool on)
@@ -518,14 +625,48 @@ QVector<VideoRender *> Player::videoRenders()
     return d_ptr->videoRenders;
 }
 
-size_t Player::eventCount() const
+void Player::setPropertyEventQueueMaxSize(size_t size)
+{
+    d_ptr->maxPropertyEventQueueSize.store(size);
+}
+
+size_t Player::propertEventyQueueMaxSize() const
+{
+    return d_ptr->maxPropertyEventQueueSize.load();
+}
+
+size_t Player::propertyChangeEventSize() const
+{
+    return d_ptr->propertyChangeEventQueue.size();
+}
+
+PropertyChangeEventPtr Player::takePropertyChangeEvent()
+{
+    return d_ptr->propertyChangeEventQueue.take();
+}
+
+void Player::setEventQueueMaxSize(size_t size)
+{
+    d_ptr->maxEventQueueSize.store(size);
+}
+
+size_t Player::eventQueueMaxSize() const
+{
+    return d_ptr->maxEventQueueSize.load();
+}
+
+[[nodiscard]] size_t Player::eventSize() const
 {
     return d_ptr->eventQueue.size();
 }
 
-EventPtr Player::takeEvent()
+bool Player::addEvent(const EventPtr &eventPtr)
 {
-    return d_ptr->eventQueue.take();
+    if (!isRunning()) {
+        return false;
+    }
+    d_ptr->addEvent(eventPtr);
+    return true;
 }
 
 void Player::run()

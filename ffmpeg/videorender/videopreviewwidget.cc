@@ -1,4 +1,5 @@
 #include "videopreviewwidget.hpp"
+#include "ffmpegutils.hpp"
 
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/decoder.h>
@@ -111,7 +112,7 @@ private:
                 if (!framePtr->isKey() && framePtr.isNull()) {
                     continue;
                 }
-                Ffmpeg::calculatePts(framePtr.data(), videoInfo, formatContext);
+                calculatePts(framePtr.data(), videoInfo, formatContext);
                 auto pts = framePtr->pts();
                 if (m_timestamp > pts) {
                     continue;

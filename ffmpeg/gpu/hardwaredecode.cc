@@ -42,7 +42,7 @@ public:
 
     HardWareDecode *q_ptr;
 
-    QVector<AVHWDeviceType> hwDeviceTypes = Utils::getCurrentHWDeviceTypes();
+    QVector<AVHWDeviceType> hwDeviceTypes = getCurrentHWDeviceTypes();
     AVHWDeviceType hwDeviceType = AV_HWDEVICE_TYPE_NONE;
     BufferRef *bufferRef;
     bool vaild = false;
@@ -64,7 +64,7 @@ bool HardWareDecode::initPixelFormat(const AVCodec *decoder)
         return false;
     }
     for (AVHWDeviceType type : qAsConst(d_ptr->hwDeviceTypes)) {
-        hw_pix_fmt = Utils::getPixelFormat(decoder, type);
+        hw_pix_fmt = getPixelFormat(decoder, type);
         if (hw_pix_fmt != AV_PIX_FMT_NONE) {
             d_ptr->hwDeviceType = type;
             break;

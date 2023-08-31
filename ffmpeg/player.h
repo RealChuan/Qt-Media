@@ -10,8 +10,6 @@
 
 namespace Ffmpeg {
 
-class AVError;
-class AVContextInfo;
 class VideoRender;
 
 class FFMPEG_EXPORT Player : public QThread
@@ -26,14 +24,10 @@ public:
 
     auto isOpen() -> bool;
 
-    void seek(qint64 position); // microsecond
-
     void setVolume(qreal volume);
 
     void setSpeed(double speed);
     auto speed() -> double;
-
-    void pause(bool status = true);
 
     void setUseGpuDecode(bool on);
     auto isGpuDecode() -> bool;
@@ -56,8 +50,15 @@ public:
     void setVideoRenders(QVector<VideoRender *> videoRenders);
     QVector<VideoRender *> videoRenders();
 
-    [[nodiscard]] size_t eventCount() const;
-    EventPtr takeEvent();
+    void setPropertyEventQueueMaxSize(size_t size);
+    [[nodiscard]] size_t propertEventyQueueMaxSize() const;
+    [[nodiscard]] size_t propertyChangeEventSize() const;
+    PropertyChangeEventPtr takePropertyChangeEvent();
+
+    void setEventQueueMaxSize(size_t size);
+    [[nodiscard]] size_t eventQueueMaxSize() const;
+    [[nodiscard]] size_t eventSize() const;
+    bool addEvent(const EventPtr &eventPtr);
 
 public slots:
     void onPlay();

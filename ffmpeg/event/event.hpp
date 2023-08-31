@@ -6,23 +6,40 @@
 
 namespace Ffmpeg {
 
-class FFMPEG_EXPORT Event : public QObject
+class FFMPEG_EXPORT PropertyChangeEvent : public QObject
 {
     Q_OBJECT
 public:
     enum EventType {
         None,
-        MediaTracksChanged,
-        DurationChanged,
-        PositionChanged,
-        MediaStateChanged,
-        CacheSpeedChanged,
-        Error,
-
-        Pause = 100,
-        Seek,
-        seekRelative,
+        Duration,
+        Position,
+        MediaTrack,
+        MediaState,
+        CacheSpeed,
+        SeekChanged,
+        Error
     };
+    Q_ENUM(EventType);
+
+    using QObject::QObject;
+
+    auto operator==(const PropertyChangeEvent &other) const -> bool
+    {
+        return type() == other.type();
+    }
+    auto operator!=(const PropertyChangeEvent &other) const -> bool { return !(*this == other); }
+
+    [[nodiscard]] virtual auto type() const -> EventType { return None; }
+};
+
+using PropertyChangeEventPtr = QSharedPointer<PropertyChangeEvent>;
+
+class FFMPEG_EXPORT Event : public QObject
+{
+    Q_OBJECT
+public:
+    enum EventType { None, Pause, Seek, seekRelative, GpuDecode };
     Q_ENUM(EventType);
 
     using QObject::QObject;

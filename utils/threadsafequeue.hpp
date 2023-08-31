@@ -27,6 +27,30 @@ public:
         m_queue.push(std::move(x));
     }
 
+    void putHead(const T &x)
+    {
+        std::queue<T> temp;
+        temp.push(x);
+        QMutexLocker locker(&m_mutex);
+        while (!m_queue.empty()) {
+            temp.push(m_queue.front());
+            m_queue.pop();
+        }
+        m_queue.swap(temp);
+    }
+
+    void putHead(T &&x)
+    {
+        std::queue<T> temp;
+        temp.push(x);
+        QMutexLocker locker(&m_mutex);
+        while (!m_queue.empty()) {
+            temp.push(m_queue.front());
+            m_queue.pop();
+        }
+        m_queue.swap(temp);
+    }
+
     auto take() -> T
     {
         QMutexLocker locker(&m_mutex);

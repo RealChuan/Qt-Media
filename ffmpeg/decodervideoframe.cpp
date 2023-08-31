@@ -1,6 +1,8 @@
 #include "decodervideoframe.h"
 #include "clock.hpp"
 
+#include <event/pauseevent.hpp>
+#include <event/seekevent.hpp>
 #include <videorender/videorender.hpp>
 
 #include <QDebug>
@@ -22,6 +24,32 @@ public:
         clock = new Clock(q);
     }
 
+    void processEvent(bool &firstFrame)
+    {
+        while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
+            qDebug() << "DecoderVideoFrame::processEvent";
+            auto eventPtr = q_ptr->m_eventQueue.take();
+            switch (eventPtr->type()) {
+            case Event::EventType::Pause: {
+                auto pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
+                auto paused = pauseEvent->paused();
+                clock->setPaused(paused);
+                if (paused) {
+                    firstFrame = false;
+                }
+            } break;
+            case Event::EventType::Seek: {
+                auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
+                auto position = seekEvent->position();
+                q_ptr->clear();
+                clock->reset(position);
+                firstFrame = false;
+            }
+            default: break;
+            }
+        }
+    }
+
     DecoderVideoFrame *q_ptr;
 
     Clock *clock;
@@ -38,7 +66,10 @@ DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
     , d_ptr(new DecoderVideoFramePrivate(this))
 {}
 
-DecoderVideoFrame::~DecoderVideoFrame() = default;
+DecoderVideoFrame::~DecoderVideoFrame()
+{
+    stopDecoder();
+}
 
 void DecoderVideoFrame::setVideoRenders(QVector<VideoRender *> videoRenders)
 {
@@ -59,21 +90,27 @@ void DecoderVideoFrame::runDecoder()
     quint64 dropNum = 0;
     bool firstFrame = false;
     while (m_runing.load()) {
+        d_ptr->processEvent(firstFrame);
+
         auto framePtr(m_queue.take());
         if (framePtr.isNull()) {
             continue;
         } else if (!firstFrame) {
+            qDebug() << "Video firstFrame: "
+                     << QTime::fromMSecsSinceStartOfDay(framePtr->pts() / 1000)
+                            .toString("hh:mm:ss.zzz");
             firstFrame = true;
             d_ptr->clock->reset(framePtr->pts());
         }
         auto pts = framePtr->pts();
-        auto emitPosition = qScopeGuard([=]() { emit positionChanged(pts); });
         d_ptr->clock->update(pts, av_gettime_relative());
         qint64 delay = 0;
         if (!d_ptr->clock->getDelayWithMaster(delay)) {
             continue;
         }
+        auto emitPosition = qScopeGuard([=]() { emit positionChanged(pts); });
         if (!Clock::adjustDelay(delay)) {
+            qDebug() << "Video Delay: " << delay;
             dropNum++;
             continue;
         }

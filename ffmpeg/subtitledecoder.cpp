@@ -1,6 +1,9 @@
 #include "subtitledecoder.h"
 #include "decodersubtitleframe.hpp"
+#include "ffmpegutils.hpp"
 #include "subtitle.h"
+
+#include <event/seekevent.hpp>
 
 extern "C" {
 #include <libavcodec/packet.h>
@@ -17,6 +20,23 @@ public:
         decoderSubtitleFrame = new DecoderSubtitleFrame(q_ptr);
     }
 
+    void processEvent()
+    {
+        while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
+            auto eventPtr = q_ptr->m_eventQueue.take();
+            switch (eventPtr->type()) {
+            case Event::EventType::Pause: decoderSubtitleFrame->addEvent(eventPtr); break;
+            case Event::EventType::Seek: {
+                decoderSubtitleFrame->clear();
+                decoderSubtitleFrame->addEvent(eventPtr);
+                auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
+                seekEvent->countDown();
+            } break;
+            default: break;
+            }
+        }
+    }
+
     SubtitleDecoder *q_ptr;
 
     DecoderSubtitleFrame *decoderSubtitleFrame;
@@ -27,7 +47,10 @@ SubtitleDecoder::SubtitleDecoder(QObject *parent)
     , d_ptr(new SubtitleDecoderPrivate(this))
 {}
 
-SubtitleDecoder::~SubtitleDecoder() = default;
+SubtitleDecoder::~SubtitleDecoder()
+{
+    stopDecoder();
+}
 
 void SubtitleDecoder::setVideoResolutionRatio(const QSize &size)
 {
@@ -44,6 +67,8 @@ void SubtitleDecoder::runDecoder()
     d_ptr->decoderSubtitleFrame->startDecoder(m_formatContext, m_contextInfo);
 
     while (m_runing) {
+        d_ptr->processEvent();
+
         auto packetPtr(m_queue.take());
         if (packetPtr.isNull()) {
             continue;
@@ -54,7 +79,7 @@ void SubtitleDecoder::runDecoder()
             continue;
         }
 
-        Ffmpeg::calculatePts(packetPtr.data(), m_contextInfo);
+        calculatePts(packetPtr.data(), m_contextInfo);
         subtitlePtr->setDefault(packetPtr->pts(),
                                 packetPtr->duration(),
                                 (const char *) packetPtr->avPacket()->data);
@@ -62,7 +87,7 @@ void SubtitleDecoder::runDecoder()
         d_ptr->decoderSubtitleFrame->append(subtitlePtr);
     }
     while (m_runing && d_ptr->decoderSubtitleFrame->size() != 0) {
-        msleep(Sleep_Queue_Full_Milliseconds);
+        msleep(s_waitQueueEmptyMilliseconds);
     }
     d_ptr->decoderSubtitleFrame->stopDecoder();
 }

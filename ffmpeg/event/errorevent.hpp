@@ -6,11 +6,11 @@
 
 namespace Ffmpeg {
 
-class FFMPEG_EXPORT ErrorEvent : public Event
+class FFMPEG_EXPORT ErrorEvent : public PropertyChangeEvent
 {
 public:
     explicit ErrorEvent(const AVError &error, QObject *parent = nullptr)
-        : Event(parent)
+        : PropertyChangeEvent(parent)
         , m_error(error)
     {}
 

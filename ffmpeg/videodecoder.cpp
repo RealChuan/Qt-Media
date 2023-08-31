@@ -1,7 +1,10 @@
 #include "videodecoder.h"
 #include "avcontextinfo.h"
 #include "decodervideoframe.h"
+#include "ffmpegutils.hpp"
 #include "videoformat.hpp"
+
+#include <event/seekevent.hpp>
 
 #include <QDebug>
 
@@ -10,10 +13,27 @@ namespace Ffmpeg {
 class VideoDecoder::VideoDecoderPrivate
 {
 public:
-    VideoDecoderPrivate(VideoDecoder *q)
+    explicit VideoDecoderPrivate(VideoDecoder *q)
         : q_ptr(q)
     {
         decoderVideoFrame = new DecoderVideoFrame(q_ptr);
+    }
+
+    void processEvent()
+    {
+        while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
+            auto eventPtr = q_ptr->m_eventQueue.take();
+            switch (eventPtr->type()) {
+            case Event::EventType::Pause: decoderVideoFrame->addEvent(eventPtr); break;
+            case Event::EventType::Seek: {
+                decoderVideoFrame->clear();
+                decoderVideoFrame->addEvent(eventPtr);
+                auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
+                seekEvent->countDown();
+            } break;
+            default: break;
+            }
+        }
     }
 
     VideoDecoder *q_ptr;
@@ -31,7 +51,10 @@ VideoDecoder::VideoDecoder(QObject *parent)
             &VideoDecoder::positionChanged);
 }
 
-VideoDecoder::~VideoDecoder() = default;
+VideoDecoder::~VideoDecoder()
+{
+    stopDecoder();
+}
 
 void VideoDecoder::setVideoRenders(QVector<VideoRender *> videoRenders)
 {
@@ -48,18 +71,20 @@ void VideoDecoder::runDecoder()
     d_ptr->decoderVideoFrame->startDecoder(m_formatContext, m_contextInfo);
 
     while (m_runing) {
+        d_ptr->processEvent();
+
         auto packetPtr(m_queue.take());
         if (packetPtr.isNull()) {
             continue;
         }
         auto framePtrs = m_contextInfo->decodeFrame(packetPtr);
         for (const auto &framePtr : framePtrs) {
-            Ffmpeg::calculatePts(framePtr.data(), m_contextInfo, m_formatContext);
+            calculatePts(framePtr.data(), m_contextInfo, m_formatContext);
             d_ptr->decoderVideoFrame->append(framePtr);
         }
     }
     while (m_runing && d_ptr->decoderVideoFrame->size() != 0) {
-        msleep(Sleep_Queue_Full_Milliseconds);
+        msleep(s_waitQueueEmptyMilliseconds);
     }
     d_ptr->decoderVideoFrame->stopDecoder();
 }

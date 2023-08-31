@@ -4,7 +4,7 @@
 
 namespace Ffmpeg {
 
-class FFMPEG_EXPORT PauseEvent : public Event
+class PauseEvent : public Event
 {
 public:
     explicit PauseEvent(bool paused, QObject *parent = nullptr)

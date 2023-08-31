@@ -107,7 +107,7 @@ void Clock::setPaused(bool value)
     QMutexLocker locker(&d_ptr->mutex);
     d_ptr->paused = value;
     if (!d_ptr->paused) {
-        d_ptr->last_updated = av_gettime_relative();
+        d_ptr->last_updated = 0;
     }
 }
 

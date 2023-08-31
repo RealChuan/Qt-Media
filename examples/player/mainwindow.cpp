@@ -8,6 +8,8 @@
 
 #include <ffmpeg/averror.h>
 #include <ffmpeg/event/errorevent.hpp>
+#include <ffmpeg/event/pauseevent.hpp>
+#include <ffmpeg/event/seekevent.hpp>
 #include <ffmpeg/event/trackevent.hpp>
 #include <ffmpeg/event/valueevent.hpp>
 #include <ffmpeg/ffmpegutils.hpp>
@@ -82,22 +84,12 @@ public:
     void initShortcut()
     {
         new QShortcut(QKeySequence::MoveToNextChar, q_ptr, q_ptr, [this] {
-            qint64 value = controlWidget->position();
-            value += 5;
-            if (value > controlWidget->duration()) {
-                value = controlWidget->duration();
-            }
-            playerPtr->seek(value * AV_TIME_BASE);
-            setTitleWidgetText(tr("Fast forward: 5 seconds"));
+            Ffmpeg::EventPtr eventPtr(new Ffmpeg::SeekRelativeEvent(5));
+            playerPtr->addEvent(eventPtr);
         });
         new QShortcut(QKeySequence::MoveToPreviousChar, q_ptr, q_ptr, [this] {
-            qint64 value = controlWidget->position();
-            value -= 5;
-            if (value < 0) {
-                value = 0;
-            }
-            playerPtr->seek(value * AV_TIME_BASE);
-            setTitleWidgetText(tr("Fast return: 5 seconds"));
+            Ffmpeg::EventPtr eventPtr(new Ffmpeg::SeekRelativeEvent(-5));
+            playerPtr->addEvent(eventPtr);
         });
         new QShortcut(QKeySequence::MoveToPreviousLine, q_ptr, q_ptr, [this] {
             controlWidget->setVolume(controlWidget->volume() + 5);
@@ -186,7 +178,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , d_ptr(new MainWindowPrivate(this))
 {
-    Ffmpeg::Utils::printFfmpegInfo();
+    Ffmpeg::printFfmpegInfo();
 
     setupUI();
     buildConnect();
@@ -323,19 +315,19 @@ void MainWindow::jump(const QModelIndex &index)
 
 void MainWindow::onProcessEvents()
 {
-    while (d_ptr->playerPtr->eventCount() > 0) {
-        auto eventPtr = d_ptr->playerPtr->takeEvent();
+    while (d_ptr->playerPtr->propertyChangeEventSize() > 0) {
+        auto eventPtr = d_ptr->playerPtr->takePropertyChangeEvent();
         switch (eventPtr->type()) {
-        case Ffmpeg::Event::EventType::DurationChanged: {
-            auto durationEvent = static_cast<Ffmpeg::DurationChangedEvent *>(eventPtr.data());
+        case Ffmpeg::PropertyChangeEvent::EventType::Duration: {
+            auto durationEvent = static_cast<Ffmpeg::DurationEvent *>(eventPtr.data());
             d_ptr->controlWidget->setDuration(durationEvent->duration() / AV_TIME_BASE);
         } break;
-        case Ffmpeg::Event::EventType::PositionChanged: {
-            auto positionEvent = static_cast<Ffmpeg::PositionChangedEvent *>(eventPtr.data());
+        case Ffmpeg::PropertyChangeEvent::EventType::Position: {
+            auto positionEvent = static_cast<Ffmpeg::PositionEvent *>(eventPtr.data());
             d_ptr->controlWidget->setPosition(positionEvent->position() / AV_TIME_BASE);
         } break;
-        case Ffmpeg::Event::EventType::MediaStateChanged: {
-            auto stateEvent = static_cast<Ffmpeg::MediaStateChangedEvent *>(eventPtr.data());
+        case Ffmpeg::PropertyChangeEvent::EventType::MediaState: {
+            auto stateEvent = static_cast<Ffmpeg::MediaStateEvent *>(eventPtr.data());
             switch (stateEvent->state()) {
             case Ffmpeg::MediaState::Stopped:
                 d_ptr->controlWidget->setPlayButtonChecked(false);
@@ -354,16 +346,16 @@ void MainWindow::onProcessEvents()
             default: break;
             }
         } break;
-        case Ffmpeg::Event::EventType::CacheSpeedChanged: {
-            auto speedEvent = static_cast<Ffmpeg::CacheSpeedChangedEvent *>(eventPtr.data());
+        case Ffmpeg::PropertyChangeEvent::EventType::CacheSpeed: {
+            auto speedEvent = static_cast<Ffmpeg::CacheSpeedEvent *>(eventPtr.data());
             d_ptr->controlWidget->setCacheSpeed(speedEvent->speed());
         } break;
-        case Ffmpeg::Event::MediaTracksChanged: {
+        case Ffmpeg::PropertyChangeEvent::MediaTrack: {
             qDeleteAll(d_ptr->audioTracksGroup->actions());
             qDeleteAll(d_ptr->videoTracksGroup->actions());
             qDeleteAll(d_ptr->subTracksGroup->actions());
 
-            auto tracksEvent = static_cast<Ffmpeg::TracksChangedEvent *>(eventPtr.data());
+            auto tracksEvent = static_cast<Ffmpeg::MediaTrackEvent *>(eventPtr.data());
             auto tracks = tracksEvent->tracks();
             for (const auto &track : qAsConst(tracks)) {
                 std::unique_ptr<QAction> actionPtr(new QAction(track.info(), this));
@@ -391,7 +383,18 @@ void MainWindow::onProcessEvents()
                 }
             }
         } break;
-        case Ffmpeg::Event::Error: {
+        case Ffmpeg::PropertyChangeEvent::SeekChanged: {
+            auto seekEvent = static_cast<Ffmpeg::SeekChangedEvent *>(eventPtr.data());
+            int value = seekEvent->position() * 100 / d_ptr->playerPtr->duration();
+            auto text = tr("Seeked To %1 (key frame) / %2 (%3%)")
+                            .arg(QTime::fromMSecsSinceStartOfDay(seekEvent->position() / 1000)
+                                     .toString("hh:mm:ss"),
+                                 QTime::fromMSecsSinceStartOfDay(d_ptr->playerPtr->duration() / 1000)
+                                     .toString("hh:mm:ss"),
+                                 QString::number(value));
+            d_ptr->setTitleWidgetText(text);
+        } break;
+        case Ffmpeg::PropertyChangeEvent::Error: {
             auto errorEvent = static_cast<Ffmpeg::ErrorEvent *>(eventPtr.data());
             const auto text = tr("Error[%1]:%2.")
                                   .arg(QString::number(errorEvent->error().errorCode()),
@@ -428,12 +431,6 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
             auto e = static_cast<QContextMenuEvent *>(event);
             d_ptr->menu->exec(e->globalPos());
         } break;
-            //        case QEvent::MouseButtonPress: {
-            //            auto e = static_cast<QMouseEvent *>(event);
-            //            if (e->button() & Qt::LeftButton) {
-            //                d_ptr->mpvPlayer->pause();
-            //            }
-            //        } break;
         case QEvent::MouseButtonDblClick:
             if (isFullScreen()) {
                 showNormal();
@@ -518,16 +515,15 @@ void MainWindow::buildConnect()
     connect(d_ptr->controlWidget, &ControlWidget::leavePosition, this, &MainWindow::onLeaveSlider);
     connect(d_ptr->controlWidget, &ControlWidget::seek, d_ptr->playerPtr.data(), [this](int value) {
         qint64 position = value;
-        d_ptr->playerPtr->seek(position * AV_TIME_BASE);
-        d_ptr->setTitleWidgetText(
-            tr("Fast forward to: %1")
-                .arg(QTime::fromMSecsSinceStartOfDay(value * 1000).toString("hh:mm:ss")));
+        Ffmpeg::EventPtr eventPtr(new Ffmpeg::SeekEvent(position * AV_TIME_BASE));
+        d_ptr->playerPtr->addEvent(eventPtr);
     });
     connect(d_ptr->controlWidget, &ControlWidget::play, this, [this](bool checked) {
         if (checked && !d_ptr->playerPtr->isRunning())
             d_ptr->playerPtr->onPlay();
         else {
-            d_ptr->playerPtr->pause(!checked);
+            Ffmpeg::EventPtr eventPtr(new Ffmpeg::PauseEvent(!checked));
+            d_ptr->playerPtr->addEvent(eventPtr);
         }
     });
     connect(d_ptr->controlWidget,

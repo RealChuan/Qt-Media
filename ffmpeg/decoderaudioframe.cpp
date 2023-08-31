@@ -3,6 +3,9 @@
 #include "clock.hpp"
 #include "codeccontext.h"
 
+#include <event/pauseevent.hpp>
+#include <event/seekevent.hpp>
+
 #include <QAudioDevice>
 #include <QAudioSink>
 #include <QCoreApplication>
@@ -25,7 +28,34 @@ public:
     {
         clock = new Clock(q);
     }
+
     ~DecoderAudioFramePrivate() = default;
+
+    void processEvent(bool &firstFrame)
+    {
+        while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
+            qDebug() << "AudioFramePrivate::processEvent";
+            auto eventPtr = q_ptr->m_eventQueue.take();
+            switch (eventPtr->type()) {
+            case Event::EventType::Pause: {
+                auto pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
+                auto paused = pauseEvent->paused();
+                clock->setPaused(paused);
+                if (paused) {
+                    firstFrame = false;
+                }
+            } break;
+            case Event::EventType::Seek: {
+                auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
+                auto position = seekEvent->position();
+                q_ptr->clear();
+                clock->reset(position);
+                firstFrame = false;
+            }
+            default: break;
+            }
+        }
+    }
 
     DecoderAudioFrame *q_ptr;
 
@@ -48,7 +78,10 @@ DecoderAudioFrame::DecoderAudioFrame(QObject *parent)
     buildConnect();
 }
 
-DecoderAudioFrame::~DecoderAudioFrame() = default;
+DecoderAudioFrame::~DecoderAudioFrame()
+{
+    stopDecoder();
+}
 
 void DecoderAudioFrame::setVolume(qreal volume)
 {
@@ -72,17 +105,6 @@ void DecoderAudioFrame::onStateChanged(QAudio::State state)
     if (d_ptr->audioSinkPtr->error() != QAudio::NoError) {
         qWarning() << tr("QAudioSink Error:") << state << d_ptr->audioSinkPtr->error();
     }
-    //    switch (state) {
-    //    case QAudio::StoppedState:
-    //        // Stopped for other reasons
-    //        if (d_ptr->audioSink->error() != QAudio::NoError) {
-    //            qWarning() << tr("QAudioSink Error:") << d_ptr->audioSink->error();
-    //        }
-    //        break;
-    //    default:
-    //        // ... other cases as appropriate
-    //        break;
-    //    }
 }
 
 void DecoderAudioFrame::onAudioOutputsChanged()
@@ -98,24 +120,30 @@ void DecoderAudioFrame::runDecoder()
     AudioFrameConverter audioConverter(m_contextInfo->codecCtx(), format);
     bool firstFrame = false;
     while (m_runing.load()) {
+        d_ptr->processEvent(firstFrame);
+
         checkDefaultAudioOutput(audioDevice);
 
         auto framePtr(m_queue.take());
         if (framePtr.isNull()) {
             continue;
         } else if (!firstFrame) {
+            qDebug() << "Audio firstFrame: "
+                     << QTime::fromMSecsSinceStartOfDay(framePtr->pts() / 1000)
+                            .toString("hh:mm:ss.zzz");
             firstFrame = true;
             d_ptr->clock->reset(framePtr->pts());
         }
         auto audioBuf = audioConverter.convert(framePtr.data());
         auto pts = framePtr->pts();
-        auto emitPosition = qScopeGuard([=]() { emit positionChanged(pts); });
         d_ptr->clock->update(pts, av_gettime_relative());
         qint64 delay = 0;
         if (!d_ptr->clock->getDelayWithMaster(delay)) {
             continue;
         }
+        auto emitPosition = qScopeGuard([=]() { emit positionChanged(pts); });
         if (!Clock::adjustDelay(delay)) {
+            qDebug() << "Audio Delay: " << delay;
             dropNum++;
             continue;
         }

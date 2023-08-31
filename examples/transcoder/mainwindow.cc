@@ -24,7 +24,7 @@ public:
         audioCodecCbx->setView(new QListView(audioCodecCbx));
         audioCodecCbx->setMaxVisibleItems(10);
         audioCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
-        audioCodecCbx->addItems(Ffmpeg::Utils::getCurrentSupportCodecs(AVMEDIA_TYPE_AUDIO, true));
+        audioCodecCbx->addItems(Ffmpeg::getCurrentSupportCodecs(AVMEDIA_TYPE_AUDIO, true));
         audioCodecCbx->setCurrentIndex(audioCodecCbx->findData(AV_CODEC_ID_AAC));
         audioCodecCbx->setCurrentText(avcodec_get_name(AV_CODEC_ID_AAC));
 
@@ -32,7 +32,7 @@ public:
         videoCodecCbx->setView(new QListView(videoCodecCbx));
         videoCodecCbx->setMaxVisibleItems(10);
         videoCodecCbx->setStyleSheet("QComboBox {combobox-popup:0;}");
-        videoCodecCbx->addItems(Ffmpeg::Utils::getCurrentSupportCodecs(AVMEDIA_TYPE_VIDEO, true));
+        videoCodecCbx->addItems(Ffmpeg::getCurrentSupportCodecs(AVMEDIA_TYPE_VIDEO, true));
         videoCodecCbx->setCurrentText(avcodec_get_name(AV_CODEC_ID_H264));
 
         quailtySbx = new QSpinBox(q_ptr);
@@ -117,7 +117,7 @@ public:
     {
         bool audioSet = false;
         bool videoSet = false;
-        auto codecs = Ffmpeg::Utils::getFileCodecInfo(filePath);
+        auto codecs = Ffmpeg::getFileCodecInfo(filePath);
         for (const auto &codec : qAsConst(codecs)) {
             if (audioSet && videoSet) {
                 break;
@@ -196,7 +196,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , d_ptr(new MainWindowPrivate(this))
 {
-    Ffmpeg::Utils::printFfmpegInfo();
+    Ffmpeg::printFfmpegInfo();
 
     setupUI();
     buildConnect();
@@ -214,15 +214,15 @@ void MainWindow::onError(const Ffmpeg::AVError &avError)
 
 void MainWindow::onVideoEncoderChanged()
 {
-    auto quantizer = Ffmpeg::Utils::getCodecQuantizer(d_ptr->videoCodecCbx->currentText());
+    auto quantizer = Ffmpeg::getCodecQuantizer(d_ptr->videoCodecCbx->currentText());
     d_ptr->quailtySbx->setRange(quantizer.first, quantizer.second);
 }
 
 void MainWindow::onOpenInputFile()
 {
-    const QString path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation)
-                             .value(0, QDir::homePath());
-    const QString filePath
+    const auto path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation)
+                          .value(0, QDir::homePath());
+    const auto filePath
         = QFileDialog::getOpenFileName(this,
                                        tr("Open File"),
                                        path,

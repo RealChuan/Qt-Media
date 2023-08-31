@@ -14,9 +14,15 @@ struct AVCodec;
 
 namespace Ffmpeg {
 
-namespace Utils {
+class Packet;
+class Frame;
+class AVContextInfo;
+class FormatContext;
 
 void FFMPEG_EXPORT printFfmpegInfo();
+
+void calculatePts(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext);
+void calculatePts(Packet *packet, AVContextInfo *contextInfo);
 
 QVector<AVHWDeviceType> getCurrentHWDeviceTypes();
 
@@ -35,8 +41,6 @@ QVector<CodecInfo> FFMPEG_EXPORT getFileCodecInfo(const QString &filePath);
 QPair<int, int> FFMPEG_EXPORT getCodecQuantizer(const QString &codecname);
 
 auto FFMPEG_EXPORT getCurrentSupportCodecs(AVMediaType mediaType, bool encoder) -> QStringList;
-
-} // namespace Utils
 
 } // namespace Ffmpeg
 
