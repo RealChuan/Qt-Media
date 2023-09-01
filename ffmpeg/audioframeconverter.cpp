@@ -108,7 +108,7 @@ public:
 
     AudioFrameConverter *q_ptr;
 
-    SwrContext *swrContext;
+    SwrContext *swrContext = nullptr;
     QAudioFormat format;
     AVSampleFormat avSampleFormat;
 };
@@ -123,7 +123,7 @@ AudioFrameConverter::AudioFrameConverter(CodecContext *codecCtx,
     d_ptr->avSampleFormat = getAVSampleFormat(d_ptr->format.sampleFormat());
     auto channelLayout = getChannelLayout(d_ptr->format.channelConfig());
     auto *avCodecCtx = codecCtx->avCodecCtx();
-    d_ptr->swrContext = swr_alloc_set_opts(nullptr,
+    d_ptr->swrContext = swr_alloc_set_opts(d_ptr->swrContext,
                                            channelLayout,
                                            d_ptr->avSampleFormat,
                                            d_ptr->format.sampleRate(),
@@ -156,7 +156,7 @@ auto AudioFrameConverter::convert(Frame *frame) -> QByteArray
                                           0);
 
     QByteArray data(size, Qt::Uninitialized);
-    quint8 *bufPointer[] = {(quint8 *) data.data()};
+    quint8 *bufPointer[] = {reinterpret_cast<quint8 *>(data.data())};
 
     int len = swr_convert(d_ptr->swrContext,
                           bufPointer,
@@ -177,13 +177,13 @@ auto getAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize) -> QAud
     QAudioFormat autioFormat;
     //autioFormat.setCodec("audio/pcm");
     autioFormat.setSampleRate(ctx->sample_rate);
-    autioFormat.setChannelCount(ctx->channels);
+    autioFormat.setChannelCount(ctx->ch_layout.nb_channels);
     //autioFormat.setByteOrder(QAudioFormat::LittleEndian);
 
     if (ctx->channel_layout <= 0) {
-        ctx->channel_layout = getChannaLayoutFromChannalCount(ctx->channels);
+        ctx->channel_layout = getChannaLayoutFromChannalCount(ctx->ch_layout.nb_channels);
     }
-    auto channelConfig = getChannelConfig(ctx->channel_layout);
+    auto channelConfig = getChannelConfig(ctx->ch_layout.u.mask);
     if (channelConfig == QAudioFormat::ChannelConfigUnknown) {
         channelConfig = QAudioFormat::ChannelConfigStereo;
     }

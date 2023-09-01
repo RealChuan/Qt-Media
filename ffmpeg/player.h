@@ -19,22 +19,10 @@ public:
     explicit Player(QObject *parent = nullptr);
     ~Player() override;
 
-    void openMedia(const QString &filepath);
     [[nodiscard]] auto filePath() const -> QString &;
-
     auto isOpen() -> bool;
-
-    void setVolume(qreal volume);
-
-    void setSpeed(double speed);
     auto speed() -> double;
-
-    void setUseGpuDecode(bool on);
     auto isGpuDecode() -> bool;
-
-    void setAudioTrack(const QString &text);
-    void setSubtitleTrack(const QString &text);
-
     auto mediaState() -> MediaState;
 
     [[nodiscard]] auto duration() const -> qint64; // microsecond
@@ -58,11 +46,10 @@ public:
     void setEventQueueMaxSize(size_t size);
     [[nodiscard]] size_t eventQueueMaxSize() const;
     [[nodiscard]] size_t eventSize() const;
-    bool addEvent(const EventPtr &eventPtr);
+    auto addEvent(const EventPtr &eventPtr) -> bool;
 
 public slots:
     void onPlay();
-    void onStop();
 
 private slots:
     void onPositionChanged(qint64 position);

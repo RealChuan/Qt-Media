@@ -3,14 +3,10 @@
 #include "clock.hpp"
 #include "codeccontext.h"
 
-#include <event/pauseevent.hpp>
+#include <audiorender/audiooutputthread.hpp>
 #include <event/seekevent.hpp>
+#include <event/valueevent.hpp>
 
-#include <QAudioDevice>
-#include <QAudioSink>
-#include <QCoreApplication>
-#include <QMediaDevices>
-#include <QMediaFormat>
 #include <QTime>
 #include <QWaitCondition>
 
@@ -41,15 +37,11 @@ public:
                 auto pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
                 auto paused = pauseEvent->paused();
                 clock->setPaused(paused);
-                if (paused) {
-                    firstFrame = false;
-                }
             } break;
             case Event::EventType::Seek: {
                 auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
                 auto position = seekEvent->position();
                 q_ptr->clear();
-                clock->reset(position);
                 firstFrame = false;
             }
             default: break;
@@ -59,24 +51,18 @@ public:
 
     DecoderAudioFrame *q_ptr;
 
-    QScopedPointer<QAudioSink> audioSinkPtr;
-    QIODevice *audioDevice = nullptr;
     qreal volume = 0.5;
+    QPointer<AudioOutputThread> audioOutputThreadPtr;
 
     Clock *clock;
     QMutex mutex;
     QWaitCondition waitCondition;
-
-    QScopedPointer<QMediaDevices> mediaDevicesPtr;
-    std::atomic_bool audioOutputsChanged = false;
 };
 
 DecoderAudioFrame::DecoderAudioFrame(QObject *parent)
     : Decoder<FramePtr>(parent)
     , d_ptr(new DecoderAudioFramePrivate(this))
-{
-    buildConnect();
-}
+{}
 
 DecoderAudioFrame::~DecoderAudioFrame()
 {
@@ -86,8 +72,9 @@ DecoderAudioFrame::~DecoderAudioFrame()
 void DecoderAudioFrame::setVolume(qreal volume)
 {
     d_ptr->volume = volume;
-    if (d_ptr->audioSinkPtr) {
-        d_ptr->audioSinkPtr->setVolume(volume);
+    if (d_ptr->audioOutputThreadPtr) {
+        emit d_ptr->audioOutputThreadPtr->volumeChanged(d_ptr->volume);
+        qDebug() << "set volume:" << d_ptr->volume;
     }
 }
 
@@ -96,33 +83,19 @@ void DecoderAudioFrame::setMasterClock()
     Clock::setMaster(d_ptr->clock);
 }
 
-void DecoderAudioFrame::onStateChanged(QAudio::State state)
-{
-    Q_UNUSED(state)
-    if (d_ptr->audioSinkPtr.isNull()) {
-        return;
-    }
-    if (d_ptr->audioSinkPtr->error() != QAudio::NoError) {
-        qWarning() << tr("QAudioSink Error:") << state << d_ptr->audioSinkPtr->error();
-    }
-}
-
-void DecoderAudioFrame::onAudioOutputsChanged()
-{
-    d_ptr->audioOutputsChanged = true;
-}
-
 void DecoderAudioFrame::runDecoder()
 {
     quint64 dropNum = 0;
-    QAudioDevice audioDevice(QMediaDevices::defaultAudioOutput());
-    auto format = resetAudioOutput();
+    int sampleSize = 0;
+    auto format = getAudioFormatFromCodecCtx(m_contextInfo->codecCtx(), sampleSize);
+    QScopedPointer<AudioOutputThread> audioOutputThreadPtr(new AudioOutputThread);
+    d_ptr->audioOutputThreadPtr = audioOutputThreadPtr.data();
+    qDebug() << "AudioOutputThreadPtr:" << d_ptr->audioOutputThreadPtr;
+    audioOutputThreadPtr->openOutput({format, format.sampleRate() * sampleSize / 8, d_ptr->volume});
     AudioFrameConverter audioConverter(m_contextInfo->codecCtx(), format);
     bool firstFrame = false;
     while (m_runing.load()) {
         d_ptr->processEvent(firstFrame);
-
-        checkDefaultAudioOutput(audioDevice);
 
         auto framePtr(m_queue.take());
         if (framePtr.isNull()) {
@@ -154,80 +127,9 @@ void DecoderAudioFrame::runDecoder()
         }
         // qDebug() << "Audio PTS:"
         //          << QTime::fromMSecsSinceStartOfDay(pts / 1000).toString("hh:mm:ss.zzz");
-
-        writeToDevice(audioBuf);
+        emit audioOutputThreadPtr->wirteData(audioBuf);
     }
-    d_ptr->audioSinkPtr.reset();
     qInfo() << "Audio Drop Num:" << dropNum;
-}
-
-void DecoderAudioFrame::buildConnect()
-{
-    d_ptr->mediaDevicesPtr.reset(new QMediaDevices);
-    connect(d_ptr->mediaDevicesPtr.data(),
-            &QMediaDevices::audioOutputsChanged,
-            this,
-            &DecoderAudioFrame::onAudioOutputsChanged);
-}
-
-void DecoderAudioFrame::checkDefaultAudioOutput(QAudioDevice &audioDevice)
-{
-    if (!d_ptr->audioOutputsChanged) {
-        return;
-    }
-    d_ptr->audioOutputsChanged = false;
-    if (audioDevice == QMediaDevices::defaultAudioOutput()) {
-        return;
-    }
-    resetAudioOutput();
-    audioDevice = QMediaDevices::defaultAudioOutput();
-}
-
-void DecoderAudioFrame::writeToDevice(QByteArray &audioBuf)
-{
-    if (!d_ptr->audioDevice) {
-        return;
-    }
-    while (audioBuf.size() > 0) {
-        int byteFree = d_ptr->audioSinkPtr->bytesFree();
-        if (byteFree > 0 && byteFree < audioBuf.size()) {
-            d_ptr->audioDevice->write(audioBuf.data(), byteFree); // Memory leak
-            audioBuf = audioBuf.sliced(byteFree);
-        } else {
-            d_ptr->audioDevice->write(audioBuf);
-            break;
-        }
-    }
-    qApp->processEvents();
-}
-
-void printAudioOuputDevice()
-{
-    QList<QAudioDevice> audioDevices = QMediaDevices::audioOutputs();
-    for (const QAudioDevice &audioDevice : qAsConst(audioDevices)) {
-        qDebug() << audioDevice.id() << audioDevice.description() << audioDevice.isDefault();
-    }
-}
-
-QAudioFormat DecoderAudioFrame::resetAudioOutput()
-{
-    printAudioOuputDevice();
-
-    int sampleSzie = 0;
-    auto format = getAudioFormatFromCodecCtx(m_contextInfo->codecCtx(), sampleSzie);
-    d_ptr->audioSinkPtr.reset(new QAudioSink(format));
-    d_ptr->audioSinkPtr->setBufferSize(format.sampleRate() * sampleSzie / 8);
-    d_ptr->audioSinkPtr->setVolume(d_ptr->volume);
-    d_ptr->audioDevice = d_ptr->audioSinkPtr->start();
-    if (!d_ptr->audioDevice) {
-        qWarning() << tr("Create AudioDevice Failed!");
-    }
-    connect(d_ptr->audioSinkPtr.data(),
-            &QAudioSink::stateChanged,
-            this,
-            &DecoderAudioFrame::onStateChanged);
-
-    return format;
 }
 
 } // namespace Ffmpeg

@@ -26,8 +26,6 @@ public:
     bool paused = false;             // 是否暂停播放
 
     static std::atomic<qint64> s_serial;
-    static constexpr QPair<double, double> s_speedRange = {0.5, 3.0};
-    static constexpr auto s_speedStep = 0.5;
     static std::atomic<double> s_speed;
     static constexpr auto s_diffThreshold = 50 * 1000; // 50 milliseconds
     static Clock *s_clock;
@@ -108,6 +106,7 @@ void Clock::setPaused(bool value)
     d_ptr->paused = value;
     if (!d_ptr->paused) {
         d_ptr->last_updated = 0;
+        d_ptr->pts_drift = 0;
     }
 }
 
@@ -163,16 +162,6 @@ void Clock::globalSerialRef()
 void Clock::globalSerialReset()
 {
     Clock::ClockPrivate::s_serial.store(0);
-}
-
-auto Clock::speedRange() -> QPair<double, double>
-{
-    return Clock::ClockPrivate::s_speedRange;
-}
-
-auto Clock::speedStep() -> double
-{
-    return Clock::ClockPrivate::s_speedStep;
 }
 
 void Clock::setSpeed(double value)

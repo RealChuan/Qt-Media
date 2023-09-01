@@ -26,10 +26,10 @@ public:
             switch (eventPtr->type()) {
             case Event::EventType::Pause: decoderVideoFrame->addEvent(eventPtr); break;
             case Event::EventType::Seek: {
-                decoderVideoFrame->clear();
-                decoderVideoFrame->addEvent(eventPtr);
                 auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
                 seekEvent->countDown();
+                q_ptr->clear();
+                decoderVideoFrame->addEvent(eventPtr);
             } break;
             default: break;
             }

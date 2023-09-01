@@ -1,7 +1,12 @@
 set(PROJECT_SOURCES
+    audiorender/audioconfig.cc
+    audiorender/audioconfig.hpp
+    audiorender/audiooutput.cc
+    audiorender/audiooutput.hpp
+    audiorender/audiooutputthread.cc
+    audiorender/audiooutputthread.hpp
     event/errorevent.hpp
     event/event.hpp
-    event/pauseevent.hpp
     event/seekevent.hpp
     event/trackevent.hpp
     event/valueevent.hpp

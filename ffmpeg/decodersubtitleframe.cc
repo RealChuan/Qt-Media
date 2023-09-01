@@ -2,8 +2,8 @@
 #include "clock.hpp"
 #include "codeccontext.h"
 
-#include <event/pauseevent.hpp>
 #include <event/seekevent.hpp>
+#include <event/valueevent.hpp>
 #include <subtitle/ass.hpp>
 #include <videorender/videorender.hpp>
 
@@ -38,15 +38,11 @@ public:
                 auto pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
                 auto paused = pauseEvent->paused();
                 clock->setPaused(paused);
-                if (paused) {
-                    firstFrame = false;
-                }
             } break;
             case Event::EventType::Seek: {
                 auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
                 auto position = seekEvent->position();
                 q_ptr->clear();
-                clock->reset(position);
                 ass->flushASSEvents();
                 firstFrame = false;
             }

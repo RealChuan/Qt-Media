@@ -14,7 +14,7 @@
 namespace Ffmpeg {
 
 static const auto s_waitQueueEmptyMilliseconds = 50;
-static const auto s_frameQueueSize = 25;
+static const auto s_frameQueueSize = 15;
 
 template<typename T>
 class Decoder : public QThread
@@ -44,10 +44,19 @@ public:
             quit();
             wait();
         }
+        m_eventQueue.clear();
     }
 
-    void append(const T &t) { m_queue.put(t); }
-    void append(T &&t) { m_queue.put(t); }
+    void append(const T &t)
+    {
+        assertVaild();
+        m_queue.put(t);
+    }
+    void append(T &&t)
+    {
+        assertVaild();
+        m_queue.put(t);
+    }
 
     auto size() -> size_t { return m_queue.size(); }
 
@@ -62,6 +71,9 @@ public:
 
     void addEvent(const EventPtr &event)
     {
+        if (!m_contextInfo->isIndexVaild()) {
+            return;
+        }
         m_eventQueue.put(event);
         wakeup();
     }

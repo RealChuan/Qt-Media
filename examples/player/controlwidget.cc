@@ -34,10 +34,11 @@ public:
         speedCbxView->setTextElideMode(Qt::ElideRight);
         speedCbxView->setAlternatingRowColors(true);
         speedCbx->setView(speedCbxView);
-        double i = 0.25;
-        while (i <= 2) {
+        double i = 0.5;
+        double step = 0.5;
+        while (i <= 3) {
             speedCbx->addItem(QString::number(i), i);
-            i += 0.25;
+            i += step;
         }
         speedCbx->setCurrentText("1");
 

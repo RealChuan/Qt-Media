@@ -37,8 +37,6 @@ public:
     static void globalSerialRef();
     static void globalSerialReset();
 
-    static auto speedRange() -> QPair<double, double>;
-    static auto speedStep() -> double;
     static void setSpeed(double value);
     static auto speed() -> double;
 

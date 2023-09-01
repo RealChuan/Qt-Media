@@ -36,8 +36,8 @@ public:
         : Event(parent)
         , m_relativePosition(relativePosition)
     {}
-
-    [[nodiscard]] auto type() const -> EventType override { return EventType::seekRelative; }
+    
+    [[nodiscard]] auto type() const -> EventType override { return EventType::SeekRelative; }
 
     // second
     void setRelativePosition(qint64 relativePosition) { m_relativePosition = relativePosition; }

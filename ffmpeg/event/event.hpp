@@ -39,7 +39,21 @@ class FFMPEG_EXPORT Event : public QObject
 {
     Q_OBJECT
 public:
-    enum EventType { None, Pause, Seek, seekRelative, GpuDecode };
+    enum EventType {
+        None,
+        OpenMedia,
+        CloseMedia,
+        AudioTarck,
+        VideoTrack,
+        SubtitleTrack,
+        Volume,
+        Speed,
+        Gpu,
+
+        Pause = 100,
+        Seek,
+        SeekRelative
+    };
     Q_ENUM(EventType);
 
     using QObject::QObject;

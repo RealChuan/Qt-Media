@@ -8,7 +8,6 @@
 
 #include <ffmpeg/averror.h>
 #include <ffmpeg/event/errorevent.hpp>
-#include <ffmpeg/event/pauseevent.hpp>
 #include <ffmpeg/event/seekevent.hpp>
 #include <ffmpeg/event/trackevent.hpp>
 #include <ffmpeg/event/valueevent.hpp>
@@ -88,6 +87,7 @@ public:
             playerPtr->addEvent(eventPtr);
         });
         new QShortcut(QKeySequence::MoveToPreviousChar, q_ptr, q_ptr, [this] {
+            // Todo : seek 不准确
             Ffmpeg::EventPtr eventPtr(new Ffmpeg::SeekRelativeEvent(-5));
             playerPtr->addEvent(eventPtr);
         });
@@ -194,7 +194,9 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    d_ptr->playerPtr->onStop();
+    Ffmpeg::EventPtr closeMediaEvent(new Ffmpeg::CloseMediaEvent());
+    d_ptr->playerPtr->addEvent(closeMediaEvent);
+
     d_ptr->playerPtr->setVideoRenders({});
 }
 
@@ -303,7 +305,10 @@ void MainWindow::playlistPositionChanged(int currentItem)
     }
     auto url = d_ptr->playlistModel->playlist()->currentMedia();
     d_ptr->playlistView->setCurrentIndex(d_ptr->playlistModel->index(currentItem, 0));
-    d_ptr->playerPtr->openMedia(url.isLocalFile() ? url.toLocalFile() : url.toString());
+
+    Ffmpeg::EventPtr eventPtr(
+        new Ffmpeg::OpenMediaEvent(url.isLocalFile() ? url.toLocalFile() : url.toString()));
+    d_ptr->playerPtr->addEvent(eventPtr);
 }
 
 void MainWindow::jump(const QModelIndex &index)
@@ -359,6 +364,7 @@ void MainWindow::onProcessEvents()
             auto tracks = tracksEvent->tracks();
             for (const auto &track : qAsConst(tracks)) {
                 std::unique_ptr<QAction> actionPtr(new QAction(track.info(), this));
+                actionPtr->setProperty("index", track.index);
                 actionPtr->setCheckable(true);
                 if (track.selected) {
                     actionPtr->setChecked(true);
@@ -530,7 +536,8 @@ void MainWindow::buildConnect()
             &ControlWidget::volumeChanged,
             d_ptr->playerPtr.data(),
             [this](int value) {
-                d_ptr->playerPtr->setVolume(value / 100.0);
+                Ffmpeg::EventPtr eventPtr(new Ffmpeg::VolumeEvent(value / 100.0));
+                d_ptr->playerPtr->addEvent(eventPtr);
                 d_ptr->setTitleWidgetText(tr("Volume: %1").arg(value));
             });
     d_ptr->controlWidget->setVolume(50);
@@ -538,7 +545,8 @@ void MainWindow::buildConnect()
             &ControlWidget::speedChanged,
             d_ptr->playerPtr.data(),
             [this](double value) {
-                d_ptr->playerPtr->setSpeed(value);
+                Ffmpeg::EventPtr eventPtr(new Ffmpeg::SpeedEvent(value));
+                d_ptr->playerPtr->addEvent(eventPtr);
                 d_ptr->setTitleWidgetText(tr("Speed: %1").arg(value));
             });
     connect(d_ptr->controlWidget,
@@ -569,7 +577,8 @@ void MainWindow::initMenu()
     auto hwAction = new QAction("H/W", this);
     hwAction->setCheckable(true);
     connect(hwAction, &QAction::toggled, this, [this](bool checked) {
-        d_ptr->playerPtr->setUseGpuDecode(checked);
+        Ffmpeg::EventPtr evenPtr(new Ffmpeg::GpuEvent(checked));
+        d_ptr->playerPtr->addEvent(evenPtr);
     });
     hwAction->setChecked(true);
     d_ptr->menu->addAction(hwAction);
@@ -602,11 +611,22 @@ void MainWindow::initMenu()
     d_ptr->menu->addMenu(d_ptr->subTracksMenu);
 
     connect(d_ptr->audioTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
-        d_ptr->playerPtr->setAudioTrack(action->text());
+        Ffmpeg::EventPtr evenPtr(
+            new Ffmpeg::SelectedMediaTrackEvent(action->property("index").toInt(),
+                                                Ffmpeg::Event::AudioTarck));
+        d_ptr->playerPtr->addEvent(evenPtr);
     });
-    connect(d_ptr->videoTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {});
+    connect(d_ptr->videoTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        Ffmpeg::EventPtr evenPtr(
+            new Ffmpeg::SelectedMediaTrackEvent(action->property("index").toInt(),
+                                                Ffmpeg::Event::VideoTrack));
+        d_ptr->playerPtr->addEvent(evenPtr);
+    });
     connect(d_ptr->subTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
-        d_ptr->playerPtr->setSubtitleTrack(action->text());
+        Ffmpeg::EventPtr evenPtr(
+            new Ffmpeg::SelectedMediaTrackEvent(action->property("index").toInt(),
+                                                Ffmpeg::Event::SubtitleTrack));
+        d_ptr->playerPtr->addEvent(evenPtr);
     });
 }
 

@@ -25,10 +25,10 @@ public:
             switch (eventPtr->type()) {
             case Event::EventType::Pause: decoderAudioFrame->addEvent(eventPtr); break;
             case Event::EventType::Seek: {
-                decoderAudioFrame->clear();
-                decoderAudioFrame->addEvent(eventPtr);
                 auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
                 seekEvent->countDown();
+                q_ptr->clear();
+                decoderAudioFrame->addEvent(eventPtr);
             } break;
             default: break;
             }

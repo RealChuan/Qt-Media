@@ -1,8 +1,8 @@
 #include "decodervideoframe.h"
 #include "clock.hpp"
 
-#include <event/pauseevent.hpp>
 #include <event/seekevent.hpp>
+#include <event/valueevent.hpp>
 #include <videorender/videorender.hpp>
 
 #include <QDebug>
@@ -34,15 +34,11 @@ public:
                 auto pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
                 auto paused = pauseEvent->paused();
                 clock->setPaused(paused);
-                if (paused) {
-                    firstFrame = false;
-                }
             } break;
             case Event::EventType::Seek: {
                 auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
                 auto position = seekEvent->position();
                 q_ptr->clear();
-                clock->reset(position);
                 firstFrame = false;
             }
             default: break;

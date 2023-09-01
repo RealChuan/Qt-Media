@@ -25,21 +25,10 @@ public:
 signals:
     void positionChanged(qint64 position); // microsecond
 
-private slots:
-    void onStateChanged(QAudio::State state);
-    void onAudioOutputsChanged();
-
 protected:
     void runDecoder() override;
 
 private:
-    void buildConnect();
-
-    void checkDefaultAudioOutput(QAudioDevice &audioDevice);
-
-    void writeToDevice(QByteArray &audioBuf);
-    auto resetAudioOutput() -> QAudioFormat;
-
     class DecoderAudioFramePrivate;
     QScopedPointer<DecoderAudioFramePrivate> d_ptr;
 };
