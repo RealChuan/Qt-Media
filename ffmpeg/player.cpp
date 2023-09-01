@@ -294,7 +294,7 @@ public:
         case Event::EventType::CloseMedia: processCloseMediaEvent(); break;
         case Event::EventType::AudioTarck:
         case Event::EventType::VideoTrack:
-        case Event::EventType::SubtitleTrack: processSelectedMediaTrackEvent(eventPtr);
+        case Event::EventType::SubtitleTrack: processSelectedMediaTrackEvent(eventPtr); break;
         case Event::EventType::Volume: processVolumeEvent(eventPtr); break;
         case Event::EventType::Speed: processSpeedEvent(eventPtr); break;
         case Event::EventType::Gpu: processGpuEvent(eventPtr); break;
@@ -304,7 +304,7 @@ public:
 
     void processPauseEvent(const EventPtr &eventPtr)
     {
-        auto pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
+        auto pauseEvent = dynamic_cast<PauseEvent *>(eventPtr.data());
         if (pauseEvent->paused()) {
             setMediaState(MediaState::Pausing);
         } else if (q_ptr->isRunning()) {
@@ -340,7 +340,7 @@ public:
         if (subtitleInfo->isIndexVaild()) {
             count++;
         }
-        auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
+        auto seekEvent = dynamic_cast<SeekEvent *>(eventPtr.data());
         seekEvent->setWaitCountdown(count);
         audioDecoder->addEvent(eventPtr);
         videoDecoder->addEvent(eventPtr);
@@ -370,7 +370,7 @@ public:
 
     void processSeekRelativeEvent(const EventPtr &eventPtr)
     {
-        auto seekRelativeEvent = static_cast<SeekRelativeEvent *>(eventPtr.data());
+        auto seekRelativeEvent = dynamic_cast<SeekRelativeEvent *>(eventPtr.data());
         auto relativePosition = seekRelativeEvent->relativePosition();
         auto position = this->position + relativePosition * AV_TIME_BASE;
         if (position < 0) {
@@ -384,7 +384,7 @@ public:
 
     void processGpuEvent(const EventPtr &eventPtr)
     {
-        auto gpuEvent = static_cast<GpuEvent *>(eventPtr.data());
+        auto gpuEvent = dynamic_cast<GpuEvent *>(eventPtr.data());
         gpuDecode = gpuEvent->use();
         if (filepath.isEmpty()) {
             return;
@@ -425,7 +425,7 @@ public:
             position = 0;
         }
 
-        auto selectedMediaTrackEvent = static_cast<SelectedMediaTrackEvent *>(eventPtr.data());
+        auto selectedMediaTrackEvent = dynamic_cast<SelectedMediaTrackEvent *>(eventPtr.data());
         switch (selectedMediaTrackEvent->type()) {
         case Event::EventType::AudioTarck:
             meidaIndex.audioindex = selectedMediaTrackEvent->index();
@@ -451,7 +451,7 @@ public:
 
     void processOpenMediaEvent(const EventPtr &eventPtr)
     {
-        auto openMediaEvent = static_cast<OpenMediaEvent *>(eventPtr.data());
+        auto openMediaEvent = dynamic_cast<OpenMediaEvent *>(eventPtr.data());
         filepath = openMediaEvent->filepath();
         q_ptr->onPlay();
     }
@@ -479,13 +479,13 @@ public:
 
     void processSpeedEvent(const EventPtr &eventPtr)
     {
-        auto speedEvent = static_cast<SpeedEvent *>(eventPtr.data());
+        auto speedEvent = dynamic_cast<SpeedEvent *>(eventPtr.data());
         Clock::setSpeed(speedEvent->speed());
     }
 
     void processVolumeEvent(const EventPtr &eventPtr)
     {
-        auto volumeEvent = static_cast<VolumeEvent *>(eventPtr.data());
+        auto volumeEvent = dynamic_cast<VolumeEvent *>(eventPtr.data());
         audioDecoder->setVolume(volumeEvent->volume());
     }
 

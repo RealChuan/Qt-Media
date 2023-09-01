@@ -74,7 +74,6 @@ void DecoderAudioFrame::setVolume(qreal volume)
     d_ptr->volume = volume;
     if (d_ptr->audioOutputThreadPtr) {
         emit d_ptr->audioOutputThreadPtr->volumeChanged(d_ptr->volume);
-        qDebug() << "set volume:" << d_ptr->volume;
     }
 }
 
@@ -90,7 +89,6 @@ void DecoderAudioFrame::runDecoder()
     auto format = getAudioFormatFromCodecCtx(m_contextInfo->codecCtx(), sampleSize);
     QScopedPointer<AudioOutputThread> audioOutputThreadPtr(new AudioOutputThread);
     d_ptr->audioOutputThreadPtr = audioOutputThreadPtr.data();
-    qDebug() << "AudioOutputThreadPtr:" << d_ptr->audioOutputThreadPtr;
     audioOutputThreadPtr->openOutput({format, format.sampleRate() * sampleSize / 8, d_ptr->volume});
     AudioFrameConverter audioConverter(m_contextInfo->codecCtx(), format);
     bool firstFrame = false;

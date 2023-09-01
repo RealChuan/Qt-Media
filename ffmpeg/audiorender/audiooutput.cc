@@ -18,12 +18,12 @@ void printAudioOuputDevice()
 class AudioOutput::AudioOutputPrivate
 {
 public:
-    AudioOutputPrivate(AudioOutput *q)
+    explicit AudioOutputPrivate(AudioOutput *q)
         : q_ptr(q)
     {
         mediaDevices = new QMediaDevices(q_ptr);
     }
-    ~AudioOutputPrivate() {}
+    ~AudioOutputPrivate() = default;
 
     void reset(const Audio::Config &config)
     {
@@ -62,7 +62,7 @@ AudioOutput::AudioOutput(const Audio::Config &config, QObject *parent)
     buildConnect();
 }
 
-AudioOutput::~AudioOutput() {}
+AudioOutput::~AudioOutput() = default;
 
 void AudioOutput::onWrite(const QByteArray &audioBuf)
 {

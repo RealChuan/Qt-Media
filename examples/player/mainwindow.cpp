@@ -324,15 +324,15 @@ void MainWindow::onProcessEvents()
         auto eventPtr = d_ptr->playerPtr->takePropertyChangeEvent();
         switch (eventPtr->type()) {
         case Ffmpeg::PropertyChangeEvent::EventType::Duration: {
-            auto durationEvent = static_cast<Ffmpeg::DurationEvent *>(eventPtr.data());
+            auto durationEvent = dynamic_cast<Ffmpeg::DurationEvent *>(eventPtr.data());
             d_ptr->controlWidget->setDuration(durationEvent->duration() / AV_TIME_BASE);
         } break;
         case Ffmpeg::PropertyChangeEvent::EventType::Position: {
-            auto positionEvent = static_cast<Ffmpeg::PositionEvent *>(eventPtr.data());
+            auto positionEvent = dynamic_cast<Ffmpeg::PositionEvent *>(eventPtr.data());
             d_ptr->controlWidget->setPosition(positionEvent->position() / AV_TIME_BASE);
         } break;
         case Ffmpeg::PropertyChangeEvent::EventType::MediaState: {
-            auto stateEvent = static_cast<Ffmpeg::MediaStateEvent *>(eventPtr.data());
+            auto stateEvent = dynamic_cast<Ffmpeg::MediaStateEvent *>(eventPtr.data());
             switch (stateEvent->state()) {
             case Ffmpeg::MediaState::Stopped:
                 d_ptr->controlWidget->setPlayButtonChecked(false);
@@ -352,7 +352,7 @@ void MainWindow::onProcessEvents()
             }
         } break;
         case Ffmpeg::PropertyChangeEvent::EventType::CacheSpeed: {
-            auto speedEvent = static_cast<Ffmpeg::CacheSpeedEvent *>(eventPtr.data());
+            auto speedEvent = dynamic_cast<Ffmpeg::CacheSpeedEvent *>(eventPtr.data());
             d_ptr->controlWidget->setCacheSpeed(speedEvent->speed());
         } break;
         case Ffmpeg::PropertyChangeEvent::MediaTrack: {
@@ -360,7 +360,7 @@ void MainWindow::onProcessEvents()
             qDeleteAll(d_ptr->videoTracksGroup->actions());
             qDeleteAll(d_ptr->subTracksGroup->actions());
 
-            auto tracksEvent = static_cast<Ffmpeg::MediaTrackEvent *>(eventPtr.data());
+            auto tracksEvent = dynamic_cast<Ffmpeg::MediaTrackEvent *>(eventPtr.data());
             auto tracks = tracksEvent->tracks();
             for (const auto &track : qAsConst(tracks)) {
                 std::unique_ptr<QAction> actionPtr(new QAction(track.info(), this));
@@ -390,7 +390,7 @@ void MainWindow::onProcessEvents()
             }
         } break;
         case Ffmpeg::PropertyChangeEvent::SeekChanged: {
-            auto seekEvent = static_cast<Ffmpeg::SeekChangedEvent *>(eventPtr.data());
+            auto seekEvent = dynamic_cast<Ffmpeg::SeekChangedEvent *>(eventPtr.data());
             int value = seekEvent->position() * 100 / d_ptr->playerPtr->duration();
             auto text = tr("Seeked To %1 (key frame) / %2 (%3%)")
                             .arg(QTime::fromMSecsSinceStartOfDay(seekEvent->position() / 1000)
@@ -401,7 +401,7 @@ void MainWindow::onProcessEvents()
             d_ptr->setTitleWidgetText(text);
         } break;
         case Ffmpeg::PropertyChangeEvent::Error: {
-            auto errorEvent = static_cast<Ffmpeg::ErrorEvent *>(eventPtr.data());
+            auto errorEvent = dynamic_cast<Ffmpeg::ErrorEvent *>(eventPtr.data());
             const auto text = tr("Error[%1]:%2.")
                                   .arg(QString::number(errorEvent->error().errorCode()),
                                        errorEvent->error().errorString());
@@ -419,22 +419,22 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
     if (!d_ptr->videoRender.isNull() && watched == d_ptr->videoRender->widget()) {
         switch (event->type()) {
         case QEvent::DragEnter: {
-            auto e = static_cast<QDragEnterEvent *>(event);
+            auto e = dynamic_cast<QDragEnterEvent *>(event);
             e->acceptProposedAction();
         } break;
         case QEvent::DragMove: {
-            auto e = static_cast<QDragMoveEvent *>(event);
+            auto e = dynamic_cast<QDragMoveEvent *>(event);
             e->acceptProposedAction();
         } break;
         case QEvent::Drop: {
-            auto e = static_cast<QDropEvent *>(event);
+            auto e = dynamic_cast<QDropEvent *>(event);
             QList<QUrl> urls = e->mimeData()->urls();
             if (!urls.isEmpty()) {
                 addToPlaylist(urls);
             }
         } break;
         case QEvent::ContextMenu: {
-            auto e = static_cast<QContextMenuEvent *>(event);
+            auto e = dynamic_cast<QContextMenuEvent *>(event);
             d_ptr->menu->exec(e->globalPos());
         } break;
         case QEvent::MouseButtonDblClick:
@@ -450,7 +450,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
     } else if (watched == d_ptr->playlistView) {
         switch (event->type()) {
         case QEvent::ContextMenu: {
-            auto e = static_cast<QContextMenuEvent *>(event);
+            auto e = dynamic_cast<QContextMenuEvent *>(event);
             d_ptr->playListMenu->exec(e->globalPos());
         } break;
         default: break;
@@ -461,7 +461,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
             d_ptr->controlWidget->show();
             d_ptr->controlWidget->hide();
             auto controlWidgetGeometry = d_ptr->controlWidget->geometry();
-            auto e = static_cast<QHoverEvent *>(event);
+            auto e = dynamic_cast<QHoverEvent *>(event);
             bool contain = controlWidgetGeometry.contains(e->position().toPoint());
             d_ptr->setControlWidgetVisible(contain);
             if (isFullScreen()) {
