@@ -13,6 +13,16 @@
 2. 在WidgetRender中，尽可能使用QImage::Format_RGB32和QImage::Format_ARGB32_Premultiplied图像格式。如下原因：
    1. Avoid most rendering directly to most of these formats using QPainter. Rendering is best optimized to the Format_RGB32  and Format_ARGB32_Premultiplied formats, and secondarily for rendering to the Format_RGB16, Format_RGBX8888,  Format_RGBA8888_Premultiplied, Format_RGBX64 and Format_RGBA64_Premultiplied formats.
 
+### ``avformat_seek_file``，当seek的时间点小于当前时间点一些时，比如-5秒、-10秒，seek不到目标时间点
+
+#### 有一种解决方法是：先``seek``到0秒，再``seek``到目标时间点。  
+这个时候-5秒、-10秒的seek，效果非常好，比之前好很多，之前有时候会卡在当前时间点，无法seek到目标时间点。
+
+```C++
+formatCtx->seek(0);
+formatCtx->seek(position);
+```
+
 ### Ffmpeg（5.0）在解码字幕与4.4.3不太一样
 
 ### 解码字幕(ffmpeg-n5.0):

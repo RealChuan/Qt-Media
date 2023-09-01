@@ -347,7 +347,9 @@ public:
         subtitleDecoder->addEvent(eventPtr);
         auto position = seekEvent->position();
         seekEvent->wait();
-
+        // before add this line, seek position less than current position, it wiil not accurate,
+        // and now first seek to 0, then seek to position, it will be very good
+        formatCtx->seek(0);
         formatCtx->seek(position);
         if (audioInfo->isIndexVaild()) {
             audioInfo->codecCtx()->flush();

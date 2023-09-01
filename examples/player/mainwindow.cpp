@@ -87,7 +87,6 @@ public:
             playerPtr->addEvent(eventPtr);
         });
         new QShortcut(QKeySequence::MoveToPreviousChar, q_ptr, q_ptr, [this] {
-            // Todo : seek 不准确
             Ffmpeg::EventPtr eventPtr(new Ffmpeg::SeekRelativeEvent(-5));
             playerPtr->addEvent(eventPtr);
         });
