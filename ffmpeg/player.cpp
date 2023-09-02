@@ -247,8 +247,7 @@ public:
 
     void addPropertyChangeEventEvent(PropertyChangeEvent *event)
     {
-        PropertyChangeEventPtr eventPtr(event);
-        propertyChangeEventQueue.put(eventPtr);
+        propertyChangeEventQueue.put(PropertyChangeEventPtr(event));
         while (propertyChangeEventQueue.size() > maxPropertyEventQueueSize.load()) {
             propertyChangeEventQueue.take();
         }
@@ -267,8 +266,7 @@ public:
         switch (eventPtr->type()) {
         case Event::EventType::Pause: break;
         default: {
-            EventPtr eventPtr(new PauseEvent(true));
-            eventQueue.put(eventPtr);
+            eventQueue.put(EventPtr(new PauseEvent(true)));
         } break;
         }
         wakePause();
@@ -380,8 +378,7 @@ public:
         } else if (position > q_ptr->duration()) {
             position = q_ptr->duration();
         }
-        EventPtr seekEventPtr(new SeekEvent(position));
-        eventQueue.putHead(seekEventPtr);
+        eventQueue.putHead(EventPtr(new SeekEvent(position)));
     }
 
     void processGpuEvent(const EventPtr &eventPtr)
@@ -402,14 +399,9 @@ public:
             position = 0;
         }
 
-        EventPtr closeMediaEvent(new CloseMediaEvent());
-        q_ptr->addEvent(closeMediaEvent);
-
-        EventPtr openMediaEvent(new OpenMediaEvent(filepath));
-        q_ptr->addEvent(openMediaEvent);
-
-        EventPtr seekEventPtr(new SeekEvent(position));
-        eventQueue.putHead(seekEventPtr);
+        q_ptr->addEvent(EventPtr(new CloseMediaEvent));
+        q_ptr->addEvent(EventPtr(new OpenMediaEvent(filepath)));
+        eventQueue.putHead(EventPtr(new SeekEvent(position)));
     }
 
     void processSelectedMediaTrackEvent(const EventPtr &eventPtr)
@@ -441,14 +433,9 @@ public:
         default: break;
         }
 
-        EventPtr closeMediaEvent(new CloseMediaEvent());
-        q_ptr->addEvent(closeMediaEvent);
-
-        EventPtr openMediaEvent(new OpenMediaEvent(filepath));
-        q_ptr->addEvent(openMediaEvent);
-
-        EventPtr seekEventPtr(new SeekEvent(position));
-        eventQueue.putHead(seekEventPtr);
+        q_ptr->addEvent(EventPtr(new CloseMediaEvent));
+        q_ptr->addEvent(EventPtr(new OpenMediaEvent(filepath)));
+        eventQueue.putHead(EventPtr(new SeekEvent(position)));
     }
 
     void processOpenMediaEvent(const EventPtr &eventPtr)
@@ -553,8 +540,7 @@ Player::Player(QObject *parent)
 
 Player::~Player()
 {
-    EventPtr closeMediaEvent(new CloseMediaEvent());
-    addEvent(closeMediaEvent);
+    addEvent(EventPtr(new CloseMediaEvent));
 }
 
 auto Player::filePath() const -> QString &
