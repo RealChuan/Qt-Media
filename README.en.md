@@ -73,7 +73,7 @@ transcodeCtx->audioPts += frame->nb_samples;
 
 #### Dynamically switch Video Render, switch from opengl to widget, there is still GPU 0-3D occupation, and the usage is twice that of opengl! ! ! QT-BUG?
 
-### QOpenGLWidget memory leak, move zoom in and zoom out window, the code is as follows:
+### QOpenGLWidget memory leak, moving zoom in and out of the window, the code is as follows:
 
 ```C++
 int main(int argc, char *argv[])
