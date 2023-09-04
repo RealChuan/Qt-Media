@@ -172,7 +172,7 @@ auto AudioFrameConverter::convert(Frame *frame) -> QByteArray
         qWarning() << "audio buffer is probably too small";
     }
     size = len * d_ptr->format.channelCount() * av_get_bytes_per_sample(d_ptr->avSampleFormat);
-    data.resize(size);
+    data.truncate(size);
 
     return data;
 }
