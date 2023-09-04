@@ -1,7 +1,9 @@
 #pragma once
 
 #include <QMutex>
-#include <queue>
+
+#include <deque>
+#include <functional>
 
 namespace Utils {
 
@@ -15,40 +17,28 @@ public:
 
     explicit ThreadSafeQueue() = default;
 
-    void put(const T &x)
+    void append(const T &x)
     {
         QMutexLocker locker(&m_mutex);
-        m_queue.push(x);
+        m_queue.push_back(x);
     }
 
-    void put(T &&x)
+    void append(T &&x)
     {
         QMutexLocker locker(&m_mutex);
-        m_queue.push(std::move(x));
+        m_queue.push_back(std::move(x));
     }
 
-    void putHead(const T &x)
+    void insertHead(const T &x)
     {
-        std::queue<T> temp;
-        temp.push(x);
         QMutexLocker locker(&m_mutex);
-        while (!m_queue.empty()) {
-            temp.push(m_queue.front());
-            m_queue.pop();
-        }
-        m_queue.swap(temp);
+        m_queue.push_front(x);
     }
 
-    void putHead(T &&x)
+    void insertHead(T &&x)
     {
-        std::queue<T> temp;
-        temp.push(x);
         QMutexLocker locker(&m_mutex);
-        while (!m_queue.empty()) {
-            temp.push(m_queue.front());
-            m_queue.pop();
-        }
-        m_queue.swap(temp);
+        m_queue.push_front(std::move(x));
     }
 
     auto take() -> T
@@ -58,7 +48,7 @@ public:
             return T();
         }
         T front(std::move(m_queue.front()));
-        m_queue.pop();
+        m_queue.pop_front();
         return front;
     }
 
@@ -69,7 +59,7 @@ public:
             if (callback != nullptr) {
                 callback(m_queue.front());
             }
-            m_queue.pop();
+            m_queue.pop_front();
         }
     }
 
@@ -87,7 +77,7 @@ public:
 
 private:
     mutable QMutex m_mutex;
-    std::queue<T> m_queue;
+    std::deque<T> m_queue;
 };
 
 } // namespace Utils

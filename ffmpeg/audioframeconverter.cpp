@@ -127,7 +127,7 @@ AudioFrameConverter::AudioFrameConverter(CodecContext *codecCtx,
                                            channelLayout,
                                            d_ptr->avSampleFormat,
                                            d_ptr->format.sampleRate(),
-                                           avCodecCtx->channel_layout,
+                                           avCodecCtx->ch_layout.u.mask,
                                            avCodecCtx->sample_fmt,
                                            avCodecCtx->sample_rate,
                                            0,
@@ -148,25 +148,31 @@ AudioFrameConverter::~AudioFrameConverter()
 
 auto AudioFrameConverter::convert(Frame *frame) -> QByteArray
 {
-    auto nb_samples = frame->avFrame()->nb_samples;
-    int size = av_samples_get_buffer_size(nullptr,
-                                          d_ptr->format.channelCount(),
-                                          nb_samples,
-                                          d_ptr->avSampleFormat,
-                                          0);
+    auto avFrame = frame->avFrame();
+    auto nb_samples = avFrame->nb_samples;
+    auto out_count = (int64_t) nb_samples * d_ptr->format.sampleRate() / avFrame->sample_rate
+                     + 256; // 256 copy from ffplay
+    auto size = av_samples_get_buffer_size(nullptr,
+                                           d_ptr->format.channelCount(),
+                                           out_count,
+                                           d_ptr->avSampleFormat,
+                                           0);
 
     QByteArray data(size, Qt::Uninitialized);
     quint8 *bufPointer[] = {reinterpret_cast<quint8 *>(data.data())};
-
-    int len = swr_convert(d_ptr->swrContext,
-                          bufPointer,
-                          nb_samples,
-                          const_cast<const uint8_t **>(frame->avFrame()->data),
-                          nb_samples);
+    auto len = swr_convert(d_ptr->swrContext,
+                           bufPointer,
+                           out_count,
+                           const_cast<const uint8_t **>(avFrame->extended_data),
+                           nb_samples);
     if (len <= 0) {
         data.clear();
         SET_ERROR_CODE(len);
+    } else if (len == out_count) {
+        qWarning() << "audio buffer is probably too small";
     }
+    size = len * d_ptr->format.channelCount() * av_get_bytes_per_sample(d_ptr->avSampleFormat);
+    data.resize(size);
 
     return data;
 }

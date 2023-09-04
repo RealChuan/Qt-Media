@@ -52,8 +52,9 @@ public:
     void discardStreamExcluded(QVector<int> indexs);
 
     auto seekFirstFrame() -> bool;
-    auto seek(qint64 timestamp) -> bool;            // microsecond
-    auto seek(int index, qint64 timestamp) -> bool; // microsecond
+    auto seek(qint64 timestamp) -> bool;
+    auto seek(qint64 timestamp, bool forward) -> bool; // microsecond
+    auto seekFrame(int index, qint64 timestamp) -> bool;    // microsecond
 
     auto readFrame(Packet *packet) -> bool;
 

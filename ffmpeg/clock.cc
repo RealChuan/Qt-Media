@@ -27,7 +27,7 @@ public:
 
     static std::atomic<qint64> s_serial;
     static std::atomic<double> s_speed;
-    static constexpr auto s_diffThreshold = 50 * 1000; // 50 milliseconds
+    static constexpr auto s_diffThreshold = 200 * 1000; // 200 milliseconds
     static Clock *s_clock;
 };
 

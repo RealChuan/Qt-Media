@@ -247,7 +247,7 @@ public:
 
     void addPropertyChangeEventEvent(PropertyChangeEvent *event)
     {
-        propertyChangeEventQueue.put(PropertyChangeEventPtr(event));
+        propertyChangeEventQueue.append(PropertyChangeEventPtr(event));
         while (propertyChangeEventQueue.size() > maxPropertyEventQueueSize.load()) {
             propertyChangeEventQueue.take();
         }
@@ -256,7 +256,7 @@ public:
 
     void addEvent(const EventPtr &eventPtr)
     {
-        eventQueue.put(eventPtr);
+        eventQueue.append(eventPtr);
         while (eventQueue.size() > maxEventQueueSize.load()) {
             eventQueue.take();
         }
@@ -266,7 +266,7 @@ public:
         switch (eventPtr->type()) {
         case Event::EventType::Pause: break;
         default: {
-            eventQueue.put(EventPtr(new PauseEvent(true)));
+            eventQueue.append(EventPtr(new PauseEvent(true)));
         } break;
         }
         wakePause();
@@ -288,7 +288,10 @@ public:
     void processEvent(const EventPtr &eventPtr)
     {
         switch (eventPtr->type()) {
-        case Event::EventType::OpenMedia: processOpenMediaEvent(eventPtr); break;
+        case Event::EventType::OpenMedia:
+            processCloseMediaEvent();
+            processOpenMediaEvent(eventPtr);
+            break;
         case Event::EventType::CloseMedia: processCloseMediaEvent(); break;
         case Event::EventType::AudioTarck:
         case Event::EventType::VideoTrack:
@@ -345,10 +348,8 @@ public:
         subtitleDecoder->addEvent(eventPtr);
         auto position = seekEvent->position();
         seekEvent->wait();
-        // before add this line, seek position less than current position, it wiil not accurate,
-        // and now first seek to 0, then seek to position, it will be very good
-        formatCtx->seek(0);
-        formatCtx->seek(position);
+
+        formatCtx->seek(position, position < this->position);
         if (audioInfo->isIndexVaild()) {
             audioInfo->codecCtx()->flush();
         }
@@ -378,7 +379,7 @@ public:
         } else if (position > q_ptr->duration()) {
             position = q_ptr->duration();
         }
-        eventQueue.putHead(EventPtr(new SeekEvent(position)));
+        eventQueue.insertHead(EventPtr(new SeekEvent(position)));
     }
 
     void processGpuEvent(const EventPtr &eventPtr)
@@ -401,7 +402,7 @@ public:
 
         q_ptr->addEvent(EventPtr(new CloseMediaEvent));
         q_ptr->addEvent(EventPtr(new OpenMediaEvent(filepath)));
-        eventQueue.putHead(EventPtr(new SeekEvent(position)));
+        eventQueue.insertHead(EventPtr(new SeekEvent(position)));
     }
 
     void processSelectedMediaTrackEvent(const EventPtr &eventPtr)
@@ -435,7 +436,7 @@ public:
 
         q_ptr->addEvent(EventPtr(new CloseMediaEvent));
         q_ptr->addEvent(EventPtr(new OpenMediaEvent(filepath)));
-        eventQueue.putHead(EventPtr(new SeekEvent(position)));
+        eventQueue.insertHead(EventPtr(new SeekEvent(position)));
     }
 
     void processOpenMediaEvent(const EventPtr &eventPtr)

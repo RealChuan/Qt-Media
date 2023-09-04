@@ -14,7 +14,7 @@
 namespace Ffmpeg {
 
 static const auto s_waitQueueEmptyMilliseconds = 50;
-static const auto s_frameQueueSize = 15;
+static const auto s_frameQueueSize = 25; // for truehd codec, maybe need more, maybe 500
 
 template<typename T>
 class Decoder : public QThread
@@ -50,12 +50,12 @@ public:
     void append(const T &t)
     {
         assertVaild();
-        m_queue.put(t);
+        m_queue.append(t);
     }
     void append(T &&t)
     {
         assertVaild();
-        m_queue.put(t);
+        m_queue.append(t);
     }
 
     auto size() -> size_t { return m_queue.size(); }
@@ -65,7 +65,7 @@ public:
     void wakeup()
     {
         if (m_queue.empty()) {
-            m_queue.putHead(T());
+            m_queue.insertHead(T());
         }
     }
 
@@ -74,7 +74,7 @@ public:
         if (!m_contextInfo->isIndexVaild()) {
             return;
         }
-        m_eventQueue.put(event);
+        m_eventQueue.append(event);
         wakeup();
     }
 

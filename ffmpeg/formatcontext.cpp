@@ -21,7 +21,7 @@ public:
         avformat_network_init();
     }
 
-    ~FormatContextPrivate() {}
+    ~FormatContextPrivate() = default;
 
     void initStreamInfo()
     {
@@ -377,19 +377,22 @@ auto FormatContext::seek(qint64 timestamp) -> bool
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     Q_ASSERT(timestamp >= 0);
     auto seekMin = timestamp - d_ptr->seekOffset;
-    if (seekMin < 0) {
-        seekMin = 0;
-    }
     auto seekMax = timestamp + d_ptr->seekOffset;
-    if (seekMax > d_ptr->formatCtx->duration) {
-        seekMax = d_ptr->formatCtx->duration;
-    }
-    // qDebug() << "seekMin:" << seekMin << "seekMax:" << seekMax << "timestamp:" << timestamp;
     auto ret = avformat_seek_file(d_ptr->formatCtx, -1, seekMin, timestamp, seekMax, 0);
     ERROR_RETURN(ret)
 }
 
-auto FormatContext::seek(int index, qint64 timestamp) -> bool
+auto FormatContext::seek(qint64 timestamp, bool forward) -> bool
+{
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
+    Q_ASSERT(timestamp >= 0);
+    auto seekMin = forward ? INT64_MIN : timestamp - d_ptr->seekOffset;
+    auto seekMax = forward ? timestamp + d_ptr->seekOffset : INT64_MAX;
+    auto ret = avformat_seek_file(d_ptr->formatCtx, -1, seekMin, timestamp, seekMax, 0);
+    ERROR_RETURN(ret)
+}
+
+auto FormatContext::seekFrame(int index, qint64 timestamp) -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     int ret = av_seek_frame(d_ptr->formatCtx, index, timestamp, AVSEEK_FLAG_BACKWARD);

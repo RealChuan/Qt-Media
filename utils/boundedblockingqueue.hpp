@@ -2,7 +2,8 @@
 
 #include <QMutex>
 #include <QWaitCondition>
-#include <queue>
+
+#include <deque>
 
 namespace Utils {
 
@@ -18,49 +19,43 @@ public:
         : m_maxSize(maxSize)
     {}
 
-    void put(const T &x)
+    void append(const T &x)
     {
         QMutexLocker locker(&m_mutex);
         while (m_queue.size() >= m_maxSize) {
             m_notFull.wait(&m_mutex);
         }
-        m_queue.push(x);
+        m_queue.push_back(x);
         m_notEmpty.wakeOne();
     }
 
-    void put(T &&x)
+    void append(T &&x)
     {
         QMutexLocker locker(&m_mutex);
         while (m_queue.size() >= m_maxSize) {
             m_notFull.wait(&m_mutex);
         }
-        m_queue.push(std::move(x));
+        m_queue.push_back(std::move(x));
         m_notEmpty.wakeOne();
     }
 
-    void putHead(const T &x)
+    void insertHead(const T &x)
     {
-        std::queue<T> temp;
-        temp.push(x);
         QMutexLocker locker(&m_mutex);
-        while (!m_queue.empty()) {
-            temp.push(m_queue.front());
-            m_queue.pop();
+        while (m_queue.size() >= m_maxSize) {
+            m_notFull.wait(&m_mutex);
         }
-        m_queue.swap(temp);
+        m_queue.push_front(x);
         m_notEmpty.wakeOne();
     }
 
-    void putHead(T &&x)
+    void insertHead(T &&x)
     {
-        std::queue<T> temp;
-        temp.push(x);
         QMutexLocker locker(&m_mutex);
-        while (!m_queue.empty()) {
-            temp.push(m_queue.front());
-            m_queue.pop();
+        while (m_queue.size() >= m_maxSize) {
+            m_notFull.wait(&m_mutex);
         }
-        m_queue.swap(temp);
+        m_queue.push_front(std::move(x));
         m_notEmpty.wakeOne();
     }
 
@@ -71,7 +66,7 @@ public:
             m_notEmpty.wait(&m_mutex);
         }
         T front(std::move(m_queue.front()));
-        m_queue.pop();
+        m_queue.pop_front();
         m_notFull.wakeOne();
         return front;
     }
@@ -83,7 +78,7 @@ public:
             if (callback != nullptr) {
                 callback(m_queue.front());
             }
-            m_queue.pop();
+            m_queue.pop_front();
         }
         m_notFull.wakeAll();
     }
@@ -106,6 +101,12 @@ public:
         return m_queue.size();
     }
 
+    void setMaxSize(int maxSize)
+    {
+        QMutexLocker locker(&m_mutex);
+        m_maxSize = maxSize;
+    }
+
     [[nodiscard]] size_t maxSize() const
     {
         QMutexLocker locker(&m_mutex);
@@ -116,7 +117,7 @@ private:
     mutable QMutex m_mutex;
     QWaitCondition m_notEmpty;
     QWaitCondition m_notFull;
-    std::queue<T> m_queue;
+    std::deque<T> m_queue;
     int m_maxSize;
 };
 
