@@ -1,11 +1,12 @@
-#include "decodervideoframe.h"
+#include "audiodisplay.hpp"
+#include "audioframeconverter.h"
 #include "clock.hpp"
+#include "codeccontext.h"
 
+#include <audiorender/audiooutputthread.hpp>
 #include <event/seekevent.hpp>
 #include <event/valueevent.hpp>
-#include <videorender/videorender.hpp>
 
-#include <QDebug>
 #include <QTime>
 #include <QWaitCondition>
 
@@ -15,19 +16,21 @@ extern "C" {
 
 namespace Ffmpeg {
 
-class DecoderVideoFrame::DecoderVideoFramePrivate
+class AudioDisplay::AudioDisplayPrivate
 {
 public:
-    explicit DecoderVideoFramePrivate(DecoderVideoFrame *q)
+    explicit AudioDisplayPrivate(AudioDisplay *q)
         : q_ptr(q)
     {
         clock = new Clock(q);
     }
 
+    ~AudioDisplayPrivate() = default;
+
     void processEvent(bool &firstFrame)
     {
         while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
-            qDebug() << "DecoderVideoFrame::processEvent";
+            qDebug() << "AudioFramePrivate::processEvent";
             auto eventPtr = q_ptr->m_eventQueue.take();
             switch (eventPtr->type()) {
             case Event::EventType::Pause: {
@@ -36,8 +39,6 @@ public:
                 clock->setPaused(paused);
             } break;
             case Event::EventType::Seek: {
-                auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
-                auto position = seekEvent->position();
                 q_ptr->clear();
                 firstFrame = false;
             }
@@ -46,44 +47,48 @@ public:
         }
     }
 
-    DecoderVideoFrame *q_ptr;
+    AudioDisplay *q_ptr;
+
+    qreal volume = 0.5;
+    QPointer<AudioOutputThread> audioOutputThreadPtr;
 
     Clock *clock;
-
     QMutex mutex;
     QWaitCondition waitCondition;
-
-    QMutex mutex_render;
-    QVector<VideoRender *> videoRenders = {};
 };
 
-DecoderVideoFrame::DecoderVideoFrame(QObject *parent)
+AudioDisplay::AudioDisplay(QObject *parent)
     : Decoder<FramePtr>(parent)
-    , d_ptr(new DecoderVideoFramePrivate(this))
+    , d_ptr(new AudioDisplayPrivate(this))
 {}
 
-DecoderVideoFrame::~DecoderVideoFrame()
+AudioDisplay::~AudioDisplay()
 {
     stopDecoder();
 }
 
-void DecoderVideoFrame::setVideoRenders(QVector<VideoRender *> videoRenders)
+void AudioDisplay::setVolume(qreal volume)
 {
-    QMutexLocker locker(&d_ptr->mutex_render);
-    d_ptr->videoRenders = videoRenders;
+    d_ptr->volume = volume;
+    if (d_ptr->audioOutputThreadPtr) {
+        emit d_ptr->audioOutputThreadPtr->volumeChanged(d_ptr->volume);
+    }
 }
 
-void DecoderVideoFrame::setMasterClock()
+void AudioDisplay::setMasterClock()
 {
     Clock::setMaster(d_ptr->clock);
 }
 
-void DecoderVideoFrame::runDecoder()
+void AudioDisplay::runDecoder()
 {
-    for (auto render : d_ptr->videoRenders) {
-        render->resetFps();
-    }
     quint64 dropNum = 0;
+    int sampleSize = 0;
+    auto format = getAudioFormatFromCodecCtx(m_contextInfo->codecCtx(), sampleSize);
+    QScopedPointer<AudioOutputThread> audioOutputThreadPtr(new AudioOutputThread);
+    d_ptr->audioOutputThreadPtr = audioOutputThreadPtr.data();
+    audioOutputThreadPtr->openOutput({format, format.sampleRate() * sampleSize / 8, d_ptr->volume});
+    AudioFrameConverter audioConverter(m_contextInfo->codecCtx(), format);
     bool firstFrame = false;
     while (m_runing.load()) {
         d_ptr->processEvent(firstFrame);
@@ -92,12 +97,13 @@ void DecoderVideoFrame::runDecoder()
         if (framePtr.isNull()) {
             continue;
         } else if (!firstFrame) {
-            qDebug() << "Video firstFrame: "
+            qDebug() << "Audio firstFrame: "
                      << QTime::fromMSecsSinceStartOfDay(framePtr->pts() / 1000)
                             .toString("hh:mm:ss.zzz");
             firstFrame = true;
             d_ptr->clock->reset(framePtr->pts());
         }
+        auto audioBuf = audioConverter.convert(framePtr.data());
         auto pts = framePtr->pts();
         d_ptr->clock->update(pts, av_gettime_relative());
         qint64 delay = 0;
@@ -106,28 +112,20 @@ void DecoderVideoFrame::runDecoder()
         }
         auto emitPosition = qScopeGuard([=]() { emit positionChanged(pts); });
         if (!Clock::adjustDelay(delay)) {
-            qDebug() << "Video Delay: " << delay;
+            qDebug() << "Audio Delay: " << delay;
             dropNum++;
             continue;
         }
+        delay /= 1000;
         if (delay > 0) {
             QMutexLocker locker(&d_ptr->mutex);
-            d_ptr->waitCondition.wait(&d_ptr->mutex, delay / 1000);
+            d_ptr->waitCondition.wait(&d_ptr->mutex, delay);
         }
-        // qDebug() << "Video PTS:"
+        // qDebug() << "Audio PTS:"
         //          << QTime::fromMSecsSinceStartOfDay(pts / 1000).toString("hh:mm:ss.zzz");
-
-        renderFrame(framePtr);
+        emit audioOutputThreadPtr->wirteData(audioBuf);
     }
-    qInfo() << "Video Drop Num:" << dropNum;
-}
-
-void DecoderVideoFrame::renderFrame(const QSharedPointer<Frame> &framePtr)
-{
-    QMutexLocker locker(&d_ptr->mutex_render);
-    for (auto render : d_ptr->videoRenders) {
-        render->setFrame(framePtr);
-    }
+    qInfo() << "Audio Drop Num:" << dropNum;
 }
 
 } // namespace Ffmpeg

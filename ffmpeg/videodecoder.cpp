@@ -1,7 +1,7 @@
 #include "videodecoder.h"
 #include "avcontextinfo.h"
-#include "decodervideoframe.h"
 #include "ffmpegutils.hpp"
+#include "videodisplay.hpp"
 #include "videoformat.hpp"
 
 #include <event/seekevent.hpp>
@@ -16,7 +16,7 @@ public:
     explicit VideoDecoderPrivate(VideoDecoder *q)
         : q_ptr(q)
     {
-        decoderVideoFrame = new DecoderVideoFrame(q_ptr);
+        decoderVideoFrame = new VideoDisplay(q_ptr);
     }
 
     void processEvent()
@@ -38,7 +38,7 @@ public:
 
     VideoDecoder *q_ptr;
 
-    DecoderVideoFrame *decoderVideoFrame;
+    VideoDisplay *decoderVideoFrame;
 };
 
 VideoDecoder::VideoDecoder(QObject *parent)
@@ -46,7 +46,7 @@ VideoDecoder::VideoDecoder(QObject *parent)
     , d_ptr(new VideoDecoderPrivate(this))
 {
     connect(d_ptr->decoderVideoFrame,
-            &DecoderVideoFrame::positionChanged,
+            &VideoDisplay::positionChanged,
             this,
             &VideoDecoder::positionChanged);
 }

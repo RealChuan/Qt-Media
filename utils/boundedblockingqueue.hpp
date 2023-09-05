@@ -74,11 +74,15 @@ public:
     void clear(ClearCallback callback = nullptr)
     {
         QMutexLocker locker(&m_mutex);
-        while (!m_queue.empty()) {
-            if (callback != nullptr) {
-                callback(m_queue.front());
+        if (callback) {
+            while (!m_queue.empty()) {
+                if (callback) {
+                    callback(m_queue.front());
+                }
+                m_queue.pop_front();
             }
-            m_queue.pop_front();
+        } else if (!m_queue.empty()) {
+            m_queue.clear();
         }
         m_notFull.wakeAll();
     }

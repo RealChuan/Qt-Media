@@ -1,6 +1,6 @@
 #include "audiodecoder.h"
+#include "audiodisplay.hpp"
 #include "avcontextinfo.h"
-#include "decoderaudioframe.h"
 #include "ffmpegutils.hpp"
 
 #include <event/seekevent.hpp>
@@ -15,7 +15,7 @@ public:
     explicit AudioDecoderPrivate(AudioDecoder *q)
         : q_ptr(q)
     {
-        decoderAudioFrame = new DecoderAudioFrame(q_ptr);
+        decoderAudioFrame = new AudioDisplay(q_ptr);
     }
 
     void processEvent()
@@ -37,7 +37,7 @@ public:
 
     AudioDecoder *q_ptr;
 
-    DecoderAudioFrame *decoderAudioFrame;
+    AudioDisplay *decoderAudioFrame;
 };
 
 AudioDecoder::AudioDecoder(QObject *parent)
@@ -45,7 +45,7 @@ AudioDecoder::AudioDecoder(QObject *parent)
     , d_ptr(new AudioDecoderPrivate(this))
 {
     connect(d_ptr->decoderAudioFrame,
-            &DecoderAudioFrame::positionChanged,
+            &AudioDisplay::positionChanged,
             this,
             &AudioDecoder::positionChanged);
 }

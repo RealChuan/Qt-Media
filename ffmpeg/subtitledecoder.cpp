@@ -1,7 +1,7 @@
 #include "subtitledecoder.h"
-#include "decodersubtitleframe.hpp"
 #include "ffmpegutils.hpp"
 #include "subtitle.h"
+#include "subtitledisplay.hpp"
 
 #include <event/seekevent.hpp>
 
@@ -17,7 +17,7 @@ public:
     explicit SubtitleDecoderPrivate(SubtitleDecoder *q)
         : q_ptr(q)
     {
-        decoderSubtitleFrame = new DecoderSubtitleFrame(q_ptr);
+        decoderSubtitleFrame = new SubtitleDisplay(q_ptr);
     }
 
     void processEvent()
@@ -39,7 +39,7 @@ public:
 
     SubtitleDecoder *q_ptr;
 
-    DecoderSubtitleFrame *decoderSubtitleFrame;
+    SubtitleDisplay *decoderSubtitleFrame;
 };
 
 SubtitleDecoder::SubtitleDecoder(QObject *parent)

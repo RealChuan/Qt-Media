@@ -38,6 +38,8 @@ set(PROJECT_SOURCES
     videorender/widgetrender.hpp
     audiodecoder.cpp
     audiodecoder.h
+    audiodisplay.cc
+    audiodisplay.hpp
     audiofifo.cc
     audiofifo.hpp
     audioframeconverter.cpp
@@ -55,12 +57,6 @@ set(PROJECT_SOURCES
     colorspace.hpp
     decoder.cc
     decoder.h
-    decoderaudioframe.cpp
-    decoderaudioframe.h
-    decodersubtitleframe.cc
-    decodersubtitleframe.hpp
-    decodervideoframe.cpp
-    decodervideoframe.h
     ffmepg_global.h
     ffmpegutils.cc
     ffmpegutils.hpp
@@ -78,10 +74,14 @@ set(PROJECT_SOURCES
     subtitle.h
     subtitledecoder.cpp
     subtitledecoder.h
+    subtitledisplay.cc
+    subtitledisplay.hpp
     transcode.cc
     transcode.hpp
     videodecoder.cpp
     videodecoder.h
+    videodisplay.cc
+    videodisplay.hpp
     videoformat.cc
     videoformat.hpp
     videoframeconverter.cc

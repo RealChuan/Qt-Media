@@ -1,4 +1,4 @@
-#include "decodersubtitleframe.hpp"
+#include "subtitledisplay.hpp"
 #include "clock.hpp"
 #include "codeccontext.h"
 
@@ -19,13 +19,21 @@ extern "C" {
 
 namespace Ffmpeg {
 
-class DecoderSubtitleFrame::DecoderSubtitleFramePrivate
+class SubtitleDisplay::SubtitleDisplayPrivate
 {
 public:
-    explicit DecoderSubtitleFramePrivate(DecoderSubtitleFrame *q)
+    explicit SubtitleDisplayPrivate(SubtitleDisplay *q)
         : q_ptr(q)
     {
         clock = new Clock(q);
+    }
+
+    void renderFrame(const QSharedPointer<Subtitle> &subtitlePtr)
+    {
+        QMutexLocker locker(&mutex_render);
+        for (auto render : videoRenders) {
+            render->setSubTitleFrame(subtitlePtr);
+        }
     }
 
     void processEvent(Ass *ass, bool &firstFrame)
@@ -40,8 +48,6 @@ public:
                 clock->setPaused(paused);
             } break;
             case Event::EventType::Seek: {
-                auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
-                auto position = seekEvent->position();
                 q_ptr->clear();
                 ass->flushASSEvents();
                 firstFrame = false;
@@ -51,7 +57,7 @@ public:
         }
     }
 
-    DecoderSubtitleFrame *q_ptr;
+    SubtitleDisplay *q_ptr;
 
     Clock *clock;
 
@@ -63,17 +69,17 @@ public:
     QVector<VideoRender *> videoRenders = {};
 };
 
-DecoderSubtitleFrame::DecoderSubtitleFrame(QObject *parent)
+SubtitleDisplay::SubtitleDisplay(QObject *parent)
     : Decoder<SubtitlePtr>(parent)
-    , d_ptr(new DecoderSubtitleFramePrivate(this))
+    , d_ptr(new SubtitleDisplayPrivate(this))
 {}
 
-DecoderSubtitleFrame::~DecoderSubtitleFrame()
+SubtitleDisplay::~SubtitleDisplay()
 {
     stopDecoder();
 }
 
-void DecoderSubtitleFrame::setVideoResolutionRatio(const QSize &size)
+void SubtitleDisplay::setVideoResolutionRatio(const QSize &size)
 {
     if (!size.isValid()) {
         return;
@@ -81,13 +87,13 @@ void DecoderSubtitleFrame::setVideoResolutionRatio(const QSize &size)
     d_ptr->videoResolutionRatio = size;
 }
 
-void DecoderSubtitleFrame::setVideoRenders(QVector<VideoRender *> videoRenders)
+void SubtitleDisplay::setVideoRenders(QVector<VideoRender *> videoRenders)
 {
     QMutexLocker locker(&d_ptr->mutex_render);
     d_ptr->videoRenders = videoRenders;
 }
 
-void DecoderSubtitleFrame::runDecoder()
+void SubtitleDisplay::runDecoder()
 {
     quint64 dropNum = 0;
     auto ctx = m_contextInfo->codecCtx()->avCodecCtx();
@@ -134,19 +140,10 @@ void DecoderSubtitleFrame::runDecoder()
                 d_ptr->waitCondition.wait(&d_ptr->mutex, delay / 1000);
             }
         }
-
-        renderFrame(subtitlePtr);
+        d_ptr->renderFrame(subtitlePtr);
     }
     sws_freeContext(swsContext);
     qInfo() << "Subtitle Drop Num:" << dropNum;
-}
-
-void DecoderSubtitleFrame::renderFrame(const QSharedPointer<Subtitle> &subtitlePtr)
-{
-    QMutexLocker locker(&d_ptr->mutex_render);
-    for (auto render : d_ptr->videoRenders) {
-        render->setSubTitleFrame(subtitlePtr);
-    }
 }
 
 } // namespace Ffmpeg

@@ -1,5 +1,5 @@
-#ifndef DECODERAUDIOFRAME_H
-#define DECODERAUDIOFRAME_H
+#ifndef AUDIODISPLAY_H
+#define AUDIODISPLAY_H
 
 #include "decoder.h"
 #include "frame.hpp"
@@ -11,12 +11,12 @@ class QAudioDevice;
 
 namespace Ffmpeg {
 
-class DecoderAudioFrame : public Decoder<FramePtr>
+class AudioDisplay : public Decoder<FramePtr>
 {
     Q_OBJECT
 public:
-    explicit DecoderAudioFrame(QObject *parent = nullptr);
-    ~DecoderAudioFrame();
+    explicit AudioDisplay(QObject *parent = nullptr);
+    ~AudioDisplay();
 
     void setVolume(qreal volume);
 
@@ -29,10 +29,10 @@ protected:
     void runDecoder() override;
 
 private:
-    class DecoderAudioFramePrivate;
-    QScopedPointer<DecoderAudioFramePrivate> d_ptr;
+    class AudioDisplayPrivate;
+    QScopedPointer<AudioDisplayPrivate> d_ptr;
 };
 
 } // namespace Ffmpeg
 
-#endif // DECODERAUDIOFRAME_H
+#endif // AUDIODISPLAY_H

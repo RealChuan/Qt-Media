@@ -73,14 +73,13 @@ void AudioOutput::onWrite(const QByteArray &audioBuf)
     while (buf.size() > 0) {
         int byteFree = d_ptr->audioSinkPtr->bytesFree();
         if (byteFree > 0 && byteFree < buf.size()) {
-            d_ptr->ioDevice->write(buf.data(), byteFree); // memory leak
+            d_ptr->ioDevice->write(buf.data(), byteFree);
             buf = buf.sliced(byteFree);
         } else {
             d_ptr->ioDevice->write(buf);
             break;
         }
     }
-    qApp->processEvents(); // fix memory leak
 }
 
 void AudioOutput::onSetVolume(qreal value)
@@ -108,6 +107,8 @@ void AudioOutput::onAudioOutputsChanged()
     if (d_ptr->audioDevice == QMediaDevices::defaultAudioOutput()) {
         return;
     }
+    qInfo() << "AudioDevice Change: " << d_ptr->audioDevice.description() << "->"
+            << QMediaDevices::defaultAudioOutput().description();
     d_ptr->reset(d_ptr->config);
 }
 
