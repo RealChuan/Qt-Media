@@ -1,5 +1,9 @@
 #include "audiooutput.hpp"
 
+#include <ffmpeg/audioframeconverter.h>
+#include <ffmpeg/avcontextinfo.h>
+#include <utils/threadsafequeue.hpp>
+
 #include <QApplication>
 #include <QAudioSink>
 #include <QDebug>
@@ -25,17 +29,20 @@ public:
     }
     ~AudioOutputPrivate() = default;
 
-    void reset(const Audio::Config &config)
+    void reset()
     {
-        this->config = config;
         printAudioOuputDevice();
         audioDevice = QMediaDevices::defaultAudioOutput();
 
-        audioSinkPtr.reset(new QAudioSink(config.format));
-        audioSinkPtr->setBufferSize(config.bufferSize);
-        audioSinkPtr->setVolume(config.volume);
+        int sampleSize = 0;
+        auto format = getAudioFormatFromCodecCtx(contextInfo->codecCtx(), sampleSize);
+        audioConverterPtr.reset(new AudioFrameConverter(contextInfo->codecCtx(), format));
+
+        audioSinkPtr.reset(new QAudioSink(format));
+        audioSinkPtr->setBufferSize(format.sampleRate() * sampleSize / 8);
+        audioSinkPtr->setVolume(volume);
         ioDevice = audioSinkPtr->start();
-        if (!ioDevice) {
+        if (ioDevice == nullptr) {
             qWarning() << "Create AudioDevice Failed!";
         }
         QObject::connect(audioSinkPtr.data(),
@@ -46,37 +53,53 @@ public:
 
     AudioOutput *q_ptr;
 
-    Audio::Config config;
+    AVContextInfo *contextInfo;
+
+    QScopedPointer<AudioFrameConverter> audioConverterPtr;
+
+    qreal volume = 0.5;
     QScopedPointer<QAudioSink> audioSinkPtr;
     QIODevice *ioDevice = nullptr;
     QMediaDevices *mediaDevices;
     QAudioDevice audioDevice;
+    QByteArray audioBuf;
 };
 
-AudioOutput::AudioOutput(const Audio::Config &config, QObject *parent)
+AudioOutput::AudioOutput(AVContextInfo *contextInfo, qreal volume, QObject *parent)
     : QObject{parent}
     , d_ptr(new AudioOutputPrivate(this))
 {
-    d_ptr->reset(config);
-
+    d_ptr->contextInfo = contextInfo;
+    d_ptr->volume = volume;
+    d_ptr->reset();
     buildConnect();
 }
 
 AudioOutput::~AudioOutput() = default;
 
-void AudioOutput::onWrite(const QByteArray &audioBuf)
+void AudioOutput::onConvertData(const QSharedPointer<Ffmpeg::Frame> &framePtr)
 {
     if (!d_ptr->ioDevice) {
         return;
     }
-    auto buf = audioBuf;
-    while (buf.size() > 0) {
+
+    auto audioBuf = d_ptr->audioConverterPtr->convert(framePtr.data());
+    d_ptr->audioBuf += audioBuf;
+}
+
+void AudioOutput::onWrite()
+{
+    if (!d_ptr->ioDevice) {
+        return;
+    }
+    while (d_ptr->audioBuf.size() > 0) {
         int byteFree = d_ptr->audioSinkPtr->bytesFree();
-        if (byteFree > 0 && byteFree < buf.size()) {
-            d_ptr->ioDevice->write(buf.data(), byteFree);
-            buf = buf.sliced(byteFree);
+        if (byteFree > 0 && byteFree < d_ptr->audioBuf.size()) {
+            d_ptr->ioDevice->write(d_ptr->audioBuf.data(), byteFree);
+            d_ptr->audioBuf = d_ptr->audioBuf.sliced(byteFree);
         } else {
-            d_ptr->ioDevice->write(buf);
+            d_ptr->ioDevice->write(d_ptr->audioBuf);
+            d_ptr->audioBuf.clear();
             break;
         }
     }
@@ -84,7 +107,7 @@ void AudioOutput::onWrite(const QByteArray &audioBuf)
 
 void AudioOutput::onSetVolume(qreal value)
 {
-    d_ptr->config.volume = value;
+    d_ptr->volume = value;
     if (d_ptr->audioSinkPtr.isNull()) {
         return;
     }
@@ -109,7 +132,7 @@ void AudioOutput::onAudioOutputsChanged()
     }
     qInfo() << "AudioDevice Change: " << d_ptr->audioDevice.description() << "->"
             << QMediaDevices::defaultAudioOutput().description();
-    d_ptr->reset(d_ptr->config);
+    d_ptr->reset();
 }
 
 void AudioOutput::buildConnect()

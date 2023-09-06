@@ -4,11 +4,6 @@
 #include "decoder.h"
 #include "frame.hpp"
 
-#include <QAudio>
-#include <QAudioFormat>
-
-class QAudioDevice;
-
 namespace Ffmpeg {
 
 class AudioDisplay : public Decoder<FramePtr>

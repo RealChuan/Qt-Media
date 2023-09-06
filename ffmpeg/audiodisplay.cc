@@ -1,7 +1,5 @@
 #include "audiodisplay.hpp"
-#include "audioframeconverter.h"
 #include "clock.hpp"
-#include "codeccontext.h"
 
 #include <audiorender/audiooutputthread.hpp>
 #include <event/seekevent.hpp>
@@ -83,12 +81,9 @@ void AudioDisplay::setMasterClock()
 void AudioDisplay::runDecoder()
 {
     quint64 dropNum = 0;
-    int sampleSize = 0;
-    auto format = getAudioFormatFromCodecCtx(m_contextInfo->codecCtx(), sampleSize);
     QScopedPointer<AudioOutputThread> audioOutputThreadPtr(new AudioOutputThread);
     d_ptr->audioOutputThreadPtr = audioOutputThreadPtr.data();
-    audioOutputThreadPtr->openOutput({format, format.sampleRate() * sampleSize / 8, d_ptr->volume});
-    AudioFrameConverter audioConverter(m_contextInfo->codecCtx(), format);
+    audioOutputThreadPtr->openOutput(m_contextInfo, d_ptr->volume);
     bool firstFrame = false;
     while (m_runing.load()) {
         d_ptr->processEvent(firstFrame);
@@ -103,7 +98,7 @@ void AudioDisplay::runDecoder()
             firstFrame = true;
             d_ptr->clock->reset(framePtr->pts());
         }
-        auto audioBuf = audioConverter.convert(framePtr.data());
+        emit audioOutputThreadPtr->convertData(framePtr);
         auto pts = framePtr->pts();
         d_ptr->clock->update(pts, av_gettime_relative());
         qint64 delay = 0;
@@ -123,7 +118,7 @@ void AudioDisplay::runDecoder()
         }
         // qDebug() << "Audio PTS:"
         //          << QTime::fromMSecsSinceStartOfDay(pts / 1000).toString("hh:mm:ss.zzz");
-        emit audioOutputThreadPtr->wirteData(audioBuf);
+        emit audioOutputThreadPtr->wirteData();
     }
     qInfo() << "Audio Drop Num:" << dropNum;
 }

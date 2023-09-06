@@ -10,7 +10,7 @@ class AudioFrameConverter : public QObject
 {
 public:
     explicit AudioFrameConverter(CodecContext *codecCtx,
-                                 QAudioFormat &format,
+                                 const QAudioFormat &format,
                                  QObject *parent = nullptr);
     ~AudioFrameConverter() override;
 

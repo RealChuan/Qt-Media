@@ -1,6 +1,8 @@
 #include "audiooutputthread.hpp"
 #include "audiooutput.hpp"
 
+#include <ffmpeg/frame.hpp>
+
 namespace Ffmpeg {
 
 class AudioOutputThread::AudioOutputThreadPrivate
@@ -12,23 +14,27 @@ public:
 
     AudioOutputThread *q_ptr;
 
-    Audio::Config config;
+    AVContextInfo *contextInfo;
+    qreal volume = 0.5;
 };
 
 AudioOutputThread::AudioOutputThread(QObject *parent)
     : QThread{parent}
     , d_ptr(new AudioOutputThreadPrivate(this))
-{}
+{
+    qRegisterMetaType<QSharedPointer<Ffmpeg::Frame>>("QSharedPointer<Ffmpeg::Frame>");
+}
 
 AudioOutputThread::~AudioOutputThread()
 {
     closeOutput();
 }
 
-void AudioOutputThread::openOutput(const Audio::Config &config)
+void AudioOutputThread::openOutput(AVContextInfo *contextInfo, qreal volume)
 {
     closeOutput();
-    d_ptr->config = config;
+    d_ptr->contextInfo = contextInfo;
+    d_ptr->volume = volume;
     start();
 }
 
@@ -42,7 +48,11 @@ void AudioOutputThread::closeOutput()
 
 void AudioOutputThread::run()
 {
-    QScopedPointer<AudioOutput> audioOutputPtr(new AudioOutput(d_ptr->config));
+    QScopedPointer<AudioOutput> audioOutputPtr(new AudioOutput(d_ptr->contextInfo, d_ptr->volume));
+    connect(this,
+            &AudioOutputThread::convertData,
+            audioOutputPtr.data(),
+            &AudioOutput::onConvertData);
     connect(this, &AudioOutputThread::wirteData, audioOutputPtr.data(), &AudioOutput::onWrite);
     connect(this,
             &AudioOutputThread::volumeChanged,

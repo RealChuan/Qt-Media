@@ -1,6 +1,4 @@
 set(PROJECT_SOURCES
-    audiorender/audioconfig.cc
-    audiorender/audioconfig.hpp
     audiorender/audiooutput.cc
     audiorender/audiooutput.hpp
     audiorender/audiooutputthread.cc

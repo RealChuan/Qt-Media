@@ -114,7 +114,7 @@ public:
 };
 
 AudioFrameConverter::AudioFrameConverter(CodecContext *codecCtx,
-                                         QAudioFormat &format,
+                                         const QAudioFormat &format,
                                          QObject *parent)
     : QObject(parent)
     , d_ptr(new AudioFrameConverterPrivate(this))

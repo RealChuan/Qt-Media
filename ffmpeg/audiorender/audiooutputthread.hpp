@@ -1,11 +1,12 @@
 #ifndef AUDIOOUTPUTTHREAD_HPP
 #define AUDIOOUTPUTTHREAD_HPP
 
-#include "audioconfig.hpp"
-
 #include <QThread>
 
 namespace Ffmpeg {
+
+class Frame;
+class AVContextInfo;
 
 class AudioOutputThread : public QThread
 {
@@ -14,11 +15,12 @@ public:
     explicit AudioOutputThread(QObject *parent = nullptr);
     ~AudioOutputThread() override;
 
-    void openOutput(const Audio::Config &config);
+    void openOutput(AVContextInfo *contextInfo, qreal volume);
     void closeOutput();
 
 signals:
-    void wirteData(const QByteArray &data);
+    void convertData(const QSharedPointer<Ffmpeg::Frame> &frameptr);
+    void wirteData();
     void volumeChanged(qreal value);
 
 protected:

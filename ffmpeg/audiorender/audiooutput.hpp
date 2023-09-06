@@ -1,22 +1,24 @@
 #ifndef AUDIOOUTPUT_HPP
 #define AUDIOOUTPUT_HPP
 
-#include "audioconfig.hpp"
-
 #include <QAudio>
 #include <QObject>
 
 namespace Ffmpeg {
 
+class AVContextInfo;
+class Frame;
+
 class AudioOutput : public QObject
 {
     Q_OBJECT
 public:
-    explicit AudioOutput(const Audio::Config &config, QObject *parent = nullptr);
-    ~AudioOutput();
+    explicit AudioOutput(AVContextInfo *contextInfo, qreal volume = 0.5, QObject *parent = nullptr);
+    ~AudioOutput() override;
 
 public slots:
-    void onWrite(const QByteArray &audioBuf);
+    void onConvertData(const QSharedPointer<Ffmpeg::Frame> &framePtr);
+    void onWrite();
     void onSetVolume(qreal value);
 
 private slots:
