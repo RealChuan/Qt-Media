@@ -1,4 +1,4 @@
-#include "OpenGLShaderProgram.hpp"
+#include "openglshaderprogram.hpp"
 
 #include <QOpenGLBuffer>
 

@@ -57,10 +57,6 @@ public:
         //playlistView->setMaximumWidth(250);
 
         menu = new QMenu(q_ptr);
-        menu->setParent(q_ptr);
-        audioTracksMenu = new QMenu(QObject::tr("Select audio track"), q_ptr);
-        videoTracksMenu = new QMenu(QObject::tr("Select video track"), q_ptr);
-        subTracksMenu = new QMenu(QObject::tr("Select subtitle track"), q_ptr);
         audioTracksGroup = new QActionGroup(q_ptr);
         audioTracksGroup->setExclusive(true);
         videoTracksGroup = new QActionGroup(q_ptr);
@@ -79,6 +75,41 @@ public:
     }
 
     ~MainWindowPrivate() {}
+
+    void resetTrackMenu()
+    {
+        auto actions = audioTracksGroup->actions();
+        for (auto action : actions) {
+            audioTracksGroup->removeAction(action);
+            delete action;
+        }
+        actions = videoTracksGroup->actions();
+        for (auto action : actions) {
+            videoTracksGroup->removeAction(action);
+            delete action;
+        }
+        actions = subTracksGroup->actions();
+        for (auto action : actions) {
+            subTracksGroup->removeAction(action);
+            delete action;
+        }
+
+        if (!audioTracksMenuPtr.isNull()) {
+            delete audioTracksMenuPtr.data();
+        }
+        if (!videoTracksMenuPtr.isNull()) {
+            delete videoTracksMenuPtr.data();
+        }
+        if (!subTracksMenuPtr.isNull()) {
+            delete subTracksMenuPtr.data();
+        }
+        audioTracksMenuPtr = new QMenu(QObject::tr("Select audio track"), q_ptr);
+        videoTracksMenuPtr = new QMenu(QObject::tr("Select video track"), q_ptr);
+        subTracksMenuPtr = new QMenu(QObject::tr("Select subtitle track"), q_ptr);
+        menu->addMenu(audioTracksMenuPtr.data());
+        menu->addMenu(videoTracksMenuPtr.data());
+        menu->addMenu(subTracksMenuPtr.data());
+    }
 
     void initShortcut()
     {
@@ -157,9 +188,9 @@ public:
     PlaylistModel *playlistModel;
 
     QMenu *menu;
-    QMenu *audioTracksMenu;
-    QMenu *videoTracksMenu;
-    QMenu *subTracksMenu;
+    QPointer<QMenu> audioTracksMenuPtr;
+    QPointer<QMenu> videoTracksMenuPtr;
+    QPointer<QMenu> subTracksMenuPtr;
     QActionGroup *audioTracksGroup;
     QActionGroup *videoTracksGroup;
     QActionGroup *subTracksGroup;
@@ -350,9 +381,7 @@ void MainWindow::onProcessEvents()
             d_ptr->controlWidget->setCacheSpeed(speedEvent->speed());
         } break;
         case Ffmpeg::PropertyChangeEvent::MediaTrack: {
-            qDeleteAll(d_ptr->audioTracksGroup->actions());
-            qDeleteAll(d_ptr->videoTracksGroup->actions());
-            qDeleteAll(d_ptr->subTracksGroup->actions());
+            d_ptr->resetTrackMenu();
 
             auto tracksEvent = dynamic_cast<Ffmpeg::MediaTrackEvent *>(eventPtr.data());
             auto tracks = tracksEvent->tracks();
@@ -366,17 +395,17 @@ void MainWindow::onProcessEvents()
                 switch (track.type) {
                 case AVMEDIA_TYPE_AUDIO: {
                     auto action = actionPtr.release();
-                    d_ptr->audioTracksMenu->addAction(action);
+                    d_ptr->audioTracksMenuPtr->addAction(action);
                     d_ptr->audioTracksGroup->addAction(action);
                 } break;
                 case AVMEDIA_TYPE_VIDEO: {
                     auto action = actionPtr.release();
-                    d_ptr->videoTracksMenu->addAction(action);
+                    d_ptr->videoTracksMenuPtr->addAction(action);
                     d_ptr->videoTracksGroup->addAction(action);
                 } break;
                 case AVMEDIA_TYPE_SUBTITLE: {
                     auto action = actionPtr.release();
-                    d_ptr->subTracksMenu->addAction(action);
+                    d_ptr->subTracksMenuPtr->addAction(action);
                     d_ptr->subTracksGroup->addAction(action);
                 } break;
                 default: break;
@@ -594,10 +623,6 @@ void MainWindow::initMenu()
     renderMenu->addAction(widgetAction);
     renderMenu->addAction(openglAction);
     d_ptr->menu->addMenu(renderMenu);
-
-    d_ptr->menu->addMenu(d_ptr->audioTracksMenu);
-    d_ptr->menu->addMenu(d_ptr->videoTracksMenu);
-    d_ptr->menu->addMenu(d_ptr->subTracksMenu);
 
     connect(d_ptr->audioTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         d_ptr->playerPtr->addEvent(
