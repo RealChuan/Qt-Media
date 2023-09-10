@@ -4,5 +4,6 @@
         <file>shader/video.vert</file>
         <file>shader/video_vulkan.frag</file>
         <file>shader/video_vulkan.vert</file>
+        <file>shader/sub.frag</file>
     </qresource>
 </RCC>

@@ -34,11 +34,14 @@ protected:
     void updateSubTitleFrame(QSharedPointer<Subtitle> frame) override;
 
 private:
-    void initVbo();
+    void clear();
+    void draw();
     void initTexture();
+    void initSubTexture();
     void resizeViewport();
     void setColorSpace();
 
+    void paintVideoFrame();
     void paintSubTitleFrame();
 
     void updateYUV420P();

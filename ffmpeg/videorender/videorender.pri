@@ -3,6 +3,7 @@ RESOURCES += \
 
 HEADERS += \
     $$PWD/openglrender.hpp \
+    $$PWD/openglshaderprogram.hpp \
     $$PWD/videopreviewwidget.hpp \
     $$PWD/videorender.hpp \
     $$PWD/videorendercreate.hpp \
@@ -10,6 +11,7 @@ HEADERS += \
 
 SOURCES += \
     $$PWD/openglrender.cc \
+    $$PWD/openglshaderprogram.cc \
     $$PWD/videopreviewwidget.cc \
     $$PWD/videorender.cc \
     $$PWD/videorendercreate.cc \
