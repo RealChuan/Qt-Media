@@ -106,7 +106,7 @@ void AudioDisplay::runDecoder()
             continue;
         }
         auto emitPosition = qScopeGuard([=]() { emit positionChanged(pts); });
-        if (!Clock::adjustDelay(delay)) {
+        if (!d_ptr->clock->adjustDelay(delay)) {
             qDebug() << "Audio Delay: " << delay;
             dropNum++;
             continue;

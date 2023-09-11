@@ -32,7 +32,7 @@ public:
     auto getDelayWithMaster(qint64 &delay) const -> bool;
 
     // return true if delay is valid
-    static auto adjustDelay(qint64 &delay) -> bool;
+    auto adjustDelay(qint64 &delay) -> bool;
 
     static void globalSerialRef();
     static void globalSerialReset();

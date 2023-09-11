@@ -129,12 +129,12 @@ void SubtitleDisplay::runDecoder()
             continue;
         }
         auto delayDuration = delay + subtitlePtr->duration();
-        if (!Clock::adjustDelay(delayDuration)) {
+        if (!d_ptr->clock->adjustDelay(delayDuration)) {
             qDebug() << "Subtitle Delay: " << delay;
             dropNum++;
             continue;
         }
-        if (Clock::adjustDelay(delay)) {
+        if (d_ptr->clock->adjustDelay(delay)) {
             if (delay > 0) {
                 QMutexLocker locker(&d_ptr->mutex);
                 d_ptr->waitCondition.wait(&d_ptr->mutex, delay / 1000);

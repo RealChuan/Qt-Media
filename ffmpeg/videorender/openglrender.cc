@@ -200,23 +200,6 @@ void OpenglRender::initSubTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-void OpenglRender::resizeViewport()
-{
-    auto avframe = d_ptr->framePtr->avFrame();
-    auto size = QSize(avframe->width, avframe->height);
-    size.scale(this->size(), Qt::KeepAspectRatio);
-    auto rect = QRectF((width() - size.width()) / 2.0,
-                       (height() - size.height()) / 2.0,
-                       size.width(),
-                       size.height());
-    // 设置视图大小实现图片自适应
-    auto devicePixelRatio = this->devicePixelRatio();
-    glViewport(rect.x() * devicePixelRatio,
-               rect.y() * devicePixelRatio,
-               rect.width() * devicePixelRatio,
-               rect.height() * devicePixelRatio);
-}
-
 void OpenglRender::setColorSpace()
 {
     auto avFrame = d_ptr->framePtr->avFrame();
@@ -239,9 +222,21 @@ void OpenglRender::setColorSpace()
     }
 }
 
+auto OpenglRender::fitToScreen(const QSize &size) -> QMatrix4x4
+{
+    auto factor_w = qreal(width()) / size.width();
+    auto factor_h = qreal(height()) / size.height();
+    auto factor = qMin(factor_w, factor_h);
+    QMatrix4x4 matrix;
+    matrix.setToIdentity();
+    matrix.scale(factor / factor_w, factor / factor_h);
+    return matrix;
+}
+
 void OpenglRender::paintVideoFrame()
 {
-    auto format = d_ptr->framePtr->avFrame()->format;
+    auto avFrame = d_ptr->framePtr->avFrame();
+    auto format = avFrame->format;
     //qDebug() << format;
     // 绑定纹理
     switch (format) {
@@ -272,7 +267,7 @@ void OpenglRender::paintVideoFrame()
     }
     d_ptr->programPtr->bind(); // 绑定着色器
     d_ptr->programPtr->setUniformValue("format", format);
-
+    d_ptr->programPtr->setUniformValue("transform", fitToScreen({avFrame->width, avFrame->height}));
     setColorSpace();
     draw();
     d_ptr->programPtr->release();
@@ -302,6 +297,7 @@ void OpenglRender::paintSubTitleFrame()
                  img.constBits());
     glEnable(GL_BLEND);
     d_ptr->subProgramPtr->bind();
+    d_ptr->subProgramPtr->setUniformValue("transform", fitToScreen(img.size()));
     draw();
     d_ptr->subProgramPtr->release();
     glDisable(GL_BLEND);
@@ -366,6 +362,12 @@ void OpenglRender::initializeGL()
     glBindVertexArray(0); // 设置为零以破坏现有的顶点数组对象绑定}
 }
 
+void OpenglRender::resizeGL(int w, int h)
+{
+    auto ratioF = devicePixelRatioF();
+    glViewport(0, 0, w * ratioF, w * ratioF);
+}
+
 void OpenglRender::paintGL()
 {
     clear();
@@ -373,8 +375,6 @@ void OpenglRender::paintGL()
     if (d_ptr->framePtr.isNull()) {
         return;
     }
-
-    resizeViewport();
 
     paintVideoFrame();
     paintSubTitleFrame();

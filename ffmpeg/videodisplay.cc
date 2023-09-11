@@ -111,7 +111,7 @@ void VideoDisplay::runDecoder()
             continue;
         }
         auto emitPosition = qScopeGuard([=]() { emit positionChanged(pts); });
-        if (!Clock::adjustDelay(delay)) {
+        if (!d_ptr->clock->adjustDelay(delay)) {
             qDebug() << "Video Delay: " << delay;
             dropNum++;
             continue;

@@ -28,6 +28,7 @@ public:
 
 protected:
     void initializeGL() override;
+    void resizeGL(int w, int h) override;
     void paintGL() override;
 
     void updateFrame(QSharedPointer<Frame> frame) override;
@@ -38,8 +39,8 @@ private:
     void draw();
     void initTexture();
     void initSubTexture();
-    void resizeViewport();
     void setColorSpace();
+    auto fitToScreen(const QSize &size) -> QMatrix4x4;
 
     void paintVideoFrame();
     void paintSubTitleFrame();
