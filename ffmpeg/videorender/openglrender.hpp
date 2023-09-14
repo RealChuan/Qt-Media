@@ -41,6 +41,11 @@ private:
     void initSubTexture();
     void setColorSpace();
     auto fitToScreen(const QSize &size) -> QMatrix4x4;
+    void cleanup();
+    void resetShader(int format);
+
+    void onUpdateFrame(const QSharedPointer<Frame> &framePtr);
+    void onUpdateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr);
 
     void paintVideoFrame();
     void paintSubTitleFrame();
@@ -53,11 +58,10 @@ private:
     void updateYUV411P();
     void updateUYVY422();
     void updateRGB8(int dataType);
-    void updateNV12();
+    void updateNV12(GLenum type);
     void updateRGB();
     void updateRGBA();
     void updateYUV420P10LE();
-    void updateP010LE();
 
     class OpenglRenderPrivate;
     QScopedPointer<OpenglRenderPrivate> d_ptr;

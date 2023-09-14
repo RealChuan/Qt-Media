@@ -30,12 +30,10 @@ public:
     GLuint textureY;
     GLuint textureU;
     GLuint textureV;
-    GLuint textureUV;
     GLuint textureRGBA;
     // sub
     QScopedPointer<OpenGLShaderProgram> subProgramPtr;
     GLuint textureSub;
-    bool subChanged = false;
 
     const QVector<AVPixelFormat> supportFormats
         = {AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUYV422,     AV_PIX_FMT_RGB24,   AV_PIX_FMT_BGR24,
@@ -47,7 +45,9 @@ public:
     QScopedPointer<VideoFrameConverter> frameConverterPtr;
 
     QSharedPointer<Frame> framePtr;
+    bool frameChanged = false;
     QSharedPointer<Subtitle> subTitleFramePtr;
+    bool subChanged = false;
 
     QColor backgroundColor = Qt::black;
 };
@@ -67,13 +67,8 @@ OpenglRender::~OpenglRender()
     }
     makeCurrent();
     glDeleteVertexArrays(1, &d_ptr->vao);
-    d_ptr->programPtr.reset();
+    cleanup();
     d_ptr->subProgramPtr.reset();
-    glDeleteTextures(1, &d_ptr->textureY);
-    glDeleteTextures(1, &d_ptr->textureU);
-    glDeleteTextures(1, &d_ptr->textureV);
-    glDeleteTextures(1, &d_ptr->textureUV);
-    glDeleteTextures(1, &d_ptr->textureRGBA);
     glDeleteTextures(1, &d_ptr->textureSub);
     doneCurrent();
 }
@@ -125,28 +120,13 @@ auto OpenglRender::widget() -> QWidget *
 void OpenglRender::updateFrame(QSharedPointer<Frame> frame)
 {
     QMetaObject::invokeMethod(
-        this,
-        [=] {
-            d_ptr->framePtr = frame;
-            update();
-        },
-        Qt::QueuedConnection);
+        this, [=] { onUpdateFrame(frame); }, Qt::QueuedConnection);
 }
 
 void OpenglRender::updateSubTitleFrame(QSharedPointer<Subtitle> frame)
 {
     QMetaObject::invokeMethod(
-        this,
-        [=] {
-            if (d_ptr->subTitleFramePtr.isNull()
-                || d_ptr->subTitleFramePtr->image().size() != frame->image().size()) {
-                d_ptr->subChanged = true;
-            }
-            d_ptr->subTitleFramePtr = frame;
-            // need update?
-            //update();
-        },
-        Qt::QueuedConnection);
+        this, [=] { onUpdateSubTitleFrame(frame); }, Qt::QueuedConnection);
 }
 
 void OpenglRender::initTexture()
@@ -155,8 +135,7 @@ void OpenglRender::initTexture()
     d_ptr->programPtr->setUniformValue("tex_y", 0);
     d_ptr->programPtr->setUniformValue("tex_u", 1);
     d_ptr->programPtr->setUniformValue("tex_v", 2);
-    d_ptr->programPtr->setUniformValue("tex_uv", 3);
-    d_ptr->programPtr->setUniformValue("tex_rgba", 4);
+    d_ptr->programPtr->setUniformValue("tex_rgba", 3);
 
     glGenTextures(1, &d_ptr->textureY);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureY);
@@ -174,13 +153,6 @@ void OpenglRender::initTexture()
 
     glGenTextures(1, &d_ptr->textureV);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureV);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    glGenTextures(1, &d_ptr->textureUV);
-    glBindTexture(GL_TEXTURE_2D, d_ptr->textureUV);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -238,11 +210,83 @@ auto OpenglRender::fitToScreen(const QSize &size) -> QMatrix4x4
     return matrix;
 }
 
+void OpenglRender::cleanup()
+{
+    d_ptr->programPtr.reset(new OpenGLShaderProgram(this));
+    if (d_ptr->textureY > 0) {
+        glDeleteTextures(1, &d_ptr->textureY);
+    }
+    if (d_ptr->textureU > 0) {
+        glDeleteTextures(1, &d_ptr->textureU);
+    }
+    if (d_ptr->textureV > 0) {
+        glDeleteTextures(1, &d_ptr->textureV);
+    }
+    if (d_ptr->textureRGBA > 0) {
+        glDeleteTextures(1, &d_ptr->textureRGBA);
+    }
+}
+
+void OpenglRender::resetShader(int format)
+{
+    makeCurrent();
+    cleanup();
+    d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shader/video.vert");
+    switch (format) {
+    case AV_PIX_FMT_YUV420P:
+        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
+                                                   ":/shader/video_yuv420p.frag");
+        break;
+    case AV_PIX_FMT_NV12:
+    case AV_PIX_FMT_NV21:
+    case AV_PIX_FMT_P010LE:
+        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
+                                                   ":/shader/video_nv12.frag");
+        break;
+    default: break;
+    }
+    glBindVertexArray(d_ptr->vao);
+    d_ptr->programPtr->link();
+    d_ptr->programPtr->bind();
+    d_ptr->programPtr->initVertex("aPos", "aTexCord");
+    initTexture();
+    d_ptr->programPtr->release();
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    doneCurrent();
+}
+
+void OpenglRender::onUpdateFrame(const QSharedPointer<Frame> &framePtr)
+{
+    if (d_ptr->framePtr.isNull()
+        || d_ptr->framePtr->avFrame()->format != framePtr->avFrame()->format) {
+        resetShader(framePtr->avFrame()->format);
+        d_ptr->frameChanged = true;
+    } else if (d_ptr->framePtr->avFrame()->width != framePtr->avFrame()->width
+               || d_ptr->framePtr->avFrame()->height != framePtr->avFrame()->height) {
+        d_ptr->frameChanged = true;
+    }
+    d_ptr->framePtr = framePtr;
+    update();
+}
+
+void OpenglRender::onUpdateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr)
+{
+    if (d_ptr->subTitleFramePtr.isNull()
+        || d_ptr->subTitleFramePtr->image().size() != framePtr->image().size()) {
+        d_ptr->subChanged = true;
+    }
+    d_ptr->subTitleFramePtr = framePtr;
+    // need update?
+    //update();
+}
+
 void OpenglRender::paintVideoFrame()
 {
     auto avFrame = d_ptr->framePtr->avFrame();
     auto format = avFrame->format;
-    //qDebug() << format;
+    // qDebug() << format;
     // 绑定纹理
     switch (format) {
     case AV_PIX_FMT_YUV420P: updateYUV420P(); break;
@@ -257,7 +301,7 @@ void OpenglRender::paintVideoFrame()
     case AV_PIX_FMT_BGR8: updateRGB8(GL_UNSIGNED_BYTE_2_3_3_REV); break;
     case AV_PIX_FMT_RGB8: updateRGB8(GL_UNSIGNED_BYTE_3_3_2); break;
     case AV_PIX_FMT_NV12:
-    case AV_PIX_FMT_NV21: updateNV12(); break;
+    case AV_PIX_FMT_NV21: updateNV12(GL_UNSIGNED_BYTE); break;
     case AV_PIX_FMT_ARGB:
     case AV_PIX_FMT_RGBA:
     case AV_PIX_FMT_ABGR:
@@ -267,11 +311,10 @@ void OpenglRender::paintVideoFrame()
     case AV_PIX_FMT_0BGR:
     case AV_PIX_FMT_BGR0: updateRGBA(); break;
     case AV_PIX_FMT_YUV420P10LE: updateYUV420P10LE(); break;
-    case AV_PIX_FMT_P010LE: updateP010LE(); break;
+    case AV_PIX_FMT_P010LE: updateNV12(GL_UNSIGNED_SHORT); break;
     default: break;
     }
     d_ptr->programPtr->bind(); // 绑定着色器
-    d_ptr->programPtr->setUniformValue("format", format);
     d_ptr->programPtr->setUniformValue("transform", fitToScreen({avFrame->width, avFrame->height}));
     setColorSpace();
     draw();
@@ -358,15 +401,6 @@ void OpenglRender::initializeGL()
     glBindVertexArray(d_ptr->vao);
 
     // 加载shader脚本程序
-    d_ptr->programPtr.reset(new OpenGLShaderProgram(this));
-    d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shader/video.vert");
-    d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shader/video.frag");
-    d_ptr->programPtr->link();
-    d_ptr->programPtr->bind();
-    d_ptr->programPtr->initVertex("aPos", "aTexCord");
-    initTexture();
-    d_ptr->programPtr->release();
-
     d_ptr->subProgramPtr.reset(new OpenGLShaderProgram(this));
     d_ptr->subProgramPtr->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shader/video.vert");
     d_ptr->subProgramPtr->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shader/sub.frag");
@@ -405,39 +439,76 @@ void OpenglRender::updateYUV420P()
     // Y
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureY);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RED,
-                 frame->width,
-                 frame->height,
-                 0,
-                 GL_RED,
-                 GL_UNSIGNED_BYTE,
-                 frame->data[0]);
+    if (d_ptr->frameChanged) {
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     GL_RED,
+                     frame->width,
+                     frame->height,
+                     0,
+                     GL_RED,
+                     GL_UNSIGNED_BYTE,
+                     frame->data[0]);
+    } else {
+        glTexSubImage2D(GL_TEXTURE_2D,
+                        0,
+                        0,
+                        0,
+                        frame->width,
+                        frame->height,
+                        GL_RED,
+                        GL_UNSIGNED_BYTE,
+                        frame->data[0]);
+    }
     // U
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureU);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RED,
-                 frame->width / 2,
-                 frame->height / 2,
-                 0,
-                 GL_RED,
-                 GL_UNSIGNED_BYTE,
-                 frame->data[1]);
+    if (d_ptr->frameChanged) {
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     GL_RED,
+                     frame->width / 2,
+                     frame->height / 2,
+                     0,
+                     GL_RED,
+                     GL_UNSIGNED_BYTE,
+                     frame->data[1]);
+    } else {
+        glTexSubImage2D(GL_TEXTURE_2D,
+                        0,
+                        0,
+                        0,
+                        frame->width / 2,
+                        frame->height / 2,
+                        GL_RED,
+                        GL_UNSIGNED_BYTE,
+                        frame->data[1]);
+    }
     // V
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureV);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RED,
-                 frame->width / 2,
-                 frame->height / 2,
-                 0,
-                 GL_RED,
-                 GL_UNSIGNED_BYTE,
-                 frame->data[2]);
+    if (d_ptr->frameChanged) {
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     GL_RED,
+                     frame->width / 2,
+                     frame->height / 2,
+                     0,
+                     GL_RED,
+                     GL_UNSIGNED_BYTE,
+                     frame->data[2]);
+    } else {
+        glTexSubImage2D(GL_TEXTURE_2D,
+                        0,
+                        0,
+                        0,
+                        frame->width / 2,
+                        frame->height / 2,
+                        GL_RED,
+                        GL_UNSIGNED_BYTE,
+                        frame->data[2]);
+    }
+    d_ptr->frameChanged = false;
 }
 
 void OpenglRender::updateYUYV422()
@@ -652,33 +723,58 @@ void OpenglRender::updateRGB8(int dataType)
                  frame->data[0]);
 }
 
-void OpenglRender::updateNV12()
+void OpenglRender::updateNV12(GLenum type)
 {
     auto frame = d_ptr->framePtr->avFrame();
     // Y
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureY);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RED,
-                 frame->width,
-                 frame->height,
-                 0,
-                 GL_RED,
-                 GL_UNSIGNED_BYTE,
-                 frame->data[0]);
+    if (d_ptr->frameChanged) {
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     GL_RED,
+                     frame->width,
+                     frame->height,
+                     0,
+                     GL_RED,
+                     type,
+                     frame->data[0]);
+    } else {
+        glTexSubImage2D(GL_TEXTURE_2D,
+                        0,
+                        0,
+                        0,
+                        frame->width,
+                        frame->height,
+                        GL_RED,
+                        type,
+                        frame->data[0]);
+    }
     // UV
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, d_ptr->textureUV);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RG, // GL_RG GL_LUMINANCE_ALPHA
-                 frame->width / 2,
-                 frame->height / 2,
-                 0,
-                 GL_RG, // GL_RG GL_LUMINANCE_ALPHA
-                 GL_UNSIGNED_BYTE,
-                 frame->data[1]);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, d_ptr->textureU);
+    if (d_ptr->frameChanged) {
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     GL_RG, // GL_RG GL_LUMINANCE_ALPHA
+                     frame->width / 2,
+                     frame->height / 2,
+                     0,
+                     GL_RG, // GL_RG GL_LUMINANCE_ALPHA
+                     type,
+                     frame->data[1]);
+    } else {
+        glTexSubImage2D(GL_TEXTURE_2D,
+                        0,
+                        0,
+                        0,
+                        frame->width / 2,
+                        frame->height / 2,
+                        GL_RG, // GL_RG GL_LUMINANCE_ALPHA
+                        type,
+                        frame->data[1]);
+    }
+    d_ptr->frameChanged = false;
 }
 
 void OpenglRender::updateRGB()
@@ -752,35 +848,6 @@ void OpenglRender::updateYUV420P10LE()
                  GL_LUMINANCE_ALPHA,
                  GL_UNSIGNED_BYTE,
                  frame->data[2]);
-}
-
-void OpenglRender::updateP010LE()
-{
-    auto frame = d_ptr->framePtr->avFrame();
-    // Y
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, d_ptr->textureY);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RED,
-                 frame->width,
-                 frame->height,
-                 0,
-                 GL_RED,
-                 GL_UNSIGNED_SHORT,
-                 frame->data[0]);
-    // UV
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, d_ptr->textureUV);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_LUMINANCE_ALPHA,
-                 frame->width / 2,
-                 frame->height / 2,
-                 0,
-                 GL_LUMINANCE_ALPHA,
-                 GL_UNSIGNED_SHORT,
-                 frame->data[1]);
 }
 
 } // namespace Ffmpeg
