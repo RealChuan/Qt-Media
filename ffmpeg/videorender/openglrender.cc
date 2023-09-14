@@ -35,6 +35,7 @@ public:
     // sub
     QScopedPointer<OpenGLShaderProgram> subProgramPtr;
     GLuint textureSub;
+    bool subChanged = false;
 
     const QVector<AVPixelFormat> supportFormats
         = {AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUYV422,     AV_PIX_FMT_RGB24,   AV_PIX_FMT_BGR24,
@@ -137,6 +138,10 @@ void OpenglRender::updateSubTitleFrame(QSharedPointer<Subtitle> frame)
     QMetaObject::invokeMethod(
         this,
         [=] {
+            if (d_ptr->subTitleFramePtr.isNull()
+                || d_ptr->subTitleFramePtr->image().size() != frame->image().size()) {
+                d_ptr->subChanged = true;
+            }
             d_ptr->subTitleFramePtr = frame;
             // need update?
             //update();
@@ -286,15 +291,29 @@ void OpenglRender::paintSubTitleFrame()
     auto img = d_ptr->subTitleFramePtr->image();
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, d_ptr->textureSub);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RGBA,
-                 img.width(),
-                 img.height(),
-                 0,
-                 GL_RGBA,
-                 GL_UNSIGNED_BYTE,
-                 img.constBits());
+    if (d_ptr->subChanged) {
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     GL_RGBA,
+                     img.width(),
+                     img.height(),
+                     0,
+                     GL_RGBA,
+                     GL_UNSIGNED_BYTE,
+                     img.constBits());
+        d_ptr->subChanged = false;
+    } else {
+        glTexSubImage2D(GL_TEXTURE_2D,
+                        0,
+                        0,
+                        0,
+                        img.width(),
+                        img.height(),
+                        GL_RGBA,
+                        GL_UNSIGNED_BYTE,
+                        img.constBits());
+    }
+
     glEnable(GL_BLEND);
     d_ptr->subProgramPtr->bind();
     d_ptr->subProgramPtr->setUniformValue("transform", fitToScreen(img.size()));
