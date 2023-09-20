@@ -38,7 +38,7 @@ enum OsType { OsTypeWindows, OsTypeLinux, OsTypeMac, OsTypeOtherUnix, OsTypeOthe
 
 namespace OsSpecificAspects {
 
-inline QString withExecutableSuffix(OsType osType, const QString &executable)
+inline auto withExecutableSuffix(OsType osType, const QString &executable) -> QString
 {
     QString finalName = executable;
     if (osType == OsTypeWindows)
@@ -66,7 +66,7 @@ inline Qt::KeyboardModifier controlModifier(OsType osType)
     return osType == OsTypeMac ? Qt::MetaModifier : Qt::ControlModifier;
 }
 
-inline QString pathWithNativeSeparators(OsType osType, const QString &pathName)
+inline auto pathWithNativeSeparators(OsType osType, const QString &pathName) -> QString
 {
     if (osType == OsTypeWindows) {
         const int pos = pathName.indexOf('/');
