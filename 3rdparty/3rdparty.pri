@@ -36,17 +36,25 @@ CONFIG(debug, debug|release) {
 }
 
 unix:!macx{
-LIBS += -lfontconfig -lexpat
+    LIBS += -lfontconfig -lexpat
 }
 
 unix{
 
 CONFIG(debug, debug|release) {
-    LIBS += -lfreetyped -lpng -lz -lbz2d -lbrotlidec-static -lbrotlienc-static -lbrotlicommon-static
+    LIBS += -lfreetyped -lpng -lz -lbz2d
 }else{
-    LIBS += -lfreetype -lpng -lz -lbz2 -lbrotlidec-static -lbrotlienc-static -lbrotlicommon-static
+    LIBS += -lfreetype -lpng -lz -lbz2
 }
 
+}
+
+macx{
+    LIBS += -lbrotlidec-static -lbrotlienc-static -lbrotlicommon-static
+}
+
+unix:!macx{
+    LIBS += -lbrotlidec -lbrotlicommon
 }
 
 INCLUDEPATH += $$vcpkg_path/include
