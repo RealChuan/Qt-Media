@@ -25,10 +25,11 @@ public:
 
     virtual auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool = 0;
     virtual QVector<AVPixelFormat> supportedOutput_pix_fmt() = 0;
-    virtual auto convertSupported_pix_fmt(QSharedPointer<Frame> frame) -> QSharedPointer<Frame> = 0;
-    void setFrame(QSharedPointer<Frame> frame);
+    virtual auto convertSupported_pix_fmt(QSharedPointer<Frame> framePtr) -> QSharedPointer<Frame>
+        = 0;
+    void setFrame(QSharedPointer<Frame> framePtr);
     void setImage(const QImage &image);
-    void setSubTitleFrame(QSharedPointer<Subtitle> frame);
+    void setSubTitleFrame(QSharedPointer<Subtitle> framePtr);
     virtual void resetAllFrame() = 0;
 
     virtual auto widget() -> QWidget * = 0;

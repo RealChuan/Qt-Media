@@ -35,18 +35,19 @@ VideoRender::VideoRender()
 
 VideoRender::~VideoRender() {}
 
-void VideoRender::setFrame(QSharedPointer<Frame> frame)
+void VideoRender::setFrame(QSharedPointer<Frame> framePtr)
 {
-    auto avFrame = frame->avFrame();
+    auto avFrame = framePtr->avFrame();
     if (avFrame->width <= 0 || avFrame->height <= 0) {
         return;
     }
-
-    if (!isSupportedOutput_pix_fmt(AVPixelFormat(avFrame->format))) {
-        frame = convertSupported_pix_fmt(frame);
+    if (!isSupportedOutput_pix_fmt(static_cast<AVPixelFormat>(avFrame->format))) {
+        framePtr = convertSupported_pix_fmt(framePtr);
     }
-    updateFrame(frame);
-    //qDebug() << frame->avFrame()->format;
+    if (framePtr.isNull()) {
+        return;
+    }
+    updateFrame(framePtr);
 
     d_ptr->flushFPS();
 }
@@ -60,12 +61,12 @@ void VideoRender::setImage(const QImage &image)
     setFrame(frame);
 }
 
-void VideoRender::setSubTitleFrame(QSharedPointer<Subtitle> frame)
+void VideoRender::setSubTitleFrame(QSharedPointer<Subtitle> framePtr)
 {
-    if (frame->image().isNull()) {
+    if (framePtr->image().isNull()) {
         return;
     }
-    updateSubTitleFrame(frame);
+    updateSubTitleFrame(framePtr);
 }
 
 auto VideoRender::fps() -> float

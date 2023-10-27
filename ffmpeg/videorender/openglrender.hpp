@@ -61,7 +61,6 @@ private:
     void updateNV12(GLenum type);
     void updateRGB();
     void updateRGBA();
-    void updateYUV420P10LE();
 
     class OpenglRenderPrivate;
     QScopedPointer<OpenglRenderPrivate> d_ptr;

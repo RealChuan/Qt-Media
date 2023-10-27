@@ -29,7 +29,7 @@ jobs:
           - macos-latest
           - ubuntu-latest
         qt_ver: 
-          - 6.5.2
+          - 6.6.0
 
     steps:
       - name: cache vcpkg
