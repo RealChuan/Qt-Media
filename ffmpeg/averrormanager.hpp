@@ -27,7 +27,7 @@ public:
 
     void setErrorCode(int errorCode);
     [[nodiscard]] auto lastErrorString() const -> QString;
-    [[nodiscard]] QVector<int> errorCodes() const;
+    [[nodiscard]] auto errorCodes() const -> QVector<int>;
 
 signals:
     void error(const Ffmpeg::AVError &avError);

@@ -80,9 +80,9 @@ AVContextInfo::AVContextInfo(QObject *parent)
     , d_ptr(new AVContextInfoPrivate(this))
 {}
 
-AVContextInfo::~AVContextInfo() {}
+AVContextInfo::~AVContextInfo() = default;
 
-CodecContext *AVContextInfo::codecCtx()
+auto AVContextInfo::codecCtx() -> CodecContext *
 {
     return d_ptr->codecCtx.data();
 }
@@ -97,12 +97,12 @@ void AVContextInfo::setIndex(int index)
     d_ptr->streamIndex = index;
 }
 
-int AVContextInfo::index()
+auto AVContextInfo::index() -> int
 {
     return d_ptr->streamIndex;
 }
 
-bool AVContextInfo::isIndexVaild()
+auto AVContextInfo::isIndexVaild() -> bool
 {
     return d_ptr->streamIndex != Error_Index;
 }
@@ -114,12 +114,12 @@ void AVContextInfo::setStream(AVStream *stream)
     //    d_ptr->printMetaData();
 }
 
-AVStream *AVContextInfo::stream()
+auto AVContextInfo::stream() -> AVStream *
 {
     return d_ptr->stream;
 }
 
-bool AVContextInfo::initDecoder(const AVRational &frameRate)
+auto AVContextInfo::initDecoder(const AVRational &frameRate) -> bool
 {
     Q_ASSERT(d_ptr->stream != nullptr);
     const char *typeStr = av_get_media_type_string(d_ptr->stream->codecpar->codec_type);
@@ -144,7 +144,7 @@ bool AVContextInfo::initDecoder(const AVRational &frameRate)
     return true;
 }
 
-bool AVContextInfo::initEncoder(AVCodecID codecId)
+auto AVContextInfo::initEncoder(AVCodecID codecId) -> bool
 {
     auto encodec = avcodec_find_encoder(codecId);
     if (!encodec) {
@@ -155,7 +155,7 @@ bool AVContextInfo::initEncoder(AVCodecID codecId)
     return true;
 }
 
-bool AVContextInfo::initEncoder(const QString &name)
+auto AVContextInfo::initEncoder(const QString &name) -> bool
 {
     auto encodec = avcodec_find_encoder_by_name(name.toLocal8Bit().constData());
     if (!encodec) {
@@ -166,7 +166,7 @@ bool AVContextInfo::initEncoder(const QString &name)
     return true;
 }
 
-bool AVContextInfo::openCodec(GpuType type)
+auto AVContextInfo::openCodec(GpuType type) -> bool
 {
     d_ptr->gpuType = type;
     if (mediaType() == AVMEDIA_TYPE_VIDEO) {
@@ -192,13 +192,14 @@ bool AVContextInfo::openCodec(GpuType type)
     return true;
 }
 
-bool AVContextInfo::decodeSubtitle2(const QSharedPointer<Subtitle> &subtitlePtr,
-                                    const QSharedPointer<Packet> &packetPtr)
+auto AVContextInfo::decodeSubtitle2(const QSharedPointer<Subtitle> &subtitlePtr,
+                                    const QSharedPointer<Packet> &packetPtr) -> bool
 {
     return d_ptr->codecCtx->decodeSubtitle2(subtitlePtr.data(), packetPtr.data());
 }
 
-std::vector<QSharedPointer<Frame>> AVContextInfo::decodeFrame(const QSharedPointer<Packet> &packetPtr)
+auto AVContextInfo::decodeFrame(const QSharedPointer<Packet> &packetPtr)
+    -> std::vector<QSharedPointer<Frame>>
 {
     std::vector<FramePtr> framePtrs;
     if (!d_ptr->codecCtx->sendPacket(packetPtr.data())) {
@@ -219,7 +220,8 @@ std::vector<QSharedPointer<Frame>> AVContextInfo::decodeFrame(const QSharedPoint
     return framePtrs;
 }
 
-std::vector<QSharedPointer<Packet>> AVContextInfo::encodeFrame(const QSharedPointer<Frame> &framePtr)
+auto AVContextInfo::encodeFrame(const QSharedPointer<Frame> &framePtr)
+    -> std::vector<QSharedPointer<Packet>>
 {
     std::vector<PacketPtr> packetPtrs{};
     auto frame_tmp_ptr = framePtr;
@@ -242,52 +244,52 @@ std::vector<QSharedPointer<Packet>> AVContextInfo::encodeFrame(const QSharedPoin
     return packetPtrs;
 }
 
-double AVContextInfo::calTimebase() const
+auto AVContextInfo::calTimebase() const -> double
 {
     return av_q2d(d_ptr->stream->time_base);
 }
 
-AVRational AVContextInfo::timebase() const
+auto AVContextInfo::timebase() const -> AVRational
 {
     return d_ptr->stream->time_base;
 }
 
-double AVContextInfo::fps() const
+auto AVContextInfo::fps() const -> double
 {
     return av_q2d(d_ptr->stream->avg_frame_rate);
 }
 
-qint64 AVContextInfo::fames() const
+auto AVContextInfo::fames() const -> qint64
 {
     return d_ptr->stream->nb_frames;
 }
 
-QSize AVContextInfo::resolutionRatio() const
+auto AVContextInfo::resolutionRatio() const -> QSize
 {
     return {d_ptr->stream->codecpar->width, d_ptr->stream->codecpar->height};
 }
 
-AVMediaType AVContextInfo::mediaType() const
+auto AVContextInfo::mediaType() const -> AVMediaType
 {
     return d_ptr->stream->codecpar->codec_type;
 }
 
-QString AVContextInfo::mediaTypeString() const
+auto AVContextInfo::mediaTypeString() const -> QString
 {
     return av_get_media_type_string(mediaType());
 }
 
-bool AVContextInfo::isDecoder() const
+auto AVContextInfo::isDecoder() const -> bool
 {
     return d_ptr->codecCtx->isDecoder();
 }
 
-AVContextInfo::GpuType AVContextInfo::gpuType() const
+auto AVContextInfo::gpuType() const -> AVContextInfo::GpuType
 {
     return d_ptr->gpuType;
 }
 
-AVPixelFormat AVContextInfo::pixfmt() const
+auto AVContextInfo::pixfmt() const -> AVPixelFormat
 {
     if (d_ptr->gpuType == GpuEncode && mediaType() == AVMEDIA_TYPE_VIDEO
         && d_ptr->hardWareEncodePtr->isVaild()) {

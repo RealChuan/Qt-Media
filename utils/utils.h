@@ -23,8 +23,8 @@ UTILS_EXPORT auto fileSize(const QString &localPath) -> qint64;
 UTILS_EXPORT auto generateDirectorys(const QString &directory) -> bool;
 UTILS_EXPORT void removeDirectory(const QString &path);
 UTILS_EXPORT auto convertBytesToString(qint64 bytes) -> QString;
-UTILS_EXPORT QJsonObject jsonFromFile(const QString &filePath);
-UTILS_EXPORT QJsonObject jsonFromBytes(const QByteArray &bytes);
+UTILS_EXPORT auto jsonFromFile(const QString &filePath) -> QJsonObject;
+UTILS_EXPORT auto jsonFromBytes(const QByteArray &bytes) -> QJsonObject;
 UTILS_EXPORT auto getConfigPath() -> QString;
 
 } // namespace Utils

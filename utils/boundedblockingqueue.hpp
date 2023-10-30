@@ -99,7 +99,7 @@ public:
         return m_queue.size() >= m_maxSize;
     }
 
-    [[nodiscard]] size_t size() const
+    [[nodiscard]] auto size() const -> size_t
     {
         QMutexLocker locker(&m_mutex);
         return m_queue.size();
@@ -111,7 +111,7 @@ public:
         m_maxSize = maxSize;
     }
 
-    [[nodiscard]] size_t maxSize() const
+    [[nodiscard]] auto maxSize() const -> size_t
     {
         QMutexLocker locker(&m_mutex);
         return m_maxSize;

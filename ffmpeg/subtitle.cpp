@@ -27,6 +27,8 @@ public:
         image = QImage(videoResolutionRatio, QImage::Format_RGBA8888);
         image.fill(Qt::transparent);
         QPainter painter(&image);
+        painter.setRenderHints(painter.renderHints() | QPainter::Antialiasing
+                               | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
         for (size_t i = 0; i < subtitle.num_rects; i++) {
             auto sub_rect = subtitle.rects[i];
 
@@ -180,7 +182,7 @@ void Subtitle::setAssDataInfoList(const AssDataInfoList &list)
     d_ptr->assList = list;
 }
 
-AssDataInfoList Subtitle::list() const
+auto Subtitle::list() const -> AssDataInfoList
 {
     return d_ptr->assList;
 }
@@ -193,6 +195,8 @@ auto Subtitle::generateImage() const -> QImage
     d_ptr->image = QImage(d_ptr->videoResolutionRatio, QImage::Format_RGBA8888);
     d_ptr->image.fill(Qt::transparent);
     QPainter painter(&d_ptr->image);
+    painter.setRenderHints(painter.renderHints() | QPainter::Antialiasing
+                           | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
     for (const auto &data : qAsConst(d_ptr->assList)) {
         auto rect = data.rect();
         QImage image((uchar *) data.rgba().constData(),

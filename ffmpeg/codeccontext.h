@@ -45,10 +45,10 @@ public:
     [[nodiscard]] auto size() const -> QSize;
 
     void setQuailty(int quailty);
-    [[nodiscard]] QPair<int, int> quantizer() const;
+    [[nodiscard]] auto quantizer() const -> QPair<int, int>;
 
-    [[nodiscard]] QVector<AVPixelFormat> supportPixFmts() const;
-    [[nodiscard]] QVector<AVSampleFormat> supportSampleFmts() const;
+    [[nodiscard]] auto supportPixFmts() const -> QVector<AVPixelFormat>;
+    [[nodiscard]] auto supportSampleFmts() const -> QVector<AVSampleFormat>;
 
     // Set before open, Soft solution is effective
     void setThreadCount(int threadCount);

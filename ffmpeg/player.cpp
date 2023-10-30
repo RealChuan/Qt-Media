@@ -234,7 +234,7 @@ public:
         addPropertyChangeEventEvent(new MediaStateEvent(mediaState));
     }
 
-    [[nodiscard]] QSize resolutionRatio() const
+    [[nodiscard]] auto resolutionRatio() const -> QSize
     {
         return videoInfo->isIndexVaild() ? videoInfo->resolutionRatio() : QSize();
     }
@@ -601,7 +601,7 @@ auto Player::fames() const -> qint64
     return d_ptr->videoInfo->isIndexVaild() ? d_ptr->videoInfo->fames() : 0;
 }
 
-QSize Player::resolutionRatio() const
+auto Player::resolutionRatio() const -> QSize
 {
     return d_ptr->resolutionRatio();
 }
@@ -633,7 +633,7 @@ void Player::setVideoRenders(QVector<VideoRender *> videoRenders)
     d_ptr->subtitleDecoder->setVideoRenders(videoRenders);
 }
 
-QVector<VideoRender *> Player::videoRenders()
+auto Player::videoRenders() -> QVector<VideoRender *>
 {
     return d_ptr->videoRenders;
 }
@@ -643,17 +643,17 @@ void Player::setPropertyEventQueueMaxSize(size_t size)
     d_ptr->maxPropertyEventQueueSize.store(size);
 }
 
-size_t Player::propertEventyQueueMaxSize() const
+auto Player::propertEventyQueueMaxSize() const -> size_t
 {
     return d_ptr->maxPropertyEventQueueSize.load();
 }
 
-size_t Player::propertyChangeEventSize() const
+auto Player::propertyChangeEventSize() const -> size_t
 {
     return d_ptr->propertyChangeEventQueue.size();
 }
 
-PropertyChangeEventPtr Player::takePropertyChangeEvent()
+auto Player::takePropertyChangeEvent() -> PropertyChangeEventPtr
 {
     return d_ptr->propertyChangeEventQueue.take();
 }
@@ -663,12 +663,12 @@ void Player::setEventQueueMaxSize(size_t size)
     d_ptr->maxEventQueueSize.store(size);
 }
 
-size_t Player::eventQueueMaxSize() const
+auto Player::eventQueueMaxSize() const -> size_t
 {
     return d_ptr->maxEventQueueSize.load();
 }
 
-[[nodiscard]] size_t Player::eventSize() const
+[[nodiscard]] auto Player::eventSize() const -> size_t
 {
     return d_ptr->eventQueue.size();
 }

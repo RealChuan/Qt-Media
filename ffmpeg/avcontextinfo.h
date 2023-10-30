@@ -43,8 +43,8 @@ public:
     auto openCodec(GpuType type = NotUseGpu) -> bool;
 
     // sendPacket and receiveFrame
-    std::vector<QSharedPointer<Frame>> decodeFrame(const QSharedPointer<Packet> &packetPtr);
-    std::vector<QSharedPointer<Packet>> encodeFrame(const QSharedPointer<Frame> &framePtr);
+    auto decodeFrame(const QSharedPointer<Packet> &packetPtr) -> std::vector<QSharedPointer<Frame>>;
+    auto encodeFrame(const QSharedPointer<Frame> &framePtr) -> std::vector<QSharedPointer<Packet>>;
     auto decodeSubtitle2(const QSharedPointer<Subtitle> &subtitlePtr,
                          const QSharedPointer<Packet> &packetPtr) -> bool;
 

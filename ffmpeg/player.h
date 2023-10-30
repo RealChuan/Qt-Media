@@ -36,16 +36,16 @@ public:
     [[nodiscard]] auto subtitleIndex() const -> int;
 
     void setVideoRenders(QVector<VideoRender *> videoRenders);
-    QVector<VideoRender *> videoRenders();
+    auto videoRenders() -> QVector<VideoRender *>;
 
     void setPropertyEventQueueMaxSize(size_t size);
-    [[nodiscard]] size_t propertEventyQueueMaxSize() const;
-    [[nodiscard]] size_t propertyChangeEventSize() const;
-    PropertyChangeEventPtr takePropertyChangeEvent();
+    [[nodiscard]] auto propertEventyQueueMaxSize() const -> size_t;
+    [[nodiscard]] auto propertyChangeEventSize() const -> size_t;
+    auto takePropertyChangeEvent() -> PropertyChangeEventPtr;
 
     void setEventQueueMaxSize(size_t size);
-    [[nodiscard]] size_t eventQueueMaxSize() const;
-    [[nodiscard]] size_t eventSize() const;
+    [[nodiscard]] auto eventQueueMaxSize() const -> size_t;
+    [[nodiscard]] auto eventSize() const -> size_t;
     auto addEvent(const EventPtr &eventPtr) -> bool;
 
 public slots:

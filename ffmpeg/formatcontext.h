@@ -42,10 +42,10 @@ public:
     auto stream(int index) -> AVStream *; //音频流
     auto createStream() -> AVStream *;
 
-    [[nodiscard]] QVector<StreamInfo> audioTracks() const;
-    [[nodiscard]] QVector<StreamInfo> vidioTracks() const;
-    [[nodiscard]] QVector<StreamInfo> subtitleTracks() const;
-    [[nodiscard]] QVector<StreamInfo> attachmentTracks() const;
+    [[nodiscard]] auto audioTracks() const -> QVector<StreamInfo>;
+    [[nodiscard]] auto vidioTracks() const -> QVector<StreamInfo>;
+    [[nodiscard]] auto subtitleTracks() const -> QVector<StreamInfo>;
+    [[nodiscard]] auto attachmentTracks() const -> QVector<StreamInfo>;
 
     [[nodiscard]] auto findBestStreamIndex(AVMediaType type) const -> int;
     // 丢弃除indexs中包含的音视频流，优化av_read_frame性能
@@ -53,8 +53,8 @@ public:
 
     auto seekFirstFrame() -> bool;
     auto seek(qint64 timestamp) -> bool;
-    auto seek(qint64 timestamp, bool forward) -> bool; // microsecond
-    auto seekFrame(int index, qint64 timestamp) -> bool;    // microsecond
+    auto seek(qint64 timestamp, bool forward) -> bool;   // microsecond
+    auto seekFrame(int index, qint64 timestamp) -> bool; // microsecond
 
     auto readFrame(Packet *packet) -> bool;
 

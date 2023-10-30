@@ -21,11 +21,10 @@ public:
 
     auto initEncoder(const AVCodec *encoder) -> bool;
     auto initHardWareDevice(CodecContext *codecContext) -> bool;
-    QSharedPointer<Frame> transToGpu(CodecContext *codecContext,
-                                     QSharedPointer<Frame> inPtr,
-                                     bool &ok);
+    auto transToGpu(CodecContext *codecContext, QSharedPointer<Frame> inPtr, bool &ok)
+        -> QSharedPointer<Frame>;
 
-    [[nodiscard]] AVPixelFormat swFormat() const;
+    [[nodiscard]] auto swFormat() const -> AVPixelFormat;
 
     auto isVaild() -> bool;
 

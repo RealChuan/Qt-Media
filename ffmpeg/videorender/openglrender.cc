@@ -112,7 +112,7 @@ auto OpenglRender::convertSupported_pix_fmt(QSharedPointer<Frame> frame) -> QSha
     return frameRgbPtr;
 }
 
-QVector<AVPixelFormat> OpenglRender::supportedOutput_pix_fmt()
+auto OpenglRender::supportedOutput_pix_fmt() -> QVector<AVPixelFormat>
 {
     return d_ptr->supportFormats;
 }

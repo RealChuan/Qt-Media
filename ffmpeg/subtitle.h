@@ -35,7 +35,7 @@ public:
 
     auto resolveAss(Ass *ass) -> bool;
     void setAssDataInfoList(const AssDataInfoList &list);
-    [[nodiscard]] AssDataInfoList list() const;
+    [[nodiscard]] auto list() const -> AssDataInfoList;
 
     [[nodiscard]] auto generateImage() const -> QImage;
     [[nodiscard]] auto image() const -> QImage;
