@@ -25,7 +25,7 @@ static constexpr std::array<float, 9> kBT709Matrix
 static constexpr QVector3D kBT2020ffset = {-0.0627451017, -0.501960814, -0.501960814};
 
 static constexpr std::array<float, 9> kBT2020Matrix
-    = {1.1644, 1.1644, 1.1644, 0.000, -0.187326f, 2.141772f, 1.678674f, -0.650424f, 0.000};
+    = {1.1678, 1.1678, 1.1678, 0.0000, -0.1879, 2.1481, 1.6836, -0.6523, 0.0000};
 
 } // namespace Ffmpeg::ColorSpace
 

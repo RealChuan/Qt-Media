@@ -39,7 +39,6 @@ private:
     void draw();
     void initTexture();
     void initSubTexture();
-    void setColorSpace();
     auto fitToScreen(const QSize &size) -> QMatrix4x4;
     void cleanup();
     void resetShader(int format);
@@ -49,6 +48,8 @@ private:
 
     void paintVideoFrame();
     void paintSubTitleFrame();
+    void setColorSpace();
+    void setColorTrc();
 
     void updateYUV420P();
     void updateYUYV422();

@@ -67,9 +67,9 @@ VideoFrameConverter::VideoFrameConverter(CodecContext *codecCtx,
                                              d_ptr->dst_pix_fmt,
                                              d_ptr->dstSize.width() > ctx->width ? SWS_BICUBIC
                                                                                  : SWS_BILINEAR,
-                                             NULL,
-                                             NULL,
-                                             NULL);
+                                             nullptr,
+                                             nullptr,
+                                             nullptr);
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 
@@ -106,9 +106,9 @@ void VideoFrameConverter::flush(Frame *frame, const QSize &dstSize, AVPixelForma
                                              d_ptr->dst_pix_fmt,
                                              d_ptr->dstSize.width() > avFrame->width ? SWS_BICUBIC
                                                                                      : SWS_BILINEAR,
-                                             NULL,
-                                             NULL,
-                                             NULL);
+                                             nullptr,
+                                             nullptr,
+                                             nullptr);
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 

@@ -16,10 +16,10 @@ namespace Ffmpeg {
 class WidgetRender::WidgetRenderPrivate
 {
 public:
-    WidgetRenderPrivate(QWidget *parent)
+    explicit WidgetRenderPrivate(QWidget *parent)
         : owner(parent)
     {}
-    ~WidgetRenderPrivate() {}
+    ~WidgetRenderPrivate() = default;
 
     QWidget *owner;
 
@@ -42,7 +42,7 @@ WidgetRender::WidgetRender(QWidget *parent)
     , d_ptr(new WidgetRenderPrivate(this))
 {}
 
-WidgetRender::~WidgetRender() {}
+WidgetRender::~WidgetRender() = default;
 
 bool WidgetRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
 {

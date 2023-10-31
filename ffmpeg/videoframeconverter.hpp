@@ -20,9 +20,9 @@ public:
                                  AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA,
                                  QObject *parent = nullptr);
     explicit VideoFrameConverter(Frame *frame,
-                        const QSize &size = QSize(-1, -1),
-                        AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA,
-                        QObject *parent = nullptr);
+                                 const QSize &size = QSize(-1, -1),
+                                 AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA,
+                                 QObject *parent = nullptr);
     ~VideoFrameConverter() override;
 
     void flush(Frame *frame,

@@ -196,6 +196,7 @@ void OpenglRender::setColorSpace()
         d_ptr->programPtr->setUniformValue("offset", ColorSpace::kBT2020ffset);
         d_ptr->programPtr->setUniformValue("colorConversion",
                                            QMatrix3x3(ColorSpace::kBT2020Matrix.data()));
+
         break;
     //case AVCOL_SPC_BT709:
     default:
@@ -204,6 +205,25 @@ void OpenglRender::setColorSpace()
                                            QMatrix3x3(ColorSpace::kBT709Matrix.data()));
         break;
     }
+}
+
+void OpenglRender::setColorTrc()
+{
+    GLfloat contrast = 1.0;
+    GLfloat saturation = 0;
+    GLfloat brightness = 0;
+    auto *avFrame = d_ptr->framePtr->avFrame();
+    switch (avFrame->color_trc) {
+    case AVCOL_TRC_SMPTE2084: // fake hdr
+        contrast = 1.4;
+        saturation = 0.9;
+        brightness = 0;
+        break;
+    default: break;
+    }
+    d_ptr->programPtr->setUniformValue("contrast", contrast);
+    d_ptr->programPtr->setUniformValue("saturation", saturation);
+    d_ptr->programPtr->setUniformValue("brightness", brightness);
 }
 
 auto OpenglRender::fitToScreen(const QSize &size) -> QMatrix4x4
@@ -357,6 +377,7 @@ void OpenglRender::paintVideoFrame()
     d_ptr->programPtr->bind(); // 绑定着色器
     d_ptr->programPtr->setUniformValue("transform", fitToScreen({avFrame->width, avFrame->height}));
     setColorSpace();
+    setColorTrc();
     draw();
     d_ptr->programPtr->release();
     d_ptr->frameChanged = false;
