@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "colorspacedialog.hpp"
 #include "controlwidget.hpp"
 #include "openwebmediadialog.hpp"
 #include "playlistmodel.h"
@@ -31,7 +32,7 @@ static auto isPlaylist(const QUrl &url) -> bool // Check for ".m3u" playlists.
 class MainWindow::MainWindowPrivate
 {
 public:
-    MainWindowPrivate(MainWindow *q)
+    explicit MainWindowPrivate(MainWindow *q)
         : q_ptr(q)
         , playerPtr(new Ffmpeg::Player)
     {
@@ -40,7 +41,7 @@ public:
         titleWidget = new TitleWidget(q_ptr);
         titleWidget->setMinimumHeight(80);
         titleWidget->setVisible(false);
-        auto bottomLayout = new QHBoxLayout;
+        auto *bottomLayout = new QHBoxLayout;
         bottomLayout->addStretch();
         bottomLayout->addWidget(controlWidget);
         bottomLayout->addStretch();
@@ -79,17 +80,17 @@ public:
     void resetTrackMenu()
     {
         auto actions = audioTracksGroup->actions();
-        for (auto action : actions) {
+        for (auto *action : actions) {
             audioTracksGroup->removeAction(action);
             delete action;
         }
         actions = videoTracksGroup->actions();
-        for (auto action : actions) {
+        for (auto *action : actions) {
             videoTracksGroup->removeAction(action);
             delete action;
         }
         actions = subTracksGroup->actions();
-        for (auto action : actions) {
+        for (auto *action : actions) {
             subTracksGroup->removeAction(action);
             delete action;
         }
@@ -312,14 +313,13 @@ void MainWindow::onRenderChanged(QAction *action)
     case 1: renderType = Ffmpeg::VideoRenderCreate::Widget; break;
     default: renderType = Ffmpeg::VideoRenderCreate::Opengl; break;
     }
-    auto videoRender = Ffmpeg::VideoRenderCreate::create(renderType);
+    auto *videoRender = Ffmpeg::VideoRenderCreate::create(renderType);
     videoRender->widget()->setLayout(d_ptr->controlLayout);
     videoRender->widget()->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     videoRender->widget()->setAcceptDrops(true);
     videoRender->widget()->installEventFilter(this);
     d_ptr->playerPtr->setVideoRenders({videoRender});
     d_ptr->splitter->insertWidget(0, videoRender->widget());
-
     // 为什么切换成widget还是有使用GPU 0-3D，而且使用量是切换为opengl的两倍！！！
     d_ptr->videoRender.reset(videoRender);
 }
@@ -343,21 +343,34 @@ void MainWindow::jump(const QModelIndex &index)
     }
 }
 
+void MainWindow::onShowColorSpace()
+{
+    if (d_ptr->videoRender.isNull()) {
+        return;
+    }
+    ColorSpaceDialog dialog(this);
+    dialog.setColorSpace(d_ptr->videoRender->colorSpaceTrc());
+    connect(&dialog, &ColorSpaceDialog::colorSpaceChanged, this, [&] {
+        d_ptr->videoRender->setColorSpaceTrc(dialog.colorSpace());
+    });
+    dialog.exec();
+}
+
 void MainWindow::onProcessEvents()
 {
     while (d_ptr->playerPtr->propertyChangeEventSize() > 0) {
         auto eventPtr = d_ptr->playerPtr->takePropertyChangeEvent();
         switch (eventPtr->type()) {
         case Ffmpeg::PropertyChangeEvent::EventType::Duration: {
-            auto durationEvent = dynamic_cast<Ffmpeg::DurationEvent *>(eventPtr.data());
+            auto *durationEvent = dynamic_cast<Ffmpeg::DurationEvent *>(eventPtr.data());
             d_ptr->controlWidget->setDuration(durationEvent->duration() / AV_TIME_BASE);
         } break;
         case Ffmpeg::PropertyChangeEvent::EventType::Position: {
-            auto positionEvent = dynamic_cast<Ffmpeg::PositionEvent *>(eventPtr.data());
+            auto *positionEvent = dynamic_cast<Ffmpeg::PositionEvent *>(eventPtr.data());
             d_ptr->controlWidget->setPosition(positionEvent->position() / AV_TIME_BASE);
         } break;
         case Ffmpeg::PropertyChangeEvent::EventType::MediaState: {
-            auto stateEvent = dynamic_cast<Ffmpeg::MediaStateEvent *>(eventPtr.data());
+            auto *stateEvent = dynamic_cast<Ffmpeg::MediaStateEvent *>(eventPtr.data());
             switch (stateEvent->state()) {
             case Ffmpeg::MediaState::Stopped:
                 d_ptr->controlWidget->setPlayButtonChecked(false);
@@ -377,13 +390,13 @@ void MainWindow::onProcessEvents()
             }
         } break;
         case Ffmpeg::PropertyChangeEvent::EventType::CacheSpeed: {
-            auto speedEvent = dynamic_cast<Ffmpeg::CacheSpeedEvent *>(eventPtr.data());
+            auto *speedEvent = dynamic_cast<Ffmpeg::CacheSpeedEvent *>(eventPtr.data());
             d_ptr->controlWidget->setCacheSpeed(speedEvent->speed());
         } break;
         case Ffmpeg::PropertyChangeEvent::MediaTrack: {
             d_ptr->resetTrackMenu();
 
-            auto tracksEvent = dynamic_cast<Ffmpeg::MediaTrackEvent *>(eventPtr.data());
+            auto *tracksEvent = dynamic_cast<Ffmpeg::MediaTrackEvent *>(eventPtr.data());
             auto tracks = tracksEvent->tracks();
             for (const auto &track : qAsConst(tracks)) {
                 std::unique_ptr<QAction> actionPtr(new QAction(track.info(), this));
@@ -394,17 +407,17 @@ void MainWindow::onProcessEvents()
                 }
                 switch (track.type) {
                 case AVMEDIA_TYPE_AUDIO: {
-                    auto action = actionPtr.release();
+                    auto *action = actionPtr.release();
                     d_ptr->audioTracksMenuPtr->addAction(action);
                     d_ptr->audioTracksGroup->addAction(action);
                 } break;
                 case AVMEDIA_TYPE_VIDEO: {
-                    auto action = actionPtr.release();
+                    auto *action = actionPtr.release();
                     d_ptr->videoTracksMenuPtr->addAction(action);
                     d_ptr->videoTracksGroup->addAction(action);
                 } break;
                 case AVMEDIA_TYPE_SUBTITLE: {
-                    auto action = actionPtr.release();
+                    auto *action = actionPtr.release();
                     d_ptr->subTracksMenuPtr->addAction(action);
                     d_ptr->subTracksGroup->addAction(action);
                 } break;
@@ -413,7 +426,7 @@ void MainWindow::onProcessEvents()
             }
         } break;
         case Ffmpeg::PropertyChangeEvent::SeekChanged: {
-            auto seekEvent = dynamic_cast<Ffmpeg::SeekChangedEvent *>(eventPtr.data());
+            auto *seekEvent = dynamic_cast<Ffmpeg::SeekChangedEvent *>(eventPtr.data());
             int value = seekEvent->position() * 100 / d_ptr->playerPtr->duration();
             auto text = tr("Seeked To %1 (key frame) / %2 (%3%)")
                             .arg(QTime::fromMSecsSinceStartOfDay(seekEvent->position() / 1000)
@@ -424,7 +437,7 @@ void MainWindow::onProcessEvents()
             d_ptr->setTitleWidgetText(text);
         } break;
         case Ffmpeg::PropertyChangeEvent::Error: {
-            auto errorEvent = dynamic_cast<Ffmpeg::ErrorEvent *>(eventPtr.data());
+            auto *errorEvent = dynamic_cast<Ffmpeg::ErrorEvent *>(eventPtr.data());
             const auto text = tr("Error[%1]:%2.")
                                   .arg(QString::number(errorEvent->error().errorCode()),
                                        errorEvent->error().errorString());
@@ -442,22 +455,22 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
     if (!d_ptr->videoRender.isNull() && watched == d_ptr->videoRender->widget()) {
         switch (event->type()) {
         case QEvent::DragEnter: {
-            auto e = dynamic_cast<QDragEnterEvent *>(event);
+            auto *e = dynamic_cast<QDragEnterEvent *>(event);
             e->acceptProposedAction();
         } break;
         case QEvent::DragMove: {
-            auto e = dynamic_cast<QDragMoveEvent *>(event);
+            auto *e = dynamic_cast<QDragMoveEvent *>(event);
             e->acceptProposedAction();
         } break;
         case QEvent::Drop: {
-            auto e = dynamic_cast<QDropEvent *>(event);
+            auto *e = dynamic_cast<QDropEvent *>(event);
             auto urls = e->mimeData()->urls();
             if (!urls.isEmpty()) {
                 addToPlaylist(urls);
             }
         } break;
         case QEvent::ContextMenu: {
-            auto e = dynamic_cast<QContextMenuEvent *>(event);
+            auto *e = dynamic_cast<QContextMenuEvent *>(event);
             d_ptr->menu->exec(e->globalPos());
         } break;
         case QEvent::MouseButtonDblClick:
@@ -473,7 +486,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
     } else if (watched == d_ptr->playlistView) {
         switch (event->type()) {
         case QEvent::ContextMenu: {
-            auto e = dynamic_cast<QContextMenuEvent *>(event);
+            auto *e = dynamic_cast<QContextMenuEvent *>(event);
             d_ptr->playListMenu->exec(e->globalPos());
         } break;
         default: break;
@@ -484,7 +497,7 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
             d_ptr->controlWidget->show();
             d_ptr->controlWidget->hide();
             auto controlWidgetGeometry = d_ptr->controlWidget->geometry();
-            auto e = dynamic_cast<QHoverEvent *>(event);
+            auto *e = dynamic_cast<QHoverEvent *>(event);
             bool contain = controlWidgetGeometry.contains(e->position().toPoint());
             d_ptr->setControlWidgetVisible(contain);
             if (isFullScreen()) {
@@ -575,6 +588,10 @@ void MainWindow::buildConnect()
                 d_ptr->playlistModel->playlist()->setPlaybackMode(
                     QMediaPlaylist::PlaybackMode(model));
             });
+    connect(d_ptr->controlWidget,
+            &ControlWidget::showColorSpace,
+            this,
+            &MainWindow::onShowColorSpace);
     connect(d_ptr->controlWidget, &ControlWidget::showList, d_ptr->playlistView, [this] {
         d_ptr->playlistView->setVisible(!d_ptr->playlistView->isVisible());
     });
@@ -593,7 +610,7 @@ void MainWindow::initMenu()
     d_ptr->menu->addAction(tr("Open Local Media"), this, &MainWindow::onOpenLocalMedia);
     d_ptr->menu->addAction(tr("Open Web Media"), this, &MainWindow::onOpenWebMedia);
 
-    auto hwAction = new QAction("H/W", this);
+    auto *hwAction = new QAction("H/W", this);
     hwAction->setCheckable(true);
     connect(hwAction, &QAction::toggled, this, [this](bool checked) {
         d_ptr->playerPtr->addEvent(Ffmpeg::EventPtr(new Ffmpeg::GpuEvent(checked)));
@@ -601,14 +618,14 @@ void MainWindow::initMenu()
     hwAction->setChecked(true);
     d_ptr->menu->addAction(hwAction);
 
-    auto widgetAction = new QAction(tr("Widget"), this);
+    auto *widgetAction = new QAction(tr("Widget"), this);
     widgetAction->setCheckable(true);
     widgetAction->setData(Ffmpeg::VideoRenderCreate::Widget);
-    auto openglAction = new QAction(tr("Opengl"), this);
+    auto *openglAction = new QAction(tr("Opengl"), this);
     openglAction->setCheckable(true);
     openglAction->setData(Ffmpeg::VideoRenderCreate::Opengl);
     openglAction->setChecked(true);
-    auto actionGroup = new QActionGroup(this);
+    auto *actionGroup = new QActionGroup(this);
     actionGroup->setExclusive(true);
     actionGroup->addAction(widgetAction);
     actionGroup->addAction(openglAction);
@@ -619,7 +636,7 @@ void MainWindow::initMenu()
             Qt::QueuedConnection);
     openglAction->trigger();
 
-    auto renderMenu = new QMenu(tr("Video Render"), this);
+    auto *renderMenu = new QMenu(tr("Video Render"), this);
     renderMenu->addAction(widgetAction);
     renderMenu->addAction(openglAction);
     d_ptr->menu->addMenu(renderMenu);
@@ -662,7 +679,7 @@ void MainWindow::initPlayListMenu()
 
 void MainWindow::addToPlaylist(const QList<QUrl> &urls)
 {
-    auto playlist = d_ptr->playlistModel->playlist();
+    auto *playlist = d_ptr->playlistModel->playlist();
     const int previousMediaCount = playlist->mediaCount();
     for (auto &url : urls) {
         if (isPlaylist(url)) {

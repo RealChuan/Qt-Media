@@ -26,6 +26,8 @@ set(PROJECT_SOURCES
     subtitle/assdata.hpp
     videorender/openglrender.cc
     videorender/openglrender.hpp
+    videorender/openglshader.cc
+    videorender/openglshader.hpp
     videorender/openglshaderprogram.cc
     videorender/openglshaderprogram.hpp
     videorender/videopreviewwidget.cc

@@ -44,15 +44,15 @@ WidgetRender::WidgetRender(QWidget *parent)
 
 WidgetRender::~WidgetRender() = default;
 
-bool WidgetRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
+auto WidgetRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool
 {
     return d_ptr->supportFormats.contains(pix_fmt);
 }
 
-QSharedPointer<Frame> WidgetRender::convertSupported_pix_fmt(QSharedPointer<Frame> frame)
+auto WidgetRender::convertSupported_pix_fmt(QSharedPointer<Frame> frame) -> QSharedPointer<Frame>
 {
     auto dst_pix_fmt = AV_PIX_FMT_RGB32;
-    auto avframe = frame->avFrame();
+    auto *avframe = frame->avFrame();
     auto size = QSize(avframe->width, avframe->height);
     size.scale(this->size() * devicePixelRatio(), Qt::KeepAspectRatio);
     if (d_ptr->frameConverterPtr.isNull()) {
@@ -60,6 +60,10 @@ QSharedPointer<Frame> WidgetRender::convertSupported_pix_fmt(QSharedPointer<Fram
     } else {
         d_ptr->frameConverterPtr->flush(frame.data(), size, dst_pix_fmt);
     }
+    d_ptr->frameConverterPtr->setColorspaceDetails(frame.data(),
+                                                   m_colorSpaceTrc.brightness,
+                                                   m_colorSpaceTrc.contrast,
+                                                   m_colorSpaceTrc.saturation);
     QSharedPointer<Frame> frameRgbPtr(new Frame);
     frameRgbPtr->imageAlloc(size, dst_pix_fmt);
     d_ptr->frameConverterPtr->scale(frame.data(), frameRgbPtr.data());
@@ -68,7 +72,7 @@ QSharedPointer<Frame> WidgetRender::convertSupported_pix_fmt(QSharedPointer<Fram
     return frameRgbPtr;
 }
 
-QVector<AVPixelFormat> WidgetRender::supportedOutput_pix_fmt()
+auto WidgetRender::supportedOutput_pix_fmt() -> QVector<AVPixelFormat>
 {
     return d_ptr->supportFormats;
 }
@@ -81,7 +85,7 @@ void WidgetRender::resetAllFrame()
     d_ptr->subTitleFramePtr.reset();
 }
 
-QWidget *WidgetRender::widget()
+auto WidgetRender::widget() -> QWidget *
 {
     return this;
 }

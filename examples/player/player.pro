@@ -15,6 +15,7 @@ LIBS += \
 include(../../3rdparty/3rdparty.pri)
 
 SOURCES += \
+    colorspacedialog.cc \
     controlwidget.cc \
     main.cpp \
     mainwindow.cpp \
@@ -27,6 +28,7 @@ SOURCES += \
     titlewidget.cc
 
 HEADERS += \
+    colorspacedialog.hpp \
     controlwidget.hpp \
     mainwindow.h \
     openwebmediadialog.hpp \

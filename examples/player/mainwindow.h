@@ -26,6 +26,8 @@ private slots:
     void playlistPositionChanged(int);
     void jump(const QModelIndex &index);
 
+    void onShowColorSpace();
+
     void onProcessEvents();
 
 protected:

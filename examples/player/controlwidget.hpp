@@ -39,6 +39,7 @@ signals:
     void volumeChanged(int value);
     void speedChanged(double value);
     void modelChanged(int model);
+    void showColorSpace();
     void showList();
 
 private slots:

@@ -9,7 +9,7 @@
 
 ### 需要一个强大的opengl和vulkan yuv渲染模块
 
-1. Opengl中的shader有太多if else导致GPU空跑，影响GPU解码和av_hwframe_transfer_data速度，这个现象在4K视频图像上尤为明显；
+1. Opengl的片段着色器目前支持的图像格式有限；
 2. 在WidgetRender中，尽可能使用QImage::Format_RGB32和QImage::Format_ARGB32_Premultiplied图像格式。如下原因：
    1. Avoid most rendering directly to most of these formats using QPainter. Rendering is best optimized to the Format_RGB32  and Format_ARGB32_Premultiplied formats, and secondarily for rendering to the Format_RGB16, Format_RGBX8888,  Format_RGBA8888_Premultiplied, Format_RGBX64 and Format_RGBA64_Premultiplied formats.
 
@@ -19,20 +19,60 @@
 
 #### 2. 非opengl渲染的情况下，又该怎么样添加filter实现图像补偿？
 
-1. 现在对AVCOL_TRC_SMPTE2084调整了对比度，饱和度，亮度；效果并不是很好。
-2. 如果不调整，就跟ffplay输出图像效果一致，整体颜色偏暗。Netflix的视频，视频开头的N，显示的颜色偏暗黄色。
-
-```bash
-contrast = 1.4;
-saturation = 0.9;
-brightness = 0;
-```
-
-3. 参考[MPV video_shaders](https://github.com/mpv-player/mpv/blob/master/video/out/gpu/video_shaders.c#L341)，效果也不是很好；应该是哪里有遗漏。
+1. 参考[MPV video_shaders](https://github.com/mpv-player/mpv/blob/master/video/out/gpu/video_shaders.c#L341)，效果也不是很好；应该是哪里有遗漏。
 
 ```cpp
 void pass_linearize(struct gl_shader_cache *sc, enum mp_csp_trc trc);
 void pass_delinearize(struct gl_shader_cache *sc, enum mp_csp_trc trc);
+```
+
+2. 在NV12的shader上，参考MPV实现的对SMPTE2084进行图像调整shader
+
+```glsl
+#version 330 core
+
+in vec2 TexCord;    // 纹理坐标
+out vec4 FragColor; // 输出颜色
+
+uniform sampler2D tex_y;
+uniform sampler2D tex_uv;
+
+uniform vec3 offset;
+uniform mat3 colorConversion;
+
+const float PQ_M1 = 2610. / 4096 * 1. / 4, PQ_M2 = 2523. / 4096 * 128, PQ_C1 = 3424. / 4096,
+            PQ_C2 = 2413. / 4096 * 32, PQ_C3 = 2392. / 4096 * 32;
+
+#define MP_REF_WHITE 203.0
+#define MP_REF_WHITE_HLG 3.17955
+
+void main()
+{
+    vec3 yuv;
+    vec3 rgb;
+
+    yuv.x = texture(tex_y, TexCord).r;
+    yuv.yz = texture(tex_uv, TexCord).rg;
+
+    yuv += offset;
+    rgb = yuv * colorConversion;
+
+    vec4 color = vec4(rgb, 1.0);
+    // ------------------
+    color.rgb = clamp(color.rgb, 0.0, 1.0);
+    color.rgb = pow(color.rgb, vec3(1.0 / PQ_M2));
+    color.rgb = max(color.rgb - vec3(PQ_C1), vec3(0.0)) / (vec3(PQ_C2) - vec3(PQ_C3) * color.rgb);
+    color.rgb = pow(color.rgb, vec3(1.0 / PQ_M1));
+    // ------------------
+    color.rgb = clamp(color.rgb, 0.0, 1.0);
+    color.rgb = pow(color.rgb, vec3(PQ_M1));
+    color.rgb = (vec3(PQ_C1) + vec3(PQ_C2) * color.rgb) / (vec3(1.0) + vec3(PQ_C3) * color.rgb);
+    color.rgb = pow(color.rgb, vec3(PQ_M2));
+    // ------------------
+    rgb = color.rgb;
+
+    FragColor = vec4(rgb, 1.0);
+}
 ```
 
 ### OpenGL 渲染图像，怎么实现画质增强的效果？

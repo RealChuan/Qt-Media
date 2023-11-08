@@ -25,6 +25,7 @@ public:
                                  QObject *parent = nullptr);
     ~VideoFrameConverter() override;
 
+    void setColorspaceDetails(Frame *frame, float brightness, float contrast, float saturation);
     void flush(Frame *frame,
                const QSize &dstSize = QSize(-1, -1),
                AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA);

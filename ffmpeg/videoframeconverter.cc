@@ -53,7 +53,7 @@ VideoFrameConverter::VideoFrameConverter(CodecContext *codecCtx,
     : QObject(parent)
     , d_ptr(new VideoFrameConverterPrivate(this))
 {
-    auto ctx = codecCtx->avCodecCtx();
+    auto *ctx = codecCtx->avCodecCtx();
     d_ptr->src_pix_fmt = ctx->pix_fmt;
     d_ptr->dst_pix_fmt = pix_fmt;
     d_ptr->debugMessage();
@@ -89,9 +89,30 @@ VideoFrameConverter::~VideoFrameConverter()
     sws_freeContext(d_ptr->swsContext);
 }
 
+void VideoFrameConverter::setColorspaceDetails(Frame *frame,
+                                               float brightness,
+                                               float contrast,
+                                               float saturation)
+{
+    auto *avFrame = frame->avFrame();
+    int srcRange = 0;
+    switch (avFrame->color_range) {
+    case AVCOL_RANGE_MPEG: srcRange = 0; break;
+    default: srcRange = 1; break;
+    }
+    sws_setColorspaceDetails(d_ptr->swsContext,
+                             sws_getCoefficients(avFrame->colorspace),
+                             srcRange,
+                             sws_getCoefficients(SWS_CS_DEFAULT),
+                             1,
+                             static_cast<int>(brightness * (1 << 16)),
+                             static_cast<int>(contrast * (1 << 16)),
+                             static_cast<int>(saturation * (1 << 16)));
+}
+
 void VideoFrameConverter::flush(Frame *frame, const QSize &dstSize, AVPixelFormat pix_fmt)
 {
-    auto avFrame = frame->avFrame();
+    auto *avFrame = frame->avFrame();
     d_ptr->src_pix_fmt = static_cast<AVPixelFormat>(avFrame->format);
     d_ptr->dst_pix_fmt = pix_fmt;
     d_ptr->debugMessage();
@@ -112,11 +133,11 @@ void VideoFrameConverter::flush(Frame *frame, const QSize &dstSize, AVPixelForma
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 
-int VideoFrameConverter::scale(Frame *in, Frame *out)
+auto VideoFrameConverter::scale(Frame *in, Frame *out) -> int
 {
     Q_ASSERT(d_ptr->swsContext != nullptr);
-    auto inFrame = in->avFrame();
-    auto outFrame = out->avFrame();
+    auto *inFrame = in->avFrame();
+    auto *outFrame = out->avFrame();
     auto ret = sws_scale(d_ptr->swsContext,
                          static_cast<const unsigned char *const *>(inFrame->data),
                          inFrame->linesize,
@@ -136,12 +157,12 @@ int VideoFrameConverter::scale(Frame *in, Frame *out)
     return ret;
 }
 
-bool VideoFrameConverter::isSupportedInput_pix_fmt(AVPixelFormat pix_fmt)
+auto VideoFrameConverter::isSupportedInput_pix_fmt(AVPixelFormat pix_fmt) -> bool
 {
     return sws_isSupportedInput(pix_fmt);
 }
 
-bool VideoFrameConverter::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt)
+auto VideoFrameConverter::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool
 {
     return sws_isSupportedOutput(pix_fmt);
 }

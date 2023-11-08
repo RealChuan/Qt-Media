@@ -1,4 +1,6 @@
 set(PROJECT_SOURCES
+    colorspacedialog.cc
+    colorspacedialog.hpp
     controlwidget.cc
     controlwidget.hpp
     main.cpp

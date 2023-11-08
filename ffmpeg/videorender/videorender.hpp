@@ -3,18 +3,36 @@
 
 #include <ffmpeg/ffmepg_global.h>
 
-#include <QSharedPointer>
+#include <QWidget>
 
 extern "C" {
 #include <libavutil/pixfmt.h>
 }
 
-class QWidget;
-
 namespace Ffmpeg {
 
 class Frame;
 class Subtitle;
+
+struct ColorSpaceTrc
+{
+    auto operator=(const ColorSpaceTrc &other) -> ColorSpaceTrc &;
+
+    const float contrast_min = 0.0;
+    const float contrast_max = 2.0;
+    const float contrast_default = 1.0;
+    float contrast = 1.0;
+
+    const float saturation_min = 0.0;
+    const float saturation_max = 2.0;
+    const float saturation_default = 1.0;
+    float saturation = 1.0;
+
+    const float brightness_min = -1.0;
+    const float brightness_max = 1.0;
+    const float brightness_default = 0.0;
+    float brightness = 0.0;
+};
 
 class FFMPEG_EXPORT VideoRender
 {
@@ -32,6 +50,9 @@ public:
     void setSubTitleFrame(QSharedPointer<Subtitle> framePtr);
     virtual void resetAllFrame() = 0;
 
+    void setColorSpaceTrc(const ColorSpaceTrc &colorTrc) { m_colorSpaceTrc = colorTrc; }
+    auto colorSpaceTrc() const -> ColorSpaceTrc { return m_colorSpaceTrc; }
+
     virtual auto widget() -> QWidget * = 0;
 
     auto fps() -> float;
@@ -41,6 +62,8 @@ protected:
     // may use in anthoer thread, suggest use QMetaObject::invokeMethod(Qt::QueuedConnection)
     virtual void updateFrame(QSharedPointer<Frame> frame) = 0;
     virtual void updateSubTitleFrame(QSharedPointer<Subtitle> frame) = 0;
+
+    ColorSpaceTrc m_colorSpaceTrc;
 
 private:
     class VideoRenderPrivate;

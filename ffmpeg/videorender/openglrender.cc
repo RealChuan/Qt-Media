@@ -1,4 +1,5 @@
 #include "openglrender.hpp"
+#include "openglshader.hpp"
 #include "openglshaderprogram.hpp"
 
 #include <ffmpeg/colorspace.hpp>
@@ -209,21 +210,11 @@ void OpenglRender::setColorSpace()
 
 void OpenglRender::setColorTrc()
 {
-    GLfloat contrast = 1.0;
-    GLfloat saturation = 0;
-    GLfloat brightness = 0;
     auto *avFrame = d_ptr->framePtr->avFrame();
     switch (avFrame->color_trc) {
-    case AVCOL_TRC_SMPTE2084: // fake hdr
-        contrast = 1.4;
-        saturation = 0.9;
-        brightness = 0;
-        break;
+    case AVCOL_TRC_SMPTE2084: break;
     default: break;
     }
-    d_ptr->programPtr->setUniformValue("contrast", contrast);
-    d_ptr->programPtr->setUniformValue("saturation", saturation);
-    d_ptr->programPtr->setUniformValue("brightness", brightness);
 }
 
 auto OpenglRender::fitToScreen(const QSize &size) -> QMatrix4x4
@@ -256,60 +247,8 @@ void OpenglRender::resetShader(int format)
     makeCurrent();
     cleanup();
     d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shader/video.vert");
-    switch (format) {
-    case AV_PIX_FMT_YUV420P:
-    case AV_PIX_FMT_YUV422P:
-    case AV_PIX_FMT_YUV444P:
-    case AV_PIX_FMT_YUV410P:
-    case AV_PIX_FMT_YUV411P:
-        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                                   ":/shader/video_yuv420p.frag");
-        break;
-    case AV_PIX_FMT_YUYV422:
-        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                                   ":/shader/video_yuyv422.frag");
-        break;
-    case AV_PIX_FMT_RGB24:
-    case AV_PIX_FMT_BGR8:
-    case AV_PIX_FMT_RGB8:
-        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                                   ":/shader/video_rgb24.frag");
-        break;
-    case AV_PIX_FMT_BGR24:
-        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                                   ":/shader/video_bgr24.frag");
-        break;
-    case AV_PIX_FMT_UYVY422:
-        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                                   ":/shader/video_uyvy422.frag");
-        break;
-    case AV_PIX_FMT_NV12:
-    case AV_PIX_FMT_P010LE:
-        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                                   ":/shader/video_nv12.frag");
-        break;
-    case AV_PIX_FMT_NV21:
-        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                                   ":/shader/video_nv21.frag");
-        break;
-    case AV_PIX_FMT_ARGB:
-        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                                   ":/shader/video_argb.frag");
-        break;
-    case AV_PIX_FMT_RGBA:
-        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                                   ":/shader/video_rgba.frag");
-        break;
-    case AV_PIX_FMT_ABGR:
-        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                                   ":/shader/video_abgr.frag");
-        break;
-    case AV_PIX_FMT_BGRA:
-        d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Fragment,
-                                                   ":/shader/video_bgra.frag");
-        break;
-    default: break;
-    }
+    OpenglShader shader;
+    d_ptr->programPtr->addShaderFromSourceCode(QOpenGLShader::Fragment, shader.generate(format));
     glBindVertexArray(d_ptr->vao);
     d_ptr->programPtr->link();
     d_ptr->programPtr->bind();
@@ -376,6 +315,9 @@ void OpenglRender::paintVideoFrame()
     }
     d_ptr->programPtr->bind(); // 绑定着色器
     d_ptr->programPtr->setUniformValue("transform", fitToScreen({avFrame->width, avFrame->height}));
+    d_ptr->programPtr->setUniformValue("contrast", m_colorSpaceTrc.contrast);
+    d_ptr->programPtr->setUniformValue("saturation", m_colorSpaceTrc.saturation);
+    d_ptr->programPtr->setUniformValue("brightness", m_colorSpaceTrc.brightness);
     setColorSpace();
     setColorTrc();
     draw();

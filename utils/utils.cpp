@@ -188,7 +188,7 @@ static auto errnoToQString(int error) -> QString
     char msg[128];
     if (strerror_s(msg, sizeof msg, error) != 0)
         return QString::fromLocal8Bit(msg);
-    return QString();
+    return {};
 #else
     return QString::fromLocal8Bit(strerror(error));
 #endif
@@ -238,13 +238,7 @@ auto Utils::convertBytesToString(qint64 bytes) -> QString
 
 QJsonObject Utils::jsonFromFile(const QString &filePath)
 {
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << QObject::tr("Cannot open the file: %1").arg(filePath);
-        return QJsonObject();
-    }
-    const QByteArray buf(file.readAll());
-    file.close();
+    const QByteArray buf(readAllFile(filePath));
     return jsonFromBytes(buf);
 }
 
@@ -255,14 +249,14 @@ QJsonObject Utils::jsonFromBytes(const QByteArray &bytes)
     if (QJsonParseError::NoError != jsonParseError.error) {
         qWarning() << QObject::tr("%1\nOffset: %2")
                           .arg(jsonParseError.errorString(), jsonParseError.offset);
-        return QJsonObject();
+        return {};
     }
     return jsonDocument.object();
 }
 
 void Utils::setGlobalThreadPoolMaxSize(int maxSize)
 {
-    auto instance = QThreadPool::globalInstance();
+    auto *instance = QThreadPool::globalInstance();
     if (maxSize > 0) {
         instance->setMaxThreadCount(maxSize);
         return;
@@ -285,4 +279,16 @@ auto Utils::getConfigPath() -> QString
     //qInfo() << path;
     Utils::generateDirectorys(path);
     return path;
+}
+
+QByteArray Utils::readAllFile(const QString &filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << QObject::tr("Cannot open the file: %1").arg(filePath);
+        return {};
+    }
+    auto buf = file.readAll();
+    file.close();
+    return buf;
 }

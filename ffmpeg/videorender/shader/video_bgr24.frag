@@ -1,14 +1,10 @@
-#version 330 core
-
-in vec2 TexCord;         // 纹理坐标
-out vec4 FragColor;      // 输出颜色
-
-uniform sampler2D tex_y;
-
-uniform vec3 offset;
-uniform mat3 colorConversion;
-
 void main()
 {
-    FragColor = vec4(texture(tex_y, TexCord).bgr, 1);
+    vec3 rgb = texture(tex_y, TexCord).bgr;
+
+    rgb = adjustContrast(rgb, contrast);
+    rgb = adjustSaturation(rgb, saturation);
+    rgb = adjustBrightness(rgb, brightness);
+
+    FragColor = vec4(rgb, 1.0);
 }

@@ -29,7 +29,7 @@ public:
         volumeSlider->setRange(0, 100);
 
         speedCbx = new QComboBox(q_ptr);
-        auto speedCbxView = new QListView(speedCbx);
+        auto *speedCbxView = new QListView(speedCbx);
         speedCbxView->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
         speedCbxView->setTextElideMode(Qt::ElideRight);
         speedCbxView->setAlternatingRowColors(true);
@@ -47,31 +47,38 @@ public:
 
     void setupUI()
     {
-        auto processLayout = new QHBoxLayout;
+        auto *processLayout = new QHBoxLayout;
         processLayout->setSpacing(10);
         processLayout->addWidget(slider);
         processLayout->addWidget(positionLabel);
         processLayout->addWidget(new QLabel("/", q_ptr));
         processLayout->addWidget(durationLabel);
 
-        auto skipBackwardButton = new QToolButton(q_ptr);
+        auto *skipBackwardButton = new QToolButton(q_ptr);
         skipBackwardButton->setToolTip(QObject::tr("Previous"));
         skipBackwardButton->setIcon(q_ptr->style()->standardIcon(QStyle::SP_MediaSkipBackward));
         QObject::connect(skipBackwardButton, &QToolButton::clicked, q_ptr, &ControlWidget::previous);
 
-        auto skipForwardButton = new QToolButton(q_ptr);
+        auto *skipForwardButton = new QToolButton(q_ptr);
         skipForwardButton->setToolTip(QObject::tr("Next"));
         skipForwardButton->setIcon(q_ptr->style()->standardIcon(QStyle::SP_MediaSkipForward));
         QObject::connect(skipForwardButton, &QToolButton::clicked, q_ptr, &ControlWidget::next);
 
-        auto volumeBotton = new QToolButton(q_ptr);
+        auto *volumeBotton = new QToolButton(q_ptr);
         volumeBotton->setIcon(q_ptr->style()->standardIcon(QStyle::SP_MediaVolume));
 
-        auto listButton = new QToolButton(q_ptr);
+        auto *colorSpaceButton = new QToolButton(q_ptr);
+        colorSpaceButton->setText(tr("Color Space"));
+        QObject::connect(colorSpaceButton,
+                         &QToolButton::clicked,
+                         q_ptr,
+                         &ControlWidget::showColorSpace);
+
+        auto *listButton = new QToolButton(q_ptr);
         listButton->setText(tr("List"));
         QObject::connect(listButton, &QToolButton::clicked, q_ptr, &ControlWidget::showList);
 
-        auto controlLayout = new QHBoxLayout;
+        auto *controlLayout = new QHBoxLayout;
         controlLayout->setSpacing(10);
         controlLayout->addWidget(skipBackwardButton);
         controlLayout->addWidget(playButton);
@@ -86,18 +93,19 @@ public:
         controlLayout->addWidget(new QLabel("->", q_ptr));
         controlLayout->addWidget(currentFPSLabel);
         controlLayout->addWidget(modelButton);
+        controlLayout->addWidget(colorSpaceButton);
         controlLayout->addWidget(listButton);
 
-        auto widget = new QWidget(q_ptr);
+        auto *widget = new QWidget(q_ptr);
         widget->setObjectName("wid");
         widget->setStyleSheet("QWidget#wid{background: rgba(255,255,255,0.3); border-radius:5px;}"
                               "QLabel{ color: white; }");
-        auto layout = new QVBoxLayout(widget);
+        auto *layout = new QVBoxLayout(widget);
         layout->setSpacing(15);
         layout->addLayout(processLayout);
         layout->addLayout(controlLayout);
 
-        auto l = new QHBoxLayout(q_ptr);
+        auto *l = new QHBoxLayout(q_ptr);
         l->addWidget(widget);
     }
 
@@ -237,7 +245,7 @@ void ControlWidget::onModelChanged()
     if (model > QMediaPlaylist::Random) {
         model = QMediaPlaylist::CurrentItemOnce;
     }
-    auto text = metaEnum.valueToKey(model);
+    const auto *text = metaEnum.valueToKey(model);
     d_ptr->modelButton->setText(text);
     d_ptr->modelButton->setToolTip(text);
     d_ptr->modelButton->setProperty("model", model);
