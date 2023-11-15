@@ -11,7 +11,7 @@ public:
     explicit OpenglShader(QObject *parent = nullptr);
     ~OpenglShader() override;
 
-    QByteArray generate(int format);
+    auto generate(int format) -> QByteArray;
 
 private:
     class OpenglShaderPrivate;

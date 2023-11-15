@@ -48,7 +48,6 @@ private:
 
     void paintVideoFrame();
     void paintSubTitleFrame();
-    void setColorSpace();
     void setColorTrc();
 
     void updateYUV420P();

@@ -1,18 +1,18 @@
 void main()
 {
     vec3 yuv;
-    vec3 rgb;
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
 
     yuv.x = texture(tex_y, TexCord).r;
     yuv.y = texture(tex_u, TexCord).r;
     yuv.z = texture(tex_v, TexCord).r;
 
     yuv += offset;
-    rgb = yuv * colorConversion;
+    color.rgb = yuv * colorConversion;
 
-    rgb = adjustContrast(rgb, contrast);
-    rgb = adjustSaturation(rgb, saturation);
-    rgb = adjustBrightness(rgb, brightness);
+    color.rgb = adjustContrast(color.rgb, contrast);
+    color.rgb = adjustSaturation(color.rgb, saturation);
+    color.rgb = adjustBrightness(color.rgb, brightness);
 
-    FragColor = vec4(rgb, 1.0);
+    FragColor = color;
 }

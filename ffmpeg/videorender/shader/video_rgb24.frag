@@ -1,10 +1,11 @@
 void main()
 {
-    vec3 rgb = texture(tex_y, TexCord).rgb;
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+    color.rgb = texture(tex_y, TexCord).rgb;
 
-    rgb = adjustContrast(rgb, contrast);
-    rgb = adjustSaturation(rgb, saturation);
-    rgb = adjustBrightness(rgb, brightness);
+    color.rgb = adjustContrast(color.rgb, contrast);
+    color.rgb = adjustSaturation(color.rgb, saturation);
+    color.rgb = adjustBrightness(color.rgb, brightness);
 
-    FragColor = vec4(rgb, 1.0);
+    FragColor = color;
 }

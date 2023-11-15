@@ -21,59 +21,47 @@
 
 1. 参考[MPV video_shaders](https://github.com/mpv-player/mpv/blob/master/video/out/gpu/video_shaders.c#L341)，效果也不是很好；应该是哪里有遗漏。
 
-```cpp
-void pass_linearize(struct gl_shader_cache *sc, enum mp_csp_trc trc);
-void pass_delinearize(struct gl_shader_cache *sc, enum mp_csp_trc trc);
-```
+2. MPV的shader生成方式：
 
-2. 在NV12的shader上，参考MPV实现的对SMPTE2084进行图像调整shader
+    1. 根据`AVColorTransferCharacteristic`进行gamma、PQ或者HLG等等的调整，OETF；
 
-```glsl
-#version 330 core
+        ```cpp
+        void pass_linearize(struct gl_shader_cache *sc, enum mp_csp_trc trc);
+        ```
 
-in vec2 TexCord;    // 纹理坐标
-out vec4 FragColor; // 输出颜色
+        ```glsl
+        color.rgb = clamp(color.rgb, 0.0, 1.0);
+        color.rgb = pow(color.rgb, vec3(1.0 / PQ_M2));
+        color.rgb = max(color.rgb - vec3(PQ_C1), vec3(0.0)) / (vec3(PQ_C2) - vec3(PQ_C3) * color.rgb);
+        color.rgb = pow(color.rgb, vec3(1.0 / PQ_M1));
+        ```
 
-uniform sampler2D tex_y;
-uniform sampler2D tex_uv;
+    2. 色调映射，tone mapping；
 
-uniform vec3 offset;
-uniform mat3 colorConversion;
+        ```cpp
+        static void pass_tone_map(struct gl_shader_cache *sc,
+                          float src_peak, float dst_peak,
+                          const struct gl_tone_map_opts*opts);
+        ```
 
-const float PQ_M1 = 2610. / 4096 * 1. / 4, PQ_M2 = 2523. / 4096 * 128, PQ_C1 = 3424. / 4096,
-            PQ_C2 = 2413. / 4096 * 32, PQ_C3 = 2392. / 4096 * 32;
+    3. 根据`AVColorTransferCharacteristic`进行gamma、PQ或者HLG等等的调整，EOTF;
 
-#define MP_REF_WHITE 203.0
-#define MP_REF_WHITE_HLG 3.17955
+        ```cpp
+        void pass_delinearize(struct gl_shader_cache *sc, enum mp_csp_trc trc);
+        ```
 
-void main()
-{
-    vec3 yuv;
-    vec3 rgb;
+        ```glsl
+        color.rgb = clamp(color.rgb, 0.0, 1.0);
+        color.rgb = pow(color.rgb, vec3(PQ_M1));
+        color.rgb = (vec3(PQ_C1) + vec3(PQ_C2) * color.rgb) / (vec3(1.0) + vec3(PQ_C3) * color.rgb);
+        color.rgb = pow(color.rgb, vec3(PQ_M2));
+        ```
 
-    yuv.x = texture(tex_y, TexCord).r;
-    yuv.yz = texture(tex_uv, TexCord).rg;
+3. MPV生成得到yuv -> RGB转换矩阵的系数；
 
-    yuv += offset;
-    rgb = yuv * colorConversion;
-
-    vec4 color = vec4(rgb, 1.0);
-    // ------------------
-    color.rgb = clamp(color.rgb, 0.0, 1.0);
-    color.rgb = pow(color.rgb, vec3(1.0 / PQ_M2));
-    color.rgb = max(color.rgb - vec3(PQ_C1), vec3(0.0)) / (vec3(PQ_C2) - vec3(PQ_C3) * color.rgb);
-    color.rgb = pow(color.rgb, vec3(1.0 / PQ_M1));
-    // ------------------
-    color.rgb = clamp(color.rgb, 0.0, 1.0);
-    color.rgb = pow(color.rgb, vec3(PQ_M1));
-    color.rgb = (vec3(PQ_C1) + vec3(PQ_C2) * color.rgb) / (vec3(1.0) + vec3(PQ_C3) * color.rgb);
-    color.rgb = pow(color.rgb, vec3(PQ_M2));
-    // ------------------
-    rgb = color.rgb;
-
-    FragColor = vec4(rgb, 1.0);
-}
-```
+    ```cpp
+    void mp_get_csp_matrix(struct mp_csp_params *params, struct mp_cmat *m);
+    ```
 
 ### OpenGL 渲染图像，怎么实现画质增强的效果？
 

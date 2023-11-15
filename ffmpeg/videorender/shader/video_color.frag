@@ -8,7 +8,8 @@ vec3 adjustBrightness(vec3 rgb, float brightness) // 调整亮度
     return clamp(rgb + brightness, 0.0, 1.0);
 }
 
-vec3 adjustContrast(vec3 rgb, float contrast) // 调整对比度 和使用sws_setColorspaceDetails效果不太一样
+// 调整对比度 和使用sws_setColorspaceDetails效果不太一样
+vec3 adjustContrast(vec3 rgb, float contrast)
 {
     contrast = clamp(contrast, 0.0, 2.0);
     vec3 contrastColor = (rgb - vec3(0.5)) * contrast + vec3(0.5);

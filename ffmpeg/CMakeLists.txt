@@ -56,6 +56,7 @@ set(PROJECT_SOURCES
     clock.hpp
     codeccontext.cpp
     codeccontext.h
+    colorspace.cc
     colorspace.hpp
     decoder.cc
     decoder.h

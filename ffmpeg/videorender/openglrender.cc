@@ -182,32 +182,6 @@ void OpenglRender::initSubTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-void OpenglRender::setColorSpace()
-{
-    auto *avFrame = d_ptr->framePtr->avFrame();
-    switch (avFrame->colorspace) {
-    case AVCOL_SPC_BT470BG:
-    case AVCOL_SPC_SMPTE170M:
-        d_ptr->programPtr->setUniformValue("offset", ColorSpace::kBT601Offset);
-        d_ptr->programPtr->setUniformValue("colorConversion",
-                                           QMatrix3x3(ColorSpace::kBT601Matrix.data()));
-        break;
-    case AVCOL_SPC_BT2020_NCL:
-    case AVCOL_SPC_BT2020_CL:
-        d_ptr->programPtr->setUniformValue("offset", ColorSpace::kBT2020ffset);
-        d_ptr->programPtr->setUniformValue("colorConversion",
-                                           QMatrix3x3(ColorSpace::kBT2020Matrix.data()));
-
-        break;
-    //case AVCOL_SPC_BT709:
-    default:
-        d_ptr->programPtr->setUniformValue("offset", ColorSpace::kBT7090ffset);
-        d_ptr->programPtr->setUniformValue("colorConversion",
-                                           QMatrix3x3(ColorSpace::kBT709Matrix.data()));
-        break;
-    }
-}
-
 void OpenglRender::setColorTrc()
 {
     auto *avFrame = d_ptr->framePtr->avFrame();
@@ -318,7 +292,9 @@ void OpenglRender::paintVideoFrame()
     d_ptr->programPtr->setUniformValue("contrast", m_colorSpaceTrc.contrast);
     d_ptr->programPtr->setUniformValue("saturation", m_colorSpaceTrc.saturation);
     d_ptr->programPtr->setUniformValue("brightness", m_colorSpaceTrc.brightness);
-    setColorSpace();
+    auto param = Ffmpeg::ColorSpace::getYuvToRgbParam(d_ptr->framePtr.data());
+    d_ptr->programPtr->setUniformValue("offset", param.offset);
+    d_ptr->programPtr->setUniformValue("colorConversion", param.matrix);
     setColorTrc();
     draw();
     d_ptr->programPtr->release();

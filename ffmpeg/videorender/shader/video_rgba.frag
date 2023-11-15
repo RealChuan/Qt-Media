@@ -1,6 +1,6 @@
 void main()
 {
-    FragColor = texture(tex_y, TexCord).rgba;
+    vec4 color = texture(tex_y, TexCord).rgba;
 
     color.rgb = adjustContrast(color.rgb, contrast);
     color.rgb = adjustSaturation(color.rgb, saturation);

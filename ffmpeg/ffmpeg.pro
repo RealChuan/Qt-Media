@@ -24,6 +24,7 @@ SOURCES += \
     averrormanager.cc \
     clock.cc \
     codeccontext.cpp \
+    colorspace.cc \
     decoder.cc \
     ffmpegutils.cc \
     formatcontext.cpp \
