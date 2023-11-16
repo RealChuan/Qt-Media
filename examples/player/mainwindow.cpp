@@ -218,7 +218,7 @@ MainWindow::MainWindow(QWidget *parent)
     d_ptr->playlistView->installEventFilter(this);
     installEventFilter(this);
 
-    resize(1000, 650);
+    resize(1100, 680);
 }
 
 MainWindow::~MainWindow()

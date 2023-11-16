@@ -41,14 +41,13 @@ private:
     void initSubTexture();
     auto fitToScreen(const QSize &size) -> QMatrix4x4;
     void cleanup();
-    void resetShader(int format);
+    void resetShader(Frame *frame);
 
     void onUpdateFrame(const QSharedPointer<Frame> &framePtr);
     void onUpdateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr);
 
     void paintVideoFrame();
     void paintSubTitleFrame();
-    void setColorTrc();
 
     void updateYUV420P();
     void updateYUYV422();

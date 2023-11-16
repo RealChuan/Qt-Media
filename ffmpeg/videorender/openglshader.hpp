@@ -5,13 +5,14 @@
 
 namespace Ffmpeg {
 
+class Frame;
 class OpenglShader : public QObject
 {
 public:
     explicit OpenglShader(QObject *parent = nullptr);
     ~OpenglShader() override;
 
-    auto generate(int format) -> QByteArray;
+    auto generate(Frame *frame) -> QByteArray;
 
 private:
     class OpenglShaderPrivate;

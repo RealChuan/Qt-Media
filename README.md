@@ -63,6 +63,19 @@
     void mp_get_csp_matrix(struct mp_csp_params *params, struct mp_cmat *m);
     ```
 
+4. HDR metadata获取
+
+    ```cpp
+    AVFrameSideData *mdm = av_frame_get_side_data(src, AV_FRAME_DATA_MASTERING_DISPLAY_METADATA);
+    AVFrameSideData *clm = av_frame_get_side_data(src, AV_FRAME_DATA_CONTENT_LIGHT_LEVEL);
+    AVFrameSideData *dhp = av_frame_get_side_data(src, AV_FRAME_DATA_DYNAMIC_HDR_PLUS);
+    pl_map_hdr_metadata(&dst->params.color.hdr, &(struct pl_av_hdr_metadata) {
+        .mdm = (void *)(mdm ? mdm->data : NULL),
+        .clm = (void *)(clm ? clm->data : NULL),
+        .dhp = (void *)(dhp ? dhp->data : NULL),
+    });
+    ```
+
 ### OpenGL 渲染图像，怎么实现画质增强的效果？
 
 ### Ffmpeg（5.0）在解码字幕与4.4.3不太一样

@@ -182,15 +182,6 @@ void OpenglRender::initSubTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-void OpenglRender::setColorTrc()
-{
-    auto *avFrame = d_ptr->framePtr->avFrame();
-    switch (avFrame->color_trc) {
-    case AVCOL_TRC_SMPTE2084: break;
-    default: break;
-    }
-}
-
 auto OpenglRender::fitToScreen(const QSize &size) -> QMatrix4x4
 {
     auto factor_w = static_cast<qreal>(width()) / size.width();
@@ -216,13 +207,13 @@ void OpenglRender::cleanup()
     }
 }
 
-void OpenglRender::resetShader(int format)
+void OpenglRender::resetShader(Frame *frame)
 {
     makeCurrent();
     cleanup();
     d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shader/video.vert");
     OpenglShader shader;
-    d_ptr->programPtr->addShaderFromSourceCode(QOpenGLShader::Fragment, shader.generate(format));
+    d_ptr->programPtr->addShaderFromSourceCode(QOpenGLShader::Fragment, shader.generate(frame));
     glBindVertexArray(d_ptr->vao);
     d_ptr->programPtr->link();
     d_ptr->programPtr->bind();
@@ -239,7 +230,7 @@ void OpenglRender::onUpdateFrame(const QSharedPointer<Frame> &framePtr)
 {
     if (d_ptr->framePtr.isNull()
         || d_ptr->framePtr->avFrame()->format != framePtr->avFrame()->format) {
-        resetShader(framePtr->avFrame()->format);
+        resetShader(framePtr.data());
         d_ptr->frameChanged = true;
     } else if (d_ptr->framePtr->avFrame()->width != framePtr->avFrame()->width
                || d_ptr->framePtr->avFrame()->height != framePtr->avFrame()->height) {
@@ -295,7 +286,6 @@ void OpenglRender::paintVideoFrame()
     auto param = Ffmpeg::ColorSpace::getYuvToRgbParam(d_ptr->framePtr.data());
     d_ptr->programPtr->setUniformValue("offset", param.offset);
     d_ptr->programPtr->setUniformValue("colorConversion", param.matrix);
-    setColorTrc();
     draw();
     d_ptr->programPtr->release();
     d_ptr->frameChanged = false;

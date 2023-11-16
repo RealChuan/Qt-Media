@@ -8,14 +8,8 @@
         <file>shader/video_nv12.frag</file>
         <file>shader/video_yuv420p.frag</file>
         <file>shader/video_yuyv422.frag</file>
-        <file>shader/video_rgb24.frag</file>
-        <file>shader/video_bgr24.frag</file>
         <file>shader/video_uyvy422.frag</file>
         <file>shader/video_nv21.frag</file>
-        <file>shader/video_argb.frag</file>
-        <file>shader/video_rgba.frag</file>
-        <file>shader/video_abgr.frag</file>
-        <file>shader/video_bgra.frag</file>
         <file>shader/video_color.frag</file>
         <file>shader/video_header.frag</file>
         <file>shader/video_p010le.frag</file>

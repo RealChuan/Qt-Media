@@ -30,6 +30,8 @@ set(PROJECT_SOURCES
     videorender/openglshader.hpp
     videorender/openglshaderprogram.cc
     videorender/openglshaderprogram.hpp
+    videorender/shaderutils.cc
+    videorender/shaderutils.hpp
     videorender/videopreviewwidget.cc
     videorender/videopreviewwidget.hpp
     videorender/videorender.cc
