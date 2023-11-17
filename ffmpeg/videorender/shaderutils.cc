@@ -4,11 +4,6 @@
 
 #include <utils/utils.h>
 
-extern "C" {
-#include <libavutil/hdr_dynamic_metadata.h>
-#include <libavutil/mastering_display_metadata.h>
-}
-
 namespace Ffmpeg::ShaderUtils {
 
 // Common constants for SMPTE ST.2084 (HDR)
@@ -34,12 +29,11 @@ auto trcIsHdr(AVColorTransferCharacteristic colortTrc) -> bool
 
 auto header() -> QByteArray
 {
-    auto frag = Utils::readAllFile(":/shader/video_header.frag");
-    frag.append(GLSL(\n));
-    frag.append(Utils::readAllFile(":/shader/video_color.frag"));
-    frag.append(GLSL(\nvoid main()\n));
-    frag.append("{\n");
-    return frag;
+    auto header = Utils::readAllFile(":/shader/video_header.frag");
+    header.append(GLSL(\n));
+    header.append(Utils::readAllFile(":/shader/video_color.frag"));
+    header.append(GLSL(\n));
+    return header;
 }
 
 auto beginFragment(QByteArray &frag, int format) -> bool
@@ -71,6 +65,7 @@ auto beginFragment(QByteArray &frag, int format) -> bool
     case AV_PIX_FMT_BGRA: frag.append(GLSL(vec4 color = texture(tex_y, TexCord).bgra;\n)); break;
     default: qWarning() << "UnSupported format:" << format; return false;
     }
+    frag.append(GLSL(\n));
     return true;
 }
 
@@ -104,7 +99,7 @@ void passLinearize(QByteArray &frag, AVColorTransferCharacteristic colortTrc)
         temp.append(QString("color.rgb = pow(color.rgb, vec3(%1));\n").arg(1.0 / PQ_M1));
         // PQ's output range is 0-10000, but we need it to be relative to
         // MP_REF_WHITE instead, so rescale
-        temp.append(QString("color.rgb *= vec3(%1);\n").arg(10000 / MP_REF_WHITE));
+        temp.append(QString("color.rgb *= vec3(%1);\n").arg(10000.0 / MP_REF_WHITE));
         frag.append(temp.toUtf8());
     } break;
     case AVCOL_TRC_SMPTE428:
@@ -155,7 +150,7 @@ void passDeLinearize(QByteArray &frag, AVColorTransferCharacteristic colortTrc)
                     "               vec3(lessThanEqual(vec3(0.0031308), color.rgb)));\n");
         break;
     case AVCOL_TRC_SMPTEST2084: {
-        auto temp = QString("color.rgb *= vec3(1.0/%1);\n").arg(10000 / MP_REF_WHITE);
+        auto temp = QString("color.rgb *= vec3(1.0/%1);\n").arg(10000.0 / MP_REF_WHITE);
         temp.append(QString("color.rgb = pow(color.rgb, vec3(%1));\n").arg(PQ_M1));
         temp.append(
             QString("color.rgb = (vec3(%1) + vec3(%2) * color.rgb) \n"
@@ -180,26 +175,8 @@ void passDeLinearize(QByteArray &frag, AVColorTransferCharacteristic colortTrc)
     }
 }
 
-void toneMap(QByteArray &frag, AVFrame *avFrame)
+void toneMap(QByteArray &header, QByteArray &frag)
 {
-    // PL_LIBAV_API void pl_map_hdr_metadata(struct pl_hdr_metadata * out,
-    //                                       const struct pl_av_hdr_metadata *data)
-    auto *mdm = av_frame_get_side_data(avFrame, AV_FRAME_DATA_MASTERING_DISPLAY_METADATA);
-    auto *clm = av_frame_get_side_data(avFrame, AV_FRAME_DATA_CONTENT_LIGHT_LEVEL);
-    auto *dhp = av_frame_get_side_data(avFrame, AV_FRAME_DATA_DYNAMIC_HDR_PLUS);
-
-    if (mdm) {
-        auto *mdmPtr = reinterpret_cast<AVMasteringDisplayMetadata *>(mdm);
-    }
-
-    if (clm) {
-        auto *clmPtr = reinterpret_cast<AVContentLightMetadata *>(clm);
-    }
-
-    if (dhp) {
-        auto *dhpPtr = reinterpret_cast<AVDynamicHDRPlus *>(dhp);
-    }
-
     // Kodi
     // https://github.com/xbmc/xbmc/blob/1e499e091f7950c70366d64ab2d8c4f3a18cfbfa/system/shaders/GL/1.5/gl_tonemap.glsl#L4
     // MPV
@@ -207,6 +184,12 @@ void toneMap(QByteArray &frag, AVFrame *avFrame)
     //                           float src_peak,
     //                           float dst_peak,
     //                           const struct gl_tone_map_opts *opts)
+
+    // https://github.com/64/64.github.io/blob/src/code/tonemapping/tonemap.cpp#L40
+
+    // header.append(Utils::readAllFile(":/shader/tonemap.frag"));
+    // frag.append("\n// pass tone map\n");
+    // frag.append(GLSL(color.rgb = uncharted2_filmic(color.rgb);\n));
 }
 
 void finishFragment(QByteArray &frag)
@@ -216,12 +199,61 @@ void finishFragment(QByteArray &frag)
     frag.append(GLSL(color.rgb = adjustSaturation(color.rgb, saturation);\n));
     frag.append(GLSL(color.rgb = adjustBrightness(color.rgb, brightness);\n));
     frag.append(GLSL(FragColor = color;\n));
-    frag.append("}\n");
 }
 
 void printShader(const QByteArray &frag)
 {
     qInfo().noquote() << "Video fragment shader:\n" << frag;
+}
+
+void passGama(QByteArray &frag, AVColorTransferCharacteristic colortTrc)
+{
+    frag.append("\n// pass gama\n");
+    auto temp = QString("color.rgb *= vec3(%1);\n").arg(trcNomPeak(colortTrc));
+    frag.append(temp.toUtf8());
+}
+
+void passDeGama(QByteArray &frag, AVColorTransferCharacteristic colortTrc)
+{
+    frag.append("\n// pass de gamma\n");
+    float dstMaxLuma = trcNomPeak(colortTrc) * MP_REF_WHITE;
+    float dst_range = dstMaxLuma / MP_REF_WHITE;
+    if (trcIsHdr(colortTrc)) {
+        dst_range = trcNomPeak(colortTrc);
+    }
+    auto temp = QString("color.rgb *= vec3(%1);\n").arg(1.0 / dst_range);
+    frag.append(temp.toUtf8());
+}
+
+void passOotf(QByteArray &frag, float peak, AVColorTransferCharacteristic colortTrc)
+{
+    frag.append("\n// pass ootf\n");
+    switch (colortTrc) {
+    case AVCOL_TRC_ARIB_STD_B67: {
+        float gamma = qMax(1.0, 1.2 + 0.42 * log10(peak * MP_REF_WHITE / 1000.0));
+        auto temp = QString("color.rgb *= vec3(%1 * pow(dot(src_luma, color.rgb), %2));\n")
+                        .arg(QString::number(peak / qPow(12.0 / MP_REF_WHITE_HLG, gamma)),
+                             QString::number(gamma - 1.0));
+        frag.append(temp.toUtf8());
+    } break;
+    default: break;
+    }
+}
+
+void passInverseOotf(QByteArray &frag, float peak, AVColorTransferCharacteristic colortTrc)
+{
+    frag.append("\n// pass inverse ootf\n");
+    switch (colortTrc) {
+    case AVCOL_TRC_ARIB_STD_B67: {
+        float gamma = qMax(1.0, 1.2 + 0.42 * log10(peak * MP_REF_WHITE / 1000.0));
+        auto temp = QString("color.rgb *= vec3(1.0/%1);\n")
+                        .arg(peak / qPow(12.0 / MP_REF_WHITE_HLG, gamma));
+        temp.append(QString("color.rgb /= vec3(max(1e-6, pow(dot(src_luma, color.rgb), %1)));\n")
+                        .arg((gamma - 1.0) / gamma));
+        frag.append(temp.toUtf8());
+    } break;
+    default: break;
+    }
 }
 
 } // namespace Ffmpeg::ShaderUtils

@@ -69,6 +69,8 @@ set(PROJECT_SOURCES
     formatcontext.h
     frame.cc
     frame.hpp
+    hdrmetadata.cc
+    hdrmetadata.hpp
     mediainfo.cc
     mediainfo.hpp
     packet.cpp

@@ -13,5 +13,6 @@
         <file>shader/video_color.frag</file>
         <file>shader/video_header.frag</file>
         <file>shader/video_p010le.frag</file>
+        <file>shader/tonemap.frag</file>
     </qresource>
 </RCC>

@@ -29,6 +29,7 @@ SOURCES += \
     ffmpegutils.cc \
     formatcontext.cpp \
     frame.cc \
+    hdrmetadata.cc \
     mediainfo.cc \
     packet.cpp \
     player.cpp \
@@ -57,6 +58,7 @@ HEADERS += \
     ffmpegutils.hpp \
     formatcontext.h \
     frame.hpp \
+    hdrmetadata.hpp \
     mediainfo.hpp \
     packet.h \
     player.h \

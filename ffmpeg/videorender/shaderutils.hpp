@@ -28,7 +28,15 @@ void passLinearize(QByteArray &frag, AVColorTransferCharacteristic colortTrc);
 
 void passDeLinearize(QByteArray &frag, AVColorTransferCharacteristic colortTrc);
 
-void toneMap(QByteArray &frag, AVFrame *avFrame);
+void passGama(QByteArray &frag, AVColorTransferCharacteristic colortTrc);
+
+void passDeGama(QByteArray &frag, AVColorTransferCharacteristic srcColortTrc);
+
+void passOotf(QByteArray &frag, float peak, AVColorTransferCharacteristic colortTrc);
+
+void passInverseOotf(QByteArray &frag, float peak, AVColorTransferCharacteristic colortTrc);
+
+void toneMap(QByteArray &header, QByteArray &frag);
 
 void finishFragment(QByteArray &frag);
 
