@@ -36,8 +36,6 @@ void passOotf(QByteArray &frag, float peak, AVColorTransferCharacteristic colort
 
 void passInverseOotf(QByteArray &frag, float peak, AVColorTransferCharacteristic colortTrc);
 
-void toneMap(QByteArray &header, QByteArray &frag);
-
 void finishFragment(QByteArray &frag);
 
 void printShader(const QByteArray &frag);

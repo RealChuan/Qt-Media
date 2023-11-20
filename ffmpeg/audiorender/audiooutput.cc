@@ -14,7 +14,7 @@ namespace Ffmpeg {
 void printAudioOuputDevice()
 {
     const auto audioDevices = QMediaDevices::audioOutputs();
-    for (const QAudioDevice &audioDevice : qAsConst(audioDevices)) {
+    for (const QAudioDevice &audioDevice : std::as_const(audioDevices)) {
         qDebug() << audioDevice.id() << audioDevice.description() << audioDevice.isDefault();
     }
 }

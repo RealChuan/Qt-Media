@@ -14,6 +14,22 @@ vec3 lerp(vec3 a, vec3 b, vec3 t)
     return vec3(lerp(a.x, b.x, t.x), lerp(a.y, b.y, t.y), lerp(a.z, b.z, t.z));
 }
 
+vec3 mul(const mat3 m, const vec3 v)
+{
+    vec3 result;
+    result.x = dot(m[0], v);
+    result.y = dot(m[1], v);
+    result.z = dot(m[2], v);
+    return result;
+}
+
+vec3 rtt_and_odt_fit(vec3 v)
+{
+    vec3 a = v * (v + vec3(0.0245786)) - vec3(0.000090537);
+    vec3 b = v * (vec3(0.983729) * v + vec3(0.4329510)) + vec3(0.238081);
+    return a / b;
+}
+
 vec3 reinhard(vec3 color)
 {
     return color / (color + vec3(1.0));
@@ -50,6 +66,31 @@ vec3 aces(vec3 color)
 {
     color = color * (color + 0.0245786) / (color * (0.983729 * color + 0.4329510) + 0.238081);
     return pow(color, vec3(1.0 / 2.2));
+}
+
+vec3 aces_fitted(vec3 v)
+{
+    const mat3 aces_input_matrix = mat3(vec3(0.59719, 0.35458, 0.04823),
+                                        vec3(0.07600, 0.90834, 0.01566),
+                                        vec3(0.02840, 0.13383, 0.83777));
+
+    const mat3 aces_output_matrix = mat3(vec3(1.60475, -0.53108, -0.07367),
+                                         vec3(-0.10208, 1.10813, -0.00605),
+                                         vec3(-0.00327, -0.07276, 1.07602));
+    v = mul(aces_input_matrix, v);
+    v = rtt_and_odt_fit(v);
+    return mul(aces_output_matrix, v);
+}
+
+vec3 aces_approx(vec3 v)
+{
+    v *= 0.6;
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    return clamp((v * (a * v + b)) / (v * (c * v + d) + e), 0.0, 1.0);
 }
 
 vec3 filmic(vec3 color)

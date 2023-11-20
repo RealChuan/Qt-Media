@@ -67,7 +67,7 @@ void SubtitleThread::run()
     formatCtxPtr->seekFirstFrame();
     auto tracks = formatCtxPtr->subtitleTracks();
     QVector<int> indexs;
-    for (const auto &track : qAsConst(tracks)) {
+    for (const auto &track : std::as_const(tracks)) {
         indexs.append(track.index);
     }
 
@@ -113,7 +113,7 @@ void SubtitleThread::run()
         }
         subtitlePtr->parse(nullptr);
         auto tests = subtitlePtr->texts();
-        for (const auto &test : qAsConst(tests)) {
+        for (const auto &test : std::as_const(tests)) {
             qInfo() << QString::fromUtf8(test);
         }
         sleep(1);

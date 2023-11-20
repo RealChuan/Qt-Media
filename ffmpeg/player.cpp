@@ -127,7 +127,7 @@ public:
         }
 
         const auto attachmentTracks = formatCtx->attachmentTracks();
-        for (const auto &track : qAsConst(subtitleTracks)) {
+        for (const auto &track : std::as_const(subtitleTracks)) {
             if (!track.selected) {
                 continue;
             }

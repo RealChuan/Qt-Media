@@ -1,7 +1,7 @@
 #ifndef OPENGLSHADER_HPP
 #define OPENGLSHADER_HPP
 
-#include <QObject>
+#include "tonemap.hpp"
 
 namespace Ffmpeg {
 
@@ -12,7 +12,7 @@ public:
     explicit OpenglShader(QObject *parent = nullptr);
     ~OpenglShader() override;
 
-    auto generate(Frame *frame) -> QByteArray;
+    auto generate(Frame *frame, Tonemap::Type type = Tonemap::Type::NONE) -> QByteArray;
 
 private:
     class OpenglShaderPrivate;

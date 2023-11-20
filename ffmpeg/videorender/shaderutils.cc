@@ -175,23 +175,6 @@ void passDeLinearize(QByteArray &frag, AVColorTransferCharacteristic colortTrc)
     }
 }
 
-void toneMap(QByteArray &header, QByteArray &frag)
-{
-    // Kodi
-    // https://github.com/xbmc/xbmc/blob/1e499e091f7950c70366d64ab2d8c4f3a18cfbfa/system/shaders/GL/1.5/gl_tonemap.glsl#L4
-    // MPV
-    // static void pass_tone_map(struct gl_shader_cache *sc,
-    //                           float src_peak,
-    //                           float dst_peak,
-    //                           const struct gl_tone_map_opts *opts)
-
-    // https://github.com/64/64.github.io/blob/src/code/tonemapping/tonemap.cpp#L40
-
-    // header.append(Utils::readAllFile(":/shader/tonemap.frag"));
-    // frag.append("\n// pass tone map\n");
-    // frag.append(GLSL(color.rgb = uncharted2_filmic(color.rgb);\n));
-}
-
 void finishFragment(QByteArray &frag)
 {
     frag.append(GLSL(\n));

@@ -59,6 +59,7 @@ public:
     bool frameChanged = true;
     QSharedPointer<Subtitle> subTitleFramePtr;
     bool subChanged = true;
+    Tonemap::Type tonemapType;
 
     QColor backgroundColor = Qt::black;
 };
@@ -213,7 +214,8 @@ void OpenglRender::resetShader(Frame *frame)
     cleanup();
     d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shader/video.vert");
     OpenglShader shader;
-    d_ptr->programPtr->addShaderFromSourceCode(QOpenGLShader::Fragment, shader.generate(frame));
+    d_ptr->programPtr->addShaderFromSourceCode(QOpenGLShader::Fragment,
+                                               shader.generate(frame, m_tonemapType));
     glBindVertexArray(d_ptr->vao);
     d_ptr->programPtr->link();
     d_ptr->programPtr->bind();
@@ -229,9 +231,11 @@ void OpenglRender::resetShader(Frame *frame)
 void OpenglRender::onUpdateFrame(const QSharedPointer<Frame> &framePtr)
 {
     if (d_ptr->framePtr.isNull()
-        || d_ptr->framePtr->avFrame()->format != framePtr->avFrame()->format) {
+        || d_ptr->framePtr->avFrame()->format != framePtr->avFrame()->format
+        || m_tonemapType != d_ptr->tonemapType) {
         resetShader(framePtr.data());
         d_ptr->frameChanged = true;
+        d_ptr->tonemapType = m_tonemapType;
     } else if (d_ptr->framePtr->avFrame()->width != framePtr->avFrame()->width
                || d_ptr->framePtr->avFrame()->height != framePtr->avFrame()->height) {
         d_ptr->frameChanged = true;

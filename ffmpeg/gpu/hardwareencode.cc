@@ -55,7 +55,7 @@ bool HardWareEncode::initEncoder(const AVCodec *encoder)
         return false;
     }
     auto hw_pix_fmt = AV_PIX_FMT_NONE;
-    for (AVHWDeviceType type : qAsConst(d_ptr->hwDeviceTypes)) {
+    for (AVHWDeviceType type : std::as_const(d_ptr->hwDeviceTypes)) {
         hw_pix_fmt = getPixelFormat(encoder, type);
         if (hw_pix_fmt != AV_PIX_FMT_NONE) {
             d_ptr->hwDeviceType = type;

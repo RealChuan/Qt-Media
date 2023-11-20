@@ -63,7 +63,7 @@ bool HardWareDecode::initPixelFormat(const AVCodec *decoder)
     if (d_ptr->hwDeviceTypes.isEmpty()) {
         return false;
     }
-    for (AVHWDeviceType type : qAsConst(d_ptr->hwDeviceTypes)) {
+    for (AVHWDeviceType type : std::as_const(d_ptr->hwDeviceTypes)) {
         hw_pix_fmt = getPixelFormat(decoder, type);
         if (hw_pix_fmt != AV_PIX_FMT_NONE) {
             d_ptr->hwDeviceType = type;

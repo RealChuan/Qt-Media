@@ -166,7 +166,7 @@ auto Subtitle::resolveAss(Ass *ass) -> bool
     if (d_ptr->type != Type::ASS) {
         return false;
     }
-    for (const auto &data : qAsConst(d_ptr->texts)) {
+    for (const auto &data : std::as_const(d_ptr->texts)) {
         if (data.startsWith("Dialogue")) {
             ass->addSubtitleEvent(data);
         } else {
@@ -197,7 +197,7 @@ auto Subtitle::generateImage() const -> QImage
     QPainter painter(&d_ptr->image);
     painter.setRenderHints(painter.renderHints() | QPainter::Antialiasing
                            | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
-    for (const auto &data : qAsConst(d_ptr->assList)) {
+    for (const auto &data : std::as_const(d_ptr->assList)) {
         auto rect = data.rect();
         QImage image((uchar *) data.rgba().constData(),
                      rect.width(),

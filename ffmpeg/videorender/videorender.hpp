@@ -1,6 +1,8 @@
 #ifndef VIDEORENDER_HPP
 #define VIDEORENDER_HPP
 
+#include "tonemap.hpp"
+
 #include <ffmpeg/ffmepg_global.h>
 
 #include <QWidget>
@@ -51,7 +53,10 @@ public:
     virtual void resetAllFrame() = 0;
 
     void setColorSpaceTrc(const ColorSpaceTrc &colorTrc) { m_colorSpaceTrc = colorTrc; }
-    auto colorSpaceTrc() const -> ColorSpaceTrc { return m_colorSpaceTrc; }
+    [[nodiscard]] auto colorSpaceTrc() const -> ColorSpaceTrc { return m_colorSpaceTrc; }
+
+    virtual void setTonemapType(Tonemap::Type type) { m_tonemapType = type; }
+    [[nodiscard]] auto tonemapType() const -> Tonemap::Type { return m_tonemapType; }
 
     virtual auto widget() -> QWidget * = 0;
 
@@ -64,6 +69,7 @@ protected:
     virtual void updateSubTitleFrame(QSharedPointer<Subtitle> frame) = 0;
 
     ColorSpaceTrc m_colorSpaceTrc;
+    Tonemap::Type m_tonemapType = Tonemap::Type::AUTO;
 
 private:
     class VideoRenderPrivate;

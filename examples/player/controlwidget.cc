@@ -9,7 +9,7 @@
 class ControlWidget::ControlWidgetPrivate
 {
 public:
-    ControlWidgetPrivate(ControlWidget *q)
+    explicit ControlWidgetPrivate(ControlWidget *q)
         : q_ptr(q)
     {
         slider = new Slider(q_ptr);
@@ -67,13 +67,6 @@ public:
         auto *volumeBotton = new QToolButton(q_ptr);
         volumeBotton->setIcon(q_ptr->style()->standardIcon(QStyle::SP_MediaVolume));
 
-        auto *colorSpaceButton = new QToolButton(q_ptr);
-        colorSpaceButton->setText(tr("Color Space"));
-        QObject::connect(colorSpaceButton,
-                         &QToolButton::clicked,
-                         q_ptr,
-                         &ControlWidget::showColorSpace);
-
         auto *listButton = new QToolButton(q_ptr);
         listButton->setText(tr("List"));
         QObject::connect(listButton, &QToolButton::clicked, q_ptr, &ControlWidget::showList);
@@ -93,7 +86,6 @@ public:
         controlLayout->addWidget(new QLabel("->", q_ptr));
         controlLayout->addWidget(currentFPSLabel);
         controlLayout->addWidget(modelButton);
-        controlLayout->addWidget(colorSpaceButton);
         controlLayout->addWidget(listButton);
 
         auto *widget = new QWidget(q_ptr);

@@ -49,7 +49,7 @@ OpenglShader::OpenglShader(QObject *parent)
 
 OpenglShader::~OpenglShader() = default;
 
-auto OpenglShader::generate(Frame *frame) -> QByteArray
+auto OpenglShader::generate(Frame *frame, Tonemap::Type type) -> QByteArray
 {
     d_ptr->init(frame);
 
@@ -66,8 +66,11 @@ auto OpenglShader::generate(Frame *frame) -> QByteArray
     ShaderUtils::passGama(frag, avFrame->color_trc);
     //ShaderUtils::passOotf(frag, d_ptr->srcHdrMetaData.maxLuma, avFrame->color_trc);
 
-    // HDR
-    ShaderUtils::toneMap(header, frag);
+    // Tone map
+    if (type == Tonemap::AUTO && ShaderUtils::trcIsHdr(avFrame->color_trc)) {
+        type = Tonemap::ACES_APPROX;
+    }
+    Tonemap::toneMap(header, frag, type);
 
     //ShaderUtils::passInverseOotf(frag, d_ptr->dstHdrMetaData.maxLuma, avFrame->color_trc);
     ShaderUtils::passDeGama(frag, d_ptr->dstColorTrc);

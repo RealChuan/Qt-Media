@@ -13,57 +13,12 @@
 2. 在WidgetRender中，尽可能使用QImage::Format_RGB32和QImage::Format_ARGB32_Premultiplied图像格式。如下原因：
    1. Avoid most rendering directly to most of these formats using QPainter. Rendering is best optimized to the Format_RGB32  and Format_ARGB32_Premultiplied formats, and secondarily for rendering to the Format_RGB16, Format_RGBX8888,  Format_RGBA8888_Premultiplied, Format_RGBX64 and Format_RGBA64_Premultiplied formats.
 
-### 如何根据AVColorTransferCharacteristic调整图像？
+### 如何根据AVColorPrimaries、AVColorTransferCharacteristic、AVColorSpace调整图像？
 
 #### 1. opengl 渲染的情况下，该怎么样修改shader？
 
-#### 2. 非opengl渲染的情况下，又该怎么样添加filter实现图像补偿？
-
-1. 参考[MPV video_shaders](https://github.com/mpv-player/mpv/blob/master/video/out/gpu/video_shaders.c#L341)，效果也不是很好；应该是哪里有遗漏。
-
-2. MPV的shader生成方式：
-
-    1. 根据`AVColorTransferCharacteristic`进行gamma、PQ或者HLG等等的调整，OETF；
-
-        ```cpp
-        void pass_linearize(struct gl_shader_cache *sc, enum mp_csp_trc trc);
-        ```
-
-        ```glsl
-        color.rgb = clamp(color.rgb, 0.0, 1.0);
-        color.rgb = pow(color.rgb, vec3(1.0 / PQ_M2));
-        color.rgb = max(color.rgb - vec3(PQ_C1), vec3(0.0)) / (vec3(PQ_C2) - vec3(PQ_C3) * color.rgb);
-        color.rgb = pow(color.rgb, vec3(1.0 / PQ_M1));
-        ```
-
-    2. 色调映射，tone mapping；
-
-        ```cpp
-        static void pass_tone_map(struct gl_shader_cache *sc,
-                          float src_peak, float dst_peak,
-                          const struct gl_tone_map_opts*opts);
-        ```
-
-    3. 根据`AVColorTransferCharacteristic`进行gamma、PQ或者HLG等等的调整，EOTF;
-
-        ```cpp
-        void pass_delinearize(struct gl_shader_cache *sc, enum mp_csp_trc trc);
-        ```
-
-        ```glsl
-        color.rgb = clamp(color.rgb, 0.0, 1.0);
-        color.rgb = pow(color.rgb, vec3(PQ_M1));
-        color.rgb = (vec3(PQ_C1) + vec3(PQ_C2) * color.rgb) / (vec3(1.0) + vec3(PQ_C3) * color.rgb);
-        color.rgb = pow(color.rgb, vec3(PQ_M2));
-        ```
-
-3. MPV生成得到yuv -> RGB转换矩阵的系数；
-
-    ```cpp
-    void mp_get_csp_matrix(struct mp_csp_params *params, struct mp_cmat *m);
-    ```
-
-4. HDR metadata获取
+1. 参考[MPV video_shaders](https://github.com/mpv-player/mpv/blob/master/video/out/gpu/video_shaders.c)，效果也不是很好；应该是哪里有遗漏。
+2. HDR metadata获取
 
     ```cpp
     AVFrameSideData *mdm = av_frame_get_side_data(src, AV_FRAME_DATA_MASTERING_DISPLAY_METADATA);
@@ -75,6 +30,12 @@
         .dhp = (void *)(dhp ? dhp->data : NULL),
     });
     ```
+
+#### 2. 非opengl渲染的情况下，又该怎么样添加filter实现图像补偿？
+
+```bash
+zscale=p=709;
+```
 
 ### OpenGL 渲染图像，怎么实现画质增强的效果？
 

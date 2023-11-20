@@ -75,7 +75,7 @@ public:
         initShortcut();
     }
 
-    ~MainWindowPrivate() {}
+    ~MainWindowPrivate() = default;
 
     void resetTrackMenu()
     {
@@ -201,6 +201,8 @@ public:
     QTimer *fpsTimer;
 
     QSplitter *splitter;
+
+    Ffmpeg::Tonemap::Type tonemapType = Ffmpeg::Tonemap::Type::AUTO;
 };
 
 MainWindow::MainWindow(QWidget *parent)
@@ -218,7 +220,7 @@ MainWindow::MainWindow(QWidget *parent)
     d_ptr->playlistView->installEventFilter(this);
     installEventFilter(this);
 
-    resize(1100, 680);
+    resize(1000, 618);
 }
 
 MainWindow::~MainWindow()
@@ -322,6 +324,7 @@ void MainWindow::onRenderChanged(QAction *action)
     d_ptr->splitter->insertWidget(0, videoRender->widget());
     // 为什么切换成widget还是有使用GPU 0-3D，而且使用量是切换为opengl的两倍！！！
     d_ptr->videoRender.reset(videoRender);
+    d_ptr->videoRender->setTonemapType(d_ptr->tonemapType);
 }
 
 void MainWindow::playlistPositionChanged(int currentItem)
@@ -586,12 +589,8 @@ void MainWindow::buildConnect()
             d_ptr->playlistModel->playlist(),
             [this](int model) {
                 d_ptr->playlistModel->playlist()->setPlaybackMode(
-                    QMediaPlaylist::PlaybackMode(model));
+                    static_cast<QMediaPlaylist::PlaybackMode>(model));
             });
-    connect(d_ptr->controlWidget,
-            &ControlWidget::showColorSpace,
-            this,
-            &MainWindow::onShowColorSpace);
     connect(d_ptr->controlWidget, &ControlWidget::showList, d_ptr->playlistView, [this] {
         d_ptr->playlistView->setVisible(!d_ptr->playlistView->isVisible());
     });
@@ -617,6 +616,35 @@ void MainWindow::initMenu()
     });
     hwAction->setChecked(true);
     d_ptr->menu->addAction(hwAction);
+
+    auto *colorSpaceAction = new QAction(tr("Color Space"), this);
+    connect(colorSpaceAction, &QAction::triggered, this, &MainWindow::onShowColorSpace);
+    d_ptr->menu->addAction(colorSpaceAction);
+
+    auto *tonemapGroup = new QActionGroup(this);
+    tonemapGroup->setExclusive(true);
+    auto *tonemapMenu = new QMenu(tr("Tonemap"), this);
+    auto tonemaps = QMetaEnum::fromType<Ffmpeg::Tonemap::Type>();
+    for (int i = 0; i < tonemaps.keyCount(); ++i) {
+        auto value = tonemaps.value(i);
+        auto *action = new QAction(tonemaps.key(i), this);
+        action->setCheckable(true);
+        action->setData(value);
+        tonemapGroup->addAction(action);
+        tonemapMenu->addAction(action);
+        if (value == Ffmpeg::Tonemap::Type::AUTO) {
+            action->setChecked(true);
+        }
+    }
+    d_ptr->menu->addMenu(tonemapMenu);
+    connect(tonemapGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        d_ptr->tonemapType = static_cast<Ffmpeg::Tonemap::Type>(action->data().toInt());
+        if (d_ptr->videoRender.isNull()) {
+            return;
+        }
+        d_ptr->videoRender->setTonemapType(d_ptr->tonemapType);
+    });
+    tonemapGroup->checkedAction()->trigger();
 
     auto *widgetAction = new QAction(tr("Widget"), this);
     widgetAction->setCheckable(true);
@@ -668,7 +696,7 @@ void MainWindow::initPlayListMenu()
             std::sort(indexs.begin(), indexs.end(), [&](QModelIndex left, QModelIndex right) {
                 return left.row() > right.row();
             });
-            for (const auto &index : qAsConst(indexs)) {
+            for (const auto &index : std::as_const(indexs)) {
                 d_ptr->playlistModel->playlist()->removeMedia(index.row());
             }
         });
@@ -681,7 +709,7 @@ void MainWindow::addToPlaylist(const QList<QUrl> &urls)
 {
     auto *playlist = d_ptr->playlistModel->playlist();
     const int previousMediaCount = playlist->mediaCount();
-    for (auto &url : urls) {
+    for (const auto &url : urls) {
         if (isPlaylist(url)) {
             playlist->load(url);
         } else {
