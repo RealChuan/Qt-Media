@@ -5,10 +5,6 @@
 
 namespace Ffmpeg {
 
-Tonemap::Tonemap(QObject *parent)
-    : QObject(parent)
-{}
-
 // Kodi
 // https://github.com/xbmc/xbmc/blob/1e499e091f7950c70366d64ab2d8c4f3a18cfbfa/system/shaders/GL/1.5/gl_tonemap.glsl#L4
 // MPV

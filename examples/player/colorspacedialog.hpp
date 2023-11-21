@@ -13,7 +13,7 @@ public:
     ~ColorSpaceDialog() override;
 
     void setColorSpace(const Ffmpeg::ColorSpaceTrc &colorTrc);
-    [[nodiscard]] Ffmpeg::ColorSpaceTrc colorSpace() const;
+    [[nodiscard]] auto colorSpace() const -> Ffmpeg::ColorSpaceTrc;
 
 signals:
     void colorSpaceChanged();

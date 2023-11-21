@@ -2,7 +2,7 @@
 #include "openglshader.hpp"
 #include "openglshaderprogram.hpp"
 
-#include <ffmpeg/colorspace.hpp>
+#include <ffmpeg/colorutils.hpp>
 #include <ffmpeg/frame.hpp>
 #include <ffmpeg/subtitle.h>
 #include <ffmpeg/videoframeconverter.hpp>
@@ -60,6 +60,7 @@ public:
     QSharedPointer<Subtitle> subTitleFramePtr;
     bool subChanged = true;
     Tonemap::Type tonemapType;
+    ColorUtils::Primaries::Type destPrimaries;
 
     QColor backgroundColor = Qt::black;
 };
@@ -215,12 +216,18 @@ void OpenglRender::resetShader(Frame *frame)
     d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shader/video.vert");
     OpenglShader shader;
     d_ptr->programPtr->addShaderFromSourceCode(QOpenGLShader::Fragment,
-                                               shader.generate(frame, m_tonemapType));
+                                               shader.generate(frame,
+                                                               m_tonemapType,
+                                                               m_destPrimaries));
     glBindVertexArray(d_ptr->vao);
     d_ptr->programPtr->link();
     d_ptr->programPtr->bind();
     d_ptr->programPtr->initVertex("aPos", "aTexCord");
     initTexture();
+    if (shader.isConvertPrimaries()) {
+        d_ptr->programPtr->setUniformValue("cms_matrix", shader.convertPrimariesMatrix());
+        qDebug() << "CMS matrix:" << shader.convertPrimariesMatrix();
+    }
     d_ptr->programPtr->release();
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -232,10 +239,11 @@ void OpenglRender::onUpdateFrame(const QSharedPointer<Frame> &framePtr)
 {
     if (d_ptr->framePtr.isNull()
         || d_ptr->framePtr->avFrame()->format != framePtr->avFrame()->format
-        || m_tonemapType != d_ptr->tonemapType) {
+        || m_tonemapType != d_ptr->tonemapType || m_destPrimaries != d_ptr->destPrimaries) {
         resetShader(framePtr.data());
         d_ptr->frameChanged = true;
         d_ptr->tonemapType = m_tonemapType;
+        d_ptr->destPrimaries = m_destPrimaries;
     } else if (d_ptr->framePtr->avFrame()->width != framePtr->avFrame()->width
                || d_ptr->framePtr->avFrame()->height != framePtr->avFrame()->height) {
         d_ptr->frameChanged = true;
@@ -287,7 +295,7 @@ void OpenglRender::paintVideoFrame()
     d_ptr->programPtr->setUniformValue("contrast", m_colorSpaceTrc.contrast);
     d_ptr->programPtr->setUniformValue("saturation", m_colorSpaceTrc.saturation);
     d_ptr->programPtr->setUniformValue("brightness", m_colorSpaceTrc.brightness);
-    auto param = Ffmpeg::ColorSpace::getYuvToRgbParam(d_ptr->framePtr.data());
+    auto param = Ffmpeg::ColorUtils::getYuvToRgbParam(d_ptr->framePtr.data());
     d_ptr->programPtr->setUniformValue("offset", param.offset);
     d_ptr->programPtr->setUniformValue("colorConversion", param.matrix);
     draw();

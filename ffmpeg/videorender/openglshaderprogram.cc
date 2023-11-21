@@ -29,15 +29,15 @@ OpenGLShaderProgram::~OpenGLShaderProgram()
 
 void OpenGLShaderProgram::initVertex(const QString &pos, const QString &texCord)
 {
-    GLuint posAttr = GLuint(attributeLocation(pos));
-    GLuint texCordAttr = GLuint(attributeLocation(texCord));
+    auto posAttr = GLuint(attributeLocation(pos));
+    auto texCordAttr = GLuint(attributeLocation(texCord));
 
     float vertices[] = {
         // positions             // texture coords
-        1.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top right
-        1.0f,  -1.0f, 0.0f, 1.0f, 0.0f, // bottom right
-        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // bottom left
-        -1.0f, 1.0f,  0.0f, 0.0f, 1.0f  // top left
+        1.0F,  1.0F,  0.0F, 1.0F, 1.0F, // top right
+        1.0F,  -1.0F, 0.0F, 1.0F, 0.0F, // bottom right
+        -1.0F, -1.0F, 0.0F, 0.0F, 0.0F, // bottom left
+        -1.0F, 1.0F,  0.0F, 0.0F, 1.0F  // top left
     };
     unsigned int indices[] = {0, 1, 3, 1, 2, 3};
 

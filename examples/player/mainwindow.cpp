@@ -137,7 +137,7 @@ public:
         controlWidget->setVisible(visible);
     }
 
-    bool setTitleWidgetVisible(bool visible)
+    auto setTitleWidgetVisible(bool visible) -> bool
     {
         if (videoRender.isNull()) {
             return false;
@@ -203,6 +203,7 @@ public:
     QSplitter *splitter;
 
     Ffmpeg::Tonemap::Type tonemapType = Ffmpeg::Tonemap::Type::AUTO;
+    Ffmpeg::ColorUtils::Primaries::Type primarisType = Ffmpeg::ColorUtils::Primaries::Type::AUTO;
 };
 
 MainWindow::MainWindow(QWidget *parent)
@@ -325,6 +326,7 @@ void MainWindow::onRenderChanged(QAction *action)
     // 为什么切换成widget还是有使用GPU 0-3D，而且使用量是切换为opengl的两倍！！！
     d_ptr->videoRender.reset(videoRender);
     d_ptr->videoRender->setTonemapType(d_ptr->tonemapType);
+    d_ptr->videoRender->setDestPrimaries(d_ptr->primarisType);
 }
 
 void MainWindow::playlistPositionChanged(int currentItem)
@@ -453,7 +455,7 @@ void MainWindow::onProcessEvents()
     }
 }
 
-bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+auto MainWindow::eventFilter(QObject *watched, QEvent *event) -> bool
 {
     if (!d_ptr->videoRender.isNull() && watched == d_ptr->videoRender->widget()) {
         switch (event->type()) {
@@ -621,6 +623,29 @@ void MainWindow::initMenu()
     connect(colorSpaceAction, &QAction::triggered, this, &MainWindow::onShowColorSpace);
     d_ptr->menu->addAction(colorSpaceAction);
 
+    tonemapMenu();
+    destPrimarisMenu();
+    renderMenu();
+
+    connect(d_ptr->audioTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        d_ptr->playerPtr->addEvent(
+            Ffmpeg::EventPtr(new Ffmpeg::SelectedMediaTrackEvent(action->property("index").toInt(),
+                                                                 Ffmpeg::Event::AudioTarck)));
+    });
+    connect(d_ptr->videoTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        d_ptr->playerPtr->addEvent(
+            Ffmpeg::EventPtr(new Ffmpeg::SelectedMediaTrackEvent(action->property("index").toInt(),
+                                                                 Ffmpeg::Event::VideoTrack)));
+    });
+    connect(d_ptr->subTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        d_ptr->playerPtr->addEvent(
+            Ffmpeg::EventPtr(new Ffmpeg::SelectedMediaTrackEvent(action->property("index").toInt(),
+                                                                 Ffmpeg::Event::SubtitleTrack)));
+    });
+}
+
+void MainWindow::tonemapMenu()
+{
     auto *tonemapGroup = new QActionGroup(this);
     tonemapGroup->setExclusive(true);
     auto *tonemapMenu = new QMenu(tr("Tonemap"), this);
@@ -645,7 +670,39 @@ void MainWindow::initMenu()
         d_ptr->videoRender->setTonemapType(d_ptr->tonemapType);
     });
     tonemapGroup->checkedAction()->trigger();
+}
 
+void MainWindow::destPrimarisMenu()
+{
+    auto *destPrimarisGroup = new QActionGroup(this);
+    destPrimarisGroup->setExclusive(true);
+    auto *destPrimarisMenu = new QMenu(tr("Dest Primaris"), this);
+    auto destPrimaris = QMetaEnum::fromType<Ffmpeg::ColorUtils::Primaries::Type>();
+    for (int i = 0; i < destPrimaris.keyCount(); ++i) {
+        auto value = destPrimaris.value(i);
+        auto *action = new QAction(destPrimaris.key(i), this);
+        action->setCheckable(true);
+        action->setData(value);
+        destPrimarisGroup->addAction(action);
+        destPrimarisMenu->addAction(action);
+        if (value == Ffmpeg::ColorUtils::Primaries::Type::AUTO) {
+            action->setChecked(true);
+        }
+    }
+    d_ptr->menu->addMenu(destPrimarisMenu);
+    connect(destPrimarisGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        d_ptr->primarisType = static_cast<Ffmpeg::ColorUtils::Primaries::Type>(
+            action->data().toInt());
+        if (d_ptr->videoRender.isNull()) {
+            return;
+        }
+        d_ptr->videoRender->setDestPrimaries(d_ptr->primarisType);
+    });
+    destPrimarisGroup->checkedAction()->trigger();
+}
+
+void MainWindow::renderMenu()
+{
     auto *widgetAction = new QAction(tr("Widget"), this);
     widgetAction->setCheckable(true);
     widgetAction->setData(Ffmpeg::VideoRenderCreate::Widget);
@@ -668,22 +725,6 @@ void MainWindow::initMenu()
     renderMenu->addAction(widgetAction);
     renderMenu->addAction(openglAction);
     d_ptr->menu->addMenu(renderMenu);
-
-    connect(d_ptr->audioTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
-        d_ptr->playerPtr->addEvent(
-            Ffmpeg::EventPtr(new Ffmpeg::SelectedMediaTrackEvent(action->property("index").toInt(),
-                                                                 Ffmpeg::Event::AudioTarck)));
-    });
-    connect(d_ptr->videoTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
-        d_ptr->playerPtr->addEvent(
-            Ffmpeg::EventPtr(new Ffmpeg::SelectedMediaTrackEvent(action->property("index").toInt(),
-                                                                 Ffmpeg::Event::VideoTrack)));
-    });
-    connect(d_ptr->subTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
-        d_ptr->playerPtr->addEvent(
-            Ffmpeg::EventPtr(new Ffmpeg::SelectedMediaTrackEvent(action->property("index").toInt(),
-                                                                 Ffmpeg::Event::SubtitleTrack)));
-    });
 }
 
 void MainWindow::initPlayListMenu()

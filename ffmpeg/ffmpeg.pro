@@ -24,7 +24,7 @@ SOURCES += \
     averrormanager.cc \
     clock.cc \
     codeccontext.cpp \
-    colorspace.cc \
+    colorutils.cc \
     decoder.cc \
     ffmpegutils.cc \
     formatcontext.cpp \
@@ -52,7 +52,7 @@ HEADERS += \
     averrormanager.hpp \
     clock.hpp \
     codeccontext.h \
-    colorspace.hpp \
+    colorutils.hpp \
     decoder.h \
     ffmepg_global.h \
     ffmpegutils.hpp \

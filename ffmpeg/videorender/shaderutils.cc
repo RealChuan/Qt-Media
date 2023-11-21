@@ -2,6 +2,7 @@
 
 #include "shaderutils.hpp"
 
+#include <ffmpeg/colorutils.hpp>
 #include <utils/utils.h>
 
 namespace Ffmpeg::ShaderUtils {
@@ -237,6 +238,33 @@ void passInverseOotf(QByteArray &frag, float peak, AVColorTransferCharacteristic
     } break;
     default: break;
     }
+}
+
+auto convertPrimaries(QByteArray &header,
+                      QByteArray &frag,
+                      AVColorPrimaries srcPrimaries,
+                      AVColorPrimaries dstPrimaries,
+                      QMatrix3x3 &matrix) -> bool
+{
+    frag.append("\n// convert primaries\n");
+    if (srcPrimaries == dstPrimaries) {
+        return false;
+    }
+    if (!ColorUtils::supportConvertColorPrimaries(srcPrimaries)) {
+        return false;
+    }
+    if (!ColorUtils::supportConvertColorPrimaries(dstPrimaries)) {
+        return false;
+    }
+
+    header.append(GLSL(uniform mat3 cms_matrix;\n));
+    frag.append(GLSL(color.rgb = cms_matrix * color.rgb;\n));
+    auto csp_src = ColorUtils::getRawPrimaries(srcPrimaries);
+    auto csp_dst = ColorUtils::getRawPrimaries(dstPrimaries);
+    float m[3][3] = {{0}};
+    getCMSMatrix(csp_src, csp_dst, m);
+    matrix = QMatrix3x3(&m[0][0]);
+    return true;
 }
 
 } // namespace Ffmpeg::ShaderUtils

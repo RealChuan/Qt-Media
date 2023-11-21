@@ -3,6 +3,10 @@
 
 #include "tonemap.hpp"
 
+#include <ffmpeg/colorutils.hpp>
+
+#include <QGenericMatrix>
+
 namespace Ffmpeg {
 
 class Frame;
@@ -12,7 +16,13 @@ public:
     explicit OpenglShader(QObject *parent = nullptr);
     ~OpenglShader() override;
 
-    auto generate(Frame *frame, Tonemap::Type type = Tonemap::Type::NONE) -> QByteArray;
+    auto generate(Frame *frame,
+                  Tonemap::Type type = Tonemap::Type::NONE,
+                  ColorUtils::Primaries::Type destPrimaries = ColorUtils::Primaries::Type::AUTO)
+        -> QByteArray;
+
+    [[nodiscard]] auto isConvertPrimaries() const -> bool;
+    [[nodiscard]] auto convertPrimariesMatrix() const -> QMatrix3x3;
 
 private:
     class OpenglShaderPrivate;

@@ -1,6 +1,9 @@
+// Most of this code comes from mpv
+
 #ifndef SHADERUTILS_HPP
 #define SHADERUTILS_HPP
 
+#include <QGenericMatrix>
 #include <QtCore>
 
 extern "C" {
@@ -35,6 +38,12 @@ void passDeGama(QByteArray &frag, AVColorTransferCharacteristic srcColortTrc);
 void passOotf(QByteArray &frag, float peak, AVColorTransferCharacteristic colortTrc);
 
 void passInverseOotf(QByteArray &frag, float peak, AVColorTransferCharacteristic colortTrc);
+
+auto convertPrimaries(QByteArray &header,
+                      QByteArray &frag,
+                      AVColorPrimaries srcPrimaries,
+                      AVColorPrimaries dstPrimaries,
+                      QMatrix3x3 &matrix) -> bool;
 
 void finishFragment(QByteArray &frag);
 

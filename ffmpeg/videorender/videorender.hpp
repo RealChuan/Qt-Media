@@ -3,6 +3,7 @@
 
 #include "tonemap.hpp"
 
+#include <ffmpeg/colorutils.hpp>
 #include <ffmpeg/ffmepg_global.h>
 
 #include <QWidget>
@@ -58,6 +59,12 @@ public:
     virtual void setTonemapType(Tonemap::Type type) { m_tonemapType = type; }
     [[nodiscard]] auto tonemapType() const -> Tonemap::Type { return m_tonemapType; }
 
+    virtual void setDestPrimaries(ColorUtils::Primaries::Type type) { m_destPrimaries = type; }
+    [[nodiscard]] auto destPrimaries() const -> ColorUtils::Primaries::Type
+    {
+        return m_destPrimaries;
+    }
+
     virtual auto widget() -> QWidget * = 0;
 
     auto fps() -> float;
@@ -70,6 +77,7 @@ protected:
 
     ColorSpaceTrc m_colorSpaceTrc;
     Tonemap::Type m_tonemapType = Tonemap::Type::AUTO;
+    ColorUtils::Primaries::Type m_destPrimaries = ColorUtils::Primaries::AUTO;
 
 private:
     class VideoRenderPrivate;

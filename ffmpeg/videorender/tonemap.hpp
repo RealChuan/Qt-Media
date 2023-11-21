@@ -26,7 +26,7 @@ public:
     };
     Q_ENUM(Type);
 
-    explicit Tonemap(QObject *parent = nullptr);
+    using QObject::QObject;
 
     static void toneMap(QByteArray &header, QByteArray &frag, Type type = NONE);
 };

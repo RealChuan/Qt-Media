@@ -13,23 +13,16 @@
 2. 在WidgetRender中，尽可能使用QImage::Format_RGB32和QImage::Format_ARGB32_Premultiplied图像格式。如下原因：
    1. Avoid most rendering directly to most of these formats using QPainter. Rendering is best optimized to the Format_RGB32  and Format_ARGB32_Premultiplied formats, and secondarily for rendering to the Format_RGB16, Format_RGBX8888,  Format_RGBA8888_Premultiplied, Format_RGBX64 and Format_RGBA64_Premultiplied formats.
 
-### 如何根据AVColorPrimaries、AVColorTransferCharacteristic、AVColorSpace调整图像？
+### AVFrame 图像调整
+
+1. 根据`AVColorSpace`进行色彩空间转换；
+2. 根据`AVColorTransferCharacteristic`进行gamma、PQ、HLG等调整;
+3. 根据`AVColorPrimaries`进行色域转换；
+4. 根据`AVColorRange`进行色彩范围调整;
 
 #### 1. opengl 渲染的情况下，该怎么样修改shader？
 
-1. 参考[MPV video_shaders](https://github.com/mpv-player/mpv/blob/master/video/out/gpu/video_shaders.c)，效果也不是很好；应该是哪里有遗漏。
-2. HDR metadata获取
-
-    ```cpp
-    AVFrameSideData *mdm = av_frame_get_side_data(src, AV_FRAME_DATA_MASTERING_DISPLAY_METADATA);
-    AVFrameSideData *clm = av_frame_get_side_data(src, AV_FRAME_DATA_CONTENT_LIGHT_LEVEL);
-    AVFrameSideData *dhp = av_frame_get_side_data(src, AV_FRAME_DATA_DYNAMIC_HDR_PLUS);
-    pl_map_hdr_metadata(&dst->params.color.hdr, &(struct pl_av_hdr_metadata) {
-        .mdm = (void *)(mdm ? mdm->data : NULL),
-        .clm = (void *)(clm ? clm->data : NULL),
-        .dhp = (void *)(dhp ? dhp->data : NULL),
-    });
-    ```
+1. 参考[MPV video_shaders](https://github.com/mpv-player/mpv/blob/master/video/out/gpu/video_shaders.c)；
 
 #### 2. 非opengl渲染的情况下，又该怎么样添加filter实现图像补偿？
 

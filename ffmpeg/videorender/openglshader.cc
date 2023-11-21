@@ -32,6 +32,16 @@ public:
             dstColorTrc = AVCOL_TRC_GAMMA22;
         }
         dstHdrMetaData.maxLuma = ShaderUtils::trcNomPeak(dstColorTrc) * MP_REF_WHITE;
+
+        if (dstPrimariesType == ColorUtils::Primaries::AUTO) {
+            dstPrimaries = avFrame->color_primaries;
+            if (dstPrimaries == AVCOL_PRI_SMPTE170M || dstPrimaries == AVCOL_PRI_BT470BG) {
+            } else {
+                dstPrimaries = AVCOL_PRI_BT709;
+            }
+        } else {
+            dstPrimaries = ColorUtils::Primaries::getAVColorPrimaries(dstPrimariesType);
+        }
     }
 
     OpenglShader *q_ptr;
@@ -40,6 +50,11 @@ public:
     HdrMetaData dstHdrMetaData;
 
     AVColorTransferCharacteristic dstColorTrc;
+    AVColorPrimaries dstPrimaries;
+    ColorUtils::Primaries::Type dstPrimariesType;
+
+    bool isConvertPrimaries = false;
+    QMatrix3x3 convertPrimariesMatrix;
 };
 
 OpenglShader::OpenglShader(QObject *parent)
@@ -49,8 +64,11 @@ OpenglShader::OpenglShader(QObject *parent)
 
 OpenglShader::~OpenglShader() = default;
 
-auto OpenglShader::generate(Frame *frame, Tonemap::Type type) -> QByteArray
+auto OpenglShader::generate(Frame *frame,
+                            Tonemap::Type type,
+                            ColorUtils::Primaries::Type destPrimaries) -> QByteArray
 {
+    d_ptr->dstPrimariesType = destPrimaries;
     d_ptr->init(frame);
 
     auto *avFrame = frame->avFrame();
@@ -72,6 +90,13 @@ auto OpenglShader::generate(Frame *frame, Tonemap::Type type) -> QByteArray
     }
     Tonemap::toneMap(header, frag, type);
 
+    // Convert primaries
+    d_ptr->isConvertPrimaries = ShaderUtils::convertPrimaries(header,
+                                                              frag,
+                                                              avFrame->color_primaries,
+                                                              d_ptr->dstPrimaries,
+                                                              d_ptr->convertPrimariesMatrix);
+
     //ShaderUtils::passInverseOotf(frag, d_ptr->dstHdrMetaData.maxLuma, avFrame->color_trc);
     ShaderUtils::passDeGama(frag, d_ptr->dstColorTrc);
     ShaderUtils::passDeLinearize(frag, d_ptr->dstColorTrc);
@@ -80,6 +105,16 @@ auto OpenglShader::generate(Frame *frame, Tonemap::Type type) -> QByteArray
     frag = header + "\n" + frag;
     ShaderUtils::printShader(frag);
     return frag;
+}
+
+auto OpenglShader::isConvertPrimaries() const -> bool
+{
+    return d_ptr->isConvertPrimaries;
+}
+
+auto OpenglShader::convertPrimariesMatrix() const -> QMatrix3x3
+{
+    return d_ptr->convertPrimariesMatrix;
 }
 
 } // namespace Ffmpeg
