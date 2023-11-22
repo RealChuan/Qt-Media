@@ -12,7 +12,7 @@ namespace Ffmpeg {
 class FilterGraph::FilterGraphPrivate
 {
 public:
-    FilterGraphPrivate(FilterGraph *q)
+    explicit FilterGraphPrivate(FilterGraph *q)
         : q_ptr(q)
     {
         filterGraph = avfilter_graph_alloc();
@@ -35,12 +35,12 @@ FilterGraph::FilterGraph(QObject *parent)
     , d_ptr(new FilterGraphPrivate(this))
 {}
 
-FilterGraph::~FilterGraph() {}
+FilterGraph::~FilterGraph() = default;
 
-bool FilterGraph::parse(const QString &filters, FilterInOut *in, FilterInOut *out)
+auto FilterGraph::parse(const QString &filters, FilterInOut *in, FilterInOut *out) -> bool
 {
-    auto inputs = in->avFilterInOut();
-    auto outputs = out->avFilterInOut();
+    auto *inputs = in->avFilterInOut();
+    auto *outputs = out->avFilterInOut();
     auto ret = avfilter_graph_parse_ptr(d_ptr->filterGraph,
                                         filters.toLocal8Bit().constData(),
                                         &inputs,
@@ -51,13 +51,13 @@ bool FilterGraph::parse(const QString &filters, FilterInOut *in, FilterInOut *ou
     ERROR_RETURN(ret)
 }
 
-bool FilterGraph::config()
+auto FilterGraph::config() -> bool
 {
     auto ret = avfilter_graph_config(d_ptr->filterGraph, nullptr);
     ERROR_RETURN(ret)
 }
 
-AVFilterGraph *FilterGraph::avFilterGraph()
+auto FilterGraph::avFilterGraph() -> AVFilterGraph *
 {
     return d_ptr->filterGraph;
 }

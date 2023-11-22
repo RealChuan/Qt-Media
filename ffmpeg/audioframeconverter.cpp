@@ -121,19 +121,23 @@ AudioFrameConverter::AudioFrameConverter(CodecContext *codecCtx,
 {
     d_ptr->format = format;
     d_ptr->avSampleFormat = getAVSampleFormat(d_ptr->format.sampleFormat());
-    auto channelLayout = getChannelLayout(d_ptr->format.channelConfig());
     auto *avCodecCtx = codecCtx->avCodecCtx();
-    d_ptr->swrContext = swr_alloc_set_opts(d_ptr->swrContext,
-                                           channelLayout,
-                                           d_ptr->avSampleFormat,
-                                           d_ptr->format.sampleRate(),
-                                           avCodecCtx->ch_layout.u.mask,
-                                           avCodecCtx->sample_fmt,
-                                           avCodecCtx->sample_rate,
-                                           0,
-                                           nullptr);
-
-    int ret = swr_init(d_ptr->swrContext);
+    AVChannelLayout channelLayout = {AV_CHANNEL_ORDER_UNSPEC};
+    av_channel_layout_default(&channelLayout, d_ptr->format.channelCount());
+    // av_channel_layout_from_mask(&channelLayout, getChannelLayout(d_ptr->format.channelConfig()));
+    auto ret = swr_alloc_set_opts2(&d_ptr->swrContext,
+                                   &channelLayout,
+                                   d_ptr->avSampleFormat,
+                                   d_ptr->format.sampleRate(),
+                                   &avCodecCtx->ch_layout,
+                                   avCodecCtx->sample_fmt,
+                                   avCodecCtx->sample_rate,
+                                   0,
+                                   nullptr);
+    if (ret != 0) {
+        SET_ERROR_CODE(ret);
+    }
+    ret = swr_init(d_ptr->swrContext);
     if (ret < 0) {
         SET_ERROR_CODE(ret);
     }
@@ -186,8 +190,8 @@ auto getAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize) -> QAud
     autioFormat.setChannelCount(ctx->ch_layout.nb_channels);
     //autioFormat.setByteOrder(QAudioFormat::LittleEndian);
 
-    if (ctx->channel_layout <= 0) {
-        ctx->channel_layout = getChannaLayoutFromChannalCount(ctx->ch_layout.nb_channels);
+    if (ctx->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC) {
+        av_channel_layout_default(&ctx->ch_layout, ctx->ch_layout.nb_channels);
     }
     auto channelConfig = getChannelConfig(ctx->ch_layout.u.mask);
     if (channelConfig == QAudioFormat::ChannelConfigUnknown) {
@@ -221,8 +225,8 @@ auto getAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize) -> QAud
         sampleSize = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
     }
 
-    qInfo() << "Current Audio parameters:" << ctx->sample_rate << ctx->channels
-            << ctx->channel_layout << ctx->sample_fmt;
+    qInfo() << "Current Audio parameters:" << ctx->sample_rate << ctx->ch_layout.nb_channels
+            << ctx->ch_layout.u.mask << ctx->sample_fmt;
     qInfo() << autioFormat << autioFormat.channelConfig();
 
     return autioFormat;

@@ -13,7 +13,7 @@ class HardWareDecode : public QObject
 {
 public:
     explicit HardWareDecode(QObject *parent = nullptr);
-    ~HardWareDecode();
+    ~HardWareDecode() override;
 
     auto initPixelFormat(const AVCodec *decoder) -> bool;
     auto initHardWareDevice(CodecContext *codecContext) -> bool;

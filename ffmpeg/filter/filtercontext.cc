@@ -17,7 +17,7 @@ namespace Ffmpeg {
 class FilterContext::FilterContextPrivate
 {
 public:
-    FilterContextPrivate(FilterContext *q)
+    explicit FilterContextPrivate(FilterContext *q)
         : q_ptr(q)
     {}
 
@@ -40,14 +40,15 @@ FilterContext::FilterContext(const QString &name, QObject *parent)
     d_ptr->createFilter(name);
 }
 
-FilterContext::~FilterContext() {}
+FilterContext::~FilterContext() = default;
 
-bool FilterContext::isValid()
+auto FilterContext::isValid() -> bool
 {
     return nullptr != d_ptr->filter;
 }
 
-bool FilterContext::create(const QString &name, const QString &args, FilterGraph *filterGraph)
+auto FilterContext::create(const QString &name, const QString &args, FilterGraph *filterGraph)
+    -> bool
 {
     auto ret = avfilter_graph_create_filter(&d_ptr->filterContext,
                                             d_ptr->filter,
@@ -58,7 +59,7 @@ bool FilterContext::create(const QString &name, const QString &args, FilterGraph
     ERROR_RETURN(ret)
 }
 
-bool FilterContext::buffersrc_addFrameFlags(Frame *frame)
+auto FilterContext::buffersrcAddFrameFlags(Frame *frame) -> bool
 {
     auto ret = av_buffersrc_add_frame_flags(d_ptr->filterContext,
                                             frame->avFrame(),
@@ -66,7 +67,7 @@ bool FilterContext::buffersrc_addFrameFlags(Frame *frame)
     ERROR_RETURN(ret)
 }
 
-bool FilterContext::buffersink_getFrame(Frame *frame)
+auto FilterContext::buffersinkGetFrame(Frame *frame) -> bool
 {
     auto ret = av_buffersink_get_frame(d_ptr->filterContext, frame->avFrame());
     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
@@ -75,12 +76,12 @@ bool FilterContext::buffersink_getFrame(Frame *frame)
     ERROR_RETURN(ret)
 }
 
-void FilterContext::buffersink_setFrameSize(int size)
+void FilterContext::buffersinkSetFrameSize(int size)
 {
     av_buffersink_set_frame_size(d_ptr->filterContext, size);
 }
 
-AVFilterContext *FilterContext::avFilterContext()
+auto FilterContext::avFilterContext() -> AVFilterContext *
 {
     return d_ptr->filterContext;
 }

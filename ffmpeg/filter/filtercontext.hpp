@@ -16,17 +16,17 @@ public:
     // Video: {buffer, buffersink}
     // Audio: {abuffer, abuffersink}
     explicit FilterContext(const QString &name, QObject *parent = nullptr);
-    ~FilterContext();
+    ~FilterContext() override;
 
-    bool isValid();
+    auto isValid() -> bool;
 
-    bool create(const QString &name, const QString &args, FilterGraph *filterGraph);
+    auto create(const QString &name, const QString &args, FilterGraph *filterGraph) -> bool;
 
-    bool buffersrc_addFrameFlags(Frame *frame);
-    bool buffersink_getFrame(Frame *frame);
-    void buffersink_setFrameSize(int size);
+    auto buffersrcAddFrameFlags(Frame *frame) -> bool;
+    auto buffersinkGetFrame(Frame *frame) -> bool;
+    void buffersinkSetFrameSize(int size);
 
-    AVFilterContext *avFilterContext();
+    auto avFilterContext() -> AVFilterContext *;
 
 private:
     class FilterContextPrivate;

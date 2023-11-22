@@ -9,7 +9,7 @@ namespace Ffmpeg {
 class FilterInOut::FilterInOutPrivate
 {
 public:
-    FilterInOutPrivate(QObject *parent)
+    explicit FilterInOutPrivate(QObject *parent)
         : owner(parent)
     {
         inOut = avfilter_inout_alloc();
@@ -26,9 +26,9 @@ FilterInOut::FilterInOut(QObject *parent)
     , d_ptr(new FilterInOutPrivate(this))
 {}
 
-FilterInOut::~FilterInOut() {}
+FilterInOut::~FilterInOut() = default;
 
-AVFilterInOut *FilterInOut::avFilterInOut()
+auto FilterInOut::avFilterInOut() -> AVFilterInOut *
 {
     return d_ptr->inOut;
 }

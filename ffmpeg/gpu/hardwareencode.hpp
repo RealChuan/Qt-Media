@@ -17,7 +17,7 @@ class HardWareEncode : public QObject
 {
 public:
     explicit HardWareEncode(QObject *parent = nullptr);
-    ~HardWareEncode();
+    ~HardWareEncode() override;
 
     auto initEncoder(const AVCodec *encoder) -> bool;
     auto initHardWareDevice(CodecContext *codecContext) -> bool;

@@ -86,7 +86,7 @@ auto OpenglShader::generate(Frame *frame,
 
     // Tone map
     if (type == Tonemap::AUTO && ShaderUtils::trcIsHdr(avFrame->color_trc)) {
-        type = Tonemap::ACES_APPROX;
+        type = Tonemap::FILMIC;
     }
     Tonemap::toneMap(header, frag, type);
 

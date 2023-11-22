@@ -19,17 +19,14 @@ void Tonemap::toneMap(QByteArray &header, QByteArray &frag, Type type)
 {
     frag.append("\n// pass tone map\n");
     switch (type) {
+    case CLIP: frag.append(GLSL(color.rgb = clip(color.rgb);\n)); break;
+    case LINEAR: frag.append(GLSL(color.rgb = linear(color.rgb);\n)); break;
+    case GAMMA: frag.append(GLSL(color.rgb = gamma(color.rgb);\n)); break;
     case REINHARD: frag.append(GLSL(color.rgb = reinhard(color.rgb);\n)); break;
-    case REINHARD_JODIE: frag.append(GLSL(color.rgb = reinhard_jodie(color.rgb);\n)); break;
-    case CONST_LUMINANCE_REINHARD:
-        frag.append(GLSL(color.rgb = const_luminance_reinhard(color.rgb);\n));
-        break;
     case HABLE: frag.append(GLSL(color.rgb = hable(color.rgb);\n)); break;
+    case MOBIUS: frag.append(GLSL(color.rgb = mobius(color.rgb);\n)); break;
     case ACES: frag.append(GLSL(color.rgb = aces(color.rgb);\n)); break;
-    case ACES_FITTED: frag.append(GLSL(color.rgb = aces_fitted(color.rgb);\n)); break;
-    case ACES_APPROX: frag.append(GLSL(color.rgb = aces_approx(color.rgb);\n)); break;
     case FILMIC: frag.append(GLSL(color.rgb = filmic(color.rgb);\n)); break;
-    case UNCHARTED2_FILMIC: frag.append(GLSL(color.rgb = uncharted2_filmic(color.rgb);\n)); break;
     default: return;
     }
     header.append(Utils::readAllFile(":/shader/tonemap.frag"));

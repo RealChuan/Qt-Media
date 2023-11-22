@@ -67,6 +67,8 @@ private:
     QScopedPointer<AVContextInfoPrivate> d_ptr;
 };
 
+using AVContextInfoPtr = QSharedPointer<AVContextInfo>;
+
 } // namespace Ffmpeg
 
 #endif // AVCONTEXTINFO_H

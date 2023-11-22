@@ -12,13 +12,13 @@ class FilterGraph : public QObject
 {
 public:
     explicit FilterGraph(QObject *parent = nullptr);
-    ~FilterGraph();
+    ~FilterGraph() override;
 
-    bool parse(const QString &filters, FilterInOut *in, FilterInOut *out);
+    auto parse(const QString &filters, FilterInOut *in, FilterInOut *out) -> bool;
 
-    bool config();
+    auto config() -> bool;
 
-    AVFilterGraph *avFilterGraph();
+    auto avFilterGraph() -> AVFilterGraph *;
 
 private:
     class FilterGraphPrivate;

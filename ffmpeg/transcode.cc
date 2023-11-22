@@ -36,13 +36,13 @@ struct TranscodeContext
     int64_t audioPts = 0;
 };
 
-bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Frame *frame)
+auto init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Frame *frame) -> bool
 {
     QSharedPointer<FilterContext> buffersrc_ctx;
     QSharedPointer<FilterContext> buffersink_ctx;
     QSharedPointer<FilterGraph> filter_graph(new FilterGraph);
-    auto dec_ctx = transcodeContext->decContextInfoPtr->codecCtx()->avCodecCtx();
-    auto enc_ctx = transcodeContext->encContextInfoPtr->codecCtx()->avCodecCtx();
+    auto *dec_ctx = transcodeContext->decContextInfoPtr->codecCtx()->avCodecCtx();
+    auto *enc_ctx = transcodeContext->encContextInfoPtr->codecCtx()->avCodecCtx();
     switch (transcodeContext->decContextInfoPtr->mediaType()) {
     case AVMEDIA_TYPE_VIDEO: {
         buffersrc_ctx.reset(new FilterContext("buffer"));
@@ -63,7 +63,7 @@ bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Fr
         auto pix_fmt = transcodeContext->encContextInfoPtr->pixfmt();
         av_opt_set_bin(buffersink_ctx->avFilterContext(),
                        "pix_fmts",
-                       (uint8_t *) &pix_fmt,
+                       reinterpret_cast<uint8_t *>(&pix_fmt),
                        sizeof(pix_fmt),
                        AV_OPT_SEARCH_CHILDREN);
         //        av_opt_set_bin(buffersink_ctx->avFilterContext(),
@@ -75,7 +75,7 @@ bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Fr
     case AVMEDIA_TYPE_AUDIO: {
         buffersrc_ctx.reset(new FilterContext("abuffer"));
         buffersink_ctx.reset(new FilterContext("abuffersink"));
-        if (!dec_ctx->channel_layout) {
+        if (dec_ctx->channel_layout == 0U) {
             dec_ctx->channel_layout = av_get_default_channel_layout(dec_ctx->channels);
         }
         auto args = QString::asprintf(
@@ -90,17 +90,17 @@ bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Fr
         buffersink_ctx->create("out", "", filter_graph.data());
         av_opt_set_bin(buffersink_ctx->avFilterContext(),
                        "sample_rates",
-                       (uint8_t *) &enc_ctx->sample_rate,
+                       reinterpret_cast<uint8_t *>(&enc_ctx->sample_rate),
                        sizeof(enc_ctx->sample_rate),
                        AV_OPT_SEARCH_CHILDREN);
         av_opt_set_bin(buffersink_ctx->avFilterContext(),
                        "sample_fmts",
-                       (uint8_t *) &enc_ctx->sample_fmt,
+                       reinterpret_cast<uint8_t *>(&enc_ctx->sample_fmt),
                        sizeof(enc_ctx->sample_fmt),
                        AV_OPT_SEARCH_CHILDREN);
         av_opt_set_bin(buffersink_ctx->avFilterContext(),
                        "channel_layouts",
-                       (uint8_t *) &enc_ctx->channel_layout,
+                       reinterpret_cast<uint8_t *>(&enc_ctx->channel_layout),
                        sizeof(enc_ctx->channel_layout),
                        AV_OPT_SEARCH_CHILDREN);
     } break;
@@ -109,8 +109,8 @@ bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Fr
 
     QScopedPointer<FilterInOut> fliterOut(new FilterInOut);
     QScopedPointer<FilterInOut> fliterIn(new FilterInOut);
-    auto outputs = fliterOut->avFilterInOut();
-    auto inputs = fliterIn->avFilterInOut();
+    auto *outputs = fliterOut->avFilterInOut();
+    auto *inputs = fliterIn->avFilterInOut();
     /* Endpoints for the filter graph. */
     outputs->name = av_strdup("in");
     outputs->filter_ctx = buffersrc_ctx->avFilterContext();
@@ -139,7 +139,7 @@ bool init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Fr
 class Transcode::TranscodePrivate
 {
 public:
-    TranscodePrivate(QObject *parent)
+    explicit TranscodePrivate(QObject *parent)
         : owner(parent)
         , inFormatContext(new FormatContext(owner))
         , outFormatContext(new FormatContext(owner))
@@ -148,7 +148,7 @@ public:
 
     ~TranscodePrivate() { reset(); }
 
-    bool openInputFile()
+    auto openInputFile() -> bool
     {
         Q_ASSERT(!inFilePath.isEmpty());
         auto ret = inFormatContext->openFilePath(inFilePath);
@@ -158,11 +158,11 @@ public:
         inFormatContext->findStream();
         auto stream_num = inFormatContext->streams();
         for (int i = 0; i < stream_num; i++) {
-            auto transContext = new TranscodeContext;
+            auto *transContext = new TranscodeContext;
             transcodeContexts.append(transContext);
-            auto stream = inFormatContext->stream(i);
+            auto *stream = inFormatContext->stream(i);
             auto codec_type = stream->codecpar->codec_type;
-            if (stream->disposition & AV_DISPOSITION_ATTACHED_PIC) {
+            if ((stream->disposition & AV_DISPOSITION_ATTACHED_PIC) != 0) {
                 continue;
             }
             QSharedPointer<AVContextInfo> contextInfoPtr;
@@ -185,7 +185,7 @@ public:
         return true;
     }
 
-    bool openOutputFile()
+    auto openOutputFile() -> bool
     {
         Q_ASSERT(!outFilepath.isEmpty());
         auto ret = outFormatContext->openFilePath(outFilepath, FormatContext::WriteOnly);
@@ -195,9 +195,9 @@ public:
         outFormatContext->copyChapterFrom(inFormatContext);
         auto stream_num = inFormatContext->streams();
         for (int i = 0; i < stream_num; i++) {
-            auto inStream = inFormatContext->stream(i);
-            auto stream = outFormatContext->createStream();
-            if (!stream) {
+            auto *inStream = inFormatContext->stream(i);
+            auto *stream = outFormatContext->createStream();
+            if (stream == nullptr) {
                 return false;
             }
             av_dict_copy(&stream->metadata, inStream->metadata, 0);
@@ -206,13 +206,13 @@ public:
             stream->sample_aspect_ratio = inStream->sample_aspect_ratio;
             stream->avg_frame_rate = inStream->avg_frame_rate;
             stream->event_flags = inStream->event_flags;
-            auto transContext = transcodeContexts.at(i);
+            auto *transContext = transcodeContexts.at(i);
             auto decContextInfo = transContext->decContextInfoPtr;
-            if (inStream->disposition & AV_DISPOSITION_ATTACHED_PIC) {
+            if ((inStream->disposition & AV_DISPOSITION_ATTACHED_PIC) != 0) {
                 auto ret = avcodec_parameters_copy(stream->codecpar, inStream->codecpar);
                 if (ret < 0) {
                     qErrnoWarning("Copying parameters for stream #%u failed", i);
-                    return ret;
+                    return ret != 0;
                 }
                 stream->time_base = inStream->time_base;
                 stream->codecpar->width = inStream->codecpar->width > 0 ? inStream->codecpar->width
@@ -233,8 +233,8 @@ public:
                                                 ? audioEncoderName
                                                 : videoEncoderName);
                 //contextInfoPtr->initEncoder(decContextInfo->codecCtx()->avCodecCtx()->codec_id);
-                auto codecCtx = contextInfoPtr->codecCtx();
-                auto avCodecCtx = codecCtx->avCodecCtx();
+                auto *codecCtx = contextInfoPtr->codecCtx();
+                auto *avCodecCtx = codecCtx->avCodecCtx();
                 decContextInfo->codecCtx()->copyToCodecParameters(codecCtx);
                 // ffmpeg example transcoding.c ? framerate, sample_rate
                 codecCtx->avCodecCtx()->time_base = decContextInfo->timebase();
@@ -248,7 +248,8 @@ public:
                     codecCtx->setMaxBitrate(maxBitrate);
                     codecCtx->setProfile(profile);
                 }
-                if (outFormatContext->avFormatContext()->oformat->flags & AVFMT_GLOBALHEADER) {
+                if ((outFormatContext->avFormatContext()->oformat->flags & AVFMT_GLOBALHEADER)
+                    != 0) {
                     avCodecCtx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
                 }
                 contextInfoPtr->openCodec(AVContextInfo::GpuEncode);
@@ -256,7 +257,7 @@ public:
                                                            contextInfoPtr->codecCtx()->avCodecCtx());
                 if (ret < 0) {
                     SET_ERROR_CODE(ret);
-                    return ret;
+                    return ret != 0;
                 }
                 stream->time_base = decContextInfo->timebase();
                 transContext->encContextInfoPtr = contextInfoPtr;
@@ -268,7 +269,7 @@ public:
                 auto ret = avcodec_parameters_copy(stream->codecpar, inStream->codecpar);
                 if (ret < 0) {
                     SET_ERROR_CODE(ret);
-                    return ret;
+                    return ret != 0;
                 }
                 stream->time_base = inStream->time_base;
             } break;
@@ -281,7 +282,7 @@ public:
 
     void initFilters(int stream_index, Frame *frame)
     {
-        auto transcodeCtx = transcodeContexts.at(stream_index);
+        auto *transcodeCtx = transcodeContexts.at(stream_index);
         if (transcodeCtx->decContextInfoPtr.isNull()) {
             return;
         }
@@ -320,7 +321,7 @@ public:
     {
         auto stream_num = inFormatContext->streams();
         for (int i = 0; i < stream_num; i++) {
-            auto transCtx = transcodeContexts.at(i);
+            auto *transCtx = transcodeContexts.at(i);
             if (transCtx->decContextInfoPtr.isNull()) {
                 continue;
             }
@@ -349,14 +350,14 @@ public:
         reset();
     }
 
-    bool filterEncodeWriteframe(Frame *frame, uint stream_index)
+    auto filterEncodeWriteframe(Frame *frame, uint stream_index) -> bool
     {
-        auto transcodeCtx = transcodeContexts.at(stream_index);
-        if (!transcodeCtx->buffersrcCtxPtr->buffersrc_addFrameFlags(frame)) {
+        auto *transcodeCtx = transcodeContexts.at(stream_index);
+        if (!transcodeCtx->buffersrcCtxPtr->buffersrcAddFrameFlags(frame)) {
             return false;
         }
         QSharedPointer<Frame> framePtr(new Frame);
-        while (transcodeCtx->buffersinkCtxPtr->buffersink_getFrame(framePtr.data())) {
+        while (transcodeCtx->buffersinkCtxPtr->buffersinkGetFrame(framePtr.data())) {
             framePtr->setPictType(AV_PICTURE_TYPE_NONE);
             if (transcodeCtx->audioFifoPtr.isNull()) {
                 encodeWriteFrame(stream_index, 0, framePtr);
@@ -382,9 +383,9 @@ public:
         }
     }
 
-    bool addSamplesToFifo(Frame *frame, uint stream_index)
+    auto addSamplesToFifo(Frame *frame, uint stream_index) -> bool
     {
-        auto transcodeCtx = transcodeContexts.at(stream_index);
+        auto *transcodeCtx = transcodeContexts.at(stream_index);
         auto audioFifoPtr = transcodeCtx->audioFifoPtr;
         if (audioFifoPtr.isNull()) {
             return false;
@@ -397,23 +398,24 @@ public:
         if (!audioFifoPtr->realloc(audioFifoPtr->size() + frame->avFrame()->nb_samples)) {
             return false;
         }
-        return audioFifoPtr->write((void **) frame->avFrame()->data, frame->avFrame()->nb_samples);
+        return audioFifoPtr->write(reinterpret_cast<void **>(frame->avFrame()->data),
+                                   frame->avFrame()->nb_samples);
     }
 
-    QSharedPointer<Frame> takeSamplesFromFifo(uint stream_index, bool finished = false)
+    auto takeSamplesFromFifo(uint stream_index, bool finished = false) -> QSharedPointer<Frame>
     {
-        auto transcodeCtx = transcodeContexts.at(stream_index);
+        auto *transcodeCtx = transcodeContexts.at(stream_index);
         auto audioFifoPtr = transcodeCtx->audioFifoPtr;
         if (audioFifoPtr.isNull()) {
             return nullptr;
         }
-        auto enc_ctx = transcodeCtx->encContextInfoPtr->codecCtx()->avCodecCtx();
+        auto *enc_ctx = transcodeCtx->encContextInfoPtr->codecCtx()->avCodecCtx();
         if (audioFifoPtr->size() < enc_ctx->frame_size && !finished) {
             return nullptr;
         }
         const int frame_size = FFMIN(audioFifoPtr->size(), enc_ctx->frame_size);
         QSharedPointer<Frame> framePtr(new Frame);
-        auto frame = framePtr->avFrame();
+        auto *frame = framePtr->avFrame();
         frame->nb_samples = frame_size;
         frame->channel_layout = enc_ctx->channel_layout;
         frame->format = enc_ctx->sample_fmt;
@@ -421,7 +423,7 @@ public:
         if (!framePtr->getBuffer()) {
             return nullptr;
         }
-        if (!audioFifoPtr->read((void **) framePtr->avFrame()->data, frame_size)) {
+        if (!audioFifoPtr->read(reinterpret_cast<void **>(framePtr->avFrame()->data), frame_size)) {
             return nullptr;
         }
         // fix me?
@@ -433,11 +435,11 @@ public:
         return framePtr;
     }
 
-    bool encodeWriteFrame(uint stream_index, int flush, QSharedPointer<Frame> framePtr)
+    auto encodeWriteFrame(uint stream_index, int flush, QSharedPointer<Frame> framePtr) -> bool
     {
-        auto transcodeCtx = transcodeContexts.at(stream_index);
+        auto *transcodeCtx = transcodeContexts.at(stream_index);
         std::vector<PacketPtr> packetPtrs{};
-        if (flush) {
+        if (flush != 0) {
             QSharedPointer<Frame> frame_tmp_ptr(new Frame);
             frame_tmp_ptr->destroyFrame();
             packetPtrs = transcodeCtx->encContextInfoPtr->encodeFrame(frame_tmp_ptr);
@@ -453,17 +455,17 @@ public:
         return true;
     }
 
-    bool flushEncoder(uint stream_index)
+    auto flushEncoder(uint stream_index) -> bool
     {
-        auto codecCtx
+        auto *codecCtx
             = transcodeContexts.at(stream_index)->encContextInfoPtr->codecCtx()->avCodecCtx();
-        if (!(codecCtx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
+        if ((codecCtx->codec->capabilities & AV_CODEC_CAP_DELAY) == 0) {
             return true;
         }
         return encodeWriteFrame(stream_index, 1, nullptr);
     }
 
-    bool setInMediaIndex(AVContextInfo *contextInfo, int index)
+    auto setInMediaIndex(AVContextInfo *contextInfo, int index) -> bool
     {
         contextInfo->setIndex(index);
         contextInfo->setStream(inFormatContext->stream(index));
@@ -590,7 +592,7 @@ void Transcode::setSubtitleFilename(const QString &filename)
     d_ptr->subtitleFilename.replace('/', "\\\\");
     auto index = d_ptr->subtitleFilename.indexOf(":\\");
     if (index > 0) {
-        d_ptr->subtitleFilename.insert(index, char('\\'));
+        d_ptr->subtitleFilename.insert(index, ('\\'));
     }
 }
 
@@ -620,12 +622,12 @@ void Transcode::setPreset(const QString &preset)
     d_ptr->preset = preset;
 }
 
-QString Transcode::preset() const
+auto Transcode::preset() const -> QString
 {
     return d_ptr->preset;
 }
 
-QStringList Transcode::presets() const
+auto Transcode::presets() const -> QStringList
 {
     return d_ptr->presets;
 }
@@ -636,12 +638,12 @@ void Transcode::setTune(const QString &tune)
     d_ptr->tune = tune;
 }
 
-QString Transcode::tune() const
+auto Transcode::tune() const -> QString
 {
     return d_ptr->tune;
 }
 
-QStringList Transcode::tunes() const
+auto Transcode::tunes() const -> QStringList
 {
     return d_ptr->tunes;
 }
@@ -652,12 +654,12 @@ void Transcode::setProfile(const QString &profile)
     d_ptr->profile = profile;
 }
 
-QString Transcode::profile() const
+auto Transcode::profile() const -> QString
 {
     return d_ptr->profile;
 }
 
-QStringList Transcode::profiles() const
+auto Transcode::profiles() const -> QStringList
 {
     return d_ptr->profiles;
 }
@@ -679,7 +681,7 @@ void Transcode::stopTranscode()
     d_ptr->reset();
 }
 
-float Transcode::fps()
+auto Transcode::fps() -> float
 {
     return d_ptr->fpsPtr->getFps();
 }
@@ -718,7 +720,7 @@ void Transcode::loop()
             break;
         }
         auto stream_index = packetPtr->streamIndex();
-        auto transcodeCtx = d_ptr->transcodeContexts.at(stream_index);
+        auto *transcodeCtx = d_ptr->transcodeContexts.at(stream_index);
         auto encContextInfoPtr = transcodeCtx->encContextInfoPtr;
         if (encContextInfoPtr.isNull()) {
             packetPtr->rescaleTs(d_ptr->inFormatContext->stream(stream_index)->time_base,

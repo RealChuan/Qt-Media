@@ -12,12 +12,12 @@ public:
     explicit AudioFifo(CodecContext *ctx, QObject *parent = nullptr);
     ~AudioFifo() override;
 
-    bool realloc(int nb_samples);
+    auto realloc(int nb_samples) -> bool;
 
-    bool write(void **data, int nb_samples);
-    bool read(void **data, int nb_samples);
+    auto write(void **data, int nb_samples) -> bool;
+    auto read(void **data, int nb_samples) -> bool;
 
-    int size() const;
+    auto size() const -> int;
 
 private:
     class AudioFifoPrivtate;

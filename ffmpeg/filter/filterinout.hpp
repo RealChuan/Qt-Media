@@ -12,9 +12,9 @@ class FilterInOut : public QObject
     Q_OBJECT
 public:
     explicit FilterInOut(QObject *parent = nullptr);
-    ~FilterInOut();
+    ~FilterInOut() override;
 
-    AVFilterInOut *avFilterInOut();
+    auto avFilterInOut() -> AVFilterInOut *;
     void setAVFilterInOut(AVFilterInOut *avFilterInOut);
 
 private:

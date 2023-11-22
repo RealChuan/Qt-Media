@@ -8,6 +8,8 @@ set(PROJECT_SOURCES
     event/seekevent.hpp
     event/trackevent.hpp
     event/valueevent.hpp
+    filter/filter.cc
+    filter/filter.hpp
     filter/filtercontext.cc
     filter/filtercontext.hpp
     filter/filtergraph.cc
