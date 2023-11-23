@@ -23,7 +23,7 @@ public:
     explicit ColorSpaceDialogPrivate(ColorSpaceDialog *q)
         : q_ptr(q)
     {
-        Ffmpeg::ColorSpaceTrc colorTrc;
+        Ffmpeg::ColorUtils::ColorSpaceTrc colorTrc;
 
         contrastSlider = new Slider(q_ptr);
         contrastSlider->setRange(colorTrc.contrast_min * multiple, colorTrc.contrast_max * multiple);
@@ -96,7 +96,7 @@ ColorSpaceDialog::ColorSpaceDialog(QWidget *parent)
 
 ColorSpaceDialog::~ColorSpaceDialog() = default;
 
-void ColorSpaceDialog::setColorSpace(const Ffmpeg::ColorSpaceTrc &colorTrc)
+void ColorSpaceDialog::setColorSpace(const Ffmpeg::ColorUtils::ColorSpaceTrc &colorTrc)
 {
     setBlockValue(d_ptr->contrastSpinBox, colorTrc.contrast * d_ptr->multiple);
     setBlockValue(d_ptr->saturationSpinBox, colorTrc.saturation * d_ptr->multiple);
@@ -106,9 +106,9 @@ void ColorSpaceDialog::setColorSpace(const Ffmpeg::ColorSpaceTrc &colorTrc)
     setBlockValue(d_ptr->brightnessSlider, colorTrc.brightness * d_ptr->multiple);
 }
 
-Ffmpeg::ColorSpaceTrc ColorSpaceDialog::colorSpace() const
+Ffmpeg::ColorUtils::ColorSpaceTrc ColorSpaceDialog::colorSpace() const
 {
-    Ffmpeg::ColorSpaceTrc colorTrc;
+    Ffmpeg::ColorUtils::ColorSpaceTrc colorTrc;
     colorTrc.contrast = d_ptr->contrastSlider->value() / d_ptr->multiple;
     colorTrc.saturation = d_ptr->saturationSlider->value() / d_ptr->multiple;
     colorTrc.brightness = d_ptr->brightnessSlider->value() / d_ptr->multiple;
@@ -153,7 +153,7 @@ void ColorSpaceDialog::onBrightnessSpinBoxChanged(int value)
 
 void ColorSpaceDialog::onReset()
 {
-    Ffmpeg::ColorSpaceTrc colorTrc;
+    Ffmpeg::ColorUtils::ColorSpaceTrc colorTrc;
     setBlockValue(d_ptr->contrastSlider, colorTrc.contrast_default * d_ptr->multiple);
     setBlockValue(d_ptr->saturationSlider, colorTrc.saturation_default * d_ptr->multiple);
     setBlockValue(d_ptr->brightnessSlider, colorTrc.brightness_default * d_ptr->multiple);

@@ -25,6 +25,8 @@ public:
     auto operator=(const Frame &other) -> Frame &;
     auto operator=(Frame &&other) noexcept -> Frame &;
 
+    auto compareProps(Frame *other) -> bool;
+
     void copyPropsFrom(Frame *src);
 
     auto isKey() -> bool;

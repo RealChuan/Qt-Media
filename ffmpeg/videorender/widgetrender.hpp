@@ -14,7 +14,7 @@ public:
     ~WidgetRender() override;
 
     auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool override;
-    auto convertSupported_pix_fmt(QSharedPointer<Frame> frame) -> QSharedPointer<Frame> override;
+    auto convertSupported_pix_fmt(QSharedPointer<Frame> framePtr) -> QSharedPointer<Frame> override;
     auto supportedOutput_pix_fmt() -> QVector<AVPixelFormat> override;
 
     void resetAllFrame() override;

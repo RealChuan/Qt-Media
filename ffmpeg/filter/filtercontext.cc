@@ -56,6 +56,7 @@ auto FilterContext::create(const QString &name, const QString &args, FilterGraph
                                             args.toLocal8Bit().constData(),
                                             nullptr,
                                             filterGraph->avFilterGraph());
+    Q_ASSERT(d_ptr->filterContext != nullptr);
     ERROR_RETURN(ret)
 }
 

@@ -87,7 +87,7 @@ void SubtitleDisplay::setVideoResolutionRatio(const QSize &size)
     d_ptr->videoResolutionRatio = size;
 }
 
-void SubtitleDisplay::setVideoRenders(QVector<VideoRender *> videoRenders)
+void SubtitleDisplay::setVideoRenders(const QVector<VideoRender *> &videoRenders)
 {
     QMutexLocker locker(&d_ptr->mutex_render);
     d_ptr->videoRenders = videoRenders;

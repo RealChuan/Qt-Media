@@ -13,9 +13,9 @@ class VideoDecoder : public Decoder<PacketPtr>
     Q_OBJECT
 public:
     explicit VideoDecoder(QObject *parent = nullptr);
-    ~VideoDecoder();
+    ~VideoDecoder() override;
 
-    void setVideoRenders(QVector<VideoRender *> videoRenders);
+    void setVideoRenders(const QVector<VideoRender *> &videoRenders);
 
     void setMasterClock();
 

@@ -12,8 +12,8 @@ public:
     explicit ColorSpaceDialog(QWidget *parent = nullptr);
     ~ColorSpaceDialog() override;
 
-    void setColorSpace(const Ffmpeg::ColorSpaceTrc &colorTrc);
-    [[nodiscard]] auto colorSpace() const -> Ffmpeg::ColorSpaceTrc;
+    void setColorSpace(const Ffmpeg::ColorUtils::ColorSpaceTrc &colorTrc);
+    [[nodiscard]] auto colorSpace() const -> Ffmpeg::ColorUtils::ColorSpaceTrc;
 
 signals:
     void colorSpaceChanged();

@@ -13,14 +13,6 @@ extern "C" {
 
 namespace Ffmpeg {
 
-ColorSpaceTrc &ColorSpaceTrc::operator=(const ColorSpaceTrc &other)
-{
-    contrast = other.contrast;
-    saturation = other.saturation;
-    brightness = other.brightness;
-    return *this;
-}
-
 class VideoRender::VideoRenderPrivate
 {
 public:

@@ -56,6 +56,29 @@ public:
     static auto getAVColorPrimaries(Type type) -> AVColorPrimaries;
 };
 
+struct ColorSpaceTrc
+{
+    auto operator=(const ColorSpaceTrc &other) -> ColorSpaceTrc &;
+
+    auto operator==(const ColorSpaceTrc &other) const -> bool;
+    auto operator!=(const ColorSpaceTrc &other) const -> bool;
+
+    const float contrast_min = 0.0;
+    const float contrast_max = 2.0;
+    const float contrast_default = 1.0;
+    float contrast = 1.0;
+
+    const float saturation_min = 0.0;
+    const float saturation_max = 2.0;
+    const float saturation_default = 1.0;
+    float saturation = 1.0;
+
+    const float brightness_min = -1.0;
+    const float brightness_max = 1.0;
+    const float brightness_default = 0.0;
+    float brightness = 0.0;
+};
+
 } // namespace ColorUtils
 
 } // namespace Ffmpeg

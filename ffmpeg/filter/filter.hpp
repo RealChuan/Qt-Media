@@ -8,16 +8,25 @@ namespace Ffmpeg {
 
 class AVContextInfo;
 class Frame;
+class FilterContext;
 class Filter : public QObject
 {
     Q_OBJECT
 public:
-    explicit Filter(AVContextInfo *decContextInfo, QObject *parent = nullptr);
+    explicit Filter(QObject *parent = nullptr);
     ~Filter() override;
 
-    auto init(Frame *frame) -> bool;
+    [[nodiscard]] auto isInitialized() const -> bool;
+
+    auto init(AVMediaType type, Frame *frame) -> bool;
+    // default args:
+    // Video is "null"
+    // Audio is "anull"
+    void config(const QString &filterSpec);
 
     auto filterFrame(Frame *frame) -> QVector<FramePtr>;
+
+    auto buffersinkCtx() -> FilterContext *;
 
 private:
     class FilterPrivate;

@@ -152,7 +152,7 @@ AudioFrameConverter::~AudioFrameConverter()
 
 auto AudioFrameConverter::convert(Frame *frame) -> QByteArray
 {
-    auto avFrame = frame->avFrame();
+    auto *avFrame = frame->avFrame();
     auto nb_samples = avFrame->nb_samples;
     auto out_count = (int64_t) nb_samples * d_ptr->format.sampleRate() / avFrame->sample_rate
                      + 256; // 256 copy from ffplay

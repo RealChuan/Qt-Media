@@ -28,6 +28,8 @@ auto getCurrentHWDeviceTypes() -> QVector<AVHWDeviceType>;
 
 auto getPixelFormat(const AVCodec *codec, AVHWDeviceType type) -> AVPixelFormat;
 
+auto compareAVRational(const AVRational &a, const AVRational &b) -> bool;
+
 struct CodecInfo
 {
     AVMediaType mediaType = AVMEDIA_TYPE_UNKNOWN;

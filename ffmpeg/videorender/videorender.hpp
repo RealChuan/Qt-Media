@@ -17,26 +17,6 @@ namespace Ffmpeg {
 class Frame;
 class Subtitle;
 
-struct ColorSpaceTrc
-{
-    auto operator=(const ColorSpaceTrc &other) -> ColorSpaceTrc &;
-
-    const float contrast_min = 0.0;
-    const float contrast_max = 2.0;
-    const float contrast_default = 1.0;
-    float contrast = 1.0;
-
-    const float saturation_min = 0.0;
-    const float saturation_max = 2.0;
-    const float saturation_default = 1.0;
-    float saturation = 1.0;
-
-    const float brightness_min = -1.0;
-    const float brightness_max = 1.0;
-    const float brightness_default = 0.0;
-    float brightness = 0.0;
-};
-
 class FFMPEG_EXPORT VideoRender
 {
     Q_DISABLE_COPY_MOVE(VideoRender)
@@ -53,8 +33,11 @@ public:
     void setSubTitleFrame(QSharedPointer<Subtitle> framePtr);
     virtual void resetAllFrame() = 0;
 
-    void setColorSpaceTrc(const ColorSpaceTrc &colorTrc) { m_colorSpaceTrc = colorTrc; }
-    [[nodiscard]] auto colorSpaceTrc() const -> ColorSpaceTrc { return m_colorSpaceTrc; }
+    void setColorSpaceTrc(const ColorUtils::ColorSpaceTrc &colorTrc) { m_colorSpaceTrc = colorTrc; }
+    [[nodiscard]] auto colorSpaceTrc() const -> ColorUtils::ColorSpaceTrc
+    {
+        return m_colorSpaceTrc;
+    }
 
     virtual void setTonemapType(Tonemap::Type type) { m_tonemapType = type; }
     [[nodiscard]] auto tonemapType() const -> Tonemap::Type { return m_tonemapType; }
@@ -75,7 +58,7 @@ protected:
     virtual void updateFrame(QSharedPointer<Frame> frame) = 0;
     virtual void updateSubTitleFrame(QSharedPointer<Subtitle> frame) = 0;
 
-    ColorSpaceTrc m_colorSpaceTrc;
+    ColorUtils::ColorSpaceTrc m_colorSpaceTrc;
     Tonemap::Type m_tonemapType = Tonemap::Type::AUTO;
     ColorUtils::Primaries::Type m_destPrimaries = ColorUtils::Primaries::AUTO;
 

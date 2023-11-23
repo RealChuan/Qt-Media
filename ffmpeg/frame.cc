@@ -1,5 +1,6 @@
 #include "frame.hpp"
 #include "averrormanager.hpp"
+#include "ffmpegutils.hpp"
 #include "videoformat.hpp"
 
 #include <QImage>
@@ -83,6 +84,21 @@ auto Frame::operator=(Frame &&other) noexcept -> Frame &
     return *this;
 }
 
+auto Frame::compareProps(Frame *other) -> bool
+{
+    Q_ASSERT(other != nullptr);
+    auto *otherFrame = other->avFrame();
+    Q_ASSERT(otherFrame != nullptr);
+    Q_ASSERT(d_ptr->frame != nullptr);
+
+    return d_ptr->frame->width == otherFrame->width && d_ptr->frame->height == otherFrame->height
+           && d_ptr->frame->format == otherFrame->format
+           && compareAVRational(d_ptr->frame->time_base, otherFrame->time_base)
+           && compareAVRational(d_ptr->frame->sample_aspect_ratio, otherFrame->sample_aspect_ratio)
+           && d_ptr->frame->sample_rate == otherFrame->sample_rate
+           && av_channel_layout_compare(&d_ptr->frame->ch_layout, &otherFrame->ch_layout) == 0;
+}
+
 void Frame::copyPropsFrom(Frame *src)
 {
     Q_ASSERT(src != nullptr);
@@ -97,6 +113,10 @@ void Frame::copyPropsFrom(Frame *src)
     d_ptr->frame->key_frame = srcFrame->key_frame;
     d_ptr->frame->width = srcFrame->width;
     d_ptr->frame->height = srcFrame->height;
+    d_ptr->frame->time_base = srcFrame->time_base;
+    d_ptr->frame->sample_aspect_ratio = srcFrame->sample_aspect_ratio;
+    d_ptr->frame->sample_rate = srcFrame->sample_rate;
+    d_ptr->frame->ch_layout = srcFrame->ch_layout;
 }
 
 auto Frame::imageAlloc(const QSize &size, AVPixelFormat pix_fmt, int align) -> bool
@@ -208,7 +228,7 @@ auto Frame::fromQImage(const QImage &image) -> Frame *
     img.convertTo(QImage::Format_RGBA8888);
 
     auto framePtr = std::make_unique<Frame>();
-    auto avFrame = framePtr->avFrame();
+    auto *avFrame = framePtr->avFrame();
     avFrame->width = img.width();
     avFrame->height = img.height();
     avFrame->format = AV_PIX_FMT_RGBA;

@@ -309,6 +309,25 @@ auto Primaries::getAVColorPrimaries(Type type) -> AVColorPrimaries
     return AVCOL_PRI_RESERVED0;
 }
 
+auto ColorSpaceTrc::operator=(const ColorSpaceTrc &other) -> ColorSpaceTrc &
+{
+    contrast = other.contrast;
+    saturation = other.saturation;
+    brightness = other.brightness;
+    return *this;
+}
+
+auto ColorSpaceTrc::operator==(const ColorSpaceTrc &other) const -> bool
+{
+    return contrast == other.contrast && saturation == other.saturation
+           && brightness == other.brightness;
+}
+
+auto ColorSpaceTrc::operator!=(const ColorSpaceTrc &other) const -> bool
+{
+    return !(*this == other);
+}
+
 } // namespace ColorUtils
 
 } // namespace Ffmpeg

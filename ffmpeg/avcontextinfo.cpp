@@ -21,13 +21,13 @@ namespace Ffmpeg {
 class AVContextInfo::AVContextInfoPrivate
 {
 public:
-    AVContextInfoPrivate(AVContextInfo *q)
+    explicit AVContextInfoPrivate(AVContextInfo *q)
         : q_ptr(q)
     {}
 
     void printCodecpar()
     {
-        auto codecpar = stream->codecpar;
+        auto *codecpar = stream->codecpar;
         qInfo() << "start_time: " << stream->start_time;
         qInfo() << "duration: " << stream->duration;
         qInfo() << "nb_frames: " << stream->nb_frames;
@@ -123,8 +123,8 @@ auto AVContextInfo::initDecoder(const AVRational &frameRate) -> bool
 {
     Q_ASSERT(d_ptr->stream != nullptr);
     const char *typeStr = av_get_media_type_string(d_ptr->stream->codecpar->codec_type);
-    auto codec = avcodec_find_decoder(d_ptr->stream->codecpar->codec_id);
-    if (!codec) {
+    const auto *codec = avcodec_find_decoder(d_ptr->stream->codecpar->codec_id);
+    if (codec == nullptr) {
         qWarning() << tr("%1 Codec not found.").arg(typeStr);
         return false;
     }
@@ -132,7 +132,7 @@ auto AVContextInfo::initDecoder(const AVRational &frameRate) -> bool
     if (!d_ptr->codecCtx->setParameters(d_ptr->stream->codecpar)) {
         return false;
     }
-    auto avCodecCtx = d_ptr->codecCtx->avCodecCtx();
+    auto *avCodecCtx = d_ptr->codecCtx->avCodecCtx();
     avCodecCtx->pkt_timebase = d_ptr->stream->time_base;
     d_ptr->codecCtx->setThreadCount(4);
     if (d_ptr->stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
@@ -146,8 +146,8 @@ auto AVContextInfo::initDecoder(const AVRational &frameRate) -> bool
 
 auto AVContextInfo::initEncoder(AVCodecID codecId) -> bool
 {
-    auto encodec = avcodec_find_encoder(codecId);
-    if (!encodec) {
+    const auto *encodec = avcodec_find_encoder(codecId);
+    if (encodec == nullptr) {
         qWarning() << tr("%1 Encoder not found.").arg(avcodec_get_name(codecId));
         return false;
     }
@@ -157,8 +157,8 @@ auto AVContextInfo::initEncoder(AVCodecID codecId) -> bool
 
 auto AVContextInfo::initEncoder(const QString &name) -> bool
 {
-    auto encodec = avcodec_find_encoder_by_name(name.toLocal8Bit().constData());
-    if (!encodec) {
+    const auto *encodec = avcodec_find_encoder_by_name(name.toLocal8Bit().constData());
+    if (encodec == nullptr) {
         qWarning() << tr("%1 Encoder not found.").arg(name);
         return false;
     }
@@ -207,6 +207,7 @@ auto AVContextInfo::decodeFrame(const QSharedPointer<Packet> &packetPtr)
     }
     FramePtr framePtr(new Frame);
     while (d_ptr->codecCtx->receiveFrame(framePtr.data())) {
+        framePtr->avFrame()->time_base = stream()->time_base;
         if (d_ptr->gpuType == GpuDecode && mediaType() == AVMEDIA_TYPE_VIDEO) {
             bool ok = false;
             framePtr = d_ptr->hardWareDecodePtr->transFromGpu(framePtr, ok);

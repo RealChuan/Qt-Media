@@ -73,7 +73,7 @@ VideoDisplay::~VideoDisplay()
     stopDecoder();
 }
 
-void VideoDisplay::setVideoRenders(QVector<VideoRender *> videoRenders)
+void VideoDisplay::setVideoRenders(const QVector<VideoRender *> &videoRenders)
 {
     QMutexLocker locker(&d_ptr->mutex_render);
     d_ptr->videoRenders = videoRenders;

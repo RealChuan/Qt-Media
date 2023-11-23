@@ -85,8 +85,8 @@ auto OpenglShader::generate(Frame *frame,
     //ShaderUtils::passOotf(frag, d_ptr->srcHdrMetaData.maxLuma, avFrame->color_trc);
 
     // Tone map
-    if (type == Tonemap::AUTO && ShaderUtils::trcIsHdr(avFrame->color_trc)) {
-        type = Tonemap::FILMIC;
+    if (type == Tonemap ::AUTO) {
+        type = ShaderUtils::trcIsHdr(avFrame->color_trc) ? Tonemap::FILMIC : Tonemap::NONE;
     }
     Tonemap::toneMap(header, frag, type);
 

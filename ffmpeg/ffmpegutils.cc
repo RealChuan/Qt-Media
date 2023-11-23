@@ -47,7 +47,7 @@ void calculatePts(Packet *packet, AVContextInfo *contextInfo)
     // qDebug() << "Packet duration:" << duration << "pts:" << pts << "tb:" << tb.num << tb.den;
 }
 
-int compare_codec_desc(const void *a, const void *b)
+auto compare_codec_desc(const void *a, const void *b) -> int
 {
     const AVCodecDescriptor *const *da = (const AVCodecDescriptor *const *) a;
     const AVCodecDescriptor *const *db = (const AVCodecDescriptor *const *) b;
@@ -56,7 +56,7 @@ int compare_codec_desc(const void *a, const void *b)
                                       : strcmp((*da)->name, (*db)->name);
 }
 
-unsigned get_codecs_sorted(const AVCodecDescriptor ***rcodecs)
+auto get_codecs_sorted(const AVCodecDescriptor ***rcodecs) -> unsigned
 {
     const AVCodecDescriptor *desc = nullptr;
     const AVCodecDescriptor **codecs;
@@ -79,7 +79,7 @@ unsigned get_codecs_sorted(const AVCodecDescriptor ***rcodecs)
     return nb_codecs;
 }
 
-const AVCodec *next_codec_for_id(enum AVCodecID id, void **iter, bool encoder)
+auto next_codec_for_id(enum AVCodecID id, void **iter, bool encoder) -> const AVCodec *
 {
     const AVCodec *c = nullptr;
     while ((c = av_codec_iterate(iter))) {
@@ -103,7 +103,7 @@ void printFfmpegInfo()
     qInfo() << avutil_configuration();
 }
 
-QVector<AVHWDeviceType> getCurrentHWDeviceTypes()
+auto getCurrentHWDeviceTypes() -> QVector<AVHWDeviceType>
 {
     static QVector<AVHWDeviceType> types{};
     if (types.isEmpty()) {
@@ -123,7 +123,7 @@ QVector<AVHWDeviceType> getCurrentHWDeviceTypes()
     return types;
 }
 
-AVPixelFormat getPixelFormat(const AVCodec *codec, AVHWDeviceType type)
+auto getPixelFormat(const AVCodec *codec, AVHWDeviceType type) -> AVPixelFormat
 {
     auto hw_pix_fmt = AV_PIX_FMT_NONE;
     for (int i = 0;; i++) {
@@ -144,7 +144,12 @@ AVPixelFormat getPixelFormat(const AVCodec *codec, AVHWDeviceType type)
     return hw_pix_fmt;
 }
 
-QVector<CodecInfo> getFileCodecInfo(const QString &filePath)
+auto compareAVRational(const AVRational &a, const AVRational &b) -> bool
+{
+    return a.den == b.den && a.num == b.num;
+}
+
+auto getFileCodecInfo(const QString &filePath) -> QVector<CodecInfo>
 {
     QVector<CodecInfo> codecs{};
     QScopedPointer<FormatContext> formatContextPtr(new FormatContext);
@@ -165,7 +170,7 @@ QVector<CodecInfo> getFileCodecInfo(const QString &filePath)
     return codecs;
 }
 
-QPair<int, int> getCodecQuantizer(const QString &codecname)
+auto getCodecQuantizer(const QString &codecname) -> QPair<int, int>
 {
     QScopedPointer<AVContextInfo> contextInfoPtr(new AVContextInfo);
     if (!contextInfoPtr->initEncoder(codecname)) {
@@ -175,7 +180,7 @@ QPair<int, int> getCodecQuantizer(const QString &codecname)
     return quantizer;
 }
 
-QStringList getCurrentSupportCodecs(AVMediaType mediaType, bool encoder)
+auto getCurrentSupportCodecs(AVMediaType mediaType, bool encoder) -> QStringList
 {
     QStringList codecnames{};
     const AVCodecDescriptor **codecs{};

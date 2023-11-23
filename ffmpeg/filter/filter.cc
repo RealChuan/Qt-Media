@@ -3,14 +3,11 @@
 #include "filtergraph.hpp"
 #include "filterinout.hpp"
 
-#include <ffmpeg/avcontextinfo.h>
-#include <ffmpeg/codeccontext.h>
 #include <ffmpeg/frame.hpp>
 
 #include <QDebug>
 
 extern "C" {
-#include <libavcodec/avcodec.h>
 #include <libavfilter/avfilter.h>
 }
 
@@ -27,40 +24,41 @@ public:
 
     void initVideoFilter(Frame *frame)
     {
-        auto *avCodecCtx = decContextInfo->codecCtx()->avCodecCtx();
         buffersrcCtx = new FilterContext("buffer", q_ptr);
         buffersinkCtx = new FilterContext("buffersink", q_ptr);
-        auto timeBase = decContextInfo->timebase();
+        auto *avFrame = frame->avFrame();
+        auto timeBase = avFrame->time_base;
+        auto sampleAspectRatio = avFrame->sample_aspect_ratio;
         auto args
             = QString::asprintf("video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
-                                avCodecCtx->width,
-                                avCodecCtx->height,
-                                frame->avFrame()->format, //dec_ctx->pix_fmt,
+                                avFrame->width,
+                                avFrame->height,
+                                avFrame->format,
                                 timeBase.num,
                                 timeBase.den,
-                                avCodecCtx->sample_aspect_ratio.num,
-                                avCodecCtx->sample_aspect_ratio.den);
+                                sampleAspectRatio.num,
+                                sampleAspectRatio.den);
         qDebug() << "Video filter in args:" << args;
 
         create(args);
     }
 
-    void initAudioFilter()
+    void initAudioFilter(Frame *frame)
     {
-        auto *avCodecCtx = decContextInfo->codecCtx()->avCodecCtx();
         buffersrcCtx = new FilterContext("abuffer", q_ptr);
         buffersinkCtx = new FilterContext("abuffersink", q_ptr);
-        if (avCodecCtx->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC) {
-            av_channel_layout_default(&avCodecCtx->ch_layout, avCodecCtx->ch_layout.nb_channels);
+        auto *avFrame = frame->avFrame();
+        if (avFrame->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC) {
+            av_channel_layout_default(&avFrame->ch_layout, avFrame->ch_layout.nb_channels);
         }
         char buf[64];
-        av_channel_layout_describe(&avCodecCtx->ch_layout, buf, sizeof(buf));
+        av_channel_layout_describe(&avFrame->ch_layout, buf, sizeof(buf));
         auto args = QString::asprintf(
             "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=%s" PRIx64,
             1,
-            avCodecCtx->sample_rate,
-            avCodecCtx->sample_rate,
-            av_get_sample_fmt_name(avCodecCtx->sample_fmt),
+            avFrame->sample_rate,
+            avFrame->sample_rate,
+            av_get_sample_fmt_name(static_cast<AVSampleFormat>(avFrame->format)),
             buf);
         qDebug() << "Audio filter in args:" << args;
 
@@ -93,6 +91,8 @@ public:
         filterGraph->parse(filterSpec, fliterInPtr.data(), fliterOutPtr.data());
         filterGraph->config();
 
+        qDebug() << "Filter config:" << filterSpec;
+
         //    if (!(enc_ctx->codec->capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE)) {
         //        buffersink_ctx->buffersink_setFrameSize(enc_ctx->frame_size);
         //    }
@@ -100,44 +100,58 @@ public:
 
     Filter *q_ptr;
 
-    AVContextInfo *decContextInfo;
-    FilterContext *buffersrcCtx;
-    FilterContext *buffersinkCtx;
+    FilterContext *buffersrcCtx = nullptr;
+    FilterContext *buffersinkCtx = nullptr;
     FilterGraph *filterGraph;
 };
 
-Filter::Filter(AVContextInfo *decContextInfo, QObject *parent)
+Filter::Filter(QObject *parent)
     : QObject{parent}
     , d_ptr(new FilterPrivate(this))
-{
-    d_ptr->decContextInfo = decContextInfo;
-}
+{}
 
 Filter::~Filter() = default;
 
-auto Filter::init(Frame *frame) -> bool
+auto Filter::isInitialized() const -> bool
 {
-    switch (d_ptr->decContextInfo->mediaType()) {
-    case AVMEDIA_TYPE_AUDIO: d_ptr->initAudioFilter(); break;
+    return d_ptr->buffersrcCtx != nullptr;
+}
+
+auto Filter::init(AVMediaType type, Frame *frame) -> bool
+{
+    switch (type) {
+    case AVMEDIA_TYPE_AUDIO: d_ptr->initAudioFilter(frame); break;
     case AVMEDIA_TYPE_VIDEO: d_ptr->initVideoFilter(frame); break;
     default: return false;
     }
-
     return true;
+}
+
+void Filter::config(const QString &filterSpec)
+{
+    Q_ASSERT(!filterSpec.isEmpty());
+    d_ptr->config(filterSpec);
 }
 
 auto Filter::filterFrame(Frame *frame) -> QVector<FramePtr>
 {
     QVector<FramePtr> framepPtrs{};
-    if (d_ptr->buffersrcCtx->buffersrcAddFrameFlags(frame)) {
+    if (!d_ptr->buffersrcCtx->buffersrcAddFrameFlags(frame)) {
         return framepPtrs;
     }
     std::unique_ptr<Frame> framePtr(new Frame);
     while (d_ptr->buffersinkCtx->buffersinkGetFrame(framePtr.get())) {
         framePtr->setPictType(AV_PICTURE_TYPE_NONE);
         framepPtrs.emplace_back(framePtr.release());
+        framePtr.reset(new Frame);
     }
     return framepPtrs;
+}
+
+auto Filter::buffersinkCtx() -> FilterContext *
+{
+    Q_ASSERT(d_ptr->buffersinkCtx);
+    return d_ptr->buffersinkCtx;
 }
 
 } // namespace Ffmpeg
