@@ -26,11 +26,12 @@ public:
 
     virtual auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool = 0;
     virtual auto supportedOutput_pix_fmt() -> QVector<AVPixelFormat> = 0;
-    virtual auto convertSupported_pix_fmt(QSharedPointer<Frame> framePtr) -> QSharedPointer<Frame>
+    virtual auto convertSupported_pix_fmt(const QSharedPointer<Frame> &framePtr)
+        -> QSharedPointer<Frame>
         = 0;
     void setFrame(QSharedPointer<Frame> framePtr);
     void setImage(const QImage &image);
-    void setSubTitleFrame(QSharedPointer<Subtitle> framePtr);
+    void setSubTitleFrame(const QSharedPointer<Subtitle> &framePtr);
     virtual void resetAllFrame() = 0;
 
     void setColorSpaceTrc(const ColorUtils::ColorSpaceTrc &colorTrc) { m_colorSpaceTrc = colorTrc; }
@@ -55,8 +56,8 @@ public:
 
 protected:
     // may use in anthoer thread, suggest use QMetaObject::invokeMethod(Qt::QueuedConnection)
-    virtual void updateFrame(QSharedPointer<Frame> frame) = 0;
-    virtual void updateSubTitleFrame(QSharedPointer<Subtitle> frame) = 0;
+    virtual void updateFrame(const QSharedPointer<Frame> &framePtr) = 0;
+    virtual void updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr) = 0;
 
     ColorUtils::ColorSpaceTrc m_colorSpaceTrc;
     Tonemap::Type m_tonemapType = Tonemap::Type::AUTO;

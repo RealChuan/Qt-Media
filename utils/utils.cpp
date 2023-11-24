@@ -292,3 +292,11 @@ QByteArray Utils::readAllFile(const QString &filePath)
     file.close();
     return buf;
 }
+
+float Utils::rangeMap(float value, float min, float max, float newMin, float newMax)
+{
+    Q_ASSERT(min <= max);
+    Q_ASSERT(newMin <= newMax);
+    Q_ASSERT(min <= value && value <= max);
+    return (value - min) * (newMax - newMin) / (max - min) + newMin;
+}

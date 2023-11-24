@@ -1,12 +1,17 @@
 #ifndef FILTER_HPP
 #define FILTER_HPP
 
-#include "frame.hpp"
+#include <ffmpeg/colorutils.hpp>
+#include <videorender/tonemap.hpp>
+
 #include <QObject>
+
+extern "C" {
+#include <libavutil/avutil.h>
+}
 
 namespace Ffmpeg {
 
-class AVContextInfo;
 class Frame;
 class FilterContext;
 class Filter : public QObject
@@ -24,14 +29,20 @@ public:
     // Audio is "anull"
     void config(const QString &filterSpec);
 
-    auto filterFrame(Frame *frame) -> QVector<FramePtr>;
+    auto filterFrame(Frame *frame) -> QVector<QSharedPointer<Frame>>;
 
     auto buffersinkCtx() -> FilterContext *;
+
+    static auto scale(const QSize &size) -> QString;
+    static auto ep(const ColorUtils::ColorSpaceTrc &trc) -> QString;
+    static auto zscale(ColorUtils::Primaries::Type destPrimaries, Tonemap::Type type) -> QString;
 
 private:
     class FilterPrivate;
     QScopedPointer<FilterPrivate> d_ptr;
 };
+
+using FilterPtr = QSharedPointer<Filter>;
 
 } // namespace Ffmpeg
 

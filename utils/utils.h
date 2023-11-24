@@ -27,6 +27,7 @@ UTILS_EXPORT auto jsonFromFile(const QString &filePath) -> QJsonObject;
 UTILS_EXPORT auto jsonFromBytes(const QByteArray &bytes) -> QJsonObject;
 UTILS_EXPORT auto getConfigPath() -> QString;
 UTILS_EXPORT auto readAllFile(const QString &filePath) -> QByteArray;
+UTILS_EXPORT auto rangeMap(float value, float min, float max, float newMin, float newMax) -> float;
 
 } // namespace Utils
 

@@ -61,7 +61,7 @@ void VideoRender::setImage(const QImage &image)
     setFrame(frame);
 }
 
-void VideoRender::setSubTitleFrame(QSharedPointer<Subtitle> framePtr)
+void VideoRender::setSubTitleFrame(const QSharedPointer<Subtitle> &framePtr)
 {
     if (framePtr->image().isNull()) {
         return;

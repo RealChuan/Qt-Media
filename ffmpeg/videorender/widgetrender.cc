@@ -60,7 +60,7 @@ public:
 
     ~WidgetRenderPrivate() = default;
 
-    auto swsScale(const FramePtr &framePtr) -> FramePtr
+    auto swsScaleFrame(const FramePtr &framePtr) -> FramePtr
     {
         auto dst_pix_fmt = AV_PIX_FMT_RGB32;
         auto *avframe = framePtr->avFrame();
@@ -72,15 +72,54 @@ public:
             frameConverterPtr->flush(framePtr.data(), size, dst_pix_fmt);
         }
         frameConverterPtr->setColorspaceDetails(framePtr.data(),
-                                                q_ptr->m_colorSpaceTrc.brightness,
-                                                q_ptr->m_colorSpaceTrc.contrast,
-                                                q_ptr->m_colorSpaceTrc.saturation);
+                                                q_ptr->m_colorSpaceTrc.brightness(),
+                                                q_ptr->m_colorSpaceTrc.contrast(),
+                                                q_ptr->m_colorSpaceTrc.saturation());
         QSharedPointer<Frame> frameRgbPtr(new Frame);
         frameRgbPtr->imageAlloc(size, dst_pix_fmt);
         frameConverterPtr->scale(framePtr.data(), frameRgbPtr.data());
         //    qDebug() << frameRgbPtr->avFrame()->width << frameRgbPtr->avFrame()->height
         //             << frameRgbPtr->avFrame()->format;
         return frameRgbPtr;
+    }
+
+    auto fliterFrame(const FramePtr &framePtr) -> FramePtr
+    {
+        static FrameParam lastFrameParam;
+        FrameParam frameParam(framePtr.data());
+
+        auto *avframe = framePtr->avFrame();
+        auto size = QSize(avframe->width, avframe->height);
+        size.scale(q_ptr->size() * q_ptr->devicePixelRatio(), Qt::KeepAspectRatio);
+
+        if (framePtr.isNull() || filterPtr.isNull() || lastFrameParam != frameParam
+            || lastScaleSize != size || colorSpaceTrc != q_ptr->m_colorSpaceTrc
+            /*|| tonemapType != q_ptr->m_tonemapType || destPrimaries != q_ptr->m_destPrimaries*/) {
+            filterPtr.reset(new Filter);
+            lastFrameParam = frameParam;
+            lastScaleSize = size;
+            colorSpaceTrc = q_ptr->m_colorSpaceTrc;
+            destPrimaries = q_ptr->m_destPrimaries;
+        }
+        if (!filterPtr->isInitialized()) {
+            filterPtr->init(AVMEDIA_TYPE_VIDEO, framePtr.data());
+            tonemapType = q_ptr->m_tonemapType;
+            auto pix_fmt = AV_PIX_FMT_RGB32;
+            av_opt_set_bin(filterPtr->buffersinkCtx()->avFilterContext(),
+                           "pix_fmts",
+                           reinterpret_cast<uint8_t *>(&pix_fmt),
+                           sizeof(pix_fmt),
+                           AV_OPT_SEARCH_CHILDREN);
+            auto filterSpec = QString("%1,%2").arg(Filter::scale(size), Filter::ep(colorSpaceTrc));
+            filterPtr->config(filterSpec);
+        }
+        auto framePtrs = filterPtr->filterFrame(framePtr.data());
+        if (framePtrs.isEmpty()) {
+            return {};
+        }
+        // qDebug() << framePtrs.first()->avFrame()->width << framePtrs.first()->avFrame()->height
+        //          << framePtrs.first()->avFrame()->format;
+        return framePtrs.first();
     }
 
     WidgetRender *q_ptr;
@@ -99,7 +138,10 @@ public:
 
     QColor backgroundColor = Qt::black;
 
+    QSize lastScaleSize;
+    ColorUtils::ColorSpaceTrc colorSpaceTrc;
     Tonemap::Type tonemapType;
+    ColorUtils::Primaries::Type destPrimaries;
 };
 
 WidgetRender::WidgetRender(QWidget *parent)
@@ -114,57 +156,12 @@ auto WidgetRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool
     return d_ptr->supportFormats.contains(pix_fmt);
 }
 
-auto WidgetRender::convertSupported_pix_fmt(QSharedPointer<Frame> framePtr) -> QSharedPointer<Frame>
+auto WidgetRender::convertSupported_pix_fmt(const QSharedPointer<Frame> &framePtr)
+    -> QSharedPointer<Frame>
 {
-    static FrameParam lastFrameParam;
-    FrameParam frameParam(framePtr.data());
+    return d_ptr->fliterFrame(framePtr);
 
-    static QSize lastScaleSize;
-    auto *avframe = framePtr->avFrame();
-    auto size = QSize(avframe->width, avframe->height);
-    size.scale(this->size() * devicePixelRatio(), Qt::KeepAspectRatio);
-
-    if (d_ptr->framePtr.isNull() || d_ptr->filterPtr.isNull() || lastFrameParam != frameParam
-        || d_ptr->tonemapType != m_tonemapType || lastScaleSize != size) {
-        d_ptr->filterPtr.reset(new Filter);
-        lastFrameParam = frameParam;
-        lastScaleSize = size;
-    }
-    auto isInitialized = d_ptr->filterPtr->isInitialized();
-    if (!isInitialized) {
-        d_ptr->filterPtr->init(AVMEDIA_TYPE_VIDEO, framePtr.data());
-        d_ptr->tonemapType = m_tonemapType;
-        QString tonemap("none");
-        // need zimg zscale "tonemap=clip" in filterSpec
-        switch (d_ptr->tonemapType) {
-        case Tonemap::Type::CLIP: tonemap = "clip"; break;
-        case Tonemap::Type::LINEAR: tonemap = "linear"; break;
-        case Tonemap::Type::GAMMA: tonemap = "gamma"; break;
-        case Tonemap::Type::REINHARD: tonemap = "reinhard"; break;
-        case Tonemap::Type::HABLE: tonemap = "hable"; break;
-        case Tonemap::Type::MOBIUS: tonemap = "mobius"; break;
-        default: break;
-        }
-        auto pix_fmt = AV_PIX_FMT_RGB32;
-        av_opt_set_bin(d_ptr->filterPtr->buffersinkCtx()->avFilterContext(),
-                       "pix_fmts",
-                       reinterpret_cast<uint8_t *>(&pix_fmt),
-                       sizeof(pix_fmt),
-                       AV_OPT_SEARCH_CHILDREN);
-        auto filterSpec = QString("scale=%1:%2")
-                              .arg(QString::number(size.width()), QString::number(size.height()));
-        d_ptr->filterPtr->config(filterSpec);
-        // d_ptr->filterPtr->config("null");
-    }
-    auto framePtrs = d_ptr->filterPtr->filterFrame(framePtr.data());
-    if (framePtrs.isEmpty()) {
-        return {};
-    }
-    // qDebug() << framePtrs.first()->avFrame()->width << framePtrs.first()->avFrame()->height
-    //          << framePtrs.first()->avFrame()->format;
-    return framePtrs.first();
-
-    // return d_ptr->swsScale(framePtr);
+    // return d_ptr->swsScaleFrame(framePtr);
 }
 
 auto WidgetRender::supportedOutput_pix_fmt() -> QVector<AVPixelFormat>
@@ -211,22 +208,22 @@ void WidgetRender::paintEvent(QPaintEvent *event)
     paintSubTitleFrame(rect, &painter);
 }
 
-void WidgetRender::updateFrame(QSharedPointer<Frame> frame)
+void WidgetRender::updateFrame(const QSharedPointer<Frame> &framePtr)
 {
     QMetaObject::invokeMethod(
-        this, [=] { displayFrame(frame); }, Qt::QueuedConnection);
+        this, [=] { displayFrame(framePtr); }, Qt::QueuedConnection);
 }
 
-void WidgetRender::updateSubTitleFrame(QSharedPointer<Subtitle> frame)
+void WidgetRender::updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr)
 {
     // Rendering is best optimized to the Format_RGB32 and Format_ARGB32_Premultiplied formats
-    auto img = frame->image().convertedTo(QImage::Format_ARGB32_Premultiplied);
+    auto img = framePtr->image().convertedTo(QImage::Format_ARGB32_Premultiplied);
     img = img.scaled(size() * devicePixelRatio(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
     img.setDevicePixelRatio(devicePixelRatio());
     QMetaObject::invokeMethod(
         this,
         [=] {
-            d_ptr->subTitleFramePtr = frame;
+            d_ptr->subTitleFramePtr = framePtr;
             d_ptr->subTitleImage = img;
             // need update?
             //update();
@@ -234,7 +231,7 @@ void WidgetRender::updateSubTitleFrame(QSharedPointer<Subtitle> frame)
         Qt::QueuedConnection);
 }
 
-void WidgetRender::displayFrame(QSharedPointer<Frame> framePtr)
+void WidgetRender::displayFrame(const QSharedPointer<Frame> &framePtr)
 {
     d_ptr->framePtr = framePtr;
     d_ptr->videoImage = framePtr->toImage();

@@ -14,7 +14,8 @@ public:
     ~WidgetRender() override;
 
     auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool override;
-    auto convertSupported_pix_fmt(QSharedPointer<Frame> framePtr) -> QSharedPointer<Frame> override;
+    auto convertSupported_pix_fmt(const QSharedPointer<Frame> &framePtr)
+        -> QSharedPointer<Frame> override;
     auto supportedOutput_pix_fmt() -> QVector<AVPixelFormat> override;
 
     void resetAllFrame() override;
@@ -24,11 +25,11 @@ public:
 protected:
     void paintEvent(QPaintEvent *event) override;
 
-    void updateFrame(QSharedPointer<Frame> frame) override;
-    void updateSubTitleFrame(QSharedPointer<Subtitle> frame) override;
+    void updateFrame(const QSharedPointer<Frame> &framePtr) override;
+    void updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr) override;
 
 private:
-    void displayFrame(QSharedPointer<Frame> framePtr);
+    void displayFrame(const QSharedPointer<Frame> &framePtr);
     void paintSubTitleFrame(const QRect &rect, QPainter *painter);
 
     class WidgetRenderPrivate;

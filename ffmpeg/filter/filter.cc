@@ -53,13 +53,13 @@ public:
         }
         char buf[64];
         av_channel_layout_describe(&avFrame->ch_layout, buf, sizeof(buf));
-        auto args = QString::asprintf(
-            "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=%s" PRIx64,
-            1,
-            avFrame->sample_rate,
-            avFrame->sample_rate,
-            av_get_sample_fmt_name(static_cast<AVSampleFormat>(avFrame->format)),
-            buf);
+        auto args
+            = QString::asprintf("time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=%s",
+                                1,
+                                avFrame->sample_rate,
+                                avFrame->sample_rate,
+                                av_get_sample_fmt_name(static_cast<AVSampleFormat>(avFrame->format)),
+                                buf);
         qDebug() << "Audio filter in args:" << args;
 
         create(args);
@@ -152,6 +152,44 @@ auto Filter::buffersinkCtx() -> FilterContext *
 {
     Q_ASSERT(d_ptr->buffersinkCtx);
     return d_ptr->buffersinkCtx;
+}
+
+auto Filter::scale(const QSize &size) -> QString
+{
+    return QString("scale=%1:%2").arg(QString::number(size.width()), QString::number(size.height()));
+}
+
+auto Filter::ep(const ColorUtils::ColorSpaceTrc &trc) -> QString
+{
+    return QString("eq=contrast=%1:saturation=%2:brightness=%3")
+        .arg(QString::number(trc.eqContrast()),
+             QString::number(trc.eqSaturation()),
+             QString::number(trc.eqBrightness()));
+}
+
+// need z.lib libzimg support zscale
+auto Filter::zscale(ColorUtils::Primaries::Type destPrimaries, Tonemap::Type type) -> QString
+{
+    QString primaries;
+    switch (destPrimaries) {
+    case ColorUtils::Primaries::Type::BT709: primaries = "709"; break;
+    case ColorUtils::Primaries::Type::SMPTE170M: primaries = "170m"; break;
+    case ColorUtils::Primaries::Type::SMPTE240M: primaries = "240m"; break;
+    case ColorUtils::Primaries::Type::BT2020: primaries = "2020"; break;
+    default: primaries = "input"; break;
+    };
+
+    QString tonemap;
+    switch (type) {
+    case Tonemap::Type::CLIP: tonemap = "clip"; break;
+    case Tonemap::Type::LINEAR: tonemap = "linear"; break;
+    case Tonemap::Type::GAMMA: tonemap = "gamma"; break;
+    case Tonemap::Type::REINHARD: tonemap = "reinhard"; break;
+    case Tonemap::Type::HABLE: tonemap = "hable"; break;
+    case Tonemap::Type::MOBIUS: tonemap = "mobius"; break;
+    default: return {};
+    }
+    return QString("zscale=t=linear:p=%1,tonemap=%2").arg(primaries, tonemap);
 }
 
 } // namespace Ffmpeg

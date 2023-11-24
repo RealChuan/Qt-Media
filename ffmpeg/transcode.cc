@@ -8,9 +8,8 @@
 #include "frame.hpp"
 #include "packet.h"
 
+#include <filter/filter.hpp>
 #include <filter/filtercontext.hpp>
-#include <filter/filtergraph.hpp>
-#include <filter/filterinout.hpp>
 #include <utils/fps.hpp>
 
 extern "C" {
@@ -27,10 +26,7 @@ struct TranscodeContext
     QSharedPointer<AVContextInfo> decContextInfoPtr;
     QSharedPointer<AVContextInfo> encContextInfoPtr;
 
-    bool initFilter = false;
-    QSharedPointer<FilterContext> buffersinkCtxPtr;
-    QSharedPointer<FilterContext> buffersrcCtxPtr;
-    QSharedPointer<FilterGraph> filterGraphPtr;
+    FilterPtr filterPtr;
 
     QSharedPointer<AudioFifo> audioFifoPtr;
     int64_t audioPts = 0;
@@ -38,67 +34,37 @@ struct TranscodeContext
 
 auto init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Frame *frame) -> bool
 {
-    QSharedPointer<FilterContext> buffersrc_ctx;
-    QSharedPointer<FilterContext> buffersink_ctx;
-    QSharedPointer<FilterGraph> filter_graph(new FilterGraph);
+    auto fliterPtr = transcodeContext->filterPtr;
+    if (fliterPtr->isInitialized()) {
+        return true;
+    }
+
     auto *dec_ctx = transcodeContext->decContextInfoPtr->codecCtx()->avCodecCtx();
     auto *enc_ctx = transcodeContext->encContextInfoPtr->codecCtx()->avCodecCtx();
     switch (transcodeContext->decContextInfoPtr->mediaType()) {
     case AVMEDIA_TYPE_VIDEO: {
-        buffersrc_ctx.reset(new FilterContext("buffer"));
-        buffersink_ctx.reset(new FilterContext("buffersink"));
-        auto time_base = transcodeContext->decContextInfoPtr->stream()->time_base;
-        auto args
-            = QString::asprintf("video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
-                                dec_ctx->width,
-                                dec_ctx->height,
-                                frame->avFrame()->format, //dec_ctx->pix_fmt,
-                                time_base.num,
-                                time_base.den,
-                                dec_ctx->sample_aspect_ratio.num,
-                                dec_ctx->sample_aspect_ratio.den);
-        qInfo() << "Video filter in args:" << args;
-        buffersrc_ctx->create("in", args, filter_graph.data());
-        buffersink_ctx->create("out", "", filter_graph.data());
+        fliterPtr->init(AVMEDIA_TYPE_VIDEO, frame);
         auto pix_fmt = transcodeContext->encContextInfoPtr->pixfmt();
-        av_opt_set_bin(buffersink_ctx->avFilterContext(),
+        av_opt_set_bin(fliterPtr->buffersinkCtx()->avFilterContext(),
                        "pix_fmts",
                        reinterpret_cast<uint8_t *>(&pix_fmt),
                        sizeof(pix_fmt),
                        AV_OPT_SEARCH_CHILDREN);
-        //        av_opt_set_bin(buffersink_ctx->avFilterContext(),
-        //                       "pix_fmts",
-        //                       (uint8_t *) &enc_ctx->pix_fmt,
-        //                       sizeof(enc_ctx->pix_fmt),
-        //                       AV_OPT_SEARCH_CHILDREN);
     } break;
     case AVMEDIA_TYPE_AUDIO: {
-        buffersrc_ctx.reset(new FilterContext("abuffer"));
-        buffersink_ctx.reset(new FilterContext("abuffersink"));
-        if (dec_ctx->channel_layout == 0U) {
-            dec_ctx->channel_layout = av_get_default_channel_layout(dec_ctx->channels);
-        }
-        auto args = QString::asprintf(
-            "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%" PRIx64,
-            1,
-            dec_ctx->sample_rate,
-            dec_ctx->sample_rate,
-            av_get_sample_fmt_name(dec_ctx->sample_fmt),
-            dec_ctx->channel_layout);
-        qInfo() << "Audio filter in args:" << args;
-        buffersrc_ctx->create("in", args, filter_graph.data());
-        buffersink_ctx->create("out", "", filter_graph.data());
-        av_opt_set_bin(buffersink_ctx->avFilterContext(),
+        fliterPtr->init(AVMEDIA_TYPE_AUDIO, frame);
+        auto *avFilterContext = fliterPtr->buffersinkCtx()->avFilterContext();
+        av_opt_set_bin(avFilterContext,
                        "sample_rates",
                        reinterpret_cast<uint8_t *>(&enc_ctx->sample_rate),
                        sizeof(enc_ctx->sample_rate),
                        AV_OPT_SEARCH_CHILDREN);
-        av_opt_set_bin(buffersink_ctx->avFilterContext(),
+        av_opt_set_bin(avFilterContext,
                        "sample_fmts",
                        reinterpret_cast<uint8_t *>(&enc_ctx->sample_fmt),
                        sizeof(enc_ctx->sample_fmt),
                        AV_OPT_SEARCH_CHILDREN);
-        av_opt_set_bin(buffersink_ctx->avFilterContext(),
+        av_opt_set_bin(avFilterContext,
                        "channel_layouts",
                        reinterpret_cast<uint8_t *>(&enc_ctx->channel_layout),
                        sizeof(enc_ctx->channel_layout),
@@ -107,32 +73,7 @@ auto init_filter(TranscodeContext *transcodeContext, const char *filter_spec, Fr
     default: return false;
     }
 
-    QScopedPointer<FilterInOut> fliterOut(new FilterInOut);
-    QScopedPointer<FilterInOut> fliterIn(new FilterInOut);
-    auto *outputs = fliterOut->avFilterInOut();
-    auto *inputs = fliterIn->avFilterInOut();
-    /* Endpoints for the filter graph. */
-    outputs->name = av_strdup("in");
-    outputs->filter_ctx = buffersrc_ctx->avFilterContext();
-    outputs->pad_idx = 0;
-    outputs->next = nullptr;
-
-    inputs->name = av_strdup("out");
-    inputs->filter_ctx = buffersink_ctx->avFilterContext();
-    inputs->pad_idx = 0;
-    inputs->next = nullptr;
-
-    filter_graph->parse(filter_spec, fliterIn.data(), fliterOut.data());
-    filter_graph->config();
-
-    //    if (!(enc_ctx->codec->capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE)) {
-    //        buffersink_ctx->buffersink_setFrameSize(enc_ctx->frame_size);
-    //    }
-
-    transcodeContext->buffersrcCtxPtr = buffersrc_ctx;
-    transcodeContext->buffersinkCtxPtr = buffersink_ctx;
-    transcodeContext->filterGraphPtr = filter_graph;
-
+    fliterPtr->config(filter_spec);
     return true;
 }
 
@@ -159,6 +100,7 @@ public:
         auto stream_num = inFormatContext->streams();
         for (int i = 0; i < stream_num; i++) {
             auto *transContext = new TranscodeContext;
+            transContext->filterPtr.reset(new Filter);
             transcodeContexts.append(transContext);
             auto *stream = inFormatContext->stream(i);
             auto codec_type = stream->codecpar->codec_type;
@@ -335,7 +277,7 @@ public:
     {
         auto stream_num = inFormatContext->streams();
         for (int i = 0; i < stream_num; i++) {
-            if (transcodeContexts.at(i)->filterGraphPtr.isNull()) {
+            if (!transcodeContexts.at(i)->filterPtr->isInitialized()) {
                 continue;
             }
             if (!transcodeContexts.at(i)->audioFifoPtr.isNull()) {
@@ -353,11 +295,8 @@ public:
     auto filterEncodeWriteframe(Frame *frame, uint stream_index) -> bool
     {
         auto *transcodeCtx = transcodeContexts.at(stream_index);
-        if (!transcodeCtx->buffersrcCtxPtr->buffersrcAddFrameFlags(frame)) {
-            return false;
-        }
-        QSharedPointer<Frame> framePtr(new Frame);
-        while (transcodeCtx->buffersinkCtxPtr->buffersinkGetFrame(framePtr.data())) {
+        auto framePtrs = transcodeCtx->filterPtr->filterFrame(frame);
+        for (auto framePtr : framePtrs) {
             framePtr->setPictType(AV_PICTURE_TYPE_NONE);
             if (transcodeCtx->audioFifoPtr.isNull()) {
                 encodeWriteFrame(stream_index, 0, framePtr);
@@ -731,9 +670,8 @@ void Transcode::loop()
                                  transcodeCtx->decContextInfoPtr->timebase());
             auto framePtrs = transcodeCtx->decContextInfoPtr->decodeFrame(packetPtr);
             for (const auto &framePtr : framePtrs) {
-                if (!transcodeCtx->initFilter) {
+                if (!transcodeCtx->filterPtr->isInitialized()) {
                     d_ptr->initFilters(stream_index, framePtr.data());
-                    transcodeCtx->initFilter = true;
                 }
                 d_ptr->filterEncodeWriteframe(framePtr.data(), stream_index);
             }

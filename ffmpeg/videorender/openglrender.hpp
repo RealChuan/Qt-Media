@@ -19,7 +19,8 @@ public:
     ~OpenglRender() override;
 
     auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool override;
-    auto convertSupported_pix_fmt(QSharedPointer<Frame> frame) -> QSharedPointer<Frame> override;
+    auto convertSupported_pix_fmt(const QSharedPointer<Frame> &frame)
+        -> QSharedPointer<Frame> override;
     auto supportedOutput_pix_fmt() -> QVector<AVPixelFormat> override;
 
     void resetAllFrame() override;
@@ -31,8 +32,8 @@ protected:
     void resizeGL(int w, int h) override;
     void paintGL() override;
 
-    void updateFrame(QSharedPointer<Frame> frame) override;
-    void updateSubTitleFrame(QSharedPointer<Subtitle> frame) override;
+    void updateFrame(const QSharedPointer<Frame> &framePtr) override;
+    void updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr) override;
 
 private:
     void clear();

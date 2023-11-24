@@ -1,17 +1,27 @@
-name: QMake Build
+name: QMake build
 
 on: 
   # push代码时触发workflow
   push:
     paths-ignore: # 下列文件的变更不触发部署，可以自行添加
-        - 'doc'
+        - '.github/workflows/clean_cache.yml'
+        - '.github/workflows/delete_workflow.yml'
+        - '.github/workflows/cmake.yml'
+        - '.github/workflows/readme.yml'
+        - '.github/workflows/toolchain.yml'        
+        - 'doc/**'
         - '.clang*'
         - '.gitignore'
         - 'LICENSE'
         - 'README*'
   pull_request:
     paths-ignore: # 下列文件的变更不触发部署，可以自行添加
-        - 'doc'
+        - '.github/workflows/clean_cache.yml'
+        - '.github/workflows/delete_workflow.yml'
+        - '.github/workflows/cmake.yml'
+        - '.github/workflows/readme.yml'
+        - '.github/workflows/toolchain.yml'
+        - 'doc/**'
         - '.clang*'
         - '.gitignore'
         - 'LICENSE'
@@ -29,19 +39,22 @@ jobs:
           - macos-latest
           - ubuntu-latest
         qt_ver: 
-          - 6.6.0
+          - 6.6.1
 
     steps:
-      - name: cache vcpkg
-        uses: actions/cache@v3
-        with:
-          path: |
-            C:\vcpkg\installed
-            /usr/local/share/vcpkg/installed
-          key: ${{ runner.os }}-vcpkg-installed-${{ matrix.os }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-vcpkg-installed-${{ matrix.os }}-
-            ${{ runner.os }}-vcpkg-installed-
+      - name: Restore windows vcpkg
+        if: startsWith(matrix.os, 'windows')
+        uses: actions/cache/restore@v3
+        with: 
+          path: C:\vcpkg\installed
+          key: ${{ runner.os }}-vcpkg-installed-${{ matrix.os }}
+      - name: Restore macos or ubuntu vcpkg
+        if: startsWith(matrix.os, 'macos') || startsWith(matrix.os, 'ubuntu')
+        uses: actions/cache/restore@v3
+        with: 
+          path: /usr/local/share/vcpkg/installed
+          key: ${{ runner.os }}-vcpkg-installed-${{ matrix.os }}
+              
       - name: Install dependencies on windows
         if: startsWith(matrix.os, 'windows')
         shell: bash
@@ -49,7 +62,7 @@ jobs:
           choco install ninja
           ninja --version
           cmake --version
-          vcpkg install breakpad ffmpeg[opengl,ass,bzip2,freetype,fribidi,zlib] --triplet x64-windows
+          vcpkg install breakpad ffmpeg[opengl,ass,bzip2,freetype,fribidi,zlib,gpl] --triplet x64-windows
       - name: Install dependencies on macos
         if: startsWith(matrix.os, 'macos')
         shell: bash
@@ -58,7 +71,7 @@ jobs:
           ninja --version
           cmake --version
           clang --version
-          vcpkg install breakpad ffmpeg[opengl,ass,bzip2,freetype,fribidi,zlib] --triplet x64-osx
+          vcpkg install breakpad ffmpeg[opengl,ass,bzip2,freetype,fribidi,zlib,gpl] --triplet x64-osx
       - name: Install dependencies on ubuntu
         if: startsWith(matrix.os, 'ubuntu')
         shell: bash
@@ -68,17 +81,17 @@ jobs:
           ninja --version
           cmake --version
           gcc --version
-          vcpkg install breakpad ffmpeg[opengl,ass,bzip2,freetype,fribidi,zlib] --triplet x64-linux
+          vcpkg install breakpad ffmpeg[opengl,ass,bzip2,freetype,fribidi,zlib,gpl] --triplet x64-linux
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
           version: ${{ matrix.qt_ver }}
           install-deps: 'true'
-          modules: 'qt5compat addons.qtnetworkauth addons.qtmultimedia addons.qtimageformats'
+          modules: 'qt5compat qtnetworkauth qtmultimedia qtimageformats'
           cache: 'true'
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 

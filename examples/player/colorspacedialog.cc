@@ -27,31 +27,31 @@ public:
 
         contrastSlider = new Slider(q_ptr);
         contrastSlider->setRange(colorTrc.contrast_min * multiple, colorTrc.contrast_max * multiple);
-        contrastSlider->setValue(colorTrc.contrast * multiple);
+        contrastSlider->setValue(colorTrc.contrast() * multiple);
         saturationSlider = new Slider(q_ptr);
         saturationSlider->setRange(colorTrc.saturation_min * multiple,
                                    colorTrc.saturation_max * multiple);
-        saturationSlider->setValue(colorTrc.saturation * multiple);
+        saturationSlider->setValue(colorTrc.saturation() * multiple);
         brightnessSlider = new Slider(q_ptr);
         brightnessSlider->setRange(colorTrc.brightness_min * multiple,
                                    colorTrc.brightness_max * multiple);
-        brightnessSlider->setValue(colorTrc.brightness * multiple);
+        brightnessSlider->setValue(colorTrc.brightness() * multiple);
 
         contrastSpinBox = new QSpinBox(q_ptr);
         contrastSpinBox->setKeyboardTracking(false);
         contrastSpinBox->setRange(colorTrc.contrast_min * multiple,
                                   colorTrc.contrast_max * multiple);
-        contrastSpinBox->setValue(colorTrc.contrast * multiple);
+        contrastSpinBox->setValue(colorTrc.contrast() * multiple);
         saturationSpinBox = new QSpinBox(q_ptr);
         saturationSpinBox->setKeyboardTracking(false);
         saturationSpinBox->setRange(colorTrc.saturation_min * multiple,
                                     colorTrc.saturation_max * multiple);
-        saturationSpinBox->setValue(colorTrc.saturation * multiple);
+        saturationSpinBox->setValue(colorTrc.saturation() * multiple);
         brightnessSpinBox = new QSpinBox(q_ptr);
         brightnessSpinBox->setKeyboardTracking(false);
         brightnessSpinBox->setRange(colorTrc.brightness_min * multiple,
                                     colorTrc.brightness_max * multiple);
-        brightnessSpinBox->setValue(colorTrc.brightness * multiple);
+        brightnessSpinBox->setValue(colorTrc.brightness() * multiple);
 
         resetButton = new QToolButton(q_ptr);
         resetButton->setText("Reset");
@@ -98,20 +98,20 @@ ColorSpaceDialog::~ColorSpaceDialog() = default;
 
 void ColorSpaceDialog::setColorSpace(const Ffmpeg::ColorUtils::ColorSpaceTrc &colorTrc)
 {
-    setBlockValue(d_ptr->contrastSpinBox, colorTrc.contrast * d_ptr->multiple);
-    setBlockValue(d_ptr->saturationSpinBox, colorTrc.saturation * d_ptr->multiple);
-    setBlockValue(d_ptr->brightnessSpinBox, colorTrc.brightness * d_ptr->multiple);
-    setBlockValue(d_ptr->contrastSlider, colorTrc.contrast * d_ptr->multiple);
-    setBlockValue(d_ptr->saturationSlider, colorTrc.saturation * d_ptr->multiple);
-    setBlockValue(d_ptr->brightnessSlider, colorTrc.brightness * d_ptr->multiple);
+    setBlockValue(d_ptr->contrastSpinBox, colorTrc.contrast() * d_ptr->multiple);
+    setBlockValue(d_ptr->saturationSpinBox, colorTrc.saturation() * d_ptr->multiple);
+    setBlockValue(d_ptr->brightnessSpinBox, colorTrc.brightness() * d_ptr->multiple);
+    setBlockValue(d_ptr->contrastSlider, colorTrc.contrast() * d_ptr->multiple);
+    setBlockValue(d_ptr->saturationSlider, colorTrc.saturation() * d_ptr->multiple);
+    setBlockValue(d_ptr->brightnessSlider, colorTrc.brightness() * d_ptr->multiple);
 }
 
 Ffmpeg::ColorUtils::ColorSpaceTrc ColorSpaceDialog::colorSpace() const
 {
     Ffmpeg::ColorUtils::ColorSpaceTrc colorTrc;
-    colorTrc.contrast = d_ptr->contrastSlider->value() / d_ptr->multiple;
-    colorTrc.saturation = d_ptr->saturationSlider->value() / d_ptr->multiple;
-    colorTrc.brightness = d_ptr->brightnessSlider->value() / d_ptr->multiple;
+    colorTrc.setContrast(d_ptr->contrastSlider->value() / d_ptr->multiple);
+    colorTrc.setSaturation(d_ptr->saturationSlider->value() / d_ptr->multiple);
+    colorTrc.setBrightness(d_ptr->brightnessSlider->value() / d_ptr->multiple);
     return colorTrc;
 }
 

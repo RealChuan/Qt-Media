@@ -3,6 +3,8 @@
 #include "colorutils.hpp"
 #include "frame.hpp"
 
+#include <utils/utils.h>
+
 extern "C" {
 #include <libavutil/frame.h>
 #include <libavutil/pixdesc.h>
@@ -309,23 +311,99 @@ auto Primaries::getAVColorPrimaries(Type type) -> AVColorPrimaries
     return AVCOL_PRI_RESERVED0;
 }
 
+const float ColorSpaceTrc::contrast_min = 0.0;
+const float ColorSpaceTrc::contrast_max = 2.0;
+const float ColorSpaceTrc::contrast_default = 1.0;
+const float ColorSpaceTrc::saturation_min = 0.0;
+const float ColorSpaceTrc::saturation_max = 2.0;
+const float ColorSpaceTrc::saturation_default = 1.0;
+const float ColorSpaceTrc::brightness_min = -1.0;
+const float ColorSpaceTrc::brightness_max = 1.0;
+const float ColorSpaceTrc::brightness_default = 0.0;
+
+ColorSpaceTrc::ColorSpaceTrc()
+    : m_contrast(contrast_default)
+    , m_saturation(saturation_default)
+    , m_brightness(brightness_default)
+{}
+
+ColorSpaceTrc::ColorSpaceTrc(const ColorSpaceTrc &other)
+{
+    if (this != &other) {
+        m_contrast = other.m_contrast;
+        m_saturation = other.m_saturation;
+        m_brightness = other.m_brightness;
+    }
+}
+
 auto ColorSpaceTrc::operator=(const ColorSpaceTrc &other) -> ColorSpaceTrc &
 {
-    contrast = other.contrast;
-    saturation = other.saturation;
-    brightness = other.brightness;
+    if (this != &other) {
+        m_contrast = other.m_contrast;
+        m_saturation = other.m_saturation;
+        m_brightness = other.m_brightness;
+    }
     return *this;
 }
 
 auto ColorSpaceTrc::operator==(const ColorSpaceTrc &other) const -> bool
 {
-    return contrast == other.contrast && saturation == other.saturation
-           && brightness == other.brightness;
+    return m_contrast == other.m_contrast && m_saturation == other.m_saturation
+           && m_brightness == other.m_brightness;
 }
 
 auto ColorSpaceTrc::operator!=(const ColorSpaceTrc &other) const -> bool
 {
     return !(*this == other);
+}
+
+void ColorSpaceTrc::setContrast(float contrast)
+{
+    Q_ASSERT(contrast_min <= contrast && contrast <= contrast_max);
+    m_contrast = contrast;
+}
+
+auto ColorSpaceTrc::eqContrast() const -> float
+{
+    return m_contrast;
+    // The value must be a float value in range -1000.0 to 1000.0. The default value is "1".
+    // if (m_contrast == contrast_default) {
+    //     return m_contrast;
+    // }
+    // if (m_contrast > 1) {
+    //     return Utils::rangeMap(m_contrast, contrast_default, contrast_max, 1.0, 1000.0);
+    // }
+    // return Utils::rangeMap(m_contrast, contrast_min, contrast_default, -1000.0, 1.0);
+}
+
+void ColorSpaceTrc::setSaturation(float saturation)
+{
+    Q_ASSERT(saturation_min <= saturation && saturation <= saturation_max);
+    m_saturation = saturation;
+}
+
+auto ColorSpaceTrc::eqSaturation() const -> float
+{
+    // The value must be a float in range 0.0 to 3.0. The default value is "1".
+    if (m_saturation == saturation_default) {
+        return m_saturation;
+    }
+    if (m_saturation > 1) {
+        return Utils::rangeMap(m_saturation, saturation_default, saturation_max, 1.0, 3.0);
+    }
+    return m_saturation;
+}
+
+void ColorSpaceTrc::setBrightness(float brightness)
+{
+    Q_ASSERT(brightness_min <= brightness && brightness <= brightness_max);
+    m_brightness = brightness;
+}
+
+auto ColorSpaceTrc::eqBrightness() const -> float
+{
+    // The value must be a float value in range -1.0 to 1.0. The default value is "0".
+    return m_brightness;
 }
 
 } // namespace ColorUtils

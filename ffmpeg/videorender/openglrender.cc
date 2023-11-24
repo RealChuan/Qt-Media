@@ -91,7 +91,8 @@ auto OpenglRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool
     return d_ptr->supportFormats.contains(pix_fmt);
 }
 
-auto OpenglRender::convertSupported_pix_fmt(QSharedPointer<Frame> frame) -> QSharedPointer<Frame>
+auto OpenglRender::convertSupported_pix_fmt(const QSharedPointer<Frame> &frame)
+    -> QSharedPointer<Frame>
 {
     auto dst_pix_fmt = AV_PIX_FMT_RGBA;
     auto *avframe = frame->avFrame();
@@ -131,16 +132,16 @@ auto OpenglRender::widget() -> QWidget *
     return this;
 }
 
-void OpenglRender::updateFrame(QSharedPointer<Frame> frame)
+void OpenglRender::updateFrame(const QSharedPointer<Frame> &framePtr)
 {
     QMetaObject::invokeMethod(
-        this, [=] { onUpdateFrame(frame); }, Qt::QueuedConnection);
+        this, [=] { onUpdateFrame(framePtr); }, Qt::QueuedConnection);
 }
 
-void OpenglRender::updateSubTitleFrame(QSharedPointer<Subtitle> frame)
+void OpenglRender::updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr)
 {
     QMetaObject::invokeMethod(
-        this, [=] { onUpdateSubTitleFrame(frame); }, Qt::QueuedConnection);
+        this, [=] { onUpdateSubTitleFrame(framePtr); }, Qt::QueuedConnection);
 }
 
 void OpenglRender::initTexture()
@@ -228,6 +229,9 @@ void OpenglRender::resetShader(Frame *frame)
         d_ptr->programPtr->setUniformValue("cms_matrix", shader.convertPrimariesMatrix());
         qDebug() << "CMS matrix:" << shader.convertPrimariesMatrix();
     }
+    auto param = Ffmpeg::ColorUtils::getYuvToRgbParam(frame);
+    d_ptr->programPtr->setUniformValue("offset", param.offset);
+    d_ptr->programPtr->setUniformValue("colorConversion", param.matrix);
     d_ptr->programPtr->release();
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -292,12 +296,9 @@ void OpenglRender::paintVideoFrame()
     }
     d_ptr->programPtr->bind(); // 绑定着色器
     d_ptr->programPtr->setUniformValue("transform", fitToScreen({avFrame->width, avFrame->height}));
-    d_ptr->programPtr->setUniformValue("contrast", m_colorSpaceTrc.contrast);
-    d_ptr->programPtr->setUniformValue("saturation", m_colorSpaceTrc.saturation);
-    d_ptr->programPtr->setUniformValue("brightness", m_colorSpaceTrc.brightness);
-    auto param = Ffmpeg::ColorUtils::getYuvToRgbParam(d_ptr->framePtr.data());
-    d_ptr->programPtr->setUniformValue("offset", param.offset);
-    d_ptr->programPtr->setUniformValue("colorConversion", param.matrix);
+    d_ptr->programPtr->setUniformValue("contrast", m_colorSpaceTrc.contrast());
+    d_ptr->programPtr->setUniformValue("saturation", m_colorSpaceTrc.saturation());
+    d_ptr->programPtr->setUniformValue("brightness", m_colorSpaceTrc.brightness());
     draw();
     d_ptr->programPtr->release();
     d_ptr->frameChanged = false;
