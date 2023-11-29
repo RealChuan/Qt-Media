@@ -5,6 +5,7 @@
 #include "clock.hpp"
 #include "codeccontext.h"
 #include "formatcontext.h"
+#include "mediainfo.hpp"
 #include "packet.h"
 #include "subtitledecoder.h"
 #include "videodecoder.h"
@@ -46,14 +47,12 @@ public:
                          &AVErrorManager::error,
                          q_ptr,
                          [this](const AVError &error) {
-                             addPropertyChangeEventEvent(new ErrorEvent(error));
+                             addPropertyChangeEvent(new ErrorEvent(error));
                          });
     }
 
     auto initAvCodec() -> bool
     {
-        setMediaState(Opening);
-
         isOpen = false;
         //初始化pFormatCtx结构
         if (!formatCtx->openFilePath(filepath)) {
@@ -63,7 +62,7 @@ public:
         if (!formatCtx->findStream()) {
             return false;
         }
-        addPropertyChangeEventEvent(new DurationEvent(formatCtx->duration()));
+        addPropertyChangeEvent(new DurationEvent(formatCtx->duration()));
         q_ptr->onPositionChanged(0);
 
         if (!setBestMediaIndex()) {
@@ -137,7 +136,7 @@ public:
         QVector<StreamInfo> tracks = audioTracks;
         tracks.append(videoTracks);
         tracks.append(subtitleTracks);
-        addPropertyChangeEventEvent(new MediaTrackEvent(tracks));
+        addPropertyChangeEvent(new MediaTrackEvent(tracks));
 
         qInfo() << audioInfo->index() << videoInfo->index() << subtitleInfo->index();
         return true;
@@ -153,12 +152,8 @@ public:
         }
     }
 
-    void playVideo()
+    void startDecoder()
     {
-        Q_ASSERT(isOpen);
-
-        setMediaState(Playing);
-
         formatCtx->discardStreamExcluded(
             {audioInfo->index(), videoInfo->index(), subtitleInfo->index()});
         formatCtx->seekFirstFrame();
@@ -176,9 +171,34 @@ public:
         }
         Clock::master()->invalidate();
 
-        QScopedPointer<Utils::Speed> speedPtr(new Utils::Speed);
-        QElapsedTimer timer;
-        timer.start();
+        speedPtr.reset(new Utils::Speed);
+        speedTimer.restart();
+    }
+
+    void stopDecoder()
+    {
+        speedTimer.invalidate();
+        speedPtr.reset();
+
+        videoDecoder->stopDecoder();
+        subtitleDecoder->stopDecoder();
+        audioDecoder->stopDecoder();
+    }
+
+    void addSpeedChangeEvent(int size)
+    {
+        speedPtr->addSize(size);
+        if (speedTimer.hasExpired(1000)) {
+            addPropertyChangeEvent(new CacheSpeedEvent(speedPtr->getSpeed()));
+            speedTimer.restart();
+        }
+    }
+
+    void playVideo()
+    {
+        Q_ASSERT(isOpen);
+        setMediaState(Playing);
+        startDecoder();
 
         while (runing) {
             processEvent();
@@ -187,19 +207,15 @@ public:
             if (!formatCtx->readFrame(packetPtr.data())) {
                 break;
             }
-            speedPtr->addSize(packetPtr->avPacket()->size);
-            if (timer.elapsed() > 1000) {
-                addPropertyChangeEventEvent(new CacheSpeedEvent(speedPtr->getSpeed()));
-                timer.restart();
-            }
+            addSpeedChangeEvent(packetPtr->avPacket()->size);
 
             auto stream_index = packetPtr->streamIndex();
             if (!formatCtx->checkPktPlayRange(packetPtr.data())) {
             } else if (stream_index == audioInfo->index()) { // 如果是音频数据
                 audioDecoder->append(packetPtr);
             } else if (stream_index == videoInfo->index()
-                       && !(videoInfo->stream()->disposition
-                            & AV_DISPOSITION_ATTACHED_PIC)) { // 如果是视频数据
+                       && ((videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC)
+                           == 0)) { // 如果是视频数据
                 videoDecoder->append(packetPtr);
             } else if (stream_index == subtitleInfo->index()) { // 如果是字幕数据
                 subtitleDecoder->append(packetPtr);
@@ -208,13 +224,9 @@ public:
         while (runing && (videoDecoder->size() > 0 || audioDecoder->size() > 0)) {
             msleep(s_waitQueueEmptyMilliseconds);
         }
-        subtitleDecoder->stopDecoder();
-        videoDecoder->stopDecoder();
-        audioDecoder->stopDecoder();
-
-        qInfo() << "play finish";
-
+        stopDecoder();
         setMediaState(Stopped);
+        qInfo() << "play finish";
     }
 
     auto setMediaIndex(AVContextInfo *contextInfo, int index) const -> bool
@@ -231,7 +243,7 @@ public:
     void setMediaState(MediaState mediaState_)
     {
         mediaState = mediaState_;
-        addPropertyChangeEventEvent(new MediaStateEvent(mediaState));
+        addPropertyChangeEvent(new MediaStateEvent(mediaState));
     }
 
     [[nodiscard]] auto resolutionRatio() const -> QSize
@@ -245,7 +257,7 @@ public:
         waitCondition.wakeAll();
     }
 
-    void addPropertyChangeEventEvent(PropertyChangeEvent *event)
+    void addPropertyChangeEvent(PropertyChangeEvent *event)
     {
         propertyChangeEventQueue.append(PropertyChangeEventPtr(event));
         while (propertyChangeEventQueue.size() > maxPropertyEventQueueSize.load()) {
@@ -274,7 +286,7 @@ public:
 
     void processEvent()
     {
-        while (eventQueue.size() > 0) {
+        while (!eventQueue.empty()) {
             auto eventPtr = eventQueue.take();
             switch (eventPtr->type()) {
             case Event::EventType::Pause: processPauseEvent(eventPtr); break;
@@ -308,6 +320,7 @@ public:
         auto *pauseEvent = dynamic_cast<PauseEvent *>(eventPtr.data());
         if (pauseEvent->paused()) {
             setMediaState(MediaState::Pausing);
+            addPropertyChangeEvent(new CacheSpeedEvent(0));
         } else if (q_ptr->isRunning()) {
             setMediaState(isOpen ? MediaState::Playing : MediaState::Opening);
         } else {
@@ -364,9 +377,9 @@ public:
         Clock::master()->invalidate();
         qInfo() << "Seek To: "
                 << QTime::fromMSecsSinceStartOfDay(position / 1000).toString("hh:mm:ss.zzz")
-                << "Seeked elapsed: " << timer.elapsed();
+                << "Seeked elapsed: " << timer.elapsed() << "ms";
 
-        addPropertyChangeEventEvent(new SeekChangedEvent(position));
+        addPropertyChangeEvent(new SeekChangedEvent(position));
     }
 
     void processSeekRelativeEvent(const EventPtr &eventPtr)
@@ -457,10 +470,6 @@ public:
         while (q_ptr->isRunning()) {
             qApp->processEvents();
         }
-        int count = 1000;
-        while (count-- > 0) {
-            qApp->processEvents(); // just for signal finished
-        }
         for (auto *render : videoRenders) {
             render->resetAllFrame();
         }
@@ -478,25 +487,6 @@ public:
         auto *volumeEvent = dynamic_cast<VolumeEvent *>(eventPtr.data());
         audioDecoder->setVolume(volumeEvent->volume());
     }
-
-    struct MediaIndex
-    {
-        void resetIndex()
-        {
-            audioindex = -1;
-            videoindex = -1;
-            subtitleindex = -1;
-        }
-
-        [[nodiscard]] auto isIndexVaild() const -> bool
-        {
-            return audioindex >= 0 || videoindex >= 0 || subtitleindex >= 0;
-        }
-
-        int audioindex = -1;
-        int videoindex = -1;
-        int subtitleindex = -1;
-    };
 
     Player *q_ptr;
 
@@ -526,6 +516,9 @@ public:
     std::atomic<size_t> maxPropertyEventQueueSize = 100;
     Utils::ThreadSafeQueue<EventPtr> eventQueue;
     std::atomic<size_t> maxEventQueueSize = 100;
+
+    QScopedPointer<Utils::Speed> speedPtr;
+    QElapsedTimer speedTimer;
 
     QVector<VideoRender *> videoRenders = {};
 };
@@ -563,7 +556,7 @@ void Player::onPositionChanged(qint64 position)
         return;
     }
     d_ptr->position = position;
-    d_ptr->addPropertyChangeEventEvent(new PositionEvent(position));
+    d_ptr->addPropertyChangeEvent(new PositionEvent(position));
 }
 
 auto Player::isOpen() -> bool
@@ -692,8 +685,8 @@ auto Player::addEvent(const EventPtr &eventPtr) -> bool
 
 void Player::run()
 {
-    d_ptr->initAvCodec();
-    if (!d_ptr->isOpen) {
+    d_ptr->setMediaState(Opening);
+    if (!d_ptr->initAvCodec()) {
         d_ptr->setMediaState(Stopped);
         qWarning() << "initAvCode Error";
         return;

@@ -12,6 +12,15 @@ extern "C" {
 
 namespace Ffmpeg {
 
+static void queryStreamInfo(int bestIndex, StreamInfo &streamInfo, StreamInfos &streamInfos)
+{
+    if (bestIndex == streamInfo.index) {
+        streamInfo.defaultSelected = true;
+        streamInfo.selected = true;
+    }
+    streamInfos.append(streamInfo);
+}
+
 class FormatContext::FormatContextPrivate
 {
 public:
@@ -37,38 +46,21 @@ public:
 
         //nb_streams视音频流的个数
         for (uint i = 0; i < formatCtx->nb_streams; i++) {
-            StreamInfo streamInfo;
+            StreamInfo streamInfo(formatCtx->streams[i]);
             streamInfo.index = i;
-            streamInfo.parseStreamData(formatCtx->streams[i]);
 
             switch (formatCtx->streams[i]->codecpar->codec_type) {
             case AVMEDIA_TYPE_AUDIO:
-                if (bestAudioIndex == i) {
-                    streamInfo.defaultSelected = true;
-                    streamInfo.selected = true;
-                }
-                audioTracks.append(streamInfo);
+                queryStreamInfo(bestAudioIndex, streamInfo, audioTracks);
                 break;
             case AVMEDIA_TYPE_VIDEO:
-                if (bestVideoIndex == i) {
-                    streamInfo.defaultSelected = true;
-                    streamInfo.selected = true;
-                }
-                videoTracks.append(streamInfo);
+                queryStreamInfo(bestVideoIndex, streamInfo, videoTracks);
                 break;
             case AVMEDIA_TYPE_SUBTITLE:
-                if (bestSubtitleIndex == i) {
-                    streamInfo.defaultSelected = true;
-                    streamInfo.selected = true;
-                }
-                subtitleTracks.append(streamInfo);
+                queryStreamInfo(bestSubtitleIndex, streamInfo, subtitleTracks);
                 break;
             case AVMEDIA_TYPE_ATTACHMENT:
-                if (bestAttachmentIndex == i) {
-                    streamInfo.defaultSelected = true;
-                    streamInfo.selected = true;
-                }
-                attachmentTracks.append(streamInfo);
+                queryStreamInfo(bestAttachmentIndex, streamInfo, attachmentTracks);
                 break;
             default: break;
             }
@@ -88,10 +80,10 @@ public:
     FormatContext::OpenMode mode = FormatContext::ReadOnly;
     bool isOpen = false;
 
-    QVector<StreamInfo> audioTracks;
-    QVector<StreamInfo> videoTracks;
-    QVector<StreamInfo> subtitleTracks;
-    QVector<StreamInfo> attachmentTracks;
+    StreamInfos audioTracks;
+    StreamInfos videoTracks;
+    StreamInfos subtitleTracks;
+    StreamInfos attachmentTracks;
 
     const qint64 seekOffset = 2 * AV_TIME_BASE;
 };
@@ -108,19 +100,19 @@ FormatContext::~FormatContext()
 
 void FormatContext::copyChapterFrom(FormatContext *src)
 {
-    auto is = src->avFormatContext();
-    auto os = d_ptr->formatCtx;
-    AVChapter **tmp = (AVChapter **) av_realloc_f(os->chapters,
-                                                  is->nb_chapters + os->nb_chapters,
-                                                  sizeof(*os->chapters));
-    if (!tmp) {
+    auto *is = src->avFormatContext();
+    auto *os = d_ptr->formatCtx;
+    auto **tmp = static_cast<AVChapter **>(
+        av_realloc_f(os->chapters, is->nb_chapters + os->nb_chapters, sizeof(*os->chapters)));
+    if (tmp == nullptr) {
         qWarning() << tr("Memory request error");
         return;
     }
     os->chapters = tmp;
 
     for (uint i = 0; i < is->nb_chapters; i++) {
-        AVChapter *in_ch = is->chapters[i], *out_ch;
+        auto *in_ch = is->chapters[i];
+        AVChapter *out_ch;
         int64_t start_time = 0;
         int64_t ts_off = av_rescale_q(start_time, AVRational{1, AV_TIME_BASE}, in_ch->time_base);
         int64_t rt = INT64_MAX;
@@ -131,8 +123,8 @@ void FormatContext::copyChapterFrom(FormatContext *src)
         if (rt != INT64_MAX && in_ch->start > rt + ts_off) {
             break;
         }
-        out_ch = (AVChapter *) av_mallocz(sizeof(AVChapter));
-        if (!out_ch) {
+        out_ch = static_cast<AVChapter *>(av_mallocz(sizeof(AVChapter)));
+        if (out_ch == nullptr) {
             qWarning() << tr("Memory request error");
             return;
         }
@@ -199,15 +191,15 @@ void FormatContext::close()
         d_ptr->formatCtx = nullptr;
         d_ptr->isOpen = false;
         break;
-    case WriteOnly: avio_close(); break;
+    case WriteOnly: avioClose(); break;
     default: break;
     }
 }
 
-auto FormatContext::avio_open() -> bool
+auto FormatContext::avioOpen() -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
-    if (d_ptr->formatCtx->oformat->flags & AVFMT_NOFILE) {
+    if ((d_ptr->formatCtx->oformat->flags & AVFMT_NOFILE) != 0) {
         return false;
     }
     auto ret = ::avio_open(&d_ptr->formatCtx->pb,
@@ -216,12 +208,12 @@ auto FormatContext::avio_open() -> bool
     ERROR_RETURN(ret)
 }
 
-void FormatContext::avio_close()
+void FormatContext::avioClose()
 {
     if (!d_ptr->isOpen && d_ptr->mode != WriteOnly) {
         return;
     }
-    if (d_ptr->formatCtx && !(d_ptr->formatCtx->oformat->flags & AVFMT_NOFILE)) {
+    if ((d_ptr->formatCtx != nullptr) && ((d_ptr->formatCtx->oformat->flags & AVFMT_NOFILE) == 0)) {
         avio_closep(&d_ptr->formatCtx->pb);
     }
     avformat_free_context(d_ptr->formatCtx);
@@ -259,7 +251,7 @@ auto FormatContext::findStream() -> bool
         SET_ERROR_CODE(ret);
         return false;
     }
-    if (d_ptr->formatCtx->pb) {
+    if (d_ptr->formatCtx->pb != nullptr) {
         // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
         d_ptr->formatCtx->pb->eof_reached = 0;
     }
@@ -272,22 +264,22 @@ auto FormatContext::streams() const -> int
     return d_ptr->formatCtx->nb_streams;
 }
 
-QVector<StreamInfo> FormatContext::audioTracks() const
+auto FormatContext::audioTracks() const -> StreamInfos
 {
     return d_ptr->audioTracks;
 }
 
-QVector<StreamInfo> FormatContext::vidioTracks() const
+auto FormatContext::vidioTracks() const -> StreamInfos
 {
     return d_ptr->videoTracks;
 }
 
-QVector<StreamInfo> FormatContext::subtitleTracks() const
+auto FormatContext::subtitleTracks() const -> StreamInfos
 {
     return d_ptr->subtitleTracks;
 }
 
-QVector<StreamInfo> FormatContext::attachmentTracks() const
+auto FormatContext::attachmentTracks() const -> StreamInfos
 {
     return d_ptr->attachmentTracks;
 }
@@ -297,7 +289,7 @@ auto FormatContext::findBestStreamIndex(AVMediaType type) const -> int
     return d_ptr->findBestStreamIndex(type);
 }
 
-void FormatContext::discardStreamExcluded(QVector<int> indexs)
+void FormatContext::discardStreamExcluded(const QVector<int> &indexs)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     for (uint i = 0; i < d_ptr->formatCtx->nb_streams; i++) {
@@ -317,8 +309,8 @@ auto FormatContext::stream(int index) -> AVStream *
 auto FormatContext::createStream() -> AVStream *
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
-    auto stream = avformat_new_stream(d_ptr->formatCtx, nullptr);
-    if (!stream) {
+    auto *stream = avformat_new_stream(d_ptr->formatCtx, nullptr);
+    if (stream == nullptr) {
         qWarning() << "Failed allocating output stream\n";
     }
     return stream;
@@ -334,7 +326,7 @@ auto FormatContext::readFrame(Packet *packet) -> bool
 auto FormatContext::checkPktPlayRange(Packet *packet) -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
-    auto avPacket = packet->avPacket();
+    auto *avPacket = packet->avPacket();
     /* check if packet is in play range specified by user, then queue, otherwise discard */
     auto start_time = AV_NOPTS_VALUE;
     auto duration = AV_NOPTS_VALUE;
@@ -344,8 +336,9 @@ auto FormatContext::checkPktPlayRange(Packet *packet) -> bool
         = duration == AV_NOPTS_VALUE
           || (pkt_ts - (stream_start_time != AV_NOPTS_VALUE ? stream_start_time : 0))
                          * av_q2d(d_ptr->formatCtx->streams[avPacket->stream_index]->time_base)
-                     - (double) (start_time != AV_NOPTS_VALUE ? start_time : 0) / AV_TIME_BASE
-                 <= ((double) duration / AV_TIME_BASE);
+                     - static_cast<double>(start_time != AV_NOPTS_VALUE ? start_time : 0)
+                           / AV_TIME_BASE
+                 <= (static_cast<double>(duration) / AV_TIME_BASE);
     return pkt_in_play_range;
 }
 

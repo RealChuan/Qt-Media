@@ -14,7 +14,7 @@ extern "C" {
 
 namespace Ffmpeg {
 
-auto getChannaLayoutFromChannalCount(int nb_channals) -> qint64
+static auto getChannaLayoutFromChannalCount(int nb_channals) -> qint64
 {
     qint64 channalLayout = 0;
     switch (nb_channals) {
@@ -33,7 +33,7 @@ auto getChannaLayoutFromChannalCount(int nb_channals) -> qint64
     return channalLayout;
 }
 
-auto getChannelLayout(QAudioFormat::ChannelConfig channelConfig) -> qint64
+static auto getChannelLayout(QAudioFormat::ChannelConfig channelConfig) -> qint64
 {
     qint64 channal = 0;
     switch (channelConfig) {
@@ -52,7 +52,7 @@ auto getChannelLayout(QAudioFormat::ChannelConfig channelConfig) -> qint64
 
     return channal;
 }
-auto getChannelConfig(qint64 channalLayout) -> QAudioFormat::ChannelConfig
+static auto getChannelConfig(qint64 channalLayout) -> QAudioFormat::ChannelConfig
 {
     auto config = QAudioFormat::ChannelConfigUnknown;
     switch (channalLayout) {
@@ -71,7 +71,7 @@ auto getChannelConfig(qint64 channalLayout) -> QAudioFormat::ChannelConfig
     return config;
 }
 
-auto getAVSampleFormat(QAudioFormat::SampleFormat format) -> AVSampleFormat
+static auto getAVSampleFormat(QAudioFormat::SampleFormat format) -> AVSampleFormat
 {
     auto sampleFormat = AV_SAMPLE_FMT_NONE;
     switch (format) {
@@ -85,7 +85,7 @@ auto getAVSampleFormat(QAudioFormat::SampleFormat format) -> AVSampleFormat
     return sampleFormat;
 }
 
-auto getSampleFormat(AVSampleFormat format) -> QAudioFormat::SampleFormat
+static auto getSampleFormat(AVSampleFormat format) -> QAudioFormat::SampleFormat
 {
     auto sampleFormat = QAudioFormat::Unknown;
     switch (format) {
@@ -154,7 +154,8 @@ auto AudioFrameConverter::convert(Frame *frame) -> QByteArray
 {
     auto *avFrame = frame->avFrame();
     auto nb_samples = avFrame->nb_samples;
-    auto out_count = (int64_t) nb_samples * d_ptr->format.sampleRate() / avFrame->sample_rate
+    auto out_count = static_cast<int64_t>(nb_samples) * d_ptr->format.sampleRate()
+                         / avFrame->sample_rate
                      + 256; // 256 copy from ffplay
     auto size = av_samples_get_buffer_size(nullptr,
                                            d_ptr->format.channelCount(),

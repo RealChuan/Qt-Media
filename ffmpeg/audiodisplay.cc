@@ -27,12 +27,12 @@ public:
 
     void processEvent(bool &firstFrame)
     {
-        while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
+        while (q_ptr->m_runing.load() && !q_ptr->m_eventQueue.empty()) {
             qDebug() << "AudioFramePrivate::processEvent";
             auto eventPtr = q_ptr->m_eventQueue.take();
             switch (eventPtr->type()) {
             case Event::EventType::Pause: {
-                auto pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
+                auto *pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
                 auto paused = pauseEvent->paused();
                 clock->setPaused(paused);
             } break;
@@ -68,7 +68,7 @@ AudioDisplay::~AudioDisplay()
 void AudioDisplay::setVolume(qreal volume)
 {
     d_ptr->volume = volume;
-    if (d_ptr->audioOutputThreadPtr) {
+    if (d_ptr->audioOutputThreadPtr != nullptr) {
         emit d_ptr->audioOutputThreadPtr->volumeChanged(d_ptr->volume);
     }
 }
@@ -91,7 +91,8 @@ void AudioDisplay::runDecoder()
         auto framePtr(m_queue.take());
         if (framePtr.isNull()) {
             continue;
-        } else if (!firstFrame) {
+        }
+        if (!firstFrame) {
             qDebug() << "Audio firstFrame: "
                      << QTime::fromMSecsSinceStartOfDay(framePtr->pts() / 1000)
                             .toString("hh:mm:ss.zzz");

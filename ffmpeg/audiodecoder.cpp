@@ -20,7 +20,7 @@ public:
 
     void processEvent()
     {
-        while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
+        while (q_ptr->m_runing.load() && !q_ptr->m_eventQueue.empty()) {
             auto eventPtr = q_ptr->m_eventQueue.take();
             switch (eventPtr->type()) {
             case Event::EventType::Pause: decoderAudioFrame->addEvent(eventPtr); break;

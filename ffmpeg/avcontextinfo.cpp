@@ -25,46 +25,6 @@ public:
         : q_ptr(q)
     {}
 
-    void printCodecpar()
-    {
-        auto *codecpar = stream->codecpar;
-        qInfo() << "start_time: " << stream->start_time;
-        qInfo() << "duration: " << stream->duration;
-        qInfo() << "nb_frames: " << stream->nb_frames;
-        qInfo() << "format: " << codecpar->format;
-        qInfo() << "bit_rate: " << codecpar->bit_rate;
-        switch (codecpar->codec_type) {
-        case AVMEDIA_TYPE_VIDEO:
-            qInfo() << "avg_frame_rate: " << av_q2d(stream->avg_frame_rate);
-            qInfo() << "sample_aspect_ratio: " << av_q2d(stream->sample_aspect_ratio);
-            qInfo() << "Resolution of resolution: " << codecpar->width << "x" << codecpar->height;
-            qInfo() << "color_range: " << av_color_range_name(codecpar->color_range);
-            qInfo() << "color_primaries: " << av_color_primaries_name(codecpar->color_primaries);
-            qInfo() << "color_trc: " << av_color_transfer_name(codecpar->color_trc);
-            qInfo() << "color_space: " << av_color_space_name(codecpar->color_space);
-            qInfo() << "chroma_location: " << av_chroma_location_name(codecpar->chroma_location);
-            qInfo() << "video_delay: " << codecpar->video_delay;
-            break;
-        case AVMEDIA_TYPE_AUDIO:
-            qInfo() << "channels: " << codecpar->channels;
-            qInfo() << "channel_layout: " << codecpar->channel_layout;
-            qInfo() << "sample_rate: " << codecpar->sample_rate;
-            qInfo() << "frame_size: " << codecpar->frame_size;
-            break;
-        default: break;
-        }
-    }
-
-    void printMetaData()
-    {
-        QMap<QString, QString> maps;
-        AVDictionaryEntry *tag = nullptr;
-        while (nullptr != (tag = av_dict_get(stream->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
-            maps.insert(tag->key, QString::fromUtf8(tag->value));
-        }
-        qDebug() << maps;
-    }
-
     AVContextInfo *q_ptr;
 
     QScopedPointer<CodecContext> codecCtx; //解码器上下文
@@ -110,8 +70,6 @@ auto AVContextInfo::isIndexVaild() -> bool
 void AVContextInfo::setStream(AVStream *stream)
 {
     d_ptr->stream = stream;
-    //    d_ptr->printCodecpar();
-    //    d_ptr->printMetaData();
 }
 
 auto AVContextInfo::stream() -> AVStream *
@@ -122,7 +80,7 @@ auto AVContextInfo::stream() -> AVStream *
 auto AVContextInfo::initDecoder(const AVRational &frameRate) -> bool
 {
     Q_ASSERT(d_ptr->stream != nullptr);
-    const char *typeStr = av_get_media_type_string(d_ptr->stream->codecpar->codec_type);
+    const auto *typeStr = av_get_media_type_string(d_ptr->stream->codecpar->codec_type);
     const auto *codec = avcodec_find_decoder(d_ptr->stream->codecpar->codec_id);
     if (codec == nullptr) {
         qWarning() << tr("%1 Codec not found.").arg(typeStr);

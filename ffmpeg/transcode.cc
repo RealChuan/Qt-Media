@@ -218,7 +218,7 @@ public:
             }
         }
         outFormatContext->dumpFormat();
-        outFormatContext->avio_open();
+        outFormatContext->avioOpen();
         return outFormatContext->writeHeader();
     }
 
