@@ -11,22 +11,22 @@ namespace Ffmpeg {
 
 HdrMetaData::HdrMetaData(Frame *frame)
 {
-    auto avFrame = frame->avFrame();
+    auto *avFrame = frame->avFrame();
     auto *mdm = av_frame_get_side_data(avFrame, AV_FRAME_DATA_MASTERING_DISPLAY_METADATA);
     auto *clm = av_frame_get_side_data(avFrame, AV_FRAME_DATA_CONTENT_LIGHT_LEVEL);
     auto *dhp = av_frame_get_side_data(avFrame, AV_FRAME_DATA_DYNAMIC_HDR_PLUS);
 
-    if (mdm) {
+    if (mdm != nullptr) {
         auto *mdmPtr = reinterpret_cast<AVMasteringDisplayMetadata *>(mdm);
-        if (mdmPtr) {
-            if (mdmPtr->has_luminance) {
+        if (mdmPtr != nullptr) {
+            if (mdmPtr->has_luminance != 0) {
                 maxLuma = av_q2d(mdmPtr->max_luminance);
                 minLuma = av_q2d(mdmPtr->min_luminance);
                 if (maxLuma < 10.0 || minLuma >= maxLuma) {
                     maxLuma = minLuma = 0; /* sanity */
                 }
             }
-            if (mdmPtr->has_primaries) {
+            if (mdmPtr->has_primaries != 0) {
                 primaries.red.setX(av_q2d(mdmPtr->display_primaries[0][0]));
                 primaries.red.setY(av_q2d(mdmPtr->display_primaries[0][1]));
                 primaries.green.setX(av_q2d(mdmPtr->display_primaries[1][0]));
@@ -38,16 +38,16 @@ HdrMetaData::HdrMetaData(Frame *frame)
             }
         }
     }
-    if (clm) {
+    if (clm != nullptr) {
         auto *clmPtr = reinterpret_cast<AVContentLightMetadata *>(clm);
-        if (clmPtr) {
+        if (clmPtr != nullptr) {
             MaxCLL = clmPtr->MaxCLL;
             MaxFALL = clmPtr->MaxFALL;
         }
     }
-    if (dhp) {
+    if (dhp != nullptr) {
         auto *dhpPtr = reinterpret_cast<AVDynamicHDRPlus *>(dhp);
-        if (dhpPtr && dhpPtr->application_version < 2) {
+        if ((dhpPtr != nullptr) && dhpPtr->application_version < 2) {
             float hist_max = 0;
             const auto *pars = &dhpPtr->params[0];
             Q_ASSERT(dhpPtr->num_windows > 0);
@@ -67,13 +67,13 @@ HdrMetaData::HdrMetaData(Frame *frame)
                 }
             }
             hist_max *= 10000;
-            if (!sceneMax[0]) {
+            if (sceneMax[0] == 0.0f) {
                 sceneMax[0] = hist_max;
             }
-            if (!sceneMax[1]) {
+            if (sceneMax[1] == 0.0f) {
                 sceneMax[1] = hist_max;
             }
-            if (!sceneMax[2]) {
+            if (sceneMax[2] == 0.0f) {
                 sceneMax[2] = hist_max;
             }
 

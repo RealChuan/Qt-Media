@@ -8,7 +8,7 @@
 #define SET_ERROR_CODE(errorCode) AVErrorManager::instance()->setErrorCode(errorCode)
 
 #define ERROR_RETURN(errorCode) \
-    if (errorCode < 0) { \
+    if ((errorCode) < 0) { \
         SET_ERROR_CODE(errorCode); \
         return false; \
     } \

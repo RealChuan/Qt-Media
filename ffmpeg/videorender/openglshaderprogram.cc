@@ -29,8 +29,8 @@ OpenGLShaderProgram::~OpenGLShaderProgram()
 
 void OpenGLShaderProgram::initVertex(const QString &pos, const QString &texCord)
 {
-    auto posAttr = GLuint(attributeLocation(pos));
-    auto texCordAttr = GLuint(attributeLocation(texCord));
+    auto posAttr = attributeLocation(pos);
+    auto texCordAttr = attributeLocation(texCord);
 
     float vertices[] = {
         // positions             // texture coords

@@ -57,7 +57,7 @@ public:
         resetButton->setText("Reset");
     }
 
-    void setupUI()
+    void setupUI() const
     {
         auto *layout = new QGridLayout(q_ptr);
         layout->addWidget(new QLabel(QObject::tr("Contrast:"), q_ptr), 0, 0);

@@ -134,7 +134,7 @@ public:
         new QShortcut(Qt::Key_Space, q_ptr, q_ptr, [this] { controlWidget->clickPlayButton(); });
     }
 
-    void setControlWidgetVisible(bool visible)
+    void setControlWidgetVisible(bool visible) const
     {
         if (videoRender.isNull()) {
             return;
@@ -142,7 +142,7 @@ public:
         controlWidget->setVisible(visible);
     }
 
-    auto setTitleWidgetVisible(bool visible) -> bool
+    auto setTitleWidgetVisible(bool visible) const -> bool
     {
         if (videoRender.isNull()) {
             return false;
@@ -160,7 +160,7 @@ public:
         titleWidget->setAutoHide(3000);
     }
 
-    void started()
+    void started() const
     {
         controlWidget->setSourceFPS(playerPtr->fps());
 
@@ -173,7 +173,7 @@ public:
         fpsTimer->start(1000);
     }
 
-    void finished()
+    void finished() const
     {
         fpsTimer->stop();
         controlWidget->setDuration(0);
@@ -416,7 +416,7 @@ void MainWindow::onProcessEvents()
 
             auto *tracksEvent = dynamic_cast<Ffmpeg::MediaTrackEvent *>(eventPtr.data());
             auto tracks = tracksEvent->tracks();
-            for (const auto &track : qAsConst(tracks)) {
+            for (const auto &track : std::as_const(tracks)) {
                 std::unique_ptr<QAction> actionPtr(new QAction(track.info(), this));
                 actionPtr->setProperty("index", track.index);
                 actionPtr->setCheckable(true);

@@ -48,10 +48,11 @@ public:
                 supported_sample_fmts.append(*sample_fmt);
             }
         }
-        if (codec->channel_layouts != nullptr) {
-            for (const auto *channel_layout = codec->channel_layouts; *channel_layout != 0;
-                 channel_layout++) {
-                supported_channel_layouts.append(*channel_layout);
+        if (codec->ch_layouts != nullptr) {
+            const auto *ch_layout = codec->ch_layouts;
+            while (ch_layout->nb_channels != 0) {
+                supported_ch_layouts.append(*ch_layout);
+                ch_layout++;
             }
         }
     }
@@ -64,7 +65,7 @@ public:
     QVector<AVPixelFormat> supported_pix_fmts{};
     QVector<int> supported_samplerates{};
     QVector<AVSampleFormat> supported_sample_fmts{};
-    QVector<uint64_t> supported_channel_layouts{};
+    QVector<AVChannelLayout> supported_ch_layouts{};
 };
 
 CodecContext::CodecContext(const AVCodec *codec, QObject *parent)
@@ -98,8 +99,7 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
     switch (d_ptr->codecCtx->codec_type) {
     case AVMEDIA_TYPE_AUDIO:
         dst->setSampleRate(d_ptr->codecCtx->sample_rate);
-        dst->setChannelLayout(d_ptr->codecCtx->channel_layout);
-        //dstCodecCtx->channels = av_get_channel_layout_nb_channels(dstCodecCtx->channel_layout);
+        dst->setChLayout(d_ptr->codecCtx->ch_layout);
         /* take first format from list of supported formats */
         if (d_ptr->codecCtx->codec->sample_fmts != nullptr) {
             dst->setSampleFmt(d_ptr->codecCtx->codec->sample_fmts[0]);
@@ -180,24 +180,26 @@ void CodecContext::setSampleFmt(AVSampleFormat sampleFmt)
     d_ptr->codecCtx->sample_fmt = d_ptr->supported_sample_fmts.first();
 }
 
-void CodecContext::setChannelLayout(uint64_t channelLayout)
+void CodecContext::setChLayout(const AVChannelLayout &chLayout)
 {
-    if (d_ptr->supported_channel_layouts.isEmpty()
-        || d_ptr->supported_channel_layouts.contains(channelLayout)) {
-        d_ptr->codecCtx->channel_layout = channelLayout;
-    } else {
-        d_ptr->codecCtx->channel_layout = d_ptr->supported_channel_layouts.first();
+    for (const auto &ch : std::as_const(d_ptr->supported_ch_layouts)) {
+        if (0 == av_channel_layout_compare(&ch, &chLayout)) {
+            av_channel_layout_copy(&d_ptr->codecCtx->ch_layout, &ch);
+            return;
+        }
     }
-    d_ptr->codecCtx->channels = av_get_channel_layout_nb_channels(d_ptr->codecCtx->channel_layout);
+    if (d_ptr->supported_ch_layouts.isEmpty()) {
+        AVChannelLayout chLayout = {AV_CHANNEL_ORDER_UNSPEC};
+        av_channel_layout_from_mask(&chLayout, static_cast<uint64_t>(AV_CH_LAYOUT_STEREO));
+        av_channel_layout_copy(&d_ptr->codecCtx->ch_layout, &chLayout);
+        return;
+    }
+    av_channel_layout_copy(&d_ptr->codecCtx->ch_layout, &d_ptr->supported_ch_layouts.first());
 }
 
-auto CodecContext::channels() const -> int
+auto CodecContext::chLayout() const -> AVChannelLayout
 {
-    if (d_ptr->codecCtx->channels <= 0) {
-        d_ptr->codecCtx->channels = av_get_channel_layout_nb_channels(
-            d_ptr->codecCtx->channel_layout);
-    }
-    return d_ptr->codecCtx->channels;
+    return d_ptr->codecCtx->ch_layout;
 }
 
 void CodecContext::setSize(const QSize &size)
@@ -302,7 +304,7 @@ auto CodecContext::receiveFrame(Frame *frame) -> bool
         avFrame->ch_layout = d_ptr->codecCtx->ch_layout;
         return true;
     }
-    if (ret != -11) { // Resource temporarily unavailable
+    if (ret != AVERROR(EAGAIN)) { // Resource temporarily unavailable
         SET_ERROR_CODE(ret);
     }
     return false;

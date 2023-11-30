@@ -22,9 +22,9 @@ public:
 
     ~VideoRenderPrivate() = default;
 
-    void flushFPS() { fpsPtr->update(); }
+    void flushFPS() const { fpsPtr->update(); }
 
-    void resetFps() { fpsPtr->reset(); }
+    void resetFps() const { fpsPtr->reset(); }
 
     QScopedPointer<Utils::Fps> fpsPtr;
 };
@@ -33,11 +33,11 @@ VideoRender::VideoRender()
     : d_ptr(new VideoRenderPrivate)
 {}
 
-VideoRender::~VideoRender() {}
+VideoRender::~VideoRender() = default;
 
 void VideoRender::setFrame(QSharedPointer<Frame> framePtr)
 {
-    auto avFrame = framePtr->avFrame();
+    auto *avFrame = framePtr->avFrame();
     if (avFrame->width <= 0 || avFrame->height <= 0) {
         return;
     }

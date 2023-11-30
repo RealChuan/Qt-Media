@@ -44,7 +44,7 @@ void Slider::initStyleOption_Qt430(QStyleOptionSlider *option) const
     option->orientation = orientation();
     option->maximum = maximum();
     option->minimum = minimum();
-    option->tickPosition = (QSlider::TickPosition) tickPosition();
+    option->tickPosition = tickPosition();
     option->tickInterval = tickInterval();
     option->upsideDown = (orientation() == Qt::Horizontal)
                              ? (invertedAppearance() != (option->direction == Qt::RightToLeft))

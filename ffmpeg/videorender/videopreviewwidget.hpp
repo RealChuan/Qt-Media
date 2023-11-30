@@ -19,7 +19,9 @@ public:
     void startPreview(const QString &filepath, int videoIndex, qint64 timestamp, qint64 duration);
     void clearAllTask();
 
-    void setDisplayImage(QSharedPointer<Ffmpeg::Frame> frame, const QImage &image, qint64 pts);
+    void setDisplayImage(const QSharedPointer<Ffmpeg::Frame> &framePtr,
+                         const QImage &image,
+                         qint64 pts);
 
     [[nodiscard]] auto currentTaskId() const -> int;
 

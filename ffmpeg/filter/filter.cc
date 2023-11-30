@@ -3,8 +3,10 @@
 #include "filtergraph.hpp"
 #include "filterinout.hpp"
 
+#include <ffmpeg/audioframeconverter.h>
 #include <ffmpeg/frame.hpp>
 
+#include <memory>
 #include <QDebug>
 
 extern "C" {
@@ -51,27 +53,25 @@ public:
         if (avFrame->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC) {
             av_channel_layout_default(&avFrame->ch_layout, avFrame->ch_layout.nb_channels);
         }
-        char buf[64];
-        av_channel_layout_describe(&avFrame->ch_layout, buf, sizeof(buf));
         auto args
             = QString::asprintf("time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=%s",
                                 1,
                                 avFrame->sample_rate,
                                 avFrame->sample_rate,
                                 av_get_sample_fmt_name(static_cast<AVSampleFormat>(avFrame->format)),
-                                buf);
+                                getAVChannelLayoutDescribe(avFrame->ch_layout).toUtf8().data());
         qDebug() << "Audio filter in args:" << args;
 
         create(args);
     }
 
-    void create(const QString &args)
+    void create(const QString &args) const
     {
         buffersrcCtx->create("in", args, filterGraph);
         buffersinkCtx->create("out", "", filterGraph);
     }
 
-    void config(const QString &filterSpec)
+    void config(const QString &filterSpec) const
     {
         QScopedPointer<FilterInOut> fliterOutPtr(new FilterInOut);
         QScopedPointer<FilterInOut> fliterInPtr(new FilterInOut);
@@ -143,7 +143,7 @@ auto Filter::filterFrame(Frame *frame) -> QVector<FramePtr>
     while (d_ptr->buffersinkCtx->buffersinkGetFrame(framePtr.get())) {
         framePtr->setPictType(AV_PICTURE_TYPE_NONE);
         framepPtrs.emplace_back(framePtr.release());
-        framePtr.reset(new Frame);
+        framePtr = std::make_unique<Frame>();
     }
     return framepPtrs;
 }

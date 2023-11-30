@@ -14,7 +14,7 @@ extern "C" {
 #include <libavutil/pixdesc.h>
 }
 
-#define Error_Index -1
+#define INVALID_INDEX -1
 
 namespace Ffmpeg {
 
@@ -29,7 +29,7 @@ public:
 
     QScopedPointer<CodecContext> codecCtx; //解码器上下文
     AVStream *stream = nullptr;            //流
-    int streamIndex = Error_Index;         // 索引
+    int streamIndex = INVALID_INDEX;       // 索引
     QScopedPointer<HardWareDecode> hardWareDecodePtr;
     QScopedPointer<HardWareEncode> hardWareEncodePtr;
     GpuType gpuType = GpuType::NotUseGpu;
@@ -49,7 +49,7 @@ auto AVContextInfo::codecCtx() -> CodecContext *
 
 void AVContextInfo::resetIndex()
 {
-    d_ptr->streamIndex = Error_Index;
+    d_ptr->streamIndex = INVALID_INDEX;
 }
 
 void AVContextInfo::setIndex(int index)
@@ -64,7 +64,7 @@ auto AVContextInfo::index() -> int
 
 auto AVContextInfo::isIndexVaild() -> bool
 {
-    return d_ptr->streamIndex != Error_Index;
+    return d_ptr->streamIndex != INVALID_INDEX;
 }
 
 void AVContextInfo::setStream(AVStream *stream)

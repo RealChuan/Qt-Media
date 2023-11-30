@@ -20,7 +20,7 @@ public:
     void setPosition(qint64 position) { m_position = position; }
     [[nodiscard]] auto position() const -> qint64 { return m_position; }
 
-    void setWaitCountdown(qint64 count) { m_latch.setCount(count); }
+    void setWaitCountdown(int count) { m_latch.setCount(count); }
     void countDown() { m_latch.countDown(); }
     void wait() { m_latch.wait(); }
 
@@ -36,7 +36,7 @@ public:
         : Event(parent)
         , m_relativePosition(relativePosition)
     {}
-    
+
     [[nodiscard]] auto type() const -> EventType override { return EventType::SeekRelative; }
 
     // second

@@ -38,7 +38,7 @@ void print_font_providers(ASS_Library *ass_library)
     size_t providers_size = 0;
     ass_get_available_font_providers(ass_library, &providers, &providers_size);
     qDebug("Available font providers (%zu): ", providers_size);
-    for (int i = 0; i < int(providers_size); i++) {
+    for (int i = 0; i < static_cast<int>(providers_size); i++) {
         qDebug() << font_provider_maps[providers[i]];
     }
     free(providers);
@@ -52,8 +52,8 @@ public:
     {
         qInfo() << "ass_library_version: " << ass_library_version();
 
-        print_font_providers(ass_library);
         ass_library = ass_library_init();
+        print_font_providers(ass_library);
         ass_set_message_cb(ass_library, msg_callback, nullptr);
         ass_set_extract_fonts(ass_library, 1);
 
@@ -93,7 +93,7 @@ Ass::~Ass() = default;
 
 void Ass::init(uint8_t *extradata, int extradata_size)
 {
-    ass_process_codec_private(d_ptr->acc_track, (char *) extradata, extradata_size);
+    ass_process_codec_private(d_ptr->acc_track, reinterpret_cast<char *>(extradata), extradata_size);
     for (int i = 0; i < d_ptr->acc_track->n_events; ++i) {
         d_ptr->acc_track->events[i].ReadOrder = i;
     }
@@ -109,7 +109,7 @@ void Ass::setWindowSize(const QSize &size)
 void Ass::setFont(const QString &fontFamily)
 {
     ass_set_fonts(d_ptr->ass_renderer,
-                  NULL,
+                  nullptr,
                   fontFamily.toStdString().c_str(),
                   ASS_FONTPROVIDER_AUTODETECT,
                   nullptr,
@@ -121,7 +121,7 @@ void Ass::addFont(const QByteArray &name, const QByteArray &data)
     ass_add_font(d_ptr->ass_library,
                  const_cast<char *>(name.constData()),
                  const_cast<char *>(data.constData()),
-                 data.size());
+                 static_cast<int>(data.size()));
 }
 
 void Ass::addSubtitleEvent(const QByteArray &data)
@@ -129,7 +129,9 @@ void Ass::addSubtitleEvent(const QByteArray &data)
     if (data.isEmpty()) {
         return;
     }
-    ass_process_data(d_ptr->acc_track, (char *) data.constData(), data.size());
+    ass_process_data(d_ptr->acc_track,
+                     const_cast<char *>(data.constData()),
+                     static_cast<int>(data.size()));
 }
 
 void Ass::addSubtitleEvent(const QByteArray &data, qint64 pts, qint64 duration)
@@ -149,8 +151,8 @@ void Ass::addSubtitleEvent(const QByteArray &data, qint64 pts, qint64 duration)
 void Ass::addSubtitleChunk(const QByteArray &data, qint64 pts, qint64 duration)
 {
     ass_process_chunk(d_ptr->acc_track,
-                      (char *) data.constData(),
-                      data.size(),
+                      const_cast<char *>(data.constData()),
+                      static_cast<int>(data.size()),
                       pts / d_ptr->microToMillon,
                       duration / d_ptr->microToMillon);
 }
@@ -158,11 +160,11 @@ void Ass::addSubtitleChunk(const QByteArray &data, qint64 pts, qint64 duration)
 void Ass::getRGBAData(AssDataInfoList &list, qint64 pts)
 {
     int ch;
-    auto img = ass_render_frame(d_ptr->ass_renderer,
-                                d_ptr->acc_track,
-                                pts / d_ptr->microToMillon,
-                                &ch);
-    while (img) {
+    auto *img = ass_render_frame(d_ptr->ass_renderer,
+                                 d_ptr->acc_track,
+                                 pts / d_ptr->microToMillon,
+                                 &ch);
+    while (img != nullptr) {
         auto rect = QRect(img->dst_x, img->dst_y, img->w, img->h);
         auto rgba = QByteArray(img->w * img->h * sizeof(uint32_t), Qt::Uninitialized);
 
@@ -171,7 +173,7 @@ void Ass::getRGBAData(AssDataInfoList &list, qint64 pts)
         const quint8 b = img->color >> 8;
         const quint8 a = ~img->color & 0xFF;
 
-        auto data = reinterpret_cast<uint32_t *>(rgba.data());
+        auto *data = reinterpret_cast<uint32_t *>(rgba.data());
         for (int y = 0; y < img->h; y++) {
             const int offsetI = y * img->stride;
             const int offsetB = y * img->w;

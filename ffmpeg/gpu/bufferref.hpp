@@ -15,15 +15,15 @@ class BufferRef : public QObject
 {
 public:
     explicit BufferRef(QObject *parent = nullptr);
-    ~BufferRef();
+    ~BufferRef() override;
 
-    bool hwdeviceCtxCreate(AVHWDeviceType hwDeviceType);
-    BufferRef *hwframeCtxAlloc();
+    auto hwdeviceCtxCreate(AVHWDeviceType hwDeviceType) -> bool;
+    auto hwframeCtxAlloc() -> BufferRef *;
 
-    bool hwframeCtxInit();
+    auto hwframeCtxInit() -> bool;
 
-    AVBufferRef *ref();
-    AVBufferRef *avBufferRef();
+    auto ref() -> AVBufferRef *;
+    auto avBufferRef() -> AVBufferRef *;
 
 private:
     class BufferRefPrivate;

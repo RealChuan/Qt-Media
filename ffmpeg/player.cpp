@@ -476,13 +476,13 @@ public:
         formatCtx->close();
     }
 
-    void processSpeedEvent(const EventPtr &eventPtr)
+    static void processSpeedEvent(const EventPtr &eventPtr)
     {
         auto *speedEvent = dynamic_cast<SpeedEvent *>(eventPtr.data());
         Clock::setSpeed(speedEvent->speed());
     }
 
-    void processVolumeEvent(const EventPtr &eventPtr)
+    void processVolumeEvent(const EventPtr &eventPtr) const
     {
         auto *volumeEvent = dynamic_cast<VolumeEvent *>(eventPtr.data());
         audioDecoder->setVolume(volumeEvent->volume());

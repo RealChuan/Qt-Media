@@ -18,20 +18,20 @@ namespace Ffmpeg {
 class VideoFrameConverter::VideoFrameConverterPrivate
 {
 public:
-    VideoFrameConverterPrivate(VideoFrameConverter *q)
+    explicit VideoFrameConverterPrivate(VideoFrameConverter *q)
         : q_ptr(q)
     {}
 
-    inline void debugMessage()
+    inline void debugMessage() const
     {
 #ifndef QT_NO_DEBUG
         auto support_in = sws_isSupportedInput(src_pix_fmt);
         auto support_out = sws_isSupportedOutput(dst_pix_fmt);
-        if (!support_in) {
+        if (support_in == 0) {
             qInfo() << QString("support src_pix_fmt: %1 %2")
                            .arg(QString::number(src_pix_fmt), QString::number(support_in));
         }
-        if (!support_out) {
+        if (support_out == 0) {
             qInfo() << QString("support dst_pix_fmt: %1 %2")
                            .arg(QString::number(dst_pix_fmt), QString::number(support_out));
         }
@@ -159,12 +159,12 @@ auto VideoFrameConverter::scale(Frame *in, Frame *out) -> int
 
 auto VideoFrameConverter::isSupportedInput_pix_fmt(AVPixelFormat pix_fmt) -> bool
 {
-    return sws_isSupportedInput(pix_fmt);
+    return sws_isSupportedInput(pix_fmt) != 0;
 }
 
 auto VideoFrameConverter::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool
 {
-    return sws_isSupportedOutput(pix_fmt);
+    return sws_isSupportedOutput(pix_fmt) != 0;
 }
 
 } // namespace Ffmpeg

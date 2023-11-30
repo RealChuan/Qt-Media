@@ -30,7 +30,7 @@ public:
         painter.setRenderHints(painter.renderHints() | QPainter::Antialiasing
                                | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
         for (size_t i = 0; i < subtitle.num_rects; i++) {
-            auto sub_rect = subtitle.rects[i];
+            auto *sub_rect = subtitle.rects[i];
 
             uint8_t *pixels[4];
             int pitch[4];
@@ -65,7 +65,7 @@ public:
         auto timeBase = 10 * 1000; // libass只支持0.01秒，还要四舍五入
         pts = pts / timeBase * timeBase;
         for (size_t i = 0; i < subtitle.num_rects; i++) {
-            auto sub_rect = subtitle.rects[i];
+            auto *sub_rect = subtitle.rects[i];
             QByteArray text;
             switch (sub_rect->type) {
             case AVSubtitleType::SUBTITLE_TEXT:
@@ -199,7 +199,7 @@ auto Subtitle::generateImage() const -> QImage
                            | QPainter::TextAntialiasing | QPainter::SmoothPixmapTransform);
     for (const auto &data : std::as_const(d_ptr->assList)) {
         auto rect = data.rect();
-        QImage image((uchar *) data.rgba().constData(),
+        QImage image(reinterpret_cast<const uchar *>(data.rgba().constData()),
                      rect.width(),
                      rect.height(),
                      QImage::Format_RGBA8888);

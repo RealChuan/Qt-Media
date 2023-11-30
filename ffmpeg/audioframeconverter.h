@@ -2,6 +2,10 @@
 
 #include <QAudioFormat>
 
+extern "C" {
+#include <libavutil/channel_layout.h>
+}
+
 namespace Ffmpeg {
 
 class CodecContext;
@@ -22,5 +26,7 @@ private:
 };
 
 auto getAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize) -> QAudioFormat;
+
+auto getAVChannelLayoutDescribe(const AVChannelLayout &chLayout) -> QString;
 
 } // namespace Ffmpeg

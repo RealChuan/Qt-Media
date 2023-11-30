@@ -12,6 +12,7 @@ struct AVCodecContext;
 struct AVCodecParameters;
 struct AVRational;
 struct AVCodec;
+struct AVChannelLayout;
 
 namespace Ffmpeg {
 
@@ -38,8 +39,8 @@ public:
     void setTune(const QString &tune);
     void setProfile(const QString &profile);
 
-    void setChannelLayout(uint64_t channelLayout);
-    [[nodiscard]] auto channels() const -> int;
+    void setChLayout(const AVChannelLayout &chLayout);
+    [[nodiscard]] auto chLayout() const -> AVChannelLayout;
 
     void setSize(const QSize &size);
     [[nodiscard]] auto size() const -> QSize;

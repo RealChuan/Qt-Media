@@ -261,7 +261,7 @@ auto FormatContext::findStream() -> bool
 
 auto FormatContext::streams() const -> int
 {
-    return d_ptr->formatCtx->nb_streams;
+    return static_cast<int>(d_ptr->formatCtx->nb_streams);
 }
 
 auto FormatContext::audioTracks() const -> StreamInfos

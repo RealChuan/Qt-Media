@@ -47,14 +47,8 @@ CONFIG(debug, debug|release) {
     LIBS += -lfreetype -lpng -lz -lbz2
 }
 
-}
+LIBS += -lbrotlidec -lbrotlicommon
 
-macx{
-    LIBS += -lbrotlidec-static -lbrotlienc-static -lbrotlicommon-static
-}
-
-unix:!macx{
-    LIBS += -lbrotlidec -lbrotlicommon
 }
 
 INCLUDEPATH += $$vcpkg_path/include

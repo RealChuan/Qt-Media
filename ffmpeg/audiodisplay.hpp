@@ -11,7 +11,7 @@ class AudioDisplay : public Decoder<FramePtr>
     Q_OBJECT
 public:
     explicit AudioDisplay(QObject *parent = nullptr);
-    ~AudioDisplay();
+    ~AudioDisplay() override;
 
     void setVolume(qreal volume);
 

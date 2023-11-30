@@ -64,7 +64,7 @@ protected:
     void run() override;
 
 private:
-    void buildConnect();
+    void buildConnect() const;
     void loop();
 
     class TranscodePrivate;

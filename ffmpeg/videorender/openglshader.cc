@@ -24,7 +24,7 @@ public:
     {
         auto *avFrame = frame->avFrame();
         srcHdrMetaData = HdrMetaData(frame);
-        if (!srcHdrMetaData.maxLuma) {
+        if (srcHdrMetaData.maxLuma == 0.0f) {
             srcHdrMetaData.maxLuma = ShaderUtils::trcNomPeak(avFrame->color_trc) * MP_REF_WHITE;
         }
         dstColorTrc = avFrame->color_trc;

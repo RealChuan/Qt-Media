@@ -17,7 +17,7 @@ public:
     auto write(void **data, int nb_samples) -> bool;
     auto read(void **data, int nb_samples) -> bool;
 
-    auto size() const -> int;
+    [[nodiscard]] auto size() const -> int;
 
 private:
     class AudioFifoPrivtate;

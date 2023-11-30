@@ -20,14 +20,14 @@ public:
         decoderSubtitleFrame = new SubtitleDisplay(q_ptr);
     }
 
-    void processEvent()
+    void processEvent() const
     {
-        while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
+        while (q_ptr->m_runing.load() && !q_ptr->m_eventQueue.empty()) {
             auto eventPtr = q_ptr->m_eventQueue.take();
             switch (eventPtr->type()) {
             case Event::EventType::Pause: decoderSubtitleFrame->addEvent(eventPtr); break;
             case Event::EventType::Seek: {
-                auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
+                auto *seekEvent = static_cast<SeekEvent *>(eventPtr.data());
                 seekEvent->countDown();
                 q_ptr->clear();
                 decoderSubtitleFrame->addEvent(eventPtr);
@@ -82,7 +82,7 @@ void SubtitleDecoder::runDecoder()
         calculatePts(packetPtr.data(), m_contextInfo);
         subtitlePtr->setDefault(packetPtr->pts(),
                                 packetPtr->duration(),
-                                (const char *) packetPtr->avPacket()->data);
+                                reinterpret_cast<const char *>(packetPtr->avPacket()->data));
 
         d_ptr->decoderSubtitleFrame->append(subtitlePtr);
     }

@@ -17,13 +17,13 @@ namespace Ffmpeg {
 class HardWareEncode::HardWareEncodePrivate
 {
 public:
-    HardWareEncodePrivate(HardWareEncode *q)
+    explicit HardWareEncodePrivate(HardWareEncode *q)
         : q_ptr(q)
     {
         bufferRef = new BufferRef(q_ptr);
     }
 
-    ~HardWareEncodePrivate() {}
+    ~HardWareEncodePrivate() = default;
 
     HardWareEncode *q_ptr;
 
@@ -44,9 +44,9 @@ HardWareEncode::HardWareEncode(QObject *parent)
     , d_ptr(new HardWareEncodePrivate(this))
 {}
 
-HardWareEncode::~HardWareEncode() {}
+HardWareEncode::~HardWareEncode() = default;
 
-bool HardWareEncode::initEncoder(const AVCodec *encoder)
+auto HardWareEncode::initEncoder(const AVCodec *encoder) -> bool
 {
     if (av_codec_is_encoder(encoder) <= 0) {
         return false;
@@ -62,8 +62,8 @@ bool HardWareEncode::initEncoder(const AVCodec *encoder)
             break;
         }
     }
-    if (encoder->pix_fmts) {
-        for (auto pix_fmt = encoder->pix_fmts; *pix_fmt != -1; pix_fmt++) {
+    if (encoder->pix_fmts != nullptr) {
+        for (const auto *pix_fmt = encoder->pix_fmts; *pix_fmt != -1; pix_fmt++) {
             if (d_ptr->hw_pix_fmts.contains(*pix_fmt)) {
                 d_ptr->hw_pix_fmt = *pix_fmt;
                 break;
@@ -73,7 +73,7 @@ bool HardWareEncode::initEncoder(const AVCodec *encoder)
     return (hw_pix_fmt != AV_PIX_FMT_NONE);
 }
 
-bool HardWareEncode::initHardWareDevice(CodecContext *codecContext)
+auto HardWareEncode::initHardWareDevice(CodecContext *codecContext) -> bool
 {
     if (d_ptr->hwDeviceType == AV_HWDEVICE_TYPE_NONE) {
         return false;
@@ -81,13 +81,13 @@ bool HardWareEncode::initHardWareDevice(CodecContext *codecContext)
     if (!d_ptr->bufferRef->hwdeviceCtxCreate(d_ptr->hwDeviceType)) {
         return false;
     }
-    auto hw_frames_ref = d_ptr->bufferRef->hwframeCtxAlloc();
-    if (!hw_frames_ref) {
+    auto *hw_frames_ref = d_ptr->bufferRef->hwframeCtxAlloc();
+    if (hw_frames_ref == nullptr) {
         return false;
     }
-    auto ctx = codecContext->avCodecCtx();
+    auto *ctx = codecContext->avCodecCtx();
     ctx->pix_fmt = d_ptr->hw_pix_fmt;
-    auto frames_ctx = (AVHWFramesContext *) (hw_frames_ref->avBufferRef()->data);
+    auto *frames_ctx = reinterpret_cast<AVHWFramesContext *>(hw_frames_ref->avBufferRef()->data);
     frames_ctx->format = d_ptr->hw_pix_fmt;
     frames_ctx->sw_format = d_ptr->sw_format;
     frames_ctx->width = ctx->width;
@@ -101,25 +101,24 @@ bool HardWareEncode::initHardWareDevice(CodecContext *codecContext)
     return d_ptr->vaild;
 }
 
-QSharedPointer<Frame> HardWareEncode::transToGpu(CodecContext *codecContext,
-                                                 QSharedPointer<Frame> inPtr,
-                                                 bool &ok)
+auto HardWareEncode::transToGpu(CodecContext *codecContext, QSharedPointer<Frame> inPtr, bool &ok)
+    -> QSharedPointer<Frame>
 {
     ok = true;
     if (!isVaild()) {
         return inPtr;
     }
-    auto avctx = codecContext->avCodecCtx();
-    auto sw_frame = inPtr->avFrame();
+    auto *avctx = codecContext->avCodecCtx();
+    auto *sw_frame = inPtr->avFrame();
     QSharedPointer<Frame> outPtr(new Frame);
-    auto hw_frame = outPtr->avFrame();
+    auto *hw_frame = outPtr->avFrame();
     auto err = av_hwframe_get_buffer(avctx->hw_frames_ctx, hw_frame, 0);
     if (err < 0) {
         ok = false;
         SET_ERROR_CODE(err);
         return inPtr;
     }
-    if (!hw_frame->hw_frames_ctx) {
+    if (hw_frame->hw_frames_ctx == nullptr) {
         ok = false;
         return inPtr;
     }
@@ -132,12 +131,12 @@ QSharedPointer<Frame> HardWareEncode::transToGpu(CodecContext *codecContext,
     return outPtr;
 }
 
-AVPixelFormat HardWareEncode::swFormat() const
+auto HardWareEncode::swFormat() const -> AVPixelFormat
 {
     return d_ptr->sw_format;
 }
 
-bool HardWareEncode::isVaild()
+auto HardWareEncode::isVaild() -> bool
 {
     if (d_ptr->hwDeviceType == AV_HWDEVICE_TYPE_NONE) {
         return false;

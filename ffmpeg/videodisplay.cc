@@ -27,19 +27,19 @@ public:
     void renderFrame(const QSharedPointer<Frame> &framePtr)
     {
         QMutexLocker locker(&mutex_render);
-        for (auto render : videoRenders) {
+        for (auto *render : videoRenders) {
             render->setFrame(framePtr);
         }
     }
 
-    void processEvent(bool &firstFrame)
+    void processEvent(bool &firstFrame) const
     {
-        while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
+        while (q_ptr->m_runing.load() && !q_ptr->m_eventQueue.empty()) {
             qDebug() << "DecoderVideoFrame::processEvent";
             auto eventPtr = q_ptr->m_eventQueue.take();
             switch (eventPtr->type()) {
             case Event::EventType::Pause: {
-                auto pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
+                auto *pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
                 auto paused = pauseEvent->paused();
                 clock->setPaused(paused);
             } break;
@@ -86,7 +86,7 @@ void VideoDisplay::setMasterClock()
 
 void VideoDisplay::runDecoder()
 {
-    for (auto render : d_ptr->videoRenders) {
+    for (auto *render : d_ptr->videoRenders) {
         render->resetFps();
     }
     quint64 dropNum = 0;
@@ -97,7 +97,8 @@ void VideoDisplay::runDecoder()
         auto framePtr(m_queue.take());
         if (framePtr.isNull()) {
             continue;
-        } else if (!firstFrame) {
+        }
+        if (!firstFrame) {
             qDebug() << "Video firstFrame: "
                      << QTime::fromMSecsSinceStartOfDay(framePtr->pts() / 1000)
                             .toString("hh:mm:ss.zzz");

@@ -108,9 +108,9 @@ void Frame::copyPropsFrom(Frame *src)
 
     av_frame_copy_props(d_ptr->frame, srcFrame);
     d_ptr->frame->pts = srcFrame->pts;
-    d_ptr->frame->pkt_duration = srcFrame->pkt_duration;
+    d_ptr->frame->duration = srcFrame->duration;
     d_ptr->frame->pict_type = srcFrame->pict_type;
-    d_ptr->frame->key_frame = srcFrame->key_frame;
+    d_ptr->frame->flags = srcFrame->flags;
     d_ptr->frame->width = srcFrame->width;
     d_ptr->frame->height = srcFrame->height;
     d_ptr->frame->time_base = srcFrame->time_base;
@@ -168,12 +168,12 @@ auto Frame::pts() -> qint64
 
 void Frame::setDuration(qint64 duration)
 {
-    d_ptr->frame->pkt_duration = duration;
+    d_ptr->frame->duration = duration;
 }
 
 auto Frame::duration() -> qint64
 {
-    return d_ptr->frame->pkt_duration;
+    return d_ptr->frame->duration;
 }
 
 void Frame::destroyFrame()
@@ -211,7 +211,7 @@ auto Frame::getBuffer() -> bool
 
 auto Frame::isKey() -> bool
 {
-    return d_ptr->frame->key_frame == 1;
+    return d_ptr->frame->flags == AV_FRAME_FLAG_KEY;
 }
 
 auto Frame::avFrame() -> AVFrame *

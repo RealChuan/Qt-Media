@@ -8,16 +8,19 @@
 namespace Ffmpeg::ShaderUtils {
 
 // Common constants for SMPTE ST.2084 (HDR)
-static const float PQ_M1 = 2610. / 4096 * 1. / 4, PQ_M2 = 2523. / 4096 * 128, PQ_C1 = 3424. / 4096,
-                   PQ_C2 = 2413. / 4096 * 32, PQ_C3 = 2392. / 4096 * 32;
+static constexpr float PQ_M1 = 2610. / 4096 * 1. / 4, PQ_M2 = 2523. / 4096 * 128,
+                       PQ_C1 = 3424. / 4096, PQ_C2 = 2413. / 4096 * 32, PQ_C3 = 2392. / 4096 * 32;
 // Common constants for ARIB STD-B67 (HLG)
-static const float HLG_A = 0.17883277F, HLG_B = 0.28466892F, HLG_C = 0.55991073F;
+static constexpr float HLG_A = 0.17883277F, HLG_B = 0.28466892F, HLG_C = 0.55991073F;
+
+static constexpr float SMPTEST2048_REF_WHITE = 10000.0;
+static constexpr float ARIB_STD_B67_VALUE = 12.0;
 
 auto trcNomPeak(AVColorTransferCharacteristic colortTrc) -> float
 {
     switch (colortTrc) {
-    case AVCOL_TRC_SMPTEST2084: return static_cast<float>(10000.0 / MP_REF_WHITE);
-    case AVCOL_TRC_ARIB_STD_B67: return static_cast<float>(12.0 / MP_REF_WHITE_HLG);
+    case AVCOL_TRC_SMPTEST2084: return static_cast<float>(SMPTEST2048_REF_WHITE / MP_REF_WHITE);
+    case AVCOL_TRC_ARIB_STD_B67: return static_cast<float>(ARIB_STD_B67_VALUE / MP_REF_WHITE_HLG);
     default: break;
     }
     return 1.0;
@@ -100,7 +103,7 @@ void passLinearize(QByteArray &frag, AVColorTransferCharacteristic colortTrc)
         temp.append(QString("color.rgb = pow(color.rgb, vec3(%1));\n").arg(1.0 / PQ_M1));
         // PQ's output range is 0-10000, but we need it to be relative to
         // MP_REF_WHITE instead, so rescale
-        temp.append(QString("color.rgb *= vec3(%1);\n").arg(10000.0 / MP_REF_WHITE));
+        temp.append(QString("color.rgb *= vec3(%1);\n").arg(SMPTEST2048_REF_WHITE / MP_REF_WHITE));
         frag.append(temp.toUtf8());
     } break;
     case AVCOL_TRC_SMPTE428:
@@ -151,7 +154,7 @@ void passDeLinearize(QByteArray &frag, AVColorTransferCharacteristic colortTrc)
                     "               vec3(lessThanEqual(vec3(0.0031308), color.rgb)));\n");
         break;
     case AVCOL_TRC_SMPTEST2084: {
-        auto temp = QString("color.rgb *= vec3(1.0/%1);\n").arg(10000.0 / MP_REF_WHITE);
+        auto temp = QString("color.rgb *= vec3(1.0/%1);\n").arg(SMPTEST2048_REF_WHITE / MP_REF_WHITE);
         temp.append(QString("color.rgb = pow(color.rgb, vec3(%1));\n").arg(PQ_M1));
         temp.append(
             QString("color.rgb = (vec3(%1) + vec3(%2) * color.rgb) \n"
@@ -216,7 +219,8 @@ void passOotf(QByteArray &frag, float peak, AVColorTransferCharacteristic colort
     case AVCOL_TRC_ARIB_STD_B67: {
         float gamma = qMax(1.0, 1.2 + 0.42 * log10(peak * MP_REF_WHITE / 1000.0));
         auto temp = QString("color.rgb *= vec3(%1 * pow(dot(src_luma, color.rgb), %2));\n")
-                        .arg(QString::number(peak / qPow(12.0 / MP_REF_WHITE_HLG, gamma)),
+                        .arg(QString::number(peak
+                                             / qPow(ARIB_STD_B67_VALUE / MP_REF_WHITE_HLG, gamma)),
                              QString::number(gamma - 1.0));
         frag.append(temp.toUtf8());
     } break;
@@ -231,7 +235,7 @@ void passInverseOotf(QByteArray &frag, float peak, AVColorTransferCharacteristic
     case AVCOL_TRC_ARIB_STD_B67: {
         float gamma = qMax(1.0, 1.2 + 0.42 * log10(peak * MP_REF_WHITE / 1000.0));
         auto temp = QString("color.rgb *= vec3(1.0/%1);\n")
-                        .arg(peak / qPow(12.0 / MP_REF_WHITE_HLG, gamma));
+                        .arg(peak / qPow(ARIB_STD_B67_VALUE / MP_REF_WHITE_HLG, gamma));
         temp.append(QString("color.rgb /= vec3(max(1e-6, pow(dot(src_luma, color.rgb), %1)));\n")
                         .arg((gamma - 1.0) / gamma));
         frag.append(temp.toUtf8());

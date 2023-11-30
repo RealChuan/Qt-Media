@@ -13,7 +13,7 @@ namespace Ffmpeg {
 class BufferRef::BufferRefPrivate
 {
 public:
-    BufferRefPrivate(BufferRef *q)
+    explicit BufferRefPrivate(BufferRef *q)
         : q_ptr(q)
     {}
 
@@ -29,9 +29,9 @@ BufferRef::BufferRef(QObject *parent)
     , d_ptr(new BufferRefPrivate(this))
 {}
 
-BufferRef::~BufferRef() {}
+BufferRef::~BufferRef() = default;
 
-bool BufferRef::hwdeviceCtxCreate(AVHWDeviceType hwDeviceType)
+auto BufferRef::hwdeviceCtxCreate(AVHWDeviceType hwDeviceType) -> bool
 {
     auto ret = av_hwdevice_ctx_create(&d_ptr->bufferRef, hwDeviceType, nullptr, nullptr, 0);
     if (ret < 0) {
@@ -42,30 +42,30 @@ bool BufferRef::hwdeviceCtxCreate(AVHWDeviceType hwDeviceType)
     return true;
 }
 
-BufferRef *BufferRef::hwframeCtxAlloc()
+auto BufferRef::hwframeCtxAlloc() -> BufferRef *
 {
-    auto hw_frames_ref = av_hwframe_ctx_alloc(d_ptr->bufferRef);
-    if (!hw_frames_ref) {
+    auto *hw_frames_ref = av_hwframe_ctx_alloc(d_ptr->bufferRef);
+    if (hw_frames_ref == nullptr) {
         qWarning() << "Failed to create Gpu frame context.";
         return nullptr;
     }
-    auto bufferRef = new BufferRef;
+    auto *bufferRef = new BufferRef;
     bufferRef->d_ptr->bufferRef = hw_frames_ref;
     return bufferRef;
 }
 
-bool BufferRef::hwframeCtxInit()
+auto BufferRef::hwframeCtxInit() -> bool
 {
     auto ret = av_hwframe_ctx_init(d_ptr->bufferRef);
     ERROR_RETURN(ret)
 }
 
-AVBufferRef *BufferRef::ref()
+auto BufferRef::ref() -> AVBufferRef *
 {
     return av_buffer_ref(d_ptr->bufferRef);
 }
 
-AVBufferRef *BufferRef::avBufferRef()
+auto BufferRef::avBufferRef() -> AVBufferRef *
 {
     return d_ptr->bufferRef;
 }

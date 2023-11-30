@@ -31,19 +31,19 @@ public:
     void renderFrame(const QSharedPointer<Subtitle> &subtitlePtr)
     {
         QMutexLocker locker(&mutex_render);
-        for (auto render : videoRenders) {
+        for (auto *render : videoRenders) {
             render->setSubTitleFrame(subtitlePtr);
         }
     }
 
-    void processEvent(Ass *ass, bool &firstFrame)
+    void processEvent(Ass *ass, bool &firstFrame) const
     {
-        while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
+        while (q_ptr->m_runing.load() && !q_ptr->m_eventQueue.empty()) {
             qDebug() << "DecoderSubtitleFrame::processEvent";
             auto eventPtr = q_ptr->m_eventQueue.take();
             switch (eventPtr->type()) {
             case Event::EventType::Pause: {
-                auto pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
+                auto *pauseEvent = static_cast<PauseEvent *>(eventPtr.data());
                 auto paused = pauseEvent->paused();
                 clock->setPaused(paused);
             } break;
@@ -96,9 +96,9 @@ void SubtitleDisplay::setVideoRenders(const QVector<VideoRender *> &videoRenders
 void SubtitleDisplay::runDecoder()
 {
     quint64 dropNum = 0;
-    auto ctx = m_contextInfo->codecCtx()->avCodecCtx();
+    auto *ctx = m_contextInfo->codecCtx()->avCodecCtx();
     QScopedPointer<Ass> assPtr(new Ass);
-    if (ctx->subtitle_header) {
+    if (ctx->subtitle_header != nullptr) {
         assPtr->init(ctx->subtitle_header, ctx->subtitle_header_size);
     }
     assPtr->setWindowSize(d_ptr->videoResolutionRatio);
@@ -110,7 +110,8 @@ void SubtitleDisplay::runDecoder()
         auto subtitlePtr(m_queue.take());
         if (subtitlePtr.isNull()) {
             continue;
-        } else if (!firstFrame) {
+        }
+        if (!firstFrame) {
             qDebug() << "Subtitle firstFrame: "
                      << QTime::fromMSecsSinceStartOfDay(subtitlePtr->pts() / 1000)
                             .toString("hh:mm:ss.zzz");

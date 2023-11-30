@@ -116,7 +116,7 @@ void Clock::update(qint64 pts, qint64 time)
     Q_ASSERT(Clock::ClockPrivate::s_clock);
 
     QMutexLocker locker(&d_ptr->mutex);
-    if (d_ptr->last_updated && !d_ptr->paused) {
+    if ((d_ptr->last_updated != 0) && !d_ptr->paused) {
         if (this == Clock::ClockPrivate::s_clock
             || Clock::ClockPrivate::s_clock->d_ptr->last_updated == 0) {
             qint64 timediff = (time - d_ptr->last_updated) * speed();
@@ -145,14 +145,16 @@ auto Clock::adjustDelay(qint64 &delay) -> bool
 {
     if (speed() > 1.0 && delay < 0) {
         return false;
-    } else if (delay < -Clock::ClockPrivate::s_diffThreshold) {
+    }
+    if (delay < -Clock::ClockPrivate::s_diffThreshold) {
         reset(pts()); // 有可能是因为网络下载过慢导致的延迟，需要重置
         if (this == Clock::ClockPrivate::s_clock) { // 主时钟不丢帧
             delay = 0;
             return true;
         }
         return false;
-    } else if (qAbs(delay) <= Clock::ClockPrivate::s_diffThreshold) {
+    }
+    if (qAbs(delay) <= Clock::ClockPrivate::s_diffThreshold) {
         delay = 0;
         return true;
     }

@@ -24,8 +24,7 @@ public:
                 qint64 timestamp,
                 int taskId,
                 VideoPreviewWidget *videoPreviewWidget)
-        : QRunnable()
-        , m_filepath(filepath)
+        : m_filepath(filepath)
         , m_videoIndex(videoIndex)
         , m_timestamp(timestamp)
         , m_taskId(taskId)
@@ -33,7 +32,7 @@ public:
     {
         setAutoDelete(true);
     }
-    ~PreviewTask() { m_runing = false; }
+    ~PreviewTask() override { m_runing = false; }
 
     void run() override
     {
@@ -73,14 +72,14 @@ private:
             auto dstSize = QSize(framePtr->avFrame()->width, framePtr->avFrame()->height);
             if (m_videoPreviewWidgetPtr.isNull()) {
                 return;
-            } else {
-                dstSize.scale(m_videoPreviewWidgetPtr->size()
-                                  * m_videoPreviewWidgetPtr->devicePixelRatio(),
-                              Qt::KeepAspectRatio);
             }
+            dstSize.scale(m_videoPreviewWidgetPtr->size()
+                              * m_videoPreviewWidgetPtr->devicePixelRatio(),
+                          Qt::KeepAspectRatio);
+
             auto dst_pix_fmt = AV_PIX_FMT_RGB32;
             QScopedPointer<VideoFrameConverter> frameConverterPtr(
-                new VideoFrameConverter(videoInfo->codecCtx(), dstSize, dst_pix_fmt));
+                new VideoFrameConverter(framePtr.data(), dstSize, dst_pix_fmt));
             QSharedPointer<Frame> frameRgbPtr(new Frame);
             frameRgbPtr->imageAlloc(dstSize, dst_pix_fmt);
             //frameConverterPtr->flush(framePtr.data(), dstSize);
@@ -95,7 +94,7 @@ private:
         }
     }
 
-    FramePtr getKeyFrame(FormatContext *formatContext, AVContextInfo *videoInfo)
+    auto getKeyFrame(FormatContext *formatContext, AVContextInfo *videoInfo) -> FramePtr
     {
         FramePtr outPtr;
         PacketPtr packetPtr(new Packet);
@@ -105,7 +104,7 @@ private:
         }
         if (!formatContext->checkPktPlayRange(packetPtr.get())) {
         } else if (packetPtr->streamIndex() == videoInfo->index()
-                   && !(videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC)
+                   && ((videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC) == 0)
                    && packetPtr->isKey()) {
             auto framePtrs = videoInfo->decodeFrame(packetPtr);
             for (const auto &framePtr : framePtrs) {
@@ -128,16 +127,16 @@ private:
     qint64 m_timestamp;
     int m_taskId = 0;
     QPointer<VideoPreviewWidget> m_videoPreviewWidgetPtr;
-    volatile bool m_runing = true;
+    std::atomic_bool m_runing = true;
 };
 
 class VideoPreviewWidget::VideoPreviewWidgetPrivate
 {
 public:
-    VideoPreviewWidgetPrivate(QWidget *parent)
-        : owner(parent)
+    explicit VideoPreviewWidgetPrivate(VideoPreviewWidget *q)
+        : q_ptr(q)
     {
-        threadPool = new QThreadPool(owner);
+        threadPool = new QThreadPool(q_ptr);
         threadPool->setMaxThreadCount(2);
     }
     ~VideoPreviewWidgetPrivate()
@@ -145,12 +144,12 @@ public:
         qDebug() << "Task ID: " << taskId.loadRelaxed() << "Vaild Count: " << vaildCount;
     }
 
-    QWidget *owner;
+    QWidget *q_ptr;
 
     QImage image;
     qint64 timestamp;
     qint64 duration;
-    QSharedPointer<Frame> frame;
+    QSharedPointer<Frame> framePtr;
 
     QAtomicInt taskId = 0;
     qint64 vaildCount = 0;
@@ -182,7 +181,7 @@ void VideoPreviewWidget::startPreview(const QString &filepath,
     d_ptr->timestamp = timestamp;
     d_ptr->duration = duration;
     d_ptr->image = QImage();
-    d_ptr->frame.reset();
+    d_ptr->framePtr.reset();
     update();
 }
 
@@ -191,7 +190,7 @@ void VideoPreviewWidget::clearAllTask()
     d_ptr->threadPool->clear();
 }
 
-void VideoPreviewWidget::setDisplayImage(QSharedPointer<Frame> frame,
+void VideoPreviewWidget::setDisplayImage(const QSharedPointer<Frame> &framePtr,
                                          const QImage &image,
                                          qint64 pts)
 {
@@ -204,14 +203,14 @@ void VideoPreviewWidget::setDisplayImage(QSharedPointer<Frame> frame,
         [=] {
             d_ptr->timestamp = pts;
             d_ptr->image = img;
-            d_ptr->frame = frame;
+            d_ptr->framePtr = framePtr;
             update();
             ++d_ptr->vaildCount;
         },
         Qt::QueuedConnection);
 }
 
-int VideoPreviewWidget::currentTaskId() const
+auto VideoPreviewWidget::currentTaskId() const -> int
 {
     return d_ptr->taskId.loadRelaxed();
 }

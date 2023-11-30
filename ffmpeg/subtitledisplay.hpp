@@ -13,7 +13,7 @@ class SubtitleDisplay : public Decoder<SubtitlePtr>
 {
 public:
     explicit SubtitleDisplay(QObject *parent = nullptr);
-    ~SubtitleDisplay();
+    ~SubtitleDisplay() override;
 
     void setVideoResolutionRatio(const QSize &size);
 

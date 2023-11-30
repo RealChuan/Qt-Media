@@ -18,7 +18,7 @@ public:
         decoderAudioFrame = new AudioDisplay(q_ptr);
     }
 
-    void processEvent()
+    void processEvent() const
     {
         while (q_ptr->m_runing.load() && !q_ptr->m_eventQueue.empty()) {
             auto eventPtr = q_ptr->m_eventQueue.take();

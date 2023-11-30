@@ -45,7 +45,7 @@ public:
         modelButton = new QPushButton(q_ptr);
     }
 
-    void setupUI()
+    void setupUI() const
     {
         auto *processLayout = new QHBoxLayout;
         processLayout->setSpacing(10);
@@ -101,13 +101,13 @@ public:
         l->addWidget(widget);
     }
 
-    void setPlayButtonIcon()
+    void setPlayButtonIcon() const
     {
         playButton->setIcon(playButton->style()->standardIcon(
             playButton->isChecked() ? QStyle::SP_MediaPause : QStyle::SP_MediaPlay));
     }
 
-    void initModelButton()
+    void initModelButton() const
     {
         modelButton->setProperty("model", QMediaPlaylist::Sequential);
         QMetaObject::invokeMethod(q_ptr, &ControlWidget::onModelChanged, Qt::QueuedConnection);

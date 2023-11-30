@@ -16,7 +16,7 @@ namespace Ffmpeg {
 
 AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
 
-AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts)
+auto get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts) -> AVPixelFormat
 {
     Q_UNUSED(ctx)
     const enum AVPixelFormat *p;
@@ -32,7 +32,7 @@ AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_f
 class HardWareDecode::HardWareDecodePrivate
 {
 public:
-    HardWareDecodePrivate(HardWareDecode *q)
+    explicit HardWareDecodePrivate(HardWareDecode *q)
         : q_ptr(q)
     {
         bufferRef = new BufferRef(q_ptr);
@@ -53,9 +53,9 @@ HardWareDecode::HardWareDecode(QObject *parent)
     , d_ptr(new HardWareDecodePrivate(this))
 {}
 
-HardWareDecode::~HardWareDecode() {}
+HardWareDecode::~HardWareDecode() = default;
 
-bool HardWareDecode::initPixelFormat(const AVCodec *decoder)
+auto HardWareDecode::initPixelFormat(const AVCodec *decoder) -> bool
 {
     if (av_codec_is_decoder(decoder) <= 0) {
         return false;
@@ -73,7 +73,7 @@ bool HardWareDecode::initPixelFormat(const AVCodec *decoder)
     return (hw_pix_fmt != AV_PIX_FMT_NONE);
 }
 
-bool HardWareDecode::initHardWareDevice(CodecContext *codecContext)
+auto HardWareDecode::initHardWareDevice(CodecContext *codecContext) -> bool
 {
     if (hw_pix_fmt == AV_PIX_FMT_NONE) {
         return false;
@@ -81,14 +81,15 @@ bool HardWareDecode::initHardWareDevice(CodecContext *codecContext)
     if (!d_ptr->bufferRef->hwdeviceCtxCreate(d_ptr->hwDeviceType)) {
         return false;
     }
-    auto ctx = codecContext->avCodecCtx();
+    auto *ctx = codecContext->avCodecCtx();
     ctx->hw_device_ctx = d_ptr->bufferRef->ref();
     ctx->get_format = get_hw_format;
     d_ptr->vaild = ctx->hw_device_ctx != nullptr;
     return d_ptr->vaild;
 }
 
-QSharedPointer<Frame> HardWareDecode::transFromGpu(const QSharedPointer<Frame> &inPtr, bool &ok)
+auto HardWareDecode::transFromGpu(const QSharedPointer<Frame> &inPtr, bool &ok)
+    -> QSharedPointer<Frame>
 {
     ok = true;
     if (!isVaild()) {
@@ -114,7 +115,7 @@ QSharedPointer<Frame> HardWareDecode::transFromGpu(const QSharedPointer<Frame> &
     return outPtr;
 }
 
-bool HardWareDecode::isVaild()
+auto HardWareDecode::isVaild() -> bool
 {
     if (d_ptr->hwDeviceType == AV_HWDEVICE_TYPE_NONE) {
         return false;

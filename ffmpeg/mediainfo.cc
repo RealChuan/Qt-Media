@@ -1,4 +1,5 @@
 #include "mediainfo.hpp"
+#include "audioframeconverter.h"
 
 #include <utils/utils.h>
 
@@ -30,9 +31,7 @@ StreamInfo::StreamInfo(struct AVStream *stream)
     switch (type) {
     case AVMEDIA_TYPE_AUDIO: {
         format = av_get_sample_fmt_name(static_cast<AVSampleFormat>(codecpar->format));
-        char buf[64] = {0};
-        av_channel_layout_describe(&codecpar->ch_layout, buf, sizeof(buf));
-        chLayout = QString::fromUtf8(buf);
+        chLayout = getAVChannelLayoutDescribe(codecpar->ch_layout);
         sampleRate = codecpar->sample_rate;
         frameSize = codecpar->frame_size;
     } break;

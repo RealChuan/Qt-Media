@@ -79,7 +79,7 @@ AudioOutput::~AudioOutput() = default;
 
 void AudioOutput::onConvertData(const QSharedPointer<Ffmpeg::Frame> &framePtr)
 {
-    if (!d_ptr->ioDevice) {
+    if (d_ptr->ioDevice == nullptr) {
         return;
     }
 
@@ -89,11 +89,11 @@ void AudioOutput::onConvertData(const QSharedPointer<Ffmpeg::Frame> &framePtr)
 
 void AudioOutput::onWrite()
 {
-    if (!d_ptr->ioDevice) {
+    if (d_ptr->ioDevice == nullptr) {
         return;
     }
     while (d_ptr->audioBuf.size() > 0) {
-        int byteFree = d_ptr->audioSinkPtr->bytesFree();
+        auto byteFree = d_ptr->audioSinkPtr->bytesFree();
         if (byteFree > 0 && byteFree < d_ptr->audioBuf.size()) {
             d_ptr->ioDevice->write(d_ptr->audioBuf.data(), byteFree);
             d_ptr->audioBuf = d_ptr->audioBuf.sliced(byteFree);

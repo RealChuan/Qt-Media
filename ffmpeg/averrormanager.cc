@@ -6,7 +6,7 @@ namespace Ffmpeg {
 class AVErrorManager::AVErrorManagerPrivate
 {
 public:
-    AVErrorManagerPrivate(AVErrorManager *q)
+    explicit AVErrorManagerPrivate(AVErrorManager *q)
         : q_ptr(q)
     {}
 
@@ -44,12 +44,12 @@ void AVErrorManager::setErrorCode(int errorCode)
     emit error(d_ptr->error);
 }
 
-QString AVErrorManager::lastErrorString() const
+auto AVErrorManager::lastErrorString() const -> QString
 {
     return d_ptr->error.errorString();
 }
 
-QVector<int> AVErrorManager::errorCodes() const
+auto AVErrorManager::errorCodes() const -> QVector<int>
 {
     return d_ptr->errorCodes;
 }
@@ -61,6 +61,6 @@ AVErrorManager::AVErrorManager(QObject *parent)
     qRegisterMetaType<Ffmpeg::AVError>("Ffmpeg::AVError");
 }
 
-AVErrorManager::~AVErrorManager() {}
+AVErrorManager::~AVErrorManager() = default;
 
 } // namespace Ffmpeg

@@ -19,14 +19,14 @@ public:
         decoderVideoFrame = new VideoDisplay(q_ptr);
     }
 
-    void processEvent()
+    void processEvent() const
     {
-        while (q_ptr->m_runing.load() && q_ptr->m_eventQueue.size() > 0) {
+        while (q_ptr->m_runing.load() && !q_ptr->m_eventQueue.empty()) {
             auto eventPtr = q_ptr->m_eventQueue.take();
             switch (eventPtr->type()) {
             case Event::EventType::Pause: decoderVideoFrame->addEvent(eventPtr); break;
             case Event::EventType::Seek: {
-                auto seekEvent = static_cast<SeekEvent *>(eventPtr.data());
+                auto *seekEvent = static_cast<SeekEvent *>(eventPtr.data());
                 seekEvent->countDown();
                 q_ptr->clear();
                 decoderVideoFrame->addEvent(eventPtr);

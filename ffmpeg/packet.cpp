@@ -25,11 +25,9 @@ Packet::Packet()
 {
     d_ptr->packet = av_packet_alloc();
 
-    if (!d_ptr->packet) {
+    if (d_ptr->packet == nullptr) {
         qWarning() << "Could not allocate packet";
     }
-
-    av_init_packet(d_ptr->packet);
 }
 
 Packet::Packet(const Packet &other)
@@ -37,7 +35,7 @@ Packet::Packet(const Packet &other)
 {
     d_ptr->packet = av_packet_clone(other.d_ptr->packet);
 
-    if (!d_ptr->packet) {
+    if (d_ptr->packet == nullptr) {
         qWarning() << "Could not clone packet";
     }
 }
@@ -56,7 +54,7 @@ auto Packet::operator=(const Packet &other) -> Packet &
     if (this != &other) {
         d_ptr->packet = av_packet_clone(other.d_ptr->packet);
 
-        if (!d_ptr->packet) {
+        if (d_ptr->packet == nullptr) {
             qWarning() << "Could not clone packet";
         }
     }
@@ -85,7 +83,7 @@ auto Packet::isValid() -> bool
 auto Packet::isKey() -> bool
 {
     Q_ASSERT(nullptr != d_ptr->packet);
-    return d_ptr->packet->flags & AV_PKT_FLAG_KEY;
+    return (d_ptr->packet->flags & AV_PKT_FLAG_KEY) != 0;
 }
 
 void Packet::unref()

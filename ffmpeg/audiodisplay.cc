@@ -25,7 +25,7 @@ public:
 
     ~AudioDisplayPrivate() = default;
 
-    void processEvent(bool &firstFrame)
+    void processEvent(bool &firstFrame) const
     {
         while (q_ptr->m_runing.load() && !q_ptr->m_eventQueue.empty()) {
             qDebug() << "AudioFramePrivate::processEvent";

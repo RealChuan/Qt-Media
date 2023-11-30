@@ -12,7 +12,7 @@ class Ass : public QObject
     Q_OBJECT
 public:
     explicit Ass(QObject *parent = nullptr);
-    ~Ass();
+    ~Ass() override;
 
     void init(uint8_t *extradata, int extradata_size);
 
