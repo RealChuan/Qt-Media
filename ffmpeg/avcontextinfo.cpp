@@ -97,8 +97,6 @@ auto AVContextInfo::initDecoder(const AVRational &frameRate) -> bool
         avCodecCtx->framerate = frameRate;
     }
 
-    qInfo() << tr("Decoder name: ") << codec->name;
-
     return true;
 }
 

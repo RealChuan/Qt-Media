@@ -30,6 +30,7 @@ public:
     [[nodiscard]] auto fames() const -> qint64;
     [[nodiscard]] auto resolutionRatio() const -> QSize;
     [[nodiscard]] auto fps() const -> double;
+    auto mediaInfo() -> MediaInfo;
 
     [[nodiscard]] auto audioIndex() const -> int;
     [[nodiscard]] auto videoIndex() const -> int;

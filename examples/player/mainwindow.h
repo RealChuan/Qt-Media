@@ -18,6 +18,8 @@ private slots:
     void onHoverSlider(int pos, int value);
     void onLeaveSlider();
     void onShowCurrentFPS();
+    void onShowColorSpace();
+    void onShowMediaInfo();
 
     void onOpenLocalMedia();
     void onOpenWebMedia();
@@ -25,8 +27,6 @@ private slots:
 
     void playlistPositionChanged(int);
     void jump(const QModelIndex &index);
-
-    void onShowColorSpace();
 
     void onProcessEvents();
 

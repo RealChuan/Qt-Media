@@ -392,25 +392,16 @@ auto FormatContext::seekFrame(int index, qint64 timestamp) -> bool
     ERROR_RETURN(ret)
 }
 
-void FormatContext::printFileInfo()
-{
-    Q_ASSERT(d_ptr->formatCtx != nullptr);
-    qInfo() << "AV Format Name:" << d_ptr->formatCtx->iformat->name;
-    QTime time(QTime::fromMSecsSinceStartOfDay(d_ptr->formatCtx->duration / 1000));
-    qInfo() << "Duration:" << time.toString("hh:mm:ss.zzz");
-
-    // Metadata
-    AVDictionaryEntry *tag = nullptr;
-    while (nullptr
-           != (tag = av_dict_get(d_ptr->formatCtx->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
-        qInfo() << tag->key << QString::fromUtf8(tag->value);
-    }
-}
-
 void FormatContext::dumpFormat()
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     av_dump_format(d_ptr->formatCtx, 0, d_ptr->filepath.toLocal8Bit().constData(), d_ptr->mode - 1);
+}
+
+auto FormatContext::mediaInfo() -> MediaInfo
+{
+    Q_ASSERT(d_ptr->formatCtx != nullptr);
+    return MediaInfo(d_ptr->formatCtx);
 }
 
 auto FormatContext::avFormatContext() -> AVFormatContext *

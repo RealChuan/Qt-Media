@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ffmepg_global.h"
+#include "ffmpegutils.hpp"
 
 #include <QImage>
 #include <QtCore>
@@ -10,6 +11,8 @@ extern "C" {
 }
 
 struct AVStream;
+struct AVFormatContext;
+struct AVChapter;
 
 namespace Ffmpeg {
 
@@ -20,6 +23,7 @@ struct FFMPEG_EXPORT StreamInfo
     StreamInfo() = default;
     explicit StreamInfo(struct AVStream *stream);
 
+    [[nodiscard]] auto toJson() const -> QJsonObject;
     [[nodiscard]] auto info() const -> QString;
 
     int index = 0;
@@ -31,6 +35,9 @@ struct FFMPEG_EXPORT StreamInfo
     int nbFrames = 0;
     QString format;
     qint64 bitRate = 0;
+    qint64 streamSize = 0;
+    QString profile;
+    int level = 0;
 
     // Audio
     QString chLayout;
@@ -38,7 +45,7 @@ struct FFMPEG_EXPORT StreamInfo
     int frameSize = 0;
     // Video
     double frameRate = 0;
-    double aspectRatio = 0;
+    QString aspectRatio = nullptr;
     QSize size{0, 0};
     QString colorRange;
     QString colorPrimaries;
@@ -49,15 +56,51 @@ struct FFMPEG_EXPORT StreamInfo
 
     // 封面
     QImage image;
-    // DictionaryEntry
-    QString lang;
-    QString title;
 
     bool defaultSelected = false;
     bool selected = false;
+
+    Metadatas metadatas;
 };
 
 using StreamInfos = QVector<StreamInfo>;
+
+struct FFMPEG_EXPORT Chapter
+{
+    Chapter() = default;
+    explicit Chapter(AVChapter *chapter);
+
+    [[nodiscard]] auto toJson() const -> QJsonObject;
+
+    qint64 id = 0;
+    double timeBase = 0;
+    QString startTime;
+    QString endTime;
+
+    Metadatas metadatas;
+};
+
+using Chapters = QVector<Chapter>;
+
+struct FFMPEG_EXPORT MediaInfo
+{
+    MediaInfo() = default;
+    explicit MediaInfo(AVFormatContext *formatCtx);
+
+    [[nodiscard]] auto toJson() const -> QJsonObject;
+
+    QString name;
+    QString longName;
+    QString url;
+    QString startTime;
+    QString duration;
+    qint64 bitRate = 0;
+    qint64 size = 0;
+    Metadatas metadatas;
+
+    Chapters chapters;
+    StreamInfos streamInfos;
+};
 
 struct MediaIndex
 {

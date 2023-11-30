@@ -65,9 +65,8 @@ public:
 
     [[nodiscard]] auto duration() const -> qint64; // microsecond
 
-    void printFileInfo();
-
     void dumpFormat();
+    auto mediaInfo() -> MediaInfo;
 
     auto avFormatContext() -> AVFormatContext *;
 

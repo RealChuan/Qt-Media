@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "colorspacedialog.hpp"
 #include "controlwidget.hpp"
+#include "mediainfodialog.hpp"
 #include "openwebmediadialog.hpp"
 #include "playlistmodel.h"
 #include "playlistview.hpp"
@@ -64,6 +65,7 @@ public:
         videoTracksGroup->setExclusive(true);
         subTracksGroup = new QActionGroup(q_ptr);
         subTracksGroup->setExclusive(true);
+        mediaInfoAction = new QAction(QObject::tr("Media Info"), q_ptr);
 
         playListMenu = new QMenu(q_ptr);
 
@@ -110,6 +112,9 @@ public:
         menu->addMenu(audioTracksMenuPtr.data());
         menu->addMenu(videoTracksMenuPtr.data());
         menu->addMenu(subTracksMenuPtr.data());
+
+        menu->removeAction(mediaInfoAction);
+        menu->addAction(mediaInfoAction);
     }
 
     void initShortcut()
@@ -195,6 +200,7 @@ public:
     QActionGroup *audioTracksGroup;
     QActionGroup *videoTracksGroup;
     QActionGroup *subTracksGroup;
+    QAction *mediaInfoAction;
 
     QMenu *playListMenu;
 
@@ -358,6 +364,13 @@ void MainWindow::onShowColorSpace()
     connect(&dialog, &ColorSpaceDialog::colorSpaceChanged, this, [&] {
         d_ptr->videoRender->setColorSpaceTrc(dialog.colorSpace());
     });
+    dialog.exec();
+}
+
+void MainWindow::onShowMediaInfo()
+{
+    MediaInfoDialog dialog(this);
+    dialog.setMediaInfo(d_ptr->playerPtr->mediaInfo());
     dialog.exec();
 }
 
@@ -642,6 +655,8 @@ void MainWindow::initMenu()
             Ffmpeg::EventPtr(new Ffmpeg::SelectedMediaTrackEvent(action->property("index").toInt(),
                                                                  Ffmpeg::Event::SubtitleTrack)));
     });
+
+    connect(d_ptr->mediaInfoAction, &QAction::triggered, this, &MainWindow::onShowMediaInfo);
 }
 
 void MainWindow::tonemapMenu()

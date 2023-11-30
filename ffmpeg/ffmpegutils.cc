@@ -19,15 +19,15 @@ namespace Ffmpeg {
 
 void calculatePts(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext)
 {
-    auto tb = contextInfo->stream()->time_base;
-    auto frame_rate = formatContext->guessFrameRate(contextInfo->stream());
+    auto timeBase = av_q2d(contextInfo->timebase());
+    auto frameRate = formatContext->guessFrameRate(contextInfo->stream());
     // 当前帧播放时长
-    auto duration = (frame_rate.num && frame_rate.den
-                         ? av_q2d(AVRational{frame_rate.den, frame_rate.num})
+    auto duration = ((frameRate.num != 0) && (frameRate.den != 0)
+                         ? av_q2d(AVRational{frameRate.den, frameRate.num})
                          : 0);
     // 当前帧显示时间戳
     auto *avFrame = frame->avFrame();
-    auto pts = (avFrame->pts == AV_NOPTS_VALUE) ? NAN : avFrame->pts * av_q2d(tb);
+    auto pts = (avFrame->pts == AV_NOPTS_VALUE) ? NAN : avFrame->pts * timeBase;
     frame->setDuration(duration * AV_TIME_BASE);
     frame->setPts(pts * AV_TIME_BASE);
     // qDebug() << "Frame duration:" << duration << "pts:" << pts << "tb:" << tb.num << tb.den
@@ -36,12 +36,12 @@ void calculatePts(Frame *frame, AVContextInfo *contextInfo, FormatContext *forma
 
 void calculatePts(Packet *packet, AVContextInfo *contextInfo)
 {
-    auto tb = contextInfo->stream()->time_base;
+    auto timeBase = av_q2d(contextInfo->timebase());
     // 当前帧播放时长
     auto *avPacket = packet->avPacket();
-    auto duration = avPacket->duration * av_q2d(tb);
+    auto duration = avPacket->duration * timeBase;
     // 当前帧显示时间戳
-    auto pts = (avPacket->pts == AV_NOPTS_VALUE) ? NAN : avPacket->pts * av_q2d(tb);
+    auto pts = (avPacket->pts == AV_NOPTS_VALUE) ? NAN : avPacket->pts * timeBase;
     packet->setDuration(duration * AV_TIME_BASE);
     packet->setPts(pts * AV_TIME_BASE);
     // qDebug() << "Packet duration:" << duration << "pts:" << pts << "tb:" << tb.num << tb.den;
@@ -49,8 +49,8 @@ void calculatePts(Packet *packet, AVContextInfo *contextInfo)
 
 auto compare_codec_desc(const void *a, const void *b) -> int
 {
-    const AVCodecDescriptor *const *da = (const AVCodecDescriptor *const *) a;
-    const AVCodecDescriptor *const *db = (const AVCodecDescriptor *const *) b;
+    const auto *da = static_cast<const AVCodecDescriptor *const *>(a);
+    const auto *db = static_cast<const AVCodecDescriptor *const *>(b);
 
     return (*da)->type != (*db)->type ? FFDIFFSIGN((*da)->type, (*db)->type)
                                       : strcmp((*da)->name, (*db)->name);
@@ -60,17 +60,19 @@ auto get_codecs_sorted(const AVCodecDescriptor ***rcodecs) -> unsigned
 {
     const AVCodecDescriptor *desc = nullptr;
     const AVCodecDescriptor **codecs;
-    unsigned nb_codecs = 0, i = 0;
+    unsigned nb_codecs = 0;
+    unsigned i = 0;
 
-    while ((desc = avcodec_descriptor_next(desc))) {
+    while ((desc = avcodec_descriptor_next(desc)) != nullptr) {
         nb_codecs++;
     }
-    if (!(codecs = (const AVCodecDescriptor **) av_calloc(nb_codecs, sizeof(*codecs)))) {
+    if ((codecs = static_cast<const AVCodecDescriptor **>(av_calloc(nb_codecs, sizeof(*codecs))))
+        == nullptr) {
         qCritical() << "Out of memory";
         return nb_codecs;
     }
     desc = nullptr;
-    while ((desc = avcodec_descriptor_next(desc))) {
+    while ((desc = avcodec_descriptor_next(desc)) != nullptr) {
         codecs[i++] = desc;
     }
     Q_ASSERT(i == nb_codecs);
@@ -82,12 +84,12 @@ auto get_codecs_sorted(const AVCodecDescriptor ***rcodecs) -> unsigned
 auto next_codec_for_id(enum AVCodecID id, void **iter, bool encoder) -> const AVCodec *
 {
     const AVCodec *c = nullptr;
-    while ((c = av_codec_iterate(iter))) {
-        if (c->id == id && (encoder ? av_codec_is_encoder(c) : av_codec_is_decoder(c))) {
+    while ((c = av_codec_iterate(iter)) != nullptr) {
+        if (c->id == id && ((encoder ? av_codec_is_encoder(c) : av_codec_is_decoder(c)) != 0)) {
             return c;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 void printFfmpegInfo()
@@ -113,8 +115,8 @@ auto getCurrentHWDeviceTypes() -> QVector<AVHWDeviceType>
                != AV_HWDEVICE_TYPE_NONE) // 遍历支持的设备类型。
         {
             types.append(type);
-            auto ctype = av_hwdevice_get_type_name(type); // 获取AVHWDeviceType的字符串名称。
-            if (ctype) {
+            const auto *ctype = av_hwdevice_get_type_name(type); // 获取AVHWDeviceType的字符串名称。
+            if (ctype != nullptr) {
                 list.append(QString(ctype));
             }
         }
@@ -127,13 +129,13 @@ auto getPixelFormat(const AVCodec *codec, AVHWDeviceType type) -> AVPixelFormat
 {
     auto hw_pix_fmt = AV_PIX_FMT_NONE;
     for (int i = 0;; i++) {
-        auto config = avcodec_get_hw_config(codec, i);
-        if (!config) {
+        const auto *config = avcodec_get_hw_config(codec, i);
+        if (config == nullptr) {
             qWarning() << QObject::tr("Codec %1 does not support device type %2.")
                               .arg(codec->name, av_hwdevice_get_type_name(type));
             return hw_pix_fmt;
         }
-        if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX
+        if (((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) != 0)
             && config->device_type == type) {
             qInfo() << QObject::tr("Codec %1 support device type %2.")
                            .arg(codec->name, av_hwdevice_get_type_name(type));
@@ -160,7 +162,7 @@ auto getFileCodecInfo(const QString &filePath) -> QVector<CodecInfo>
     formatContextPtr->findStream();
     auto stream_num = formatContextPtr->streams();
     for (int i = 0; i < stream_num; i++) {
-        auto codecpar = formatContextPtr->stream(i)->codecpar;
+        auto *codecpar = formatContextPtr->stream(i)->codecpar;
         codecs.append({codecpar->codec_type,
                        codecpar->codec_id,
                        avcodec_get_name(codecpar->codec_id),
@@ -192,20 +194,22 @@ auto getCurrentSupportCodecs(AVMediaType mediaType, bool encoder) -> QStringList
         const AVCodec *codec = nullptr;
         void *iter = nullptr;
 
-        if (strstr(desc->name, "_deprecated")) {
+        if (strstr(desc->name, "_deprecated") != nullptr) {
             continue;
         }
 
-        while ((codec = next_codec_for_id(desc->id, &iter, encoder))) {
+        while ((codec = next_codec_for_id(desc->id, &iter, encoder)) != nullptr) {
             if (desc->type != mediaType) {
                 continue;
             }
-            auto name = codec->name;
+            const auto *name = codec->name;
             if (!codecnames.contains(name)) {
                 codecnames.append(name);
             }
-            auto str = QString::asprintf("%-20s %s", name, codec->long_name ? codec->long_name : "");
-            if (strcmp(codec->name, desc->name)) {
+            auto str = QString::asprintf("%-20s %s",
+                                         name,
+                                         codec->long_name != nullptr ? codec->long_name : "");
+            if (strcmp(codec->name, desc->name) != 0) {
                 str += QString::asprintf(" (codec %s)", desc->name);
             }
             qDebug() << str;
@@ -213,6 +217,16 @@ auto getCurrentSupportCodecs(AVMediaType mediaType, bool encoder) -> QStringList
     }
     av_free(codecs);
     return codecnames;
+}
+
+auto getMetaDatas(AVDictionary *metadata) -> Metadatas
+{
+    Metadatas metadatas{};
+    AVDictionaryEntry *tag = nullptr;
+    while (nullptr != (tag = av_dict_get(metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
+        metadatas.insert(QString::fromUtf8(tag->key), QString::fromUtf8(tag->value));
+    }
+    return metadatas;
 }
 
 } // namespace Ffmpeg

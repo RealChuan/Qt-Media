@@ -604,6 +604,11 @@ auto Player::fps() const -> double
     return d_ptr->videoInfo->isIndexVaild() ? d_ptr->videoInfo->fps() : 0;
 }
 
+auto Player::mediaInfo() -> MediaInfo
+{
+    return d_ptr->formatCtx->mediaInfo();
+}
+
 auto Player::audioIndex() const -> int
 {
     return d_ptr->audioInfo->index();

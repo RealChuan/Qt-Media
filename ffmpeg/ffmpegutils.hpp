@@ -19,6 +19,8 @@ class Frame;
 class AVContextInfo;
 class FormatContext;
 
+using Metadatas = QMap<QString, QString>;
+
 void FFMPEG_EXPORT printFfmpegInfo();
 
 void calculatePts(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext);
@@ -29,6 +31,8 @@ auto getCurrentHWDeviceTypes() -> QVector<AVHWDeviceType>;
 auto getPixelFormat(const AVCodec *codec, AVHWDeviceType type) -> AVPixelFormat;
 
 auto compareAVRational(const AVRational &a, const AVRational &b) -> bool;
+
+auto getMetaDatas(AVDictionary *metadata) -> Metadatas;
 
 struct CodecInfo
 {
