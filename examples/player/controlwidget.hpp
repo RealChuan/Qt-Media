@@ -1,6 +1,8 @@
 #ifndef CONTROLWIDGET_HPP
 #define CONTROLWIDGET_HPP
 
+#include <ffmpeg/mediainfo.hpp>
+
 #include <QWidget>
 
 class ControlWidget : public QWidget
@@ -15,6 +17,7 @@ public:
 
     void setDuration(int value);
     [[nodiscard]] auto duration() const -> int;
+    void setChapters(const Ffmpeg::Chapters &chapters);
 
     [[nodiscard]] auto sliderGlobalPos() const -> QPoint;
 

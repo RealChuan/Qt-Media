@@ -39,7 +39,7 @@ jobs:
           - macos-latest
           - ubuntu-latest
         qt_ver: 
-          - 6.6.1
+          - 6.6.2
         build_type:
           - "RelWithDebInfo"
         generators:

@@ -10,6 +10,9 @@ public:
     explicit Slider(QWidget *parent = nullptr);
     ~Slider() override;
 
+    void setNodes(const QVector<qint64> &nodes);
+    void clearNodes();
+
 signals:
     void onEnter();
     void onLeave();
@@ -17,14 +20,17 @@ signals:
 
 protected:
     void enterEvent(QEnterEvent *event) override;
-    void leaveEvent(QEvent *e) override;
+    void leaveEvent(QEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
-    //#if CODE_FOR_CLICK == 1
-    [[nodiscard]] inline auto pick(const QPoint &pt) const -> int;
+    void paintEvent(QPaintEvent *event) override;
+
+    [[nodiscard]] inline auto pick(const QPoint &point) const -> int;
     [[nodiscard]] auto pixelPosToRangeValue(int pos) const -> int;
-    void initStyleOption_Qt430(QStyleOptionSlider *option) const;
-    //#endif
+
+private:
+    class SliderPrivate;
+    QScopedPointer<SliderPrivate> d_ptr;
 };
 
 #endif // SLIDER_H

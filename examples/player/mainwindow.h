@@ -25,14 +25,14 @@ private slots:
     void onOpenWebMedia();
     void onRenderChanged(QAction *action);
 
-    void playlistPositionChanged(int);
+    void playlistPositionChanged(int /*currentItem*/);
     void jump(const QModelIndex &index);
 
     void onProcessEvents();
 
 protected:
     auto eventFilter(QObject *watched, QEvent *event) -> bool override;
-    void keyPressEvent(QKeyEvent *ev) override;
+    void keyPressEvent(QKeyEvent *event) override;
 
 private:
     void setupUI();

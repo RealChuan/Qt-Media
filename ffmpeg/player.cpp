@@ -62,8 +62,6 @@ public:
         if (!formatCtx->findStream()) {
             return false;
         }
-        addPropertyChangeEvent(new DurationEvent(formatCtx->duration()));
-        q_ptr->onPositionChanged(0);
 
         if (!setBestMediaIndex()) {
             return false;
@@ -73,6 +71,10 @@ public:
         }
         isOpen = true;
         formatCtx->dumpFormat();
+
+        addPropertyChangeEvent(new DurationEvent(formatCtx->duration()));
+        q_ptr->onPositionChanged(0);
+
         return true;
     }
 

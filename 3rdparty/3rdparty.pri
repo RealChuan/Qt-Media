@@ -7,7 +7,11 @@ win32{
 }
 
 macx{
-    vcpkg_path = /usr/local/share/vcpkg/installed/x64-osx
+    contains(QMAKE_APPLE_DEVICE_ARCHS, arm64) {
+        vcpkg_path = /usr/local/share/vcpkg/installed/arm64-osx
+    } else {
+        vcpkg_path = /usr/local/share/vcpkg/installed/x64-osx
+    }
 }
 
 unix:!macx{

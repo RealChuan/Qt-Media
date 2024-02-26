@@ -74,8 +74,10 @@ struct FFMPEG_EXPORT Chapter
 
     qint64 id = 0;
     double timeBase = 0;
-    QString startTime;
-    QString endTime;
+    qint64 startTime = 0; // second
+    qint64 endTime = 0;   // second
+    QString startTimeText;
+    QString endTimeText;
 
     Metadatas metadatas;
 };

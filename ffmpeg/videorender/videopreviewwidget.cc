@@ -1,6 +1,7 @@
 #include "videopreviewwidget.hpp"
 #include "ffmpegutils.hpp"
 
+#include <ffmpeg/averrormanager.hpp>
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/decoder.h>
 #include <ffmpeg/frame.hpp>
@@ -19,11 +20,11 @@ namespace Ffmpeg {
 class PreviewTask : public QRunnable
 {
 public:
-    PreviewTask(const QString &filepath,
-                int videoIndex,
-                qint64 timestamp,
-                int taskId,
-                VideoPreviewWidget *videoPreviewWidget)
+    explicit PreviewTask(const QString &filepath,
+                         int videoIndex,
+                         qint64 timestamp,
+                         int taskId,
+                         VideoPreviewWidget *videoPreviewWidget)
         : m_filepath(filepath)
         , m_videoIndex(videoIndex)
         , m_timestamp(timestamp)
@@ -64,6 +65,10 @@ private:
                && m_taskId == m_videoPreviewWidgetPtr->currentTaskId()) {
             auto framePtr(getKeyFrame(formatContext, videoInfo));
             if (!m_runing) {
+                if (!m_videoPreviewWidgetPtr.isNull()) {
+                    m_videoPreviewWidgetPtr->setDisplayText(
+                        AVErrorManager::instance()->lastErrorString());
+                }
                 return;
             }
             if (framePtr.isNull()) {
@@ -85,10 +90,14 @@ private:
             //frameConverterPtr->flush(framePtr.data(), dstSize);
             frameConverterPtr->scale(framePtr.data(), frameRgbPtr.data());
             auto image = frameRgbPtr->toImage();
+            auto chapterText = getChapterText(formatContext);
             if (!m_videoPreviewWidgetPtr.isNull()
                 && m_taskId == m_videoPreviewWidgetPtr->currentTaskId()) {
                 image.setDevicePixelRatio(m_videoPreviewWidgetPtr->devicePixelRatio());
-                m_videoPreviewWidgetPtr->setDisplayImage(frameRgbPtr, image, framePtr->pts());
+                m_videoPreviewWidgetPtr->setDisplayImage(frameRgbPtr,
+                                                         image,
+                                                         framePtr->pts(),
+                                                         chapterText);
             }
             return;
         }
@@ -122,6 +131,18 @@ private:
         return outPtr;
     }
 
+    auto getChapterText(FormatContext *formatContext) const -> QString
+    {
+        auto chapters = formatContext->mediaInfo().chapters;
+        auto timeStamp = m_timestamp / AV_TIME_BASE;
+        for (const auto &chapter : std::as_const(chapters)) {
+            if (chapter.startTime <= timeStamp && chapter.endTime >= timeStamp) {
+                return chapter.metadatas.value("title");
+            }
+        }
+        return {};
+    }
+
     QString m_filepath;
     int m_videoIndex;
     qint64 m_timestamp;
@@ -150,6 +171,8 @@ public:
     qint64 timestamp;
     qint64 duration;
     QSharedPointer<Frame> framePtr;
+    QString chapterText;
+    QString displayText;
 
     QAtomicInt taskId = 0;
     qint64 vaildCount = 0;
@@ -182,6 +205,7 @@ void VideoPreviewWidget::startPreview(const QString &filepath,
     d_ptr->duration = duration;
     d_ptr->image = QImage();
     d_ptr->framePtr.reset();
+    d_ptr->displayText = tr("Waiting...");
     update();
 }
 
@@ -192,7 +216,8 @@ void VideoPreviewWidget::clearAllTask()
 
 void VideoPreviewWidget::setDisplayImage(const QSharedPointer<Frame> &framePtr,
                                          const QImage &image,
-                                         qint64 pts)
+                                         qint64 pts,
+                                         const QString &chapterText)
 {
     auto img = image.scaled(size() * devicePixelRatio(),
                             Qt::KeepAspectRatio,
@@ -204,8 +229,20 @@ void VideoPreviewWidget::setDisplayImage(const QSharedPointer<Frame> &framePtr,
             d_ptr->timestamp = pts;
             d_ptr->image = img;
             d_ptr->framePtr = framePtr;
+            d_ptr->chapterText = chapterText;
             update();
             ++d_ptr->vaildCount;
+        },
+        Qt::QueuedConnection);
+}
+
+void VideoPreviewWidget::setDisplayText(const QString &text)
+{
+    QMetaObject::invokeMethod(
+        this,
+        [=] {
+            d_ptr->displayText = text;
+            update();
         },
         Qt::QueuedConnection);
 }
@@ -227,11 +264,12 @@ void VideoPreviewWidget::paintEvent(QPaintEvent *event)
                            | QPainter::TextAntialiasing);
     if (d_ptr->image.isNull()) {
         paintWaiting(&painter);
+        paintText(&painter);
         return;
     }
     paintImage(&painter);
 
-    paintTime(&painter);
+    paintText(&painter);
 }
 
 void VideoPreviewWidget::paintWaiting(QPainter *painter)
@@ -240,7 +278,7 @@ void VideoPreviewWidget::paintWaiting(QPainter *painter)
     font.setPixelSize(height() / 5);
     painter->setFont(font);
     painter->setPen(Qt::white);
-    painter->drawText(rect(), tr("Waiting..."), QTextOption(Qt::AlignCenter));
+    painter->drawText(rect(), d_ptr->displayText, QTextOption(Qt::AlignCenter));
 }
 
 void VideoPreviewWidget::paintImage(QPainter *painter)
@@ -253,7 +291,7 @@ void VideoPreviewWidget::paintImage(QPainter *painter)
     painter->drawImage(rect, d_ptr->image);
 }
 
-void VideoPreviewWidget::paintTime(QPainter *painter)
+void VideoPreviewWidget::paintText(QPainter *painter)
 {
     QFont font;
     font.setPixelSize(height() / 9);
@@ -261,10 +299,16 @@ void VideoPreviewWidget::paintTime(QPainter *painter)
     painter->setFont(font);
     painter->setPen(Qt::white);
     painter->setOpacity(0.8);
-    auto timeStr = QString("%1/%2").arg(
+    auto rect = this->rect().adjusted(0, 5, 0, -5);
+
+    if (!d_ptr->chapterText.isEmpty()) {
+        painter->drawText(rect, d_ptr->chapterText, Qt::AlignTop | Qt::AlignHCenter);
+    }
+
+    auto timeStr = QString("%1 / %2").arg(
         QTime::fromMSecsSinceStartOfDay(d_ptr->timestamp / 1000).toString("hh:mm:ss"),
         QTime::fromMSecsSinceStartOfDay(d_ptr->duration / 1000).toString("hh:mm:ss"));
-    painter->drawText(rect().adjusted(0, 5, 0, 0), timeStr, Qt::AlignTop | Qt::AlignHCenter);
+    painter->drawText(rect, timeStr, Qt::AlignBottom | Qt::AlignHCenter);
 }
 
 } // namespace Ffmpeg

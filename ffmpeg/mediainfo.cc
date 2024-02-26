@@ -140,8 +140,10 @@ Chapter::Chapter(AVChapter *chapter)
 {
     id = chapter->id;
     timeBase = av_q2d(chapter->time_base);
-    startTime = QTime::fromMSecsSinceStartOfDay(chapter->start * timeBase).toString("hh:mm:ss.zzz");
-    endTime = QTime::fromMSecsSinceStartOfDay(chapter->end * timeBase).toString("hh:mm:ss.zzz");
+    startTime = chapter->start * timeBase;
+    endTime = chapter->end * timeBase;
+    startTimeText = QTime::fromMSecsSinceStartOfDay(startTime * 1000).toString("hh:mm:ss.zzz");
+    endTimeText = QTime::fromMSecsSinceStartOfDay(endTime * 1000).toString("hh:mm:ss.zzz");
 
     metadatas = getMetaDatas(chapter->metadata);
 }
@@ -151,8 +153,8 @@ auto Chapter::toJson() const -> QJsonObject
     QJsonObject json;
     json.insert("Id", id);
     json.insert("TimeBase", timeBase);
-    json.insert("StartTime", startTime);
-    json.insert("EndTime", endTime);
+    json.insert("StartTime", startTimeText);
+    json.insert("EndTime", endTimeText);
 
     QJsonObject metadataJson;
     for (auto iter = metadatas.constBegin(); iter != metadatas.constEnd(); ++iter) {

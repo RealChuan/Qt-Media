@@ -27,7 +27,7 @@ static auto isPlaylist(const QUrl &url) -> bool // Check for ".m3u" playlists.
     }
     const QFileInfo fileInfo(url.toLocalFile());
     return fileInfo.exists()
-           && !fileInfo.suffix().compare(QLatin1String("m3u"), Qt::CaseInsensitive);
+           && (fileInfo.suffix().compare(QLatin1String("m3u"), Qt::CaseInsensitive) == 0);
 }
 
 class MainWindow::MainWindowPrivate
@@ -142,7 +142,7 @@ public:
         controlWidget->setVisible(visible);
     }
 
-    auto setTitleWidgetVisible(bool visible) const -> bool
+    [[nodiscard]] auto setTitleWidgetVisible(bool visible) const -> bool
     {
         if (videoRender.isNull()) {
             return false;
@@ -151,7 +151,7 @@ public:
         return true;
     }
 
-    void setTitleWidgetText(const QString &text)
+    void setTitleWidgetText(const QString &text) const
     {
         if (!setTitleWidgetVisible(true)) {
             return;
@@ -382,6 +382,7 @@ void MainWindow::onProcessEvents()
         case Ffmpeg::PropertyChangeEvent::EventType::Duration: {
             auto *durationEvent = dynamic_cast<Ffmpeg::DurationEvent *>(eventPtr.data());
             d_ptr->controlWidget->setDuration(durationEvent->duration() / AV_TIME_BASE);
+            d_ptr->controlWidget->setChapters(d_ptr->playerPtr->mediaInfo().chapters);
         } break;
         case Ffmpeg::PropertyChangeEvent::EventType::Position: {
             auto *positionEvent = dynamic_cast<Ffmpeg::PositionEvent *>(eventPtr.data());
@@ -473,23 +474,23 @@ auto MainWindow::eventFilter(QObject *watched, QEvent *event) -> bool
     if (!d_ptr->videoRender.isNull() && watched == d_ptr->videoRender->widget()) {
         switch (event->type()) {
         case QEvent::DragEnter: {
-            auto *e = dynamic_cast<QDragEnterEvent *>(event);
-            e->acceptProposedAction();
+            auto *ev = dynamic_cast<QDragEnterEvent *>(event);
+            ev->acceptProposedAction();
         } break;
         case QEvent::DragMove: {
-            auto *e = dynamic_cast<QDragMoveEvent *>(event);
-            e->acceptProposedAction();
+            auto *ev = dynamic_cast<QDragMoveEvent *>(event);
+            ev->acceptProposedAction();
         } break;
         case QEvent::Drop: {
-            auto *e = dynamic_cast<QDropEvent *>(event);
-            auto urls = e->mimeData()->urls();
+            auto *ev = dynamic_cast<QDropEvent *>(event);
+            auto urls = ev->mimeData()->urls();
             if (!urls.isEmpty()) {
                 addToPlaylist(urls);
             }
         } break;
         case QEvent::ContextMenu: {
-            auto *e = dynamic_cast<QContextMenuEvent *>(event);
-            d_ptr->menu->exec(e->globalPos());
+            auto *ev = dynamic_cast<QContextMenuEvent *>(event);
+            d_ptr->menu->exec(ev->globalPos());
         } break;
         case QEvent::MouseButtonDblClick:
             if (isFullScreen()) {
@@ -504,8 +505,8 @@ auto MainWindow::eventFilter(QObject *watched, QEvent *event) -> bool
     } else if (watched == d_ptr->playlistView) {
         switch (event->type()) {
         case QEvent::ContextMenu: {
-            auto *e = dynamic_cast<QContextMenuEvent *>(event);
-            d_ptr->playListMenu->exec(e->globalPos());
+            auto *ev = dynamic_cast<QContextMenuEvent *>(event);
+            d_ptr->playListMenu->exec(ev->globalPos());
         } break;
         default: break;
         }
@@ -515,14 +516,14 @@ auto MainWindow::eventFilter(QObject *watched, QEvent *event) -> bool
             d_ptr->controlWidget->show();
             d_ptr->controlWidget->hide();
             auto controlWidgetGeometry = d_ptr->controlWidget->geometry();
-            auto *e = dynamic_cast<QHoverEvent *>(event);
-            bool contain = controlWidgetGeometry.contains(e->position().toPoint());
+            auto *ev = dynamic_cast<QHoverEvent *>(event);
+            bool contain = controlWidgetGeometry.contains(ev->position().toPoint());
             d_ptr->setControlWidgetVisible(contain);
             if (isFullScreen()) {
                 d_ptr->titleWidget->show();
                 d_ptr->titleWidget->hide();
                 auto titleWidgetGeometry = d_ptr->titleWidget->geometry();
-                contain = titleWidgetGeometry.contains(e->position().toPoint());
+                contain = titleWidgetGeometry.contains(ev->position().toPoint());
                 d_ptr->setTitleWidgetVisible(contain);
             }
             break;
@@ -533,12 +534,12 @@ auto MainWindow::eventFilter(QObject *watched, QEvent *event) -> bool
     return QMainWindow::eventFilter(watched, event);
 }
 
-void MainWindow::keyPressEvent(QKeyEvent *ev)
+void MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    QMainWindow::keyPressEvent(ev);
+    QMainWindow::keyPressEvent(event);
 
-    qInfo() << "MainWindow Pressed key:" << ev->key();
-    switch (ev->key()) {
+    qInfo() << "MainWindow Pressed key:" << event->key();
+    switch (event->key()) {
     case Qt::Key_Escape:
         if (isFullScreen()) {
             showNormal();
@@ -578,9 +579,9 @@ void MainWindow::buildConnect()
         d_ptr->playerPtr->addEvent(Ffmpeg::EventPtr(new Ffmpeg::SeekEvent(position * AV_TIME_BASE)));
     });
     connect(d_ptr->controlWidget, &ControlWidget::play, this, [this](bool checked) {
-        if (checked && !d_ptr->playerPtr->isRunning())
+        if (checked && !d_ptr->playerPtr->isRunning()) {
             d_ptr->playerPtr->onPlay();
-        else {
+        } else {
             d_ptr->playerPtr->addEvent(Ffmpeg::EventPtr(new Ffmpeg::PauseEvent(!checked)));
         }
     });

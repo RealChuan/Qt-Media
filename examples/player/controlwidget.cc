@@ -204,7 +204,17 @@ void ControlWidget::setDuration(int value)
     d_ptr->slider->blockSignals(true);
     d_ptr->slider->setRange(0, value);
     d_ptr->slider->blockSignals(false);
+    d_ptr->slider->clearNodes();
     setPosition(0);
+}
+
+void ControlWidget::setChapters(const Ffmpeg::Chapters &chapters)
+{
+    QVector<qint64> nodes;
+    for (const auto &chapter : std::as_const(chapters)) {
+        nodes.append(chapter.startTime);
+    }
+    d_ptr->slider->setNodes(nodes);
 }
 
 void ControlWidget::setPosition(int value)

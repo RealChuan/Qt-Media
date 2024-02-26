@@ -21,7 +21,9 @@ public:
 
     void setDisplayImage(const QSharedPointer<Ffmpeg::Frame> &framePtr,
                          const QImage &image,
-                         qint64 pts);
+                         qint64 pts,
+                         const QString &chapterText);
+    void setDisplayText(const QString &text);
 
     [[nodiscard]] auto currentTaskId() const -> int;
 
@@ -31,7 +33,7 @@ protected:
 private:
     void paintWaiting(QPainter *painter);
     void paintImage(QPainter *painter);
-    void paintTime(QPainter *painter);
+    void paintText(QPainter *painter);
 
     class VideoPreviewWidgetPrivate;
     QScopedPointer<VideoPreviewWidgetPrivate> d_ptr;
