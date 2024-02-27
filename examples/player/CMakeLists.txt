@@ -6,8 +6,6 @@ set(PROJECT_SOURCES
     main.cpp
     mainwindow.cpp
     mainwindow.h
-    mediainfodialog.cc
-    mediainfodialog.hpp
     openwebmediadialog.cc
     openwebmediadialog.hpp
     playlistmodel.cpp
@@ -24,14 +22,13 @@ set(PROJECT_SOURCES
     titlewidget.cc
     titlewidget.hpp)
 
-qt_add_executable(QFfmpegPlayer MANUAL_FINALIZATION ${PROJECT_SOURCES})
-target_link_libraries(
-  QFfmpegPlayer PRIVATE ffmpeg thirdparty utils Qt6::Widgets Qt6::Multimedia
-                        Qt6::OpenGLWidgets)
-target_link_libraries(QFfmpegPlayer PRIVATE PkgConfig::ffmpeg)
+qt_add_executable(Player MANUAL_FINALIZATION ${PROJECT_SOURCES})
+target_link_libraries(Player PRIVATE ffmpeg thirdparty utils Qt6::Widgets
+                                     Qt6::Multimedia Qt6::OpenGLWidgets)
+target_link_libraries(Player PRIVATE PkgConfig::ffmpeg)
 if(CMAKE_HOST_APPLE)
   target_link_libraries(
-    QFfmpegPlayer
+    Player
     PRIVATE ${Foundation_LIBRARY}
             ${CoreAudio_LIBRARY}
             ${AVFoundation_LIBRARY}
@@ -48,4 +45,4 @@ if(CMAKE_HOST_APPLE)
             ${CoreVideo_LIBRARY}
             ${CoreServices_LIBRARY})
 endif()
-qt_finalize_executable(QFfmpegPlayer)
+qt_finalize_executable(Player)

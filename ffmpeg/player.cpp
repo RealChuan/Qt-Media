@@ -47,7 +47,7 @@ public:
                          &AVErrorManager::error,
                          q_ptr,
                          [this](const AVError &error) {
-                             addPropertyChangeEvent(new ErrorEvent(error));
+                             addPropertyChangeEvent(new AVErrorEvent(error));
                          });
     }
 
@@ -96,7 +96,7 @@ public:
         }
 
         videoInfo->resetIndex();
-        auto videoTracks = formatCtx->vidioTracks();
+        auto videoTracks = formatCtx->videoTracks();
         for (auto &track : videoTracks) {
             if (meidaIndex.videoindex >= 0) { // 如果手动指定了视频索引
                 track.selected = track.index == meidaIndex.videoindex;

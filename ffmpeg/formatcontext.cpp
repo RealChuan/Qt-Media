@@ -1,5 +1,6 @@
 #include "formatcontext.h"
 #include "averrormanager.hpp"
+#include "ffmpegutils.hpp"
 #include "packet.h"
 
 #include <QDebug>
@@ -150,14 +151,9 @@ auto FormatContext::openFilePath(const QString &filepath, OpenMode mode) -> bool
     close();
     d_ptr->filepath = filepath;
 
-    QByteArray inpuUrl;
-    if (QFile::exists(d_ptr->filepath)) {
-        inpuUrl = d_ptr->filepath.toUtf8();
-    } else {
-        inpuUrl = QUrl(d_ptr->filepath).toEncoded();
-    }
-    //初始化pFormatCtx结构
-    if (mode == ReadOnly) {
+    auto inpuUrl = convertUrlToFfmpegInput(d_ptr->filepath);
+    switch (mode) {
+    case ReadOnly: {
         auto ret = avformat_open_input(&d_ptr->formatCtx, inpuUrl.constData(), nullptr, nullptr);
         if (ret != 0) {
             SET_ERROR_CODE(ret);
@@ -165,7 +161,8 @@ auto FormatContext::openFilePath(const QString &filepath, OpenMode mode) -> bool
         }
         av_format_inject_global_side_data(d_ptr->formatCtx);
         d_ptr->isOpen = true;
-    } else if (mode == WriteOnly) {
+    } break;
+    case WriteOnly: {
         avformat_free_context(d_ptr->formatCtx);
         auto ret = avformat_alloc_output_context2(&d_ptr->formatCtx,
                                                   nullptr,
@@ -176,6 +173,8 @@ auto FormatContext::openFilePath(const QString &filepath, OpenMode mode) -> bool
             return false;
         }
         d_ptr->isOpen = true;
+    } break;
+    default: break;
     }
     return d_ptr->isOpen;
 }
@@ -202,9 +201,8 @@ auto FormatContext::avioOpen() -> bool
     if ((d_ptr->formatCtx->oformat->flags & AVFMT_NOFILE) != 0) {
         return false;
     }
-    auto ret = ::avio_open(&d_ptr->formatCtx->pb,
-                           d_ptr->filepath.toLocal8Bit().constData(),
-                           AVIO_FLAG_WRITE);
+    auto inpuUrl = convertUrlToFfmpegInput(d_ptr->filepath);
+    auto ret = ::avio_open(&d_ptr->formatCtx->pb, inpuUrl.constData(), AVIO_FLAG_WRITE);
     ERROR_RETURN(ret)
 }
 
@@ -269,7 +267,7 @@ auto FormatContext::audioTracks() const -> StreamInfos
     return d_ptr->audioTracks;
 }
 
-auto FormatContext::vidioTracks() const -> StreamInfos
+auto FormatContext::videoTracks() const -> StreamInfos
 {
     return d_ptr->videoTracks;
 }

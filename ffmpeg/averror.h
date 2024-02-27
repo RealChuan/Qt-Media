@@ -18,7 +18,9 @@ public:
     auto operator=(const AVError &other) -> AVError &;
     auto operator=(AVError &&other) noexcept -> AVError &;
 
-    void setErrorCode(int error);
+    auto setFuncInfo(const QString &funcInfo) -> AVError &;
+
+    auto setErrorCode(int error) -> AVError &;
     [[nodiscard]] auto errorCode() const -> int;
 
     [[nodiscard]] auto errorString() const -> QString;

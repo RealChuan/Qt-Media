@@ -27,11 +27,12 @@ struct FFMPEG_EXPORT StreamInfo
     [[nodiscard]] auto info() const -> QString;
 
     int index = 0;
-    AVMediaType type = AVMEDIA_TYPE_UNKNOWN;
-    QString typeStr;
+    AVMediaType mediaType = AVMEDIA_TYPE_UNKNOWN;
+    QString mediaTypeText;
     QString startTime;
     QString duration;
-    QString codec;
+    AVCodecID codecId = AV_CODEC_ID_NONE;
+    QString codecName;
     int nbFrames = 0;
     QString format;
     qint64 bitRate = 0;
@@ -94,8 +95,10 @@ struct FFMPEG_EXPORT MediaInfo
     QString name;
     QString longName;
     QString url;
-    QString startTime;
-    QString duration;
+    qint64 startTime = 0; // microsecond
+    QString startTimeText;
+    qint64 duration = 0; // microsecond
+    QString durationText;
     qint64 bitRate = 0;
     qint64 size = 0;
     Metadatas metadatas;

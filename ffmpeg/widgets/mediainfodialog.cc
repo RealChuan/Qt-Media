@@ -4,6 +4,8 @@
 
 #include <QtWidgets>
 
+namespace Ffmpeg {
+
 class MediaInfoDialog::MediaInfoDialogPrivate
 {
 public:
@@ -33,3 +35,5 @@ void MediaInfoDialog::setMediaInfo(const Ffmpeg::MediaInfo &info)
     auto text = QString::fromUtf8(QJsonDocument(info.toJson()).toJson());
     d_ptr->textBrowser->setText(text);
 }
+
+} // namespace Ffmpeg

@@ -11,7 +11,7 @@
 #include <QNetworkProxyFactory>
 #include <QStyle>
 
-#define AppName "QFfmpegPlayer"
+#define AppName "Player"
 
 void setAppInfo()
 {

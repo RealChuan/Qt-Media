@@ -11,17 +11,18 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 public:
-    MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    explicit MainWindow(QWidget *parent = nullptr);
+    ~MainWindow() override;
 
 private slots:
-    void onError(const Ffmpeg::AVError &avError);
-    void onVideoEncoderChanged();
     void onOpenInputFile();
-    void onCheckInputFile();
+    void onResetConfig();
     void onOpenSubtitle();
-    void onOpenOutputFile();
     void onStart();
+
+    void onShowMediaInfo();
+
+    void onProcessEvents();
 
 private:
     void setupUI();

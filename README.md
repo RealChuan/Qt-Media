@@ -3,7 +3,7 @@
 - [简体中文](README.md)
 - [English](README.en.md)
 
-## QFfmpegPlayer
+## Player
 
 <div align=center><img src="doc/player.jpeg"></div>
 
@@ -40,7 +40,7 @@ zscale=p=709;
 0,,en,,0000,0000,0000,,Peek-a-boo!
 ```
 
-你必须使用 ``ass_process_chunk`` 并设置 pts 和持续时间, 如在 libavfilter/vf_subtitles.c 中一样。
+你必须使用 ``ass_process_chunk`` 并设置 pts 和持续时间, 和在[vf_subtitles.c](https://github.com/FFmpeg/FFmpeg/blob/master/libavfilter/vf_subtitles.c#L490) 中一样。
 
 #### ASS 标准格式应为(ffmpeg-n4.4.3)
 
@@ -56,23 +56,11 @@ Dialogue: 0,0:01:06.77,0:01:08.00,en,,0000,0000,0000,,Peek-a-boo!\r\n
 subtitles=filename='%1':original_size=%2x%3
 ```
 
-## QFfmpegTranscoder
+## Transcoder
 
 如何设置编码参数以获得更小的文件和更好的视频质量？
 
-1. 设置非常高的比特率;
-2. 设置编码器 ``global_quality`` 无效。代码如下：
-
-   ```C++
-   d_ptr->codecCtx->flags |= AV_CODEC_FLAG_QSCALE;
-   d_ptr->codecCtx->global_quality = FF_QP2LAMBDA * quailty;
-   ```
-
-3. 设置 ``crf`` 无效。代码如下：
-
-   ```C++
-   av_opt_set_int(d_ptr->codecCtx, "crf", crf, AV_OPT_SEARCH_CHILDREN);
-   ```
+1. 参考[HandBrake encavcodec](https://github.com/HandBrake/HandBrake/blob/master/libhb/encavcodec.c#L359)
 
 ### 如何从AVAudioFifo获取的帧中计算pts？
 
@@ -89,7 +77,7 @@ transcodeCtx->audioPts += frame->nb_samples;
 
 ## QT-BUG
 
-#### 动态切换Video Render，从opengl切换到widget，还是有GPU 0-3D占用，而且使用量是opengl的2倍！！！QT-BUG？
+### 动态切换Video Render，从opengl切换到widget，还是有GPU 0-3D占用，而且使用量是opengl的2倍！！！QT-BUG？
 
 ### QOpenGLWidget内存泄漏，移动放大和缩小窗口，代码如下
 

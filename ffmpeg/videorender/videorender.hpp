@@ -49,6 +49,9 @@ public:
         return m_destPrimaries;
     }
 
+    void setBackgroundColor(const QColor &color) { m_backgroundColor = color; }
+    [[nodiscard]] auto backgroundColor() const -> QColor { return m_backgroundColor; }
+
     virtual auto widget() -> QWidget * = 0;
 
     auto fps() -> float;
@@ -62,6 +65,8 @@ protected:
     ColorUtils::ColorSpaceTrc m_colorSpaceTrc;
     Tonemap::Type m_tonemapType = Tonemap::Type::AUTO;
     ColorUtils::Primaries::Type m_destPrimaries = ColorUtils::Primaries::AUTO;
+
+    QColor m_backgroundColor = Qt::black;
 
 private:
     class VideoRenderPrivate;

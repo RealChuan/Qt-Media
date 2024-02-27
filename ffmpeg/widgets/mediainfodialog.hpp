@@ -1,13 +1,14 @@
 #ifndef MEDIAINFODIALOG_HPP
 #define MEDIAINFODIALOG_HPP
 
+#include <ffmpeg/ffmepg_global.h>
+
 #include <QDialog>
 
 namespace Ffmpeg {
-struct MediaInfo;
-}
 
-class MediaInfoDialog : public QDialog
+struct MediaInfo;
+class FFMPEG_EXPORT MediaInfoDialog : public QDialog
 {
 public:
     explicit MediaInfoDialog(QWidget *parent = nullptr);
@@ -19,5 +20,7 @@ private:
     class MediaInfoDialogPrivate;
     QScopedPointer<MediaInfoDialogPrivate> d_ptr;
 };
+
+} // namespace Ffmpeg
 
 #endif // MEDIAINFODIALOG_HPP

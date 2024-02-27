@@ -40,7 +40,7 @@ public:
                                 timeBase.den,
                                 sampleAspectRatio.num,
                                 sampleAspectRatio.den);
-        qDebug() << "Video filter in args:" << args;
+        qInfo() << "Video filter in args:" << args;
 
         create(args);
     }
@@ -60,7 +60,7 @@ public:
                                 avFrame->sample_rate,
                                 av_get_sample_fmt_name(static_cast<AVSampleFormat>(avFrame->format)),
                                 getAVChannelLayoutDescribe(avFrame->ch_layout).toUtf8().data());
-        qDebug() << "Audio filter in args:" << args;
+        qInfo() << "Audio filter in args:" << args;
 
         create(args);
     }

@@ -1,7 +1,6 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "ffmepg_global.h"
 #include "mediainfo.hpp"
 
 #include <ffmpeg/event/event.hpp>

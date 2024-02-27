@@ -3,6 +3,8 @@
 
 #include <ffmpeg/averrormanager.hpp>
 
+#include <QDebug>
+
 extern "C" {
 #include <libavfilter/avfilter.h>
 }

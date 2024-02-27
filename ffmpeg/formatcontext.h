@@ -43,7 +43,7 @@ public:
     auto createStream() -> AVStream *;
 
     [[nodiscard]] auto audioTracks() const -> StreamInfos;
-    [[nodiscard]] auto vidioTracks() const -> StreamInfos;
+    [[nodiscard]] auto videoTracks() const -> StreamInfos;
     [[nodiscard]] auto subtitleTracks() const -> StreamInfos;
     [[nodiscard]] auto attachmentTracks() const -> StreamInfos;
 

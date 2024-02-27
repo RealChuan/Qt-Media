@@ -3,6 +3,7 @@
 #include "ffmpegutils.hpp"
 #include "videoformat.hpp"
 
+#include <QDebug>
 #include <QImage>
 
 extern "C" {

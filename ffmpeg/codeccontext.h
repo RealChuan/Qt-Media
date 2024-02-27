@@ -1,25 +1,24 @@
 #ifndef CODECCONTEXT_H
 #define CODECCONTEXT_H
 
+#include "ffmepg_global.h"
+
 #include <QObject>
 
 extern "C" {
-#include <libavutil/avutil.h>
-#include <libavutil/samplefmt.h>
+#include <libavcodec/codec.h>
 }
 
-struct AVCodecContext;
 struct AVCodecParameters;
-struct AVRational;
-struct AVCodec;
-struct AVChannelLayout;
+struct AVCodecContext;
 
 namespace Ffmpeg {
 
+struct EncodeContext;
 class Subtitle;
 class Packet;
 class Frame;
-class CodecContext : public QObject
+class FFMPEG_EXPORT CodecContext : public QObject
 {
 public:
     explicit CodecContext(const AVCodec *codec, QObject *parent = nullptr);
@@ -28,28 +27,32 @@ public:
     void copyToCodecParameters(CodecContext *dst);
 
     auto setParameters(const AVCodecParameters *par) -> bool;
+
+    [[nodiscard]] auto supportedFrameRates() const -> QVector<AVRational>;
+    void setFrameRate(const AVRational &frameRate);
+
+    [[nodiscard]] auto supportedPixFmts() const -> QVector<AVPixelFormat>;
     void setPixfmt(AVPixelFormat pixfmt);
+
+    [[nodiscard]] auto supportedSampleRates() const -> QVector<int>;
     void setSampleRate(int sampleRate);
+
+    [[nodiscard]] auto supportedSampleFmts() const -> QVector<AVSampleFormat>;
     void setSampleFmt(AVSampleFormat sampleFmt);
 
-    void setMinBitrate(int64_t bitrate);
-    void setMaxBitrate(int64_t bitrate);
-    void setCrf(int crf);
-    void setPreset(const QString &preset);
-    void setTune(const QString &tune);
-    void setProfile(const QString &profile);
+    [[nodiscard]] auto supportedProfiles() const -> QVector<AVProfile>;
+    void setProfile(int profile);
 
-    void setChLayout(const AVChannelLayout &chLayout);
+    [[nodiscard]] auto supportedChLayouts() const -> QVector<AVChannelLayout>;
     [[nodiscard]] auto chLayout() const -> AVChannelLayout;
+    void setChLayout(const AVChannelLayout &chLayout);
+
+    void setEncodeParameters(const EncodeContext &encodeContext);
 
     void setSize(const QSize &size);
     [[nodiscard]] auto size() const -> QSize;
 
-    void setQuailty(int quailty);
     [[nodiscard]] auto quantizer() const -> QPair<int, int>;
-
-    [[nodiscard]] auto supportPixFmts() const -> QVector<AVPixelFormat>;
-    [[nodiscard]] auto supportSampleFmts() const -> QVector<AVSampleFormat>;
 
     // Set before open, Soft solution is effective
     void setThreadCount(int threadCount);
@@ -67,7 +70,6 @@ public:
 
     void flush();
 
-    auto codec() -> const AVCodec *;
     auto avCodecCtx() -> AVCodecContext *;
 
 private:

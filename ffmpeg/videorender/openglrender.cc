@@ -61,8 +61,6 @@ public:
     bool subChanged = true;
     Tonemap::Type tonemapType;
     ColorUtils::Primaries::Type destPrimaries;
-
-    QColor backgroundColor = Qt::black;
 };
 
 OpenglRender::OpenglRender(QWidget *parent)
@@ -351,10 +349,10 @@ void OpenglRender::paintSubTitleFrame()
 void OpenglRender::clear()
 {
     // 将窗口的位平面区域（背景）设置为先前由glClearColor、glClearDepth和选择的值
-    glClearColor(d_ptr->backgroundColor.redF(),
-                 d_ptr->backgroundColor.greenF(),
-                 d_ptr->backgroundColor.blueF(),
-                 d_ptr->backgroundColor.alphaF());
+    glClearColor(m_backgroundColor.redF(),
+                 m_backgroundColor.greenF(),
+                 m_backgroundColor.blueF(),
+                 m_backgroundColor.alphaF());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 

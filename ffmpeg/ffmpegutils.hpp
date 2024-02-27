@@ -3,14 +3,13 @@
 
 #include "ffmepg_global.h"
 
+#include <QMetaType>
 #include <QSize>
 
 extern "C" {
-#include <libavcodec/codec_id.h>
+#include <libavcodec/codec.h>
 #include <libavutil/hwcontext.h>
 }
-
-struct AVCodec;
 
 namespace Ffmpeg {
 
@@ -36,18 +35,36 @@ auto getMetaDatas(AVDictionary *metadata) -> Metadatas;
 
 struct CodecInfo
 {
-    AVMediaType mediaType = AVMEDIA_TYPE_UNKNOWN;
-    AVCodecID id = AV_CODEC_ID_NONE;
+    auto operator==(const CodecInfo &other) const -> bool { return name == other.name; }
+    auto operator!=(const CodecInfo &other) const -> bool { return !(*this == other); }
+
     QString name;
-    QSize size = QSize(-1, -1);
+    QString longName;
+    QString displayName;
+    enum AVCodecID codecId;
 };
 
-auto FFMPEG_EXPORT getFileCodecInfo(const QString &filePath) -> QVector<CodecInfo>;
+using CodecInfos = QVector<CodecInfo>;
 
-auto FFMPEG_EXPORT getCodecQuantizer(const QString &codecname) -> QPair<int, int>;
+auto FFMPEG_EXPORT getCodecsInfo(AVMediaType mediaType, bool encoder) -> CodecInfos;
 
-auto FFMPEG_EXPORT getCurrentSupportCodecs(AVMediaType mediaType, bool encoder) -> QStringList;
+struct ChLayout
+{
+    auto operator==(const ChLayout &other) const -> bool { return channel == other.channel; }
+    auto operator!=(const ChLayout &other) const -> bool { return !(*this == other); }
+
+    AVChannel channel;
+    QString channelName;
+};
+
+using ChLayouts = QVector<ChLayout>;
+
+auto FFMPEG_EXPORT getChLayouts(const QVector<AVChannelLayout> &channelLayout) -> ChLayouts;
+
+auto convertUrlToFfmpegInput(const QString &url) -> QByteArray;
 
 } // namespace Ffmpeg
+
+Q_DECLARE_METATYPE(Ffmpeg::CodecInfo);
 
 #endif // FFMPEGUTILS_HPP

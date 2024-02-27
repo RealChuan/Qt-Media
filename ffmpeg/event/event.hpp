@@ -10,7 +10,7 @@ class FFMPEG_EXPORT PropertyChangeEvent : public QObject
 {
     Q_OBJECT
 public:
-    enum EventType {
+    enum class EventType {
         None,
         Duration,
         Position,
@@ -18,6 +18,8 @@ public:
         MediaState,
         CacheSpeed,
         SeekChanged,
+        PreviewFramesChanged,
+        AVError,
         Error
     };
     Q_ENUM(EventType);
@@ -30,7 +32,11 @@ public:
     }
     auto operator!=(const PropertyChangeEvent &other) const -> bool { return !(*this == other); }
 
-    [[nodiscard]] virtual auto type() const -> EventType { return None; }
+    void setType(EventType type) { m_type = type; }
+    [[nodiscard]] virtual auto type() const -> EventType { return m_type; }
+
+private:
+    EventType m_type = EventType::None;
 };
 
 using PropertyChangeEventPtr = QSharedPointer<PropertyChangeEvent>;
@@ -39,7 +45,7 @@ class FFMPEG_EXPORT Event : public QObject
 {
     Q_OBJECT
 public:
-    enum EventType {
+    enum class EventType {
         None,
         OpenMedia,
         CloseMedia,
@@ -61,7 +67,7 @@ public:
     auto operator==(const Event &other) const -> bool { return type() == other.type(); }
     auto operator!=(const Event &other) const -> bool { return !(*this == other); }
 
-    [[nodiscard]] virtual auto type() const -> EventType { return None; }
+    [[nodiscard]] virtual auto type() const -> EventType { return EventType::None; }
 };
 
 using EventPtr = QSharedPointer<Event>;

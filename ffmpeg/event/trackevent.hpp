@@ -14,7 +14,7 @@ public:
         , m_tracks(tracks)
     {}
 
-    [[nodiscard]] auto type() const -> EventType override { return MediaTrack; }
+    [[nodiscard]] auto type() const -> EventType override { return EventType::MediaTrack; }
 
     void setTracks(const QVector<StreamInfo> &tracks) { m_tracks = tracks; }
     [[nodiscard]] auto tracks() const -> QVector<StreamInfo> { return m_tracks; }
@@ -31,7 +31,8 @@ public:
         , m_index(index)
         , m_type(type)
     {
-        Q_ASSERT(type == AudioTarck || type == VideoTrack || type == SubtitleTrack);
+        Q_ASSERT(type == EventType::AudioTarck || type == EventType::VideoTrack
+                 || type == EventType::SubtitleTrack);
     }
 
     [[nodiscard]] auto type() const -> EventType override { return m_type; }

@@ -24,6 +24,8 @@ private:
     QScopedPointer<AudioFifoPrivtate> d_ptr;
 };
 
+using AudioFifoPtr = QSharedPointer<AudioFifo>;
+
 } // namespace Ffmpeg
 
 #endif // AUDIOFIFO_HPP

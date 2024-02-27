@@ -44,6 +44,8 @@ set(PROJECT_SOURCES
     videorender/videorendercreate.hpp
     videorender/widgetrender.cc
     videorender/widgetrender.hpp
+    widgets/mediainfodialog.cc
+    widgets/mediainfodialog.hpp
     audiodecoder.cpp
     audiodecoder.h
     audiodisplay.cc
@@ -66,6 +68,8 @@ set(PROJECT_SOURCES
     colorutils.hpp
     decoder.cc
     decoder.h
+    encodecontext.cc
+    encodecontext.hpp
     ffmepg_global.h
     ffmpegutils.cc
     ffmpegutils.hpp
@@ -81,14 +85,18 @@ set(PROJECT_SOURCES
     packet.h
     player.cpp
     player.h
+    previewtask.cc
+    previewtask.hpp
     subtitle.cpp
     subtitle.h
     subtitledecoder.cpp
     subtitledecoder.h
     subtitledisplay.cc
     subtitledisplay.hpp
-    transcode.cc
-    transcode.hpp
+    transcoder.cc
+    transcoder.hpp
+    transcodercontext.cc
+    transcodercontext.hpp
     videodecoder.cpp
     videodecoder.h
     videodisplay.cc

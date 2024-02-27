@@ -189,7 +189,7 @@ void WidgetRender::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     // draw BackGround
     painter.setPen(Qt::NoPen);
-    painter.setBrush(Qt::black);
+    painter.setBrush(m_backgroundColor);
     painter.drawRect(rect());
 
     if (d_ptr->videoImage.isNull()) {

@@ -129,12 +129,12 @@ auto AVContextInfo::openCodec(GpuType type) -> bool
         switch (d_ptr->gpuType) {
         case GpuDecode:
             d_ptr->hardWareDecodePtr.reset(new HardWareDecode);
-            d_ptr->hardWareDecodePtr->initPixelFormat(d_ptr->codecCtx->codec());
+            d_ptr->hardWareDecodePtr->initPixelFormat(d_ptr->codecCtx->avCodecCtx()->codec);
             d_ptr->hardWareDecodePtr->initHardWareDevice(d_ptr->codecCtx.data());
             break;
         case GpuEncode:
             d_ptr->hardWareEncodePtr.reset(new HardWareEncode);
-            d_ptr->hardWareEncodePtr->initEncoder(d_ptr->codecCtx->codec());
+            d_ptr->hardWareEncodePtr->initEncoder(d_ptr->codecCtx->avCodecCtx()->codec);
             d_ptr->hardWareEncodePtr->initHardWareDevice(d_ptr->codecCtx.data());
             break;
         default: break;

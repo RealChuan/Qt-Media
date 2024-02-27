@@ -12,14 +12,14 @@ public:
         : q_ptr(parent)
     {
         inTextEdit = new QTextEdit(q_ptr);
-        
+
         startButton = new QToolButton(q_ptr);
         startButton->setText(QObject::tr("Start"));
         startButton->setMinimumSize(BUTTON_SIZE);
-        
+
         subtitleThread = new SubtitleThread(q_ptr);
     }
-    
+
     QWidget *q_ptr;
 
     QTextEdit *inTextEdit;

@@ -6,6 +6,7 @@ include(gpu/gpu.pri)
 include(videorender/videorender.pri)
 include(audiorender/audiorender.pri)
 include(event/event.pri)
+include(widgets/widgets.pri)
 
 QT += widgets multimedia openglwidgets
 
@@ -26,6 +27,7 @@ SOURCES += \
     codeccontext.cpp \
     colorutils.cc \
     decoder.cc \
+    encodecontext.cc \
     ffmpegutils.cc \
     formatcontext.cpp \
     frame.cc \
@@ -33,10 +35,12 @@ SOURCES += \
     mediainfo.cc \
     packet.cpp \
     player.cpp \
+    previewtask.cc \
     subtitle.cpp \
     subtitledecoder.cpp \
     subtitledisplay.cc \
-    transcode.cc \
+    transcoder.cc \
+    transcodercontext.cc \
     videodecoder.cpp \
     videodisplay.cc \
     videoformat.cc \
@@ -54,6 +58,7 @@ HEADERS += \
     codeccontext.h \
     colorutils.hpp \
     decoder.h \
+    encodecontext.hpp \
     ffmepg_global.h \
     ffmpegutils.hpp \
     formatcontext.h \
@@ -62,10 +67,12 @@ HEADERS += \
     mediainfo.hpp \
     packet.h \
     player.h \
+    previewtask.hpp \
     subtitle.h \
     subtitledecoder.h \
     subtitledisplay.hpp \
-    transcode.hpp \
+    transcoder.hpp \
+    transcodercontext.hpp \
     videodecoder.h \
     videodisplay.hpp \
     videoformat.hpp \

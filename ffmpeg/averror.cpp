@@ -16,6 +16,7 @@ public:
     AVError *q_ptr;
     int error = 0;
     QString errorString;
+    QString funcInfo;
 };
 
 AVError::AVError(int error)
@@ -29,13 +30,15 @@ AVError::AVError(const AVError &other)
 {
     d_ptr->error = other.d_ptr->error;
     d_ptr->errorString = other.d_ptr->errorString;
+    d_ptr->funcInfo = other.d_ptr->funcInfo;
 }
 
 AVError::AVError(AVError &&other) noexcept
     : d_ptr(new AVErrorPrivate(this))
 {
     d_ptr->error = other.d_ptr->error;
-    d_ptr->errorString = std::move(other.d_ptr->errorString);
+    d_ptr->errorString = other.d_ptr->errorString;
+    d_ptr->funcInfo = other.d_ptr->funcInfo;
 }
 
 AVError::~AVError() = default;
@@ -44,17 +47,25 @@ auto AVError::operator=(const AVError &other) -> AVError &
 {
     d_ptr->error = other.d_ptr->error;
     d_ptr->errorString = other.d_ptr->errorString;
+    d_ptr->funcInfo = other.d_ptr->funcInfo;
     return *this;
 }
 
 auto AVError::operator=(AVError &&other) noexcept -> AVError &
 {
     d_ptr->error = other.d_ptr->error;
-    d_ptr->errorString = std::move(other.d_ptr->errorString);
+    d_ptr->errorString = other.d_ptr->errorString;
+    d_ptr->funcInfo = other.d_ptr->funcInfo;
     return *this;
 }
 
-void AVError::setErrorCode(int error)
+auto AVError::setFuncInfo(const QString &funcInfo) -> AVError &
+{
+    d_ptr->funcInfo = funcInfo;
+    return *this;
+}
+
+auto AVError::setErrorCode(int error) -> AVError &
 {
     d_ptr->error = error;
     if (error < 0) {
@@ -64,6 +75,7 @@ void AVError::setErrorCode(int error)
     } else {
         d_ptr->errorString.clear();
     }
+    return *this;
 }
 
 auto AVError::errorCode() const -> int
@@ -73,7 +85,13 @@ auto AVError::errorCode() const -> int
 
 auto AVError::errorString() const -> QString
 {
-    return d_ptr->errorString;
+    QString errorString;
+    if (d_ptr->funcInfo.isEmpty()) {
+        errorString = d_ptr->errorString;
+    } else {
+        errorString = QString("%1: %2").arg(d_ptr->errorString, d_ptr->funcInfo);
+    }
+    return errorString;
 }
 
 auto AVError::avErrorString(int error) -> QString

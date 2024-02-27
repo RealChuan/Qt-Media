@@ -29,7 +29,13 @@ void AVErrorManager::setMaxCaches(int max)
     d_ptr->max = max;
 }
 
-void AVErrorManager::setErrorCode(int errorCode)
+auto AVErrorManager::setFuncInfo(const QString &funcInfo) -> AVErrorManager &
+{
+    d_ptr->error.setFuncInfo(funcInfo);
+    return *this;
+}
+
+auto AVErrorManager::setErrorCode(int errorCode) -> AVErrorManager &
 {
     d_ptr->errorCodes.append(errorCode);
     d_ptr->error.setErrorCode(errorCode);
@@ -42,6 +48,7 @@ void AVErrorManager::setErrorCode(int errorCode)
                                d_ptr->error.errorString());
     }
     emit error(d_ptr->error);
+    return *this;
 }
 
 auto AVErrorManager::lastErrorString() const -> QString

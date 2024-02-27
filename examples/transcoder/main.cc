@@ -10,7 +10,7 @@
 #include <QNetworkProxyFactory>
 #include <QStyle>
 
-#define AppnName "QFfmpegTranscoder"
+#define AppnName "Transcoder"
 
 void setAppInfo()
 {

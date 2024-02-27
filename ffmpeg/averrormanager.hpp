@@ -5,7 +5,8 @@
 
 #include <utils/singleton.hpp>
 
-#define SET_ERROR_CODE(errorCode) AVErrorManager::instance()->setErrorCode(errorCode)
+#define SET_ERROR_CODE(errorCode) \
+    AVErrorManager::instance()->setFuncInfo(Q_FUNC_INFO).setErrorCode(errorCode)
 
 #define ERROR_RETURN(errorCode) \
     if ((errorCode) < 0) { \
@@ -25,7 +26,8 @@ public:
     void setPrint(bool print);
     void setMaxCaches(int max);
 
-    void setErrorCode(int errorCode);
+    auto setFuncInfo(const QString &funcInfo) -> AVErrorManager &;
+    auto setErrorCode(int errorCode) -> AVErrorManager &;
     [[nodiscard]] auto lastErrorString() const -> QString;
     [[nodiscard]] auto errorCodes() const -> QVector<int>;
 

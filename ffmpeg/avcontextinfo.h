@@ -6,12 +6,10 @@
 #include <QObject>
 
 extern "C" {
-#include <libavcodec/codec_id.h>
-#include <libavutil/avutil.h>
+#include <libavcodec/codec.h>
 }
 
 struct AVStream;
-struct AVRational;
 
 namespace Ffmpeg {
 

@@ -5,6 +5,7 @@
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/decoder.h>
 #include <ffmpeg/frame.hpp>
+#include <ffmpeg/previewtask.hpp>
 #include <ffmpeg/videodecoder.h>
 #include <ffmpeg/videoframeconverter.hpp>
 
@@ -16,140 +17,6 @@ extern "C" {
 }
 
 namespace Ffmpeg {
-
-class PreviewTask : public QRunnable
-{
-public:
-    explicit PreviewTask(const QString &filepath,
-                         int videoIndex,
-                         qint64 timestamp,
-                         int taskId,
-                         VideoPreviewWidget *videoPreviewWidget)
-        : m_filepath(filepath)
-        , m_videoIndex(videoIndex)
-        , m_timestamp(timestamp)
-        , m_taskId(taskId)
-        , m_videoPreviewWidgetPtr(videoPreviewWidget)
-    {
-        setAutoDelete(true);
-    }
-    ~PreviewTask() override { m_runing = false; }
-
-    void run() override
-    {
-        QScopedPointer<FormatContext> formatCtxPtr(new FormatContext);
-        if (!formatCtxPtr->openFilePath(m_filepath)) {
-            return;
-        }
-        if (!formatCtxPtr->findStream()) {
-            return;
-        }
-        QScopedPointer<AVContextInfo> videoInfoPtr(new AVContextInfo);
-        videoInfoPtr->setIndex(m_videoIndex);
-        videoInfoPtr->setStream(formatCtxPtr->stream(m_videoIndex));
-        if (!videoInfoPtr->initDecoder(formatCtxPtr->guessFrameRate(m_videoIndex))) {
-            return;
-        }
-        videoInfoPtr->openCodec(); // 软解
-        formatCtxPtr->seek(m_timestamp);
-        videoInfoPtr->codecCtx()->flush();
-        formatCtxPtr->discardStreamExcluded({m_videoIndex});
-
-        loop(formatCtxPtr.data(), videoInfoPtr.data());
-    }
-
-private:
-    void loop(FormatContext *formatContext, AVContextInfo *videoInfo)
-    {
-        while (!m_videoPreviewWidgetPtr.isNull()
-               && m_taskId == m_videoPreviewWidgetPtr->currentTaskId()) {
-            auto framePtr(getKeyFrame(formatContext, videoInfo));
-            if (!m_runing) {
-                if (!m_videoPreviewWidgetPtr.isNull()) {
-                    m_videoPreviewWidgetPtr->setDisplayText(
-                        AVErrorManager::instance()->lastErrorString());
-                }
-                return;
-            }
-            if (framePtr.isNull()) {
-                continue;
-            }
-            auto dstSize = QSize(framePtr->avFrame()->width, framePtr->avFrame()->height);
-            if (m_videoPreviewWidgetPtr.isNull()) {
-                return;
-            }
-            dstSize.scale(m_videoPreviewWidgetPtr->size()
-                              * m_videoPreviewWidgetPtr->devicePixelRatio(),
-                          Qt::KeepAspectRatio);
-
-            auto dst_pix_fmt = AV_PIX_FMT_RGB32;
-            QScopedPointer<VideoFrameConverter> frameConverterPtr(
-                new VideoFrameConverter(framePtr.data(), dstSize, dst_pix_fmt));
-            QSharedPointer<Frame> frameRgbPtr(new Frame);
-            frameRgbPtr->imageAlloc(dstSize, dst_pix_fmt);
-            //frameConverterPtr->flush(framePtr.data(), dstSize);
-            frameConverterPtr->scale(framePtr.data(), frameRgbPtr.data());
-            auto image = frameRgbPtr->toImage();
-            auto chapterText = getChapterText(formatContext);
-            if (!m_videoPreviewWidgetPtr.isNull()
-                && m_taskId == m_videoPreviewWidgetPtr->currentTaskId()) {
-                image.setDevicePixelRatio(m_videoPreviewWidgetPtr->devicePixelRatio());
-                m_videoPreviewWidgetPtr->setDisplayImage(frameRgbPtr,
-                                                         image,
-                                                         framePtr->pts(),
-                                                         chapterText);
-            }
-            return;
-        }
-    }
-
-    auto getKeyFrame(FormatContext *formatContext, AVContextInfo *videoInfo) -> FramePtr
-    {
-        FramePtr outPtr;
-        PacketPtr packetPtr(new Packet);
-        if (!formatContext->readFrame(packetPtr.get()) || m_videoPreviewWidgetPtr.isNull()) {
-            m_runing = false;
-            return outPtr;
-        }
-        if (!formatContext->checkPktPlayRange(packetPtr.get())) {
-        } else if (packetPtr->streamIndex() == videoInfo->index()
-                   && ((videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC) == 0)
-                   && packetPtr->isKey()) {
-            auto framePtrs = videoInfo->decodeFrame(packetPtr);
-            for (const auto &framePtr : framePtrs) {
-                if (!framePtr->isKey() && framePtr.isNull()) {
-                    continue;
-                }
-                calculatePts(framePtr.data(), videoInfo, formatContext);
-                auto pts = framePtr->pts();
-                if (m_timestamp > pts) {
-                    continue;
-                }
-                outPtr = framePtr;
-            }
-        }
-        return outPtr;
-    }
-
-    auto getChapterText(FormatContext *formatContext) const -> QString
-    {
-        auto chapters = formatContext->mediaInfo().chapters;
-        auto timeStamp = m_timestamp / AV_TIME_BASE;
-        for (const auto &chapter : std::as_const(chapters)) {
-            if (chapter.startTime <= timeStamp && chapter.endTime >= timeStamp) {
-                return chapter.metadatas.value("title");
-            }
-        }
-        return {};
-    }
-
-    QString m_filepath;
-    int m_videoIndex;
-    qint64 m_timestamp;
-    int m_taskId = 0;
-    QPointer<VideoPreviewWidget> m_videoPreviewWidgetPtr;
-    std::atomic_bool m_runing = true;
-};
 
 class VideoPreviewWidget::VideoPreviewWidgetPrivate
 {
@@ -200,7 +67,7 @@ void VideoPreviewWidget::startPreview(const QString &filepath,
     d_ptr->taskId.ref();
     clearAllTask();
     d_ptr->threadPool->start(
-        new PreviewTask(filepath, videoIndex, timestamp, d_ptr->taskId.loadRelaxed(), this));
+        new PreviewOneTask(filepath, videoIndex, timestamp, d_ptr->taskId.loadRelaxed(), this));
     d_ptr->timestamp = timestamp;
     d_ptr->duration = duration;
     d_ptr->image = QImage();

@@ -1,5 +1,7 @@
 #include "codeccontext.h"
 #include "averrormanager.hpp"
+#include "encodecontext.hpp"
+#include "ffmpegutils.hpp"
 #include "frame.hpp"
 #include "packet.h"
 #include "subtitle.h"
@@ -20,7 +22,11 @@ public:
     explicit CodecContextPrivate(CodecContext *q)
         : q_ptr(q)
     {}
-    ~CodecContextPrivate() { avcodec_free_context(&codecCtx); }
+    ~CodecContextPrivate()
+    {
+        av_dict_free(&encodeOptions);
+        avcodec_free_context(&codecCtx);
+    }
 
     void init()
     {
@@ -55,6 +61,124 @@ public:
                 ch_layout++;
             }
         }
+        const auto *profile = codec->profiles;
+        while (profile != nullptr && profile->profile != AV_PROFILE_UNKNOWN) {
+            supported_profiles.append(*profile);
+            profile++;
+        }
+    }
+
+    // code copy from HandBrake encavcodec.c
+    void initVideoEncoderOptions(const EncodeContext &encodeContext)
+    {
+        double crf = encodeContext.crf;
+        if (crf == EncodeLimit::invalid_crf) {
+            return;
+        }
+
+        Q_ASSERT(codecCtx->codec_type == AVMEDIA_TYPE_VIDEO);
+        Q_ASSERT(crf >= EncodeLimit::crf_min && crf <= EncodeLimit::crf_max);
+
+        auto codecName = encodeContext.codecInfo().name;
+
+        if (codecCtx->codec_id == AV_CODEC_ID_VP8 || codecCtx->codec_id == AV_CODEC_ID_VP9) {
+            codecCtx->flags |= AV_CODEC_FLAG_QSCALE;
+            codecCtx->global_quality = FF_QP2LAMBDA * crf + 0.5;
+            auto quality = QString::number(crf, 'f', 2);
+            av_dict_set(&encodeOptions, "crf", quality.toUtf8().data(), 0);
+        } else if (codecName.contains("_nvenc")) { // nvidia编码器
+            double adjustedQualityI = crf - 2;
+            double adjustedQualityB = crf + 2;
+            if (adjustedQualityB > EncodeLimit::crf_max) {
+                adjustedQualityB = EncodeLimit::crf_max;
+            }
+
+            if (adjustedQualityI < EncodeLimit::crf_min) {
+                adjustedQualityI = EncodeLimit::crf_min;
+            }
+
+            auto quality = QString::number(crf, 'f', 2);
+            auto qualityI = QString::number(adjustedQualityI, 'f', 2);
+            auto qualityB = QString::number(adjustedQualityB, 'f', 2);
+
+            av_dict_set(&encodeOptions, "rc", "vbr", 0);
+            av_dict_set(&encodeOptions, "cq", quality.toUtf8().data(), 0);
+
+            // further Advanced Quality Settings in Constant Quality Mode
+            av_dict_set(&encodeOptions, "init_qpP", quality.toUtf8().data(), 0);
+            av_dict_set(&encodeOptions, "init_qpB", qualityB.toUtf8().data(), 0);
+            av_dict_set(&encodeOptions, "init_qpI", qualityI.toUtf8().data(), 0);
+        } else if (codecName.contains("_vce")) { // amd vce编码器
+            int maxQuality = EncodeLimit::crf_max;
+            double qualityOffsetThreshold = 8;
+            double qualityOffsetP = 2;
+            double qualityOffsetB;
+            double adjustedQualityP;
+            double adjustedQualityB;
+
+            if (codecCtx->codec_id == AV_CODEC_ID_AV1) {
+                maxQuality = 255;
+                qualityOffsetThreshold = 32;
+                qualityOffsetP = 8;
+            }
+
+            if (crf <= qualityOffsetThreshold) {
+                qualityOffsetP = crf / qualityOffsetThreshold * qualityOffsetP;
+            }
+            qualityOffsetB = qualityOffsetP * 2;
+
+            adjustedQualityP = crf + qualityOffsetP;
+            adjustedQualityB = crf + qualityOffsetB;
+            if (adjustedQualityP > maxQuality) {
+                adjustedQualityP = maxQuality;
+            }
+            if (adjustedQualityB > maxQuality) {
+                adjustedQualityB = maxQuality;
+            }
+
+            auto quality = QString::number(crf, 'f', 2);
+            auto qualityP = QString::number(adjustedQualityP, 'f', 2);
+            auto qualityB = QString::number(adjustedQualityB, 'f', 2);
+
+            av_dict_set(&encodeOptions, "rc", "cqp", 0);
+
+            av_dict_set(&encodeOptions, "qp_i", quality.toUtf8().data(), 0);
+            av_dict_set(&encodeOptions, "qp_p", qualityP.toUtf8().data(), 0);
+            // H.265 encoders do not support B frames
+            if (codecCtx->codec_id != AV_CODEC_ID_H265) {
+                av_dict_set(&encodeOptions, "qp_b", qualityB.toUtf8().data(), 0);
+            }
+        } else if (codecName.contains("_mf")) { // ffmpeg mf编码器
+            // why quality bigger is better?
+            // https://trac.ffmpeg.org/wiki/Encode/H.264
+            int quality = qMin(100, static_cast<int>(crf * 2));
+            av_dict_set(&encodeOptions, "rate_control", "quality", 0);
+            av_dict_set(&encodeOptions, "quality", QString::number(quality).toUtf8().data(), 0);
+            // av_dict_set(&encodeOptions, "hw_encoding", "1", 0);
+        } else {
+            codecCtx->flags |= AV_CODEC_FLAG_QSCALE;
+            codecCtx->global_quality = FF_QP2LAMBDA * crf + 0.5;
+        }
+    }
+
+    void initAudioEncoderOptions(const EncodeContext &encodeContext)
+    {
+        Q_ASSERT(codecCtx->codec_type == AVMEDIA_TYPE_AUDIO);
+
+        codecCtx->global_quality = encodeContext.crf * FF_QP2LAMBDA;
+        codecCtx->flags |= AV_CODEC_FLAG_QSCALE;
+        if (encodeContext.codecInfo().name.contains("fdk")) {
+            auto vbr = QString::asprintf("%.1g", encodeContext.crf);
+            av_dict_set(&encodeOptions, "vbr", vbr.toUtf8().data(), 0);
+        }
+    }
+
+    void printIgnoredOptions() const
+    {
+        AVDictionaryEntry *dict = nullptr;
+        while ((dict = av_dict_get(encodeOptions, "", dict, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+            qWarning() << "Unknown avcodec option: " << dict->key;
+        }
     }
 
     CodecContext *q_ptr;
@@ -66,12 +190,16 @@ public:
     QVector<int> supported_samplerates{};
     QVector<AVSampleFormat> supported_sample_fmts{};
     QVector<AVChannelLayout> supported_ch_layouts{};
+    QVector<AVProfile> supported_profiles{};
+
+    AVDictionary *encodeOptions = nullptr;
 };
 
 CodecContext::CodecContext(const AVCodec *codec, QObject *parent)
     : QObject(parent)
     , d_ptr(new CodecContextPrivate(this))
 {
+    qInfo() << "AVCodec:" << codec->name << " long name:" << codec->long_name;
     d_ptr->codecCtx = avcodec_alloc_context3(codec);
     d_ptr->init();
     Q_ASSERT(d_ptr->codecCtx != nullptr);
@@ -94,18 +222,17 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
     dstCodecCtx->bits_per_raw_sample = d_ptr->codecCtx->bits_per_raw_sample;
     dstCodecCtx->compression_level = d_ptr->codecCtx->compression_level;
     dstCodecCtx->gop_size = d_ptr->codecCtx->gop_size;
-    dstCodecCtx->profile = d_ptr->codecCtx->profile;
+    dstCodecCtx->global_quality = d_ptr->codecCtx->global_quality;
+    dst->setProfile(d_ptr->codecCtx->profile);
 
     switch (d_ptr->codecCtx->codec_type) {
     case AVMEDIA_TYPE_AUDIO:
         dst->setSampleRate(d_ptr->codecCtx->sample_rate);
         dst->setChLayout(d_ptr->codecCtx->ch_layout);
         /* take first format from list of supported formats */
-        if (d_ptr->codecCtx->codec->sample_fmts != nullptr) {
-            dst->setSampleFmt(d_ptr->codecCtx->codec->sample_fmts[0]);
-        } else {
-            dst->setSampleFmt(d_ptr->codecCtx->sample_fmt);
-        }
+        dst->setSampleFmt(d_ptr->codecCtx->codec->sample_fmts != nullptr
+                              ? d_ptr->codecCtx->codec->sample_fmts[0]
+                              : d_ptr->codecCtx->sample_fmt);
         dstCodecCtx->time_base = AVRational{1, dstCodecCtx->sample_rate};
         break;
     case AVMEDIA_TYPE_VIDEO:
@@ -116,9 +243,9 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
         dst->setPixfmt(d_ptr->codecCtx->codec->pix_fmts != nullptr
                            ? d_ptr->codecCtx->codec->pix_fmts[0]
                            : d_ptr->codecCtx->pix_fmt);
+        dst->setFrameRate(d_ptr->codecCtx->framerate);
         /* video time_base can be set to whatever is handy and supported by encoder */
-        dstCodecCtx->time_base = av_inv_q(d_ptr->codecCtx->framerate);
-        dstCodecCtx->framerate = d_ptr->codecCtx->framerate;
+        dstCodecCtx->time_base = av_inv_q(dstCodecCtx->framerate);
         dstCodecCtx->color_primaries = d_ptr->codecCtx->color_primaries;
         dstCodecCtx->color_trc = d_ptr->codecCtx->color_trc;
         dstCodecCtx->colorspace = d_ptr->codecCtx->colorspace;
@@ -141,14 +268,30 @@ auto CodecContext::setParameters(const AVCodecParameters *par) -> bool
     ERROR_RETURN(ret)
 }
 
+auto CodecContext::supportedFrameRates() const -> QVector<AVRational>
+{
+    return d_ptr->supported_framerates;
+}
+
+void CodecContext::setFrameRate(const AVRational &frameRate)
+{
+    if (d_ptr->supported_framerates.isEmpty()) {
+        d_ptr->codecCtx->framerate = frameRate;
+        return;
+    }
+    for (const auto &rate : std::as_const(d_ptr->supported_framerates)) {
+        if (compareAVRational(rate, frameRate)) {
+            d_ptr->codecCtx->framerate = rate;
+            return;
+        }
+    }
+    d_ptr->codecCtx->framerate = d_ptr->supported_framerates.first();
+}
+
 void CodecContext::setThreadCount(int threadCount)
 {
     Q_ASSERT(d_ptr->codecCtx != nullptr);
-    if ((d_ptr->codecCtx->codec->capabilities & AV_CODEC_CAP_FRAME_THREADS) != 0) {
-        d_ptr->codecCtx->thread_type = FF_THREAD_FRAME;
-    } else if ((d_ptr->codecCtx->codec->capabilities & AV_CODEC_CAP_SLICE_THREADS) != 0) {
-        d_ptr->codecCtx->thread_type = FF_THREAD_SLICE;
-    }
+    d_ptr->codecCtx->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
     d_ptr->codecCtx->thread_count = threadCount;
 }
 
@@ -159,6 +302,11 @@ void CodecContext::setPixfmt(AVPixelFormat pixfmt)
         return;
     }
     d_ptr->codecCtx->pix_fmt = d_ptr->supported_pix_fmts.first();
+}
+
+auto CodecContext::supportedSampleRates() const -> QVector<int>
+{
+    return d_ptr->supported_samplerates;
 }
 
 void CodecContext::setSampleRate(int sampleRate)
@@ -180,6 +328,65 @@ void CodecContext::setSampleFmt(AVSampleFormat sampleFmt)
     d_ptr->codecCtx->sample_fmt = d_ptr->supported_sample_fmts.first();
 }
 
+auto CodecContext::supportedProfiles() const -> QVector<AVProfile>
+{
+    return d_ptr->supported_profiles;
+}
+
+void CodecContext::setProfile(int profile)
+{
+    if (d_ptr->supported_profiles.isEmpty()) {
+        d_ptr->codecCtx->profile = profile;
+        return;
+    }
+    for (const auto &prof : std::as_const(d_ptr->supported_profiles)) {
+        if (prof.profile == profile) {
+            d_ptr->codecCtx->profile = profile;
+            return;
+        }
+    }
+    d_ptr->codecCtx->profile = d_ptr->supported_profiles.first().profile;
+}
+
+auto CodecContext::supportedChLayouts() const -> QVector<AVChannelLayout>
+{
+    return d_ptr->supported_ch_layouts;
+}
+
+void CodecContext::setEncodeParameters(const EncodeContext &encodeContext)
+{
+    setThreadCount(encodeContext.threadCount);
+    setProfile(encodeContext.profile().profile);
+
+    d_ptr->codecCtx->rc_min_rate = encodeContext.minBitrate;
+    d_ptr->codecCtx->rc_max_rate = encodeContext.maxBitrate;
+    d_ptr->codecCtx->bit_rate = encodeContext.bitrate;
+
+    switch (encodeContext.mediaType) {
+    case AVMEDIA_TYPE_VIDEO:
+        setSize(encodeContext.size);
+        d_ptr->initVideoEncoderOptions(encodeContext);
+        break;
+    case AVMEDIA_TYPE_AUDIO: {
+        AVChannelLayout chLayout = {AV_CHANNEL_ORDER_UNSPEC};
+        av_channel_layout_from_mask(&chLayout,
+                                    static_cast<uint64_t>(encodeContext.chLayout().channel));
+        setChLayout(chLayout);
+        setSampleRate(encodeContext.sampleRate);
+        d_ptr->initAudioEncoderOptions(encodeContext);
+    } break;
+    default: break;
+    }
+    // av_opt_set(d_ptr->codecCtx->priv_data,
+    //            "preset",
+    //            encodeContext.preset.toLocal8Bit().constData(),
+    //            AV_OPT_SEARCH_CHILDREN);
+    // av_opt_set(d_ptr->codecCtx->priv_data,
+    //            "tune",
+    //            encodeContext.tune.toLocal8Bit().constData(),
+    //            AV_OPT_SEARCH_CHILDREN);
+}
+
 void CodecContext::setChLayout(const AVChannelLayout &chLayout)
 {
     for (const auto &ch : std::as_const(d_ptr->supported_ch_layouts)) {
@@ -189,9 +396,8 @@ void CodecContext::setChLayout(const AVChannelLayout &chLayout)
         }
     }
     if (d_ptr->supported_ch_layouts.isEmpty()) {
-        AVChannelLayout chLayout = {AV_CHANNEL_ORDER_UNSPEC};
-        av_channel_layout_from_mask(&chLayout, static_cast<uint64_t>(AV_CH_LAYOUT_STEREO));
-        av_channel_layout_copy(&d_ptr->codecCtx->ch_layout, &chLayout);
+        av_channel_layout_from_mask(&d_ptr->codecCtx->ch_layout,
+                                    static_cast<uint64_t>(AV_CH_LAYOUT_STEREO));
         return;
     }
     av_channel_layout_copy(&d_ptr->codecCtx->ch_layout, &d_ptr->supported_ch_layouts.first());
@@ -209,11 +415,6 @@ void CodecContext::setSize(const QSize &size)
     }
     d_ptr->codecCtx->width = size.width();
     d_ptr->codecCtx->height = size.height();
-    // fix me to improve image quality
-    auto bit_rate = d_ptr->codecCtx->width * d_ptr->codecCtx->height * 4;
-    d_ptr->codecCtx->bit_rate = bit_rate;
-    d_ptr->codecCtx->rc_min_rate = bit_rate;
-    d_ptr->codecCtx->rc_max_rate = bit_rate;
 }
 
 auto CodecContext::size() const -> QSize
@@ -221,76 +422,33 @@ auto CodecContext::size() const -> QSize
     return {d_ptr->codecCtx->width, d_ptr->codecCtx->height};
 }
 
-void CodecContext::setQuailty(int quailty)
-{
-    if (quailty < d_ptr->codecCtx->qmin) {
-        return;
-    }
-    d_ptr->codecCtx->flags |= AV_CODEC_FLAG_QSCALE;
-    d_ptr->codecCtx->global_quality = FF_QP2LAMBDA * quailty;
-}
-
 auto CodecContext::quantizer() const -> QPair<int, int>
 {
     return {d_ptr->codecCtx->qmin, d_ptr->codecCtx->qmax};
 }
 
-auto CodecContext::supportPixFmts() const -> QVector<AVPixelFormat>
+auto CodecContext::supportedPixFmts() const -> QVector<AVPixelFormat>
 {
     return d_ptr->supported_pix_fmts;
 }
 
-auto CodecContext::supportSampleFmts() const -> QVector<AVSampleFormat>
+auto CodecContext::supportedSampleFmts() const -> QVector<AVSampleFormat>
 {
     return d_ptr->supported_sample_fmts;
-}
-
-void CodecContext::setMinBitrate(int64_t bitrate)
-{
-    Q_ASSERT(bitrate > 0);
-    d_ptr->codecCtx->rc_min_rate = bitrate;
-}
-
-void CodecContext::setMaxBitrate(int64_t bitrate)
-{
-    qDebug() << bitrate << d_ptr->codecCtx->rc_min_rate;
-    Q_ASSERT(bitrate >= d_ptr->codecCtx->rc_min_rate);
-    d_ptr->codecCtx->rc_max_rate = bitrate;
-    d_ptr->codecCtx->bit_rate = bitrate;
-}
-
-void CodecContext::setCrf(int crf)
-{
-    // 设置crf参数，范围是0-51，0是无损，23是默认值，51是最差质量
-    Q_ASSERT(crf >= 0 && crf <= 51);
-    av_opt_set(d_ptr->codecCtx->priv_data, "crf", QString::number(crf).toLocal8Bit().constData(), 0);
-}
-
-void CodecContext::setPreset(const QString &preset)
-{
-    av_opt_set(d_ptr->codecCtx->priv_data, "preset", preset.toLocal8Bit().constData(), 0);
-}
-
-void CodecContext::setTune(const QString &tune)
-{
-    av_opt_set(d_ptr->codecCtx->priv_data, "tune", tune.toLocal8Bit().constData(), 0);
-}
-
-void CodecContext::setProfile(const QString &profile)
-{
-    av_opt_set(d_ptr->codecCtx->priv_data, "profile", profile.toLocal8Bit().constData(), 0);
 }
 
 auto CodecContext::open() -> bool
 {
     Q_ASSERT(d_ptr->codecCtx != nullptr);
-    auto ret = avcodec_open2(d_ptr->codecCtx, nullptr, nullptr);
+    auto ret = avcodec_open2(d_ptr->codecCtx, nullptr, &d_ptr->encodeOptions);
+    d_ptr->printIgnoredOptions();
     ERROR_RETURN(ret)
 }
 
 auto CodecContext::sendPacket(Packet *packet) -> bool
 {
     int ret = avcodec_send_packet(d_ptr->codecCtx, packet->avPacket());
+    AVERROR(EINVAL);
     ERROR_RETURN(ret)
 }
 
@@ -355,11 +513,6 @@ auto CodecContext::isDecoder() const -> bool
 void CodecContext::flush()
 {
     avcodec_flush_buffers(d_ptr->codecCtx);
-}
-
-auto CodecContext::codec() -> const AVCodec *
-{
-    return d_ptr->codecCtx->codec;
 }
 
 } // namespace Ffmpeg
