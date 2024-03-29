@@ -22,16 +22,12 @@ jobs:
           - ubuntu-latest
         qt_ver: 
           - 6.6.2
+        vcpkg_libs:
+          - breakpad
+        vcpkg_ffmpeg_features:
+          - opengl,ass,bzip2,freetype,fribidi,zlib,gpl,ffmpeg,ffplay,ffprobe
 
     steps:
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v3
-        with:
-          version: ${{ matrix.qt_ver }}
-          install-deps: 'true'
-          modules: 'qt5compat qtnetworkauth qtmultimedia qtimageformats'
-          cache: 'true'
-
       - name: Install dependencies on windows
         if: startsWith(matrix.os, 'windows')
         shell: bash
@@ -39,7 +35,7 @@ jobs:
           choco install ninja
           ninja --version
           cmake --version
-          vcpkg install breakpad ffmpeg[opengl,ass,bzip2,freetype,fribidi,zlib,gpl] --triplet x64-windows
+          vcpkg install ${{ matrix.vcpkg_libs }}  ffmpeg[${{ matrix.vcpkg_ffmpeg_features }},amf,nvcodec,qsv] --triplet x64-windows
       - name: Install dependencies on macos
         if: startsWith(matrix.os, 'macos')
         shell: bash
@@ -48,28 +44,36 @@ jobs:
           ninja --version
           cmake --version
           clang --version
-          vcpkg install breakpad ffmpeg[opengl,ass,bzip2,freetype,fribidi,zlib,gpl] --triplet x64-osx
+          vcpkg install ${{ matrix.vcpkg_libs }} ffmpeg[${{ matrix.vcpkg_ffmpeg_features }}] --triplet x64-osx
       - name: Install dependencies on ubuntu
         if: startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install ninja-build nasm build-essential libgl1-mesa-dev
+          sudo apt-get install ninja-build nasm autopoint gperf libgl1-mesa-dev \
+            libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
           ninja --version
           cmake --version
           gcc --version
-          vcpkg install breakpad ffmpeg[opengl,ass,bzip2,freetype,fribidi,zlib,gpl] --triplet x64-linux
+          vcpkg install ${{ matrix.vcpkg_libs }} ffmpeg[${{ matrix.vcpkg_ffmpeg_features }},amf,nvcodec] --triplet x64-linux
 
       - name: cache windows vcpkg
         if: startsWith(matrix.os, 'windows')
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with: 
           path: C:\vcpkg\installed
           key: ${{ runner.os }}-vcpkg-installed-${{ matrix.os }}
       - name: cache macos or ubuntu vcpkg
         if: startsWith(matrix.os, 'macos') || startsWith(matrix.os, 'ubuntu')
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with: 
           path: /usr/local/share/vcpkg/installed
           key: ${{ runner.os }}-vcpkg-installed-${{ matrix.os }}
 
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ matrix.qt_ver }}
+          install-deps: 'true'
+          modules: 'qt5compat qtnetworkauth qtmultimedia qtimageformats'
+          cache: 'true'
