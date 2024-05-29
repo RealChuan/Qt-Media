@@ -30,8 +30,15 @@ set(PROJECT_SOURCES
     videoencoderwidget.hpp)
 
 qt_add_executable(Transcoder MANUAL_FINALIZATION ${PROJECT_SOURCES})
-target_link_libraries(Transcoder PRIVATE ffmpeg thirdparty utils Qt6::Widgets
-                                         Qt6::Multimedia Qt6::OpenGLWidgets)
+target_link_libraries(
+  Transcoder
+  PRIVATE ffmpeg
+          thirdparty
+          dump
+          utils
+          Qt6::Widgets
+          Qt6::Multimedia
+          Qt6::OpenGLWidgets)
 target_link_libraries(Transcoder PRIVATE PkgConfig::ffmpeg)
 
 if(CMAKE_HOST_APPLE)

@@ -1,7 +1,8 @@
 #include "mainwindow.h"
 
-#include <3rdparty/breakpad.hpp>
 #include <3rdparty/qtsingleapplication/qtsingleapplication.h>
+#include <dump/breakpad.hpp>
+#include <examples/appinfo.hpp>
 #include <ffmpeg/videorender/videorendercreate.hpp>
 #include <utils/logasync.h>
 #include <utils/utils.h>
@@ -15,12 +16,12 @@
 
 void setAppInfo()
 {
-    qApp->setApplicationVersion("0.0.1");
+    qApp->setApplicationVersion(AppInfo::version.toString());
     qApp->setApplicationDisplayName(AppName);
     qApp->setApplicationName(AppName);
     qApp->setDesktopFileName(AppName);
-    qApp->setOrganizationDomain("Youth");
-    qApp->setOrganizationName("Youth");
+    qApp->setOrganizationDomain(AppInfo::organizationDomain);
+    qApp->setOrganizationName(AppInfo::organzationName);
     qApp->setWindowIcon(qApp->style()->standardIcon(QStyle::SP_MediaPlay));
 }
 
@@ -45,11 +46,13 @@ auto main(int argc, char *argv[]) -> int
             return EXIT_SUCCESS;
         }
     }
+
 #ifndef Q_OS_WIN
     Q_INIT_RESOURCE(shaders);
 #endif
+
 #ifdef Q_OS_WIN
-    if (!qFuzzyCompare(qApp->devicePixelRatio(), 1.0)
+    if (!qFuzzyCompare(app.devicePixelRatio(), 1.0)
         && QApplication::style()->objectName().startsWith(QLatin1String("windows"),
                                                           Qt::CaseInsensitive)) {
         QApplication::setStyle(QLatin1String("fusion"));
@@ -59,20 +62,18 @@ auto main(int argc, char *argv[]) -> int
     app.setAttribute(Qt::AA_UseHighDpiPixmaps);
     app.setAttribute(Qt::AA_DisableWindowContextHelpButton);
 #endif
-
-    Utils::BreakPad::instance();
+    setAppInfo();
+    Dump::BreakPad::instance()->setDumpPath(Utils::crashPath());
     QDir::setCurrent(app.applicationDirPath());
 
     // 异步日志
-    Utils::LogAsync *log = Utils::LogAsync::instance();
+    auto *log = Utils::LogAsync::instance();
+    log->setLogPath(Utils::logPath());
+    log->setAutoDelFile(true);
+    log->setAutoDelFileDays(7);
     log->setOrientation(Utils::LogAsync::Orientation::StdAndFile);
     log->setLogLevel(QtDebugMsg);
     log->startWork();
-
-    Utils::printBuildInfo();
-    Utils::setGlobalThreadPoolMaxSize();
-
-    setAppInfo();
 
     // Make sure we honor the system's proxy settings
     QNetworkProxyFactory::setUseSystemConfiguration(true);

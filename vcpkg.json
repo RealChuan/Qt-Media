@@ -5,6 +5,7 @@
     "description": "manifest",
     "dependencies": [
         "breakpad",
+        "crashpad",
         {
             "name": "ffmpeg",
             "features": [
@@ -33,5 +34,5 @@
             ]
         }
     ],
-    "builtin-baseline": "3c76dc55f8bd2b7f4824bcd860055094bfbbb9ea"
+    "builtin-baseline": "dee924de74e81388140a53c32a919ecec57d20ab"
 }

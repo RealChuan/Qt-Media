@@ -1,7 +1,8 @@
 #include "mainwindow.hpp"
 
-#include <3rdparty/breakpad.hpp>
 #include <3rdparty/qtsingleapplication/qtsingleapplication.h>
+#include <dump/breakpad.hpp>
+#include <examples/appinfo.hpp>
 #include <utils/logasync.h>
 #include <utils/utils.h>
 
@@ -10,16 +11,16 @@
 #include <QNetworkProxyFactory>
 #include <QStyle>
 
-#define AppnName "Transcoder"
+#define AppName "Transcoder"
 
 void setAppInfo()
 {
-    qApp->setApplicationVersion("0.0.1");
-    qApp->setApplicationDisplayName(AppnName);
-    qApp->setApplicationName(AppnName);
-    qApp->setDesktopFileName(AppnName);
-    qApp->setOrganizationDomain("Youth");
-    qApp->setOrganizationName("Youth");
+    qApp->setApplicationVersion(AppInfo::version.toString());
+    qApp->setApplicationDisplayName(AppName);
+    qApp->setApplicationName(AppName);
+    qApp->setDesktopFileName(AppName);
+    qApp->setOrganizationDomain(AppInfo::organizationDomain);
+    qApp->setOrganizationName(AppInfo::organzationName);
     qApp->setWindowIcon(qApp->style()->standardIcon(QStyle::SP_DriveDVDIcon));
 }
 
@@ -34,7 +35,7 @@ auto main(int argc, char *argv[]) -> int
 #endif
     Utils::setHighDpiEnvironmentVariable();
     SharedTools::QtSingleApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-    SharedTools::QtSingleApplication app(AppnName, argc, argv);
+    SharedTools::QtSingleApplication app(AppName, argc, argv);
     if (app.isRunning()) {
         qWarning() << "This is already running";
         if (app.sendMessage("raise_window_noop", 5000)) {
@@ -45,7 +46,7 @@ auto main(int argc, char *argv[]) -> int
     Q_INIT_RESOURCE(shaders);
 #endif
 #ifdef Q_OS_WIN
-    if (!qFuzzyCompare(qApp->devicePixelRatio(), 1.0)
+    if (!qFuzzyCompare(app.devicePixelRatio(), 1.0)
         && QApplication::style()->objectName().startsWith(QLatin1String("windows"),
                                                           Qt::CaseInsensitive)) {
         QApplication::setStyle(QLatin1String("fusion"));
@@ -56,19 +57,18 @@ auto main(int argc, char *argv[]) -> int
     app.setAttribute(Qt::AA_DisableWindowContextHelpButton);
 #endif
 
-    Utils::BreakPad::instance();
+    setAppInfo();
+    Dump::BreakPad::instance()->setDumpPath(Utils::crashPath());
     QDir::setCurrent(app.applicationDirPath());
 
     // 异步日志
-    Utils::LogAsync *log = Utils::LogAsync::instance();
+    auto *log = Utils::LogAsync::instance();
+    log->setLogPath(Utils::logPath());
+    log->setAutoDelFile(true);
+    log->setAutoDelFileDays(7);
     log->setOrientation(Utils::LogAsync::Orientation::StdAndFile);
     log->setLogLevel(QtDebugMsg);
     log->startWork();
-
-    Utils::printBuildInfo();
-    Utils::setGlobalThreadPoolMaxSize();
-
-    setAppInfo();
 
     // Make sure we honor the system's proxy settings
     QNetworkProxyFactory::setUseSystemConfiguration(true);

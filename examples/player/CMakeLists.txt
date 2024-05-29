@@ -23,8 +23,15 @@ set(PROJECT_SOURCES
     titlewidget.hpp)
 
 qt_add_executable(Player MANUAL_FINALIZATION ${PROJECT_SOURCES})
-target_link_libraries(Player PRIVATE ffmpeg thirdparty utils Qt6::Widgets
-                                     Qt6::Multimedia Qt6::OpenGLWidgets)
+target_link_libraries(
+  Player
+  PRIVATE ffmpeg
+          thirdparty
+          dump
+          utils
+          Qt6::Widgets
+          Qt6::Multimedia
+          Qt6::OpenGLWidgets)
 target_link_libraries(Player PRIVATE PkgConfig::ffmpeg)
 if(CMAKE_HOST_APPLE)
   target_link_libraries(

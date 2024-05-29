@@ -1,33 +1,23 @@
 name: CMake build
 
 on: 
-  # push代码时触发workflow
   push:
-    paths-ignore: # 下列文件的变更不触发部署，可以自行添加
-        - '.github/workflows/clean_cache.yml'
-        - '.github/workflows/delete_workflow.yml'
-        - '.github/workflows/qmake.yml'
-        - '.github/workflows/readme.yml'
-        - '.github/workflows/toolchain.yml'
+    paths-ignore:
         - 'doc/**'
         - '.clang*'
         - '.gitignore'
         - 'LICENSE'
         - 'README*'
-        - 'vcpkg.json'
   pull_request:
-    paths-ignore: # 下列文件的变更不触发部署，可以自行添加
-        - '.github/workflows/clean_cache.yml'
-        - '.github/workflows/delete_workflow.yml'
-        - '.github/workflows/qmake.yml'
-        - '.github/workflows/readme.yml'
-        - '.github/workflows/toolchain.yml'
+    paths-ignore:
         - 'doc/**'
         - '.clang*'
         - '.gitignore'
         - 'LICENSE'
         - 'README*'
-        - 'vcpkg.json'
+
+env:
+  MACOSX_DEPLOYMENT_TARGET: 11.0
 
 jobs:
   build:
@@ -40,108 +30,39 @@ jobs:
           - windows-latest
           - macos-latest
           - ubuntu-latest
-        qt_ver: 
-          - 6.6.2
         build_type:
           - "RelWithDebInfo"
         generators:
           - "Ninja"
-        vcpkg_libs:
-          - breakpad
-        vcpkg_ffmpeg_features:
-          - opengl,ass,bzip2,freetype,fribidi,zlib,gpl,ffmpeg,ffplay,ffprobe
 
     steps:
-      - name: Restore windows vcpkg
-        if: startsWith(matrix.os, 'windows')
-        uses: actions/cache/restore@v4
-        with: 
-          path: C:\vcpkg\installed
-          key: ${{ runner.os }}-vcpkg-installed-${{ matrix.os }}
-      - name: Restore macos or ubuntu vcpkg
-        if: startsWith(matrix.os, 'macos') || startsWith(matrix.os, 'ubuntu')
-        uses: actions/cache/restore@v4
-        with: 
-          path: /usr/local/share/vcpkg/installed
-          key: ${{ runner.os }}-vcpkg-installed-${{ matrix.os }}
-              
-      - name: Install dependencies on windows
-        if: startsWith(matrix.os, 'windows')
-        shell: bash
-        run: |
-          choco install ninja
-          ninja --version
-          cmake --version
-          vcpkg install ${{ matrix.vcpkg_libs }}  ffmpeg[${{ matrix.vcpkg_ffmpeg_features }},amf,nvcodec,qsv] --triplet x64-windows
-      - name: Install dependencies on macos
-        if: startsWith(matrix.os, 'macos')
-        shell: bash
-        run: |
-          brew install ninja nasm pkg-config
-          ninja --version
-          cmake --version
-          clang --version
-          vcpkg install ${{ matrix.vcpkg_libs }} ffmpeg[${{ matrix.vcpkg_ffmpeg_features }}] --triplet x64-osx
-      - name: Install dependencies on ubuntu
-        if: startsWith(matrix.os, 'ubuntu')
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo apt-get install ninja-build nasm autopoint gperf libgl1-mesa-dev \
-            libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
-          ninja --version
-          cmake --version
-          gcc --version
-          vcpkg install ${{ matrix.vcpkg_libs }} ffmpeg[${{ matrix.vcpkg_ffmpeg_features }},amf,nvcodec] --triplet x64-linux
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v3
-        with:
-          version: ${{ matrix.qt_ver }}
-          install-deps: 'true'
-          modules: 'qt5compat qtnetworkauth qtmultimedia qtimageformats'
-          cache: 'true'
-
       - uses: actions/checkout@v4
-        with:
+        with: 
           fetch-depth: 1
-
-      # jurplel/install-qt-action@v3, 这个action会修改默认的python版本，
-      # 会导致部分使用vcpkg的库编译失败，比如libsystemd，所以需要删除vcpkg.json
-      - name: Delete vcpkg.json
-        shell: bash
-        run: |
-          rm vcpkg.json
-
-      - name: Enable Developer Command Prompt
-        if: startsWith(matrix.os, 'windows')
-        uses: ilammy/msvc-dev-cmd@v1.12.1
+          
+      - uses: ./.github/actions/install-dependencies
         with:
-          arch: amd64
-      - name: Configure windows
+          os_name: ${{ matrix.os }}
+
+      - name: Configure and build windows
         if: startsWith(matrix.os, 'windows')
+        shell: pwsh
+        run: |
+          .\scripts\windows\setVsDev.ps1
+          cmake `
+            -S . `
+            -B ./build `
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+            -G "${{ matrix.generators }}"
+          cmake --build ./build --config ${{ matrix.build_type }}
+      - name: Configure and build on ubuntu or macos
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         shell: bash
         run: |
           cmake \
             -S . \
             -B ./build \
-            -DCMAKE_C_COMPILER=cl \
-            -DCMAKE_CXX_COMPILER=cl \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -G "${{ matrix.generators }}" \
-            -DCMAKE_INSTALL_PREFIX:PATH=instdir
-      - name: Configure macos or ubuntu
-        if: startsWith(matrix.os, 'macos') || startsWith(matrix.os, 'ubuntu')
-        shell: bash
-        run: |
-          cmake \
-            -S . \
-            -B ./build \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -G "${{ matrix.generators }}" \
-            -DCMAKE_INSTALL_PREFIX:PATH=instdir
-      - name: Build
-        shell: bash
-        run: |
+            -G "${{ matrix.generators }}"
           cmake --build ./build --config ${{ matrix.build_type }}
           

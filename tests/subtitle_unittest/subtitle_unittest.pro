@@ -1,4 +1,4 @@
-include(../../Common.pri)
+include(../../common.pri)
 
 QT       += core gui network multimedia openglwidgets core5compat
 
@@ -12,7 +12,7 @@ LIBS += -L$$APP_OUTPUT_PATH/../libs \
     -l$$replaceLibName(ffmpeg) \
     -l$$replaceLibName(utils)
 
-include(../../3rdparty/3rdparty.pri)
+include(../../src/3rdparty/3rdparty.pri)
 
 SOURCES += \
     main.cc \
