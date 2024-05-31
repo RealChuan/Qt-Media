@@ -5,7 +5,9 @@
 
 ## Player
 
-<div align=center><img src="doc/player.jpeg"></div>
+<div align=center>
+<img src="doc/player.jpeg" width="90%" height="90%">
+</div>
 
 ### 需要一个强大的opengl和vulkan yuv渲染模块
 

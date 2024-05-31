@@ -74,9 +74,10 @@ auto main(int argc, char *argv[]) -> int
     QNetworkProxyFactory::setUseSystemConfiguration(true);
 
     MainWindow w;
+    app.setActivationWindow(&w);
     w.show();
 
-    int result = app.exec();
+    auto ret = app.exec();
     log->stop();
-    return result;
+    return ret;
 }
