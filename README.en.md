@@ -3,52 +3,68 @@
 -   [Simplified Chinese](README.md)
 -   [English](README.en.md)
 
-## QFfmpegPlayer
+## Player
 
-<div align=center><img src="doc/player.jpeg"></div>
+<div align=center>
+<img src="doc/player.jpeg" width="90%" height="90%">
+</div>
 
-### Need a powerful opengl and vulkan yuv rendering module!
+### Requires a powerful opengl and vulkan yuv rendering module
 
-1.  There are too many if else in the shader in Opengl, causing the GPU to run empty, affecting GPU decoding and av_hwframe_transfer_data speed, this phenomenon is especially obvious on 4K video images;
-2.  In WidgetRender, use QImage::Format_RGB32 and QImage::Format_ARGB32_Premultiplied image formats as much as possible. The following reasons:
+1.  Opengl's fragment shader currently supports limited image formats;
+2.  In WidgetRender, use the QImage::Format_RGB32 and QImage::Format_ARGB32_Premultiplied image formats whenever possible. The following reasons:
     1.  Avoid most rendering directly to most of these formats using QPainter. Rendering is best optimized to the Format_RGB32  and Format_ARGB32_Premultiplied formats, and secondarily for rendering to the Format_RGB16, Format_RGBX8888,  Format_RGBA8888_Premultiplied, Format_RGBX64 and Format_RGBA64_Premultiplied formats.
 
-### Ffmpeg (5.0) is not the same as 4.4.3 in decoding subtitles
+### AVFrame image adjustment
 
-### Decoding subtitles (ffmpeg-n5.0):
+1.  according to`AVColorSpace`Perform color space conversion;
+2.  according to`AVColorTransferCharacteristic`Make adjustments to gamma, PQ, HLG, etc.;
+3.  according to`AVColorPrimaries`Perform color gamut conversion;
+4.  according to`AVColorRange`Make color range adjustments;
 
-    0,,en,,0000,0000,0000,,Peek-a-boo!
+#### 1. How to modify the shader when rendering with opengl?
 
-you must use`ass_process_chunk`And set pts and duration as in libavfilter/vf_subtitles.c.
+1.  reference[MPV video_shaders](https://github.com/mpv-player/mpv/blob/master/video/out/gpu/video_shaders.c)；
 
-ASS standard format should be (ffmpeg-n4.4.3):
+#### 2. In the case of non-opengl rendering, how to add a filter to achieve image compensation?
 
-    Dialogue: 0,0:01:06.77,0:01:08.00,en,,0000,0000,0000,,Peek-a-boo!\r\n
+```bash
+zscale=p=709;
+```
+
+### How to achieve image quality enhancement when rendering images with OpenGL?
+
+### Ffmpeg (5.0) decodes subtitles differently than 4.4.3
+
+#### Decode subtitles (ffmpeg-n5.0)
+
+```bash
+0,,en,,0000,0000,0000,,Peek-a-boo!
+```
+
+you have to use`ass_process_chunk`and set pts and duration, and in[vf_subtitles.c](https://github.com/FFmpeg/FFmpeg/blob/master/libavfilter/vf_subtitles.c#L490)Same as in.
+
+#### The ASS standard format should be (ffmpeg-n4.4.3)
+
+```bash
+Dialogue: 0,0:01:06.77,0:01:08.00,en,,0000,0000,0000,,Peek-a-boo!\r\n
+```
 
 use`ass_process_data`;
 
 ### Issue with subtitle display timing when using subtitle filter
 
-    subtitles=filename='%1':original_size=%2x%3
+```bash
+subtitles=filename='%1':original_size=%2x%3
+```
 
-## QFfmpegTranscoder
+## Transcoder
 
 How to set encoding parameters to get smaller files and better video quality?
 
-1.  set a very high bitrate;
-2.  set encoder`global_quality`invalid. code show as below:
+1.  reference[HandBrake encavcodec](https://github.com/HandBrake/HandBrake/blob/master/libhb/encavcodec.c#L359)
 
-    ```C++
-    d_ptr->codecCtx->flags |= AV_CODEC_FLAG_QSCALE;
-    d_ptr->codecCtx->global_quality = FF_QP2LAMBDA * quailty;
-    ```
-3.  set up`crf`invalid. code show as below:
-
-    ```C++
-    av_opt_set_int(d_ptr->codecCtx, "crf", crf, AV_OPT_SEARCH_CHILDREN);
-    ```
-
-### How to calculate pts from frames acquired by AVAudioFifo?
+### How to calculate pts from frames obtained by AVAudioFifo?
 
 ```C++
 // fix me?
@@ -57,23 +73,15 @@ frame->pts = transcodeCtx->audioPts / av_q2d(transcodeCtx->decContextInfoPtr->ti
 transcodeCtx->audioPts += frame->nb_samples;
 ```
 
-### [New BING's Video Transcoding Recommendations](./doc/bing_transcode.md)
+### [New BING’s video transcoding recommendations](./doc/bing_transcode.md)
 
-## SwsContext is great! Compared to QImage converted to and scaled.
+## SwsContext is great! Compared to QImage convert to and scale
 
 ## QT-BUG
 
-### Failed to set up resampler
+### Dynamically switching Video Render, switching from opengl to widget, still consumes GPU 0-3D, and the usage is twice that of opengl! ! ! QT-BUG?
 
-[it's a bug in Qt 6.4.1 on Windows](https://forum.qt.io/topic/140523/qt-6-x-error-message-qt-multimedia-audiooutput-failed-to-setup-resampler)<https://bugreports.qt.io/browse/QTBUG-108383>(johnco3's bug report)<https://bugreports.qt.io/browse/QTBUG-108669>(a duplicate bug report; I filed it before I found any of this)
-
-#### solution:
-
-<https://stackoverflow.com/questions/74500509/failed-to-setup-resampler-when-starting-qaudiosink>
-
-#### Dynamically switch Video Render, switch from opengl to widget, there is still GPU 0-3D occupation, and the usage is twice that of opengl! ! ! QT-BUG?
-
-### QOpenGLWidget memory leak, moving zoom in and out of the window, the code is as follows:
+### QOpenGLWidget memory leaks, moves to zoom in and out the window, the code is as follows
 
 ```C++
 int main(int argc, char *argv[])
