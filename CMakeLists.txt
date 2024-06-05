@@ -14,6 +14,8 @@ project(
   HOMEPAGE_URL "https://github.com/RealChuan/Qt-Ffmpeg"
   LANGUAGES CXX)
 
+option(BUILD_MPV "build mpv" ON)
+
 include(cmake/common.cmake)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets Network Core5Compat Concurrent

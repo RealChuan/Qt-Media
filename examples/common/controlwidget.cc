@@ -182,6 +182,11 @@ void ControlWidget::setPlayButtonChecked(bool checked)
     d_ptr->setPlayButtonIcon();
 }
 
+void ControlWidget::setVolumeMax(int max)
+{
+    d_ptr->volumeSlider->setMaximum(max);
+}
+
 void ControlWidget::setVolume(int value)
 {
     if (value < d_ptr->volumeSlider->minimum()) {
@@ -208,6 +213,16 @@ void ControlWidget::setDuration(int value)
     setPosition(0);
 }
 
+#ifdef MPV_ON
+void ControlWidget::setChapters(const Mpv::Chapters &chapters)
+{
+    QVector<qint64> nodes;
+    for (const auto &chapter : std::as_const(chapters)) {
+        nodes.append(chapter.milliseconds / 1000);
+    }
+    d_ptr->slider->setNodes(nodes);
+}
+#else
 void ControlWidget::setChapters(const Ffmpeg::Chapters &chapters)
 {
     QVector<qint64> nodes;
@@ -216,6 +231,7 @@ void ControlWidget::setChapters(const Ffmpeg::Chapters &chapters)
     }
     d_ptr->slider->setNodes(nodes);
 }
+#endif
 
 void ControlWidget::setPosition(int value)
 {

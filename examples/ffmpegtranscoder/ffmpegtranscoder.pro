@@ -4,7 +4,7 @@ QT       += core gui widgets network multimedia openglwidgets core5compat
 
 TEMPLATE = app
 
-TARGET = Transcoder
+TARGET = FfmpegTranscoder
 
 LIBS += \
     -l$$replaceLibName(ffmpeg) \

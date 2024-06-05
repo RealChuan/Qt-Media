@@ -54,7 +54,7 @@ jobs:
         shell: pwsh
         run: |
           ..\scripts\windows\setVsDev.ps1 -VersionRange "[16.0,17.0)" -Arch "x64"
-          & qmake ./../.
+          & qmake "CONFIG-=BUILD_MPV" ./../.
           & jom
         working-directory: build
       - name: ubuntu-build

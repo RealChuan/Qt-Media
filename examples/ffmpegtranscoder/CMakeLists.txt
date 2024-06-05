@@ -29,9 +29,9 @@ set(PROJECT_SOURCES
     videoencoderwidget.cc
     videoencoderwidget.hpp)
 
-qt_add_executable(Transcoder MANUAL_FINALIZATION ${PROJECT_SOURCES})
+qt_add_executable(FfmpegTranscoder MANUAL_FINALIZATION ${PROJECT_SOURCES})
 target_link_libraries(
-  Transcoder
+  FfmpegTranscoder
   PRIVATE ffmpeg
           thirdparty
           dump
@@ -39,11 +39,11 @@ target_link_libraries(
           Qt6::Widgets
           Qt6::Multimedia
           Qt6::OpenGLWidgets)
-target_link_libraries(Transcoder PRIVATE PkgConfig::ffmpeg)
+target_link_libraries(FfmpegTranscoder PRIVATE PkgConfig::ffmpeg)
 
 if(CMAKE_HOST_APPLE)
   target_link_libraries(
-    Transcoder
+    FfmpegTranscoder
     PRIVATE ${Foundation_LIBRARY}
             ${CoreAudio_LIBRARY}
             ${AVFoundation_LIBRARY}
@@ -61,4 +61,4 @@ if(CMAKE_HOST_APPLE)
             ${CoreServices_LIBRARY})
 endif()
 
-qt_finalize_executable(Transcoder)
+qt_finalize_executable(FfmpegTranscoder)

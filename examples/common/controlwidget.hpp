@@ -1,7 +1,11 @@
 #ifndef CONTROLWIDGET_HPP
 #define CONTROLWIDGET_HPP
 
+#ifdef MPV_ON
+#include <mpv/mediainfo.hpp>
+#else
 #include <ffmpeg/mediainfo.hpp>
+#endif
 
 #include <QWidget>
 
@@ -17,8 +21,11 @@ public:
 
     void setDuration(int value);
     [[nodiscard]] auto duration() const -> int;
+#ifdef MPV_ON
+    void setChapters(const Mpv::Chapters &chapters);
+#else
     void setChapters(const Ffmpeg::Chapters &chapters);
-
+#endif
     [[nodiscard]] auto sliderGlobalPos() const -> QPoint;
 
     void setSourceFPS(float fps);
@@ -27,6 +34,7 @@ public:
     void clickPlayButton();
     void setPlayButtonChecked(bool checked);
 
+    void setVolumeMax(int max);
     void setVolume(int value);
     [[nodiscard]] auto volume() const -> int;
 

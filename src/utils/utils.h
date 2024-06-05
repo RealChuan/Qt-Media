@@ -12,6 +12,7 @@ class QMenu;
 
 namespace Utils {
 
+UTILS_EXPORT void setSurfaceFormatVersion(int major, int minor);
 UTILS_EXPORT auto readAllFile(const QString &filePath) -> QByteArray;
 UTILS_EXPORT auto rangeMap(float value, float min, float max, float newMin, float newMax) -> float;
 

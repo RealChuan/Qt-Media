@@ -1,30 +1,30 @@
 set(PROJECT_SOURCES
+    ../common/controlwidget.cc
+    ../common/controlwidget.hpp
+    ../common/openwebmediadialog.cc
+    ../common/openwebmediadialog.hpp
+    ../common/playlistmodel.cpp
+    ../common/playlistmodel.h
+    ../common/playlistview.cc
+    ../common/playlistview.hpp
+    ../common/qmediaplaylist_p.h
+    ../common/qmediaplaylist.cpp
+    ../common/qmediaplaylist.h
+    ../common/qplaylistfileparser_p.h
+    ../common/qplaylistfileparser.cpp
+    ../common/slider.cpp
+    ../common/slider.h
+    ../common/titlewidget.cc
+    ../common/titlewidget.hpp
     colorspacedialog.cc
     colorspacedialog.hpp
-    controlwidget.cc
-    controlwidget.hpp
     main.cpp
     mainwindow.cpp
-    mainwindow.h
-    openwebmediadialog.cc
-    openwebmediadialog.hpp
-    playlistmodel.cpp
-    playlistmodel.h
-    playlistview.cc
-    playlistview.hpp
-    qmediaplaylist_p.h
-    qmediaplaylist.cpp
-    qmediaplaylist.h
-    qplaylistfileparser_p.h
-    qplaylistfileparser.cpp
-    slider.cpp
-    slider.h
-    titlewidget.cc
-    titlewidget.hpp)
+    mainwindow.h)
 
-qt_add_executable(Player MANUAL_FINALIZATION ${PROJECT_SOURCES})
+qt_add_executable(FfmpegPlayer MANUAL_FINALIZATION ${PROJECT_SOURCES})
 target_link_libraries(
-  Player
+  FfmpegPlayer
   PRIVATE ffmpeg
           thirdparty
           dump
@@ -32,10 +32,10 @@ target_link_libraries(
           Qt6::Widgets
           Qt6::Multimedia
           Qt6::OpenGLWidgets)
-target_link_libraries(Player PRIVATE PkgConfig::ffmpeg)
+target_link_libraries(FfmpegPlayer PRIVATE PkgConfig::ffmpeg)
 if(CMAKE_HOST_APPLE)
   target_link_libraries(
-    Player
+    FfmpegPlayer
     PRIVATE ${Foundation_LIBRARY}
             ${CoreAudio_LIBRARY}
             ${AVFoundation_LIBRARY}
@@ -52,4 +52,4 @@ if(CMAKE_HOST_APPLE)
             ${CoreVideo_LIBRARY}
             ${CoreServices_LIBRARY})
 endif()
-qt_finalize_executable(Player)
+qt_finalize_executable(FfmpegPlayer)

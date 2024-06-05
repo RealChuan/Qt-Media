@@ -1,12 +1,12 @@
 #include "mainwindow.h"
 #include "colorspacedialog.hpp"
-#include "controlwidget.hpp"
-#include "openwebmediadialog.hpp"
-#include "playlistmodel.h"
-#include "playlistview.hpp"
-#include "qmediaplaylist.h"
-#include "titlewidget.hpp"
 
+#include <examples/common/controlwidget.hpp>
+#include <examples/common/openwebmediadialog.hpp>
+#include <examples/common/playlistmodel.h>
+#include <examples/common/playlistview.hpp>
+#include <examples/common/qmediaplaylist.h>
+#include <examples/common/titlewidget.hpp>
 #include <ffmpeg/averror.h>
 #include <ffmpeg/event/errorevent.hpp>
 #include <ffmpeg/event/seekevent.hpp>
@@ -299,8 +299,7 @@ void MainWindow::onOpenLocalMedia()
 {
     const auto path = QStandardPaths::standardLocations(QStandardPaths::MoviesLocation)
                           .value(0, QDir::homePath());
-    const auto filter = tr("Media (*.mp4 *.flv *.ts *.avi *.rmvb *.mkv *.wmv *.mp3 *.wav *.flac "
-                           "*.ape *.m4a *.aac *.ogg *.ac3 *.mpg)");
+    const auto filter = tr("Media (*)");
     const auto urls = QFileDialog::getOpenFileUrls(this,
                                                    tr("Open Media"),
                                                    QUrl::fromUserInput(path),

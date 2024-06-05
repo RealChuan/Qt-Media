@@ -6,3 +6,7 @@ SUBDIRS += \
     dump \
     3rdparty \
     ffmpeg
+
+contains(CONFIG, BUILD_MPV) {
+    SUBDIRS += mpv
+}

@@ -11,7 +11,9 @@
 #include <QNetworkProxyFactory>
 #include <QStyle>
 
-#define AppName "Transcoder"
+#include <clocale>
+
+#define AppName "MpvPlayer"
 
 void setAppInfo()
 {
@@ -21,10 +23,10 @@ void setAppInfo()
     qApp->setDesktopFileName(AppName);
     qApp->setOrganizationDomain(AppInfo::organizationDomain);
     qApp->setOrganizationName(AppInfo::organzationName);
-    qApp->setWindowIcon(qApp->style()->standardIcon(QStyle::SP_DriveDVDIcon));
+    qApp->setWindowIcon(qApp->style()->standardIcon(QStyle::SP_MediaPlay));
 }
 
-auto main(int argc, char *argv[]) -> int
+int main(int argc, char *argv[])
 {
 #if defined(Q_OS_WIN) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     if (!qEnvironmentVariableIsSet("QT_OPENGL")) {
@@ -34,6 +36,9 @@ auto main(int argc, char *argv[]) -> int
     qputenv("QSG_RHI_BACKEND", "opengl");
 #endif
     Utils::setHighDpiEnvironmentVariable();
+
+    Utils::setSurfaceFormatVersion(3, 3);
+
     SharedTools::QtSingleApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     SharedTools::QtSingleApplication app(AppName, argc, argv);
     if (app.isRunning()) {
@@ -42,9 +47,6 @@ auto main(int argc, char *argv[]) -> int
             return EXIT_SUCCESS;
         }
     }
-#ifndef Q_OS_WIN
-    Q_INIT_RESOURCE(shaders);
-#endif
 #ifdef Q_OS_WIN
     if (!qFuzzyCompare(app.devicePixelRatio(), 1.0)
         && QApplication::style()->objectName().startsWith(QLatin1String("windows"),
@@ -56,7 +58,6 @@ auto main(int argc, char *argv[]) -> int
     app.setAttribute(Qt::AA_UseHighDpiPixmaps);
     app.setAttribute(Qt::AA_DisableWindowContextHelpButton);
 #endif
-
     setAppInfo();
     Dump::BreakPad::instance()->setDumpPath(Utils::crashPath());
     QDir::setCurrent(app.applicationDirPath());
@@ -72,6 +73,10 @@ auto main(int argc, char *argv[]) -> int
 
     // Make sure we honor the system's proxy settings
     QNetworkProxyFactory::setUseSystemConfiguration(true);
+
+    // Qt sets the locale in the QApplication constructor, but libmpv requires
+    // the LC_NUMERIC category to be set to "C", so change it back.
+    std::setlocale(LC_NUMERIC, "C");
 
     MainWindow w;
     app.setActivationWindow(&w);

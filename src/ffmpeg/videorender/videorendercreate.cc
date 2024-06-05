@@ -17,14 +17,6 @@ auto create(RenderType type) -> VideoRender *
     return render;
 }
 
-void setSurfaceFormatVersion(int major, int minor)
-{
-    auto surfaceFormat = QSurfaceFormat::defaultFormat();
-    surfaceFormat.setVersion(major, minor);
-    surfaceFormat.setProfile(QSurfaceFormat::CoreProfile);
-    QSurfaceFormat::setDefaultFormat(surfaceFormat);
-}
-
 } // namespace VideoRenderCreate
 
 } // namespace Ffmpeg

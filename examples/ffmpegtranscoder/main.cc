@@ -1,9 +1,8 @@
-#include "mainwindow.h"
+#include "mainwindow.hpp"
 
 #include <3rdparty/qtsingleapplication/qtsingleapplication.h>
 #include <dump/breakpad.hpp>
 #include <examples/appinfo.hpp>
-#include <ffmpeg/videorender/videorendercreate.hpp>
 #include <utils/logasync.h>
 #include <utils/utils.h>
 
@@ -12,7 +11,7 @@
 #include <QNetworkProxyFactory>
 #include <QStyle>
 
-#define AppName "Player"
+#define AppName "FfmpegTranscoderr"
 
 void setAppInfo()
 {
@@ -22,7 +21,7 @@ void setAppInfo()
     qApp->setDesktopFileName(AppName);
     qApp->setOrganizationDomain(AppInfo::organizationDomain);
     qApp->setOrganizationName(AppInfo::organzationName);
-    qApp->setWindowIcon(qApp->style()->standardIcon(QStyle::SP_MediaPlay));
+    qApp->setWindowIcon(qApp->style()->standardIcon(QStyle::SP_DriveDVDIcon));
 }
 
 auto main(int argc, char *argv[]) -> int
@@ -35,9 +34,6 @@ auto main(int argc, char *argv[]) -> int
     qputenv("QSG_RHI_BACKEND", "opengl");
 #endif
     Utils::setHighDpiEnvironmentVariable();
-
-    Ffmpeg::VideoRenderCreate::setSurfaceFormatVersion(3, 3);
-
     SharedTools::QtSingleApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     SharedTools::QtSingleApplication app(AppName, argc, argv);
     if (app.isRunning()) {
@@ -46,11 +42,9 @@ auto main(int argc, char *argv[]) -> int
             return EXIT_SUCCESS;
         }
     }
-
 #ifndef Q_OS_WIN
     Q_INIT_RESOURCE(shaders);
 #endif
-
 #ifdef Q_OS_WIN
     if (!qFuzzyCompare(app.devicePixelRatio(), 1.0)
         && QApplication::style()->objectName().startsWith(QLatin1String("windows"),
@@ -62,6 +56,7 @@ auto main(int argc, char *argv[]) -> int
     app.setAttribute(Qt::AA_UseHighDpiPixmaps);
     app.setAttribute(Qt::AA_DisableWindowContextHelpButton);
 #endif
+
     setAppInfo();
     Dump::BreakPad::instance()->setDumpPath(Utils::crashPath());
     QDir::setCurrent(app.applicationDirPath());

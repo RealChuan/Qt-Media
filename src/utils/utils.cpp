@@ -10,6 +10,14 @@
 #include <tlhelp32.h>
 #endif
 
+void Utils::setSurfaceFormatVersion(int major, int minor)
+{
+    auto surfaceFormat = QSurfaceFormat::defaultFormat();
+    surfaceFormat.setVersion(major, minor);
+    surfaceFormat.setProfile(QSurfaceFormat::CoreProfile);
+    QSurfaceFormat::setDefaultFormat(surfaceFormat);
+}
+
 QByteArray Utils::readAllFile(const QString &filePath)
 {
     QFile file(filePath);

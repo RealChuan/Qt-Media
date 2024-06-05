@@ -80,7 +80,7 @@ runs:
       if: startsWith(runner.os, 'macOS')
       shell: bash
       run: |
-        brew install ninja nasm python-setuptools
+        brew install ninja nasm python-setuptools mpv
         ninja --version
         cmake --version
         clang --version
@@ -97,7 +97,8 @@ runs:
       run: |
         sudo apt-get update
         sudo apt-get install ninja-build nasm autopoint gperf libgl1-mesa-dev \
-            libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev
+            libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev \
+            mpv libmpv-dev
         ninja --version
         cmake --version
         gcc --version

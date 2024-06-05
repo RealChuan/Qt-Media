@@ -53,6 +53,7 @@ jobs:
             -S . `
             -B ./build `
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+            -DBUILD_MPV=OFF `
             -G "${{ matrix.generators }}"
           cmake --build ./build --config ${{ matrix.build_type }}
       - name: Configure and build on ubuntu or macos

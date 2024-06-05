@@ -1,5 +1,6 @@
 #include "colorspacedialog.hpp"
-#include "slider.h"
+
+#include <examples/common/slider.h>
 
 #include <QtWidgets>
 

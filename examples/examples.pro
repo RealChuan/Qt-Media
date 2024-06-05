@@ -2,5 +2,9 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS += \
-    player \
-    transcoder
+    ffmpegplayer \
+    ffmpegtranscoder
+
+contains(CONFIG, BUILD_MPV) {
+    SUBDIRS += mpvplayer
+}
