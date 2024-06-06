@@ -4,6 +4,7 @@ on:
   push:
     paths-ignore:
         - 'doc/**'
+        - 'packaging/**'
         - '.clang*'
         - '.gitignore'
         - 'LICENSE'
@@ -12,6 +13,7 @@ on:
   pull_request:
     paths-ignore: 
         - 'doc/**'
+        - 'packaging/**'
         - '.clang*'
         - '.gitignore'
         - 'LICENSE'

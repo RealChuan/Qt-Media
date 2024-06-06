@@ -8,10 +8,11 @@ include(utils)
 include(qt_utils)
 
 project(
-  Qt-Ffmpeg
+  Qt-Media
   VERSION 0.0.1
-  DESCRIPTION "This is a Qt project for Ffmpeg"
-  HOMEPAGE_URL "https://github.com/RealChuan/Qt-Ffmpeg"
+  DESCRIPTION
+    " A Qt-powered multimedia suite featuring FFmpeg and mpv for enhanced video playback and transcoding."
+  HOMEPAGE_URL "https://github.com/RealChuan/Qt-Media"
   LANGUAGES CXX)
 
 option(BUILD_MPV "build mpv" ON)
