@@ -168,7 +168,7 @@ public:
         codecCtx->global_quality = encodeContext.crf * FF_QP2LAMBDA;
         codecCtx->flags |= AV_CODEC_FLAG_QSCALE;
         if (encodeContext.codecInfo().name.contains("fdk")) {
-            auto vbr = QString::asprintf("%.1g", encodeContext.crf);
+            auto vbr = QString::asprintf("%.1d", encodeContext.crf);
             av_dict_set(&encodeOptions, "vbr", vbr.toUtf8().data(), 0);
         }
     }

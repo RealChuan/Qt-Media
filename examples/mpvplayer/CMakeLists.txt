@@ -28,7 +28,7 @@ qt_add_executable(MpvPlayer MANUAL_FINALIZATION ${PROJECT_SOURCES})
 target_compile_definitions(MpvPlayer PRIVATE "MPV_ON")
 target_link_libraries(
   MpvPlayer
-  PRIVATE custommpv
+  PRIVATE qmpv
           thirdparty
           dump
           utils
@@ -41,10 +41,9 @@ if(CMAKE_HOST_WIN32)
   file(COPY C:\\3rd\\x64\\mpv\\libmpv-2.dll
        DESTINATION ${EXECUTABLE_OUTPUT_PATH}/)
 elseif(CMAKE_HOST_APPLE)
-  target_link_directories(MpvPlayer PRIVATE /usr/lib)
-  target_link_directories(MpvPlayer PRIVATE /usr/local/lib)
+  target_link_directories(MpvPlayer PRIVATE "/opt/homebrew/lib")
   target_link_libraries(MpvPlayer PRIVATE mpv)
-elseif(CMAKE_HOST_UNIX)
+elseif(CMAKE_HOST_LINUX)
   target_link_libraries(MpvPlayer PRIVATE mpv)
 endif()
 

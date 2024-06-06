@@ -7,6 +7,18 @@ SUBDIRS += \
     3rdparty \
     ffmpeg
 
-contains(CONFIG, BUILD_MPV) {
+win32 {
+    exists("C:/3rd/x64/mpv/include"){
+        SUBDIRS += mpv
+    }
+}
+
+macx {
+    exists("/opt/homebrew/include/mpv"){
+        SUBDIRS += mpv
+    }
+}
+
+unix:!macx{
     SUBDIRS += mpv
 }

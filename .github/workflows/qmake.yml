@@ -54,7 +54,7 @@ jobs:
         shell: pwsh
         run: |
           ..\scripts\windows\setVsDev.ps1 -VersionRange "[16.0,17.0)" -Arch "x64"
-          & qmake "CONFIG-=BUILD_MPV" ./../.
+          & qmake ./../.
           & jom
         working-directory: build
       - name: ubuntu-build
@@ -68,6 +68,6 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         shell: bash
         run: |
-          qmake QMAKE_APPLE_DEVICE_ARCHS="arm64" ./../.
+          qmake ./../. QMAKE_APPLE_DEVICE_ARCHS="arm64"
           make -j $(sysctl -n hw.ncpu)
         working-directory: build

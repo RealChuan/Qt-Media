@@ -4,7 +4,7 @@ include(mpv.pri)
 QT       += core gui network widgets openglwidgets
 
 DEFINES += MPV_LIBRARY
-TARGET = $$replaceLibName(custommpv)
+TARGET = $$replaceLibName(qmpv)
 
 SOURCES += \
     mediainfo.cc \

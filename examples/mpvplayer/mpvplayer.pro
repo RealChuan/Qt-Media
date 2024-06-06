@@ -9,7 +9,7 @@ TARGET = MpvPlayer
 DEFINES += MPV_ON
 
 LIBS += \
-    -l$$replaceLibName(custommpv) \
+    -l$$replaceLibName(qmpv) \
     -l$$replaceLibName(thirdparty) \
     -l$$replaceLibName(dump) \
     -l$$replaceLibName(utils)

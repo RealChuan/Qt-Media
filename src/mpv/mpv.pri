@@ -1,5 +1,5 @@
 QT_CONFIG -= no-pkg-config
-CONFIG += link_pkgconfig debug
+# CONFIG += link_pkgconfig debug
 #PKGCONFIG += mpv
 
 win32 {
@@ -8,8 +8,8 @@ win32 {
 }
 
 macx {
-    INCLUDEPATH += /usr/local/include
-    LIBS += -L/usr/lib -L/usr/local/lib
+    INCLUDEPATH += /opt/homebrew/include
+    LIBS += -L/opt/homebrew/lib
     LIBS += -lmpv
 }
 
