@@ -18,7 +18,7 @@ private slots:
     void onHoverSlider(int pos, int value);
     void onLeaveSlider();
     void onShowCurrentFPS();
-    void onShowColorSpace();
+    void onEqualizer();
     void onShowMediaInfo();
 
     void onOpenLocalMedia();

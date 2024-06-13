@@ -8,6 +8,7 @@ TARGET = FfmpegTranscoder
 
 LIBS += \
     -l$$replaceLibName(ffmpeg) \
+    -l$$replaceLibName(mediaconfig) \
     -l$$replaceLibName(thirdparty) \
     -l$$replaceLibName(dump) \
     -l$$replaceLibName(utils)

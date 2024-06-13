@@ -33,6 +33,7 @@ qt_add_executable(FfmpegTranscoder MANUAL_FINALIZATION ${PROJECT_SOURCES})
 target_link_libraries(
   FfmpegTranscoder
   PRIVATE ffmpeg
+          mediaconfig
           thirdparty
           dump
           utils

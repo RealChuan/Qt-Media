@@ -1,6 +1,8 @@
 set(PROJECT_SOURCES
     ../common/controlwidget.cc
     ../common/controlwidget.hpp
+    ../common/equalizerdialog.cpp
+    ../common/equalizerdialog.h
     ../common/openwebmediadialog.cc
     ../common/openwebmediadialog.hpp
     ../common/playlistmodel.cpp
@@ -29,6 +31,7 @@ target_compile_definitions(MpvPlayer PRIVATE "MPV_ON")
 target_link_libraries(
   MpvPlayer
   PRIVATE qmpv
+          mediaconfig
           thirdparty
           dump
           utils

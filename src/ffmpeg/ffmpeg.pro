@@ -13,7 +13,9 @@ QT += widgets multimedia openglwidgets
 DEFINES += FFMPEG_LIBRARY
 TARGET = $$replaceLibName(ffmpeg)
 
-LIBS += -l$$replaceLibName(utils)
+LIBS += \
+    -l$$replaceLibName(mediaconfig) \
+    -l$$replaceLibName(utils)
 
 SOURCES += \
     audiodecoder.cpp \

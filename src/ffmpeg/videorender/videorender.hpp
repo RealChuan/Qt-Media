@@ -5,6 +5,7 @@
 
 #include <ffmpeg/colorutils.hpp>
 #include <ffmpeg/ffmepg_global.h>
+#include <mediaconfig/equalizer.hpp>
 
 #include <QWidget>
 
@@ -34,11 +35,8 @@ public:
     void setSubTitleFrame(const QSharedPointer<Subtitle> &framePtr);
     virtual void resetAllFrame() = 0;
 
-    void setColorSpaceTrc(const ColorUtils::ColorSpaceTrc &colorTrc) { m_colorSpaceTrc = colorTrc; }
-    [[nodiscard]] auto colorSpaceTrc() const -> ColorUtils::ColorSpaceTrc
-    {
-        return m_colorSpaceTrc;
-    }
+    void setEqualizer(const MediaConfig::Equalizer &equalizer) { m_equalizer = equalizer; }
+    [[nodiscard]] auto equalizer() const -> MediaConfig::Equalizer { return m_equalizer; }
 
     virtual void setTonemapType(Tonemap::Type type) { m_tonemapType = type; }
     [[nodiscard]] auto tonemapType() const -> Tonemap::Type { return m_tonemapType; }
@@ -62,7 +60,7 @@ protected:
     virtual void updateFrame(const QSharedPointer<Frame> &framePtr) = 0;
     virtual void updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr) = 0;
 
-    ColorUtils::ColorSpaceTrc m_colorSpaceTrc;
+    MediaConfig::Equalizer m_equalizer;
     Tonemap::Type m_tonemapType = Tonemap::Type::AUTO;
     ColorUtils::Primaries::Type m_destPrimaries = ColorUtils::Primaries::AUTO;
 

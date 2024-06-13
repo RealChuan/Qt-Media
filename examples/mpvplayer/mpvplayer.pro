@@ -10,6 +10,7 @@ DEFINES += MPV_ON
 
 LIBS += \
     -l$$replaceLibName(qmpv) \
+    -l$$replaceLibName(mediaconfig) \
     -l$$replaceLibName(thirdparty) \
     -l$$replaceLibName(dump) \
     -l$$replaceLibName(utils)
@@ -19,6 +20,7 @@ include(../../src/mpv/mpv.pri)
 
 SOURCES += \
     ../common/controlwidget.cc \
+    ../common/equalizerdialog.cpp \
     ../common/openwebmediadialog.cc \
     ../common/playlistmodel.cpp \
     ../common/playlistview.cc \
@@ -33,6 +35,7 @@ SOURCES += \
 
 HEADERS += \
     ../common/controlwidget.hpp \
+    ../common/equalizerdialog.h \
     ../common/openwebmediadialog.hpp \
     ../common/playlistmodel.h \
     ../common/playlistview.hpp \
@@ -48,5 +51,10 @@ HEADERS += \
 DESTDIR = $$APP_OUTPUT_PATH
 
 win32{
-    QMAKE_POST_LINK += $$QMAKE_COPY_FILE C:\\3rd\\x64\\mpv\\libmpv-2.dll $$replace(APP_OUTPUT_PATH, /, \\)\\libmpv-2.dll
+    contains(QT_ARCH, i386) {
+        MPVDLL_PATH = C:\\3rd\\x86\\mpv\\libmpv-2.dll
+    }else{
+        MPVDLL_PATH = C:\\3rd\\x64\\mpv\\libmpv-2.dll
+    }
+    QMAKE_POST_LINK += $$QMAKE_COPY_FILE $$MPVDLL_PATH $$replace(APP_OUTPUT_PATH, /, \\)\\libmpv-2.dll
 }

@@ -1,14 +1,14 @@
 set(PROJECT_SOURCES main.cc mainwindow.cc mainwindow.hpp subtitlethread.cc
                     subtitlethread.hpp)
 
-qt_add_executable(Subtitle_unittest MANUAL_FINALIZATION ${PROJECT_SOURCES})
-target_link_libraries(Subtitle_unittest PRIVATE Qt6::Widgets Qt6::Multimedia
+qt_add_executable(subtitle_unittest MANUAL_FINALIZATION ${PROJECT_SOURCES})
+target_link_libraries(subtitle_unittest PRIVATE Qt6::Widgets Qt6::Multimedia
                                                 Qt6::OpenGLWidgets ffmpeg utils)
-target_link_libraries(Subtitle_unittest PRIVATE PkgConfig::ffmpeg)
+target_link_libraries(subtitle_unittest PRIVATE PkgConfig::ffmpeg)
 
 if(CMAKE_HOST_APPLE)
   target_link_libraries(
-    Subtitle_unittest
+    subtitle_unittest
     PRIVATE ${Foundation_LIBRARY}
             ${CoreAudio_LIBRARY}
             ${AVFoundation_LIBRARY}
@@ -26,4 +26,4 @@ if(CMAKE_HOST_APPLE)
             ${CoreServices_LIBRARY})
 endif()
 
-qt_finalize_executable(Subtitle_unittest)
+qt_finalize_executable(subtitle_unittest)

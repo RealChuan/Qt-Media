@@ -19,6 +19,7 @@ private slots:
     void onTrackChanged();
     void onChapterChanged();
     void onRenderChanged(QAction *action);
+    void onEqualizer();
 
     void onPreview(int pos, int value);
     void onPreviewFinish();

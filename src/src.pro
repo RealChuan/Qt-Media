@@ -5,6 +5,7 @@ SUBDIRS += \
     utils \
     dump \
     3rdparty \
+    mediaconfig \
     ffmpeg
 
 win32 {

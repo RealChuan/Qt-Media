@@ -1,6 +1,6 @@
 #include "mainwindow.h"
-#include "colorspacedialog.hpp"
 
+#include <examples/common/equalizerdialog.h>
 #include <examples/common/controlwidget.hpp>
 #include <examples/common/openwebmediadialog.hpp>
 #include <examples/common/playlistmodel.h>
@@ -19,16 +19,6 @@
 #include <ffmpeg/widgets/mediainfodialog.hpp>
 
 #include <QtWidgets>
-
-static auto isPlaylist(const QUrl &url) -> bool // Check for ".m3u" playlists.
-{
-    if (!url.isLocalFile()) {
-        return false;
-    }
-    const QFileInfo fileInfo(url.toLocalFile());
-    return fileInfo.exists()
-           && (fileInfo.suffix().compare(QLatin1String("m3u"), Qt::CaseInsensitive) == 0);
-}
 
 class MainWindow::MainWindowPrivate
 {
@@ -59,12 +49,18 @@ public:
         //playlistView->setMaximumWidth(250);
 
         menu = new QMenu(q_ptr);
-        audioTracksGroup = new QActionGroup(q_ptr);
-        audioTracksGroup->setExclusive(true);
+
+        videoMenu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Video"), q_ptr);
+        audioMenu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Audio"), q_ptr);
+        subMenu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Subtitles"), q_ptr);
+
         videoTracksGroup = new QActionGroup(q_ptr);
         videoTracksGroup->setExclusive(true);
+        audioTracksGroup = new QActionGroup(q_ptr);
+        audioTracksGroup->setExclusive(true);
         subTracksGroup = new QActionGroup(q_ptr);
         subTracksGroup->setExclusive(true);
+
         mediaInfoAction = new QAction(QCoreApplication::translate("MainWindowPrivate", "Media Info"),
                                       q_ptr);
 
@@ -116,9 +112,9 @@ public:
         subTracksMenuPtr = new QMenu(QCoreApplication::translate("MainWindowPrivate",
                                                                  "Select subtitle track"),
                                      q_ptr);
-        menu->addMenu(videoTracksMenuPtr.data());
-        menu->addMenu(audioTracksMenuPtr.data());
-        menu->addMenu(subTracksMenuPtr.data());
+        videoMenu->addMenu(videoTracksMenuPtr.data());
+        audioMenu->addMenu(audioTracksMenuPtr.data());
+        subMenu->addMenu(subTracksMenuPtr.data());
 
         menu->removeAction(mediaInfoAction);
         menu->addAction(mediaInfoAction);
@@ -201,12 +197,19 @@ public:
     PlaylistModel *playlistModel;
 
     QMenu *menu;
-    QPointer<QMenu> audioTracksMenuPtr;
+
+    QMenu *videoMenu;
     QPointer<QMenu> videoTracksMenuPtr;
-    QPointer<QMenu> subTracksMenuPtr;
-    QActionGroup *audioTracksGroup;
     QActionGroup *videoTracksGroup;
+
+    QMenu *audioMenu;
+    QPointer<QMenu> audioTracksMenuPtr;
+    QActionGroup *audioTracksGroup;
+
+    QMenu *subMenu;
+    QPointer<QMenu> subTracksMenuPtr;
     QActionGroup *subTracksGroup;
+
     QAction *mediaInfoAction;
 
     QMenu *playListMenu;
@@ -360,15 +363,15 @@ void MainWindow::jump(const QModelIndex &index)
     }
 }
 
-void MainWindow::onShowColorSpace()
+void MainWindow::onEqualizer()
 {
     if (d_ptr->videoRender.isNull()) {
         return;
     }
-    ColorSpaceDialog dialog(this);
-    dialog.setColorSpace(d_ptr->videoRender->colorSpaceTrc());
-    connect(&dialog, &ColorSpaceDialog::colorSpaceChanged, this, [&] {
-        d_ptr->videoRender->setColorSpaceTrc(dialog.colorSpace());
+    EqualizerDialog dialog(this);
+    dialog.setEqualizer(d_ptr->videoRender->equalizer());
+    connect(&dialog, &EqualizerDialog::equalizerChanged, this, [&] {
+        d_ptr->videoRender->setEqualizer(dialog.equalizer());
     });
     dialog.exec();
 }
@@ -638,13 +641,18 @@ void MainWindow::initMenu()
     hwAction->setChecked(true);
     d_ptr->menu->addAction(hwAction);
 
-    auto *colorSpaceAction = new QAction(tr("Color Space"), this);
-    connect(colorSpaceAction, &QAction::triggered, this, &MainWindow::onShowColorSpace);
-    d_ptr->menu->addAction(colorSpaceAction);
+    renderMenu();
+
+    d_ptr->menu->addMenu(d_ptr->videoMenu);
+    d_ptr->menu->addMenu(d_ptr->audioMenu);
+    d_ptr->menu->addMenu(d_ptr->subMenu);
+
+    auto *equalizerAction = new QAction(tr("Equalizer"), this);
+    connect(equalizerAction, &QAction::triggered, this, &MainWindow::onEqualizer);
+    d_ptr->videoMenu->addAction(equalizerAction);
 
     tonemapMenu();
     destPrimarisMenu();
-    renderMenu();
 
     connect(d_ptr->audioTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         d_ptr->playerPtr->addEvent(Ffmpeg::EventPtr(
@@ -682,7 +690,7 @@ void MainWindow::tonemapMenu()
             action->setChecked(true);
         }
     }
-    d_ptr->menu->addMenu(tonemapMenu);
+    d_ptr->videoMenu->addMenu(tonemapMenu);
     connect(tonemapGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         d_ptr->tonemapType = static_cast<Ffmpeg::Tonemap::Type>(action->data().toInt());
         if (d_ptr->videoRender.isNull()) {
@@ -710,7 +718,7 @@ void MainWindow::destPrimarisMenu()
             action->setChecked(true);
         }
     }
-    d_ptr->menu->addMenu(destPrimarisMenu);
+    d_ptr->videoMenu->addMenu(destPrimarisMenu);
     connect(destPrimarisGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         d_ptr->primarisType = static_cast<Ffmpeg::ColorUtils::Primaries::Type>(
             action->data().toInt());
@@ -742,7 +750,7 @@ void MainWindow::renderMenu()
             Qt::QueuedConnection);
     openglAction->trigger();
 
-    auto *renderMenu = new QMenu(tr("Video Render"), this);
+    auto *renderMenu = new QMenu(tr("Render"), this);
     renderMenu->addAction(widgetAction);
     renderMenu->addAction(openglAction);
     d_ptr->menu->addMenu(renderMenu);

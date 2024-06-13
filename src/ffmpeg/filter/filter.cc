@@ -159,12 +159,12 @@ auto Filter::scale(const QSize &size) -> QString
     return QString("scale=%1:%2").arg(QString::number(size.width()), QString::number(size.height()));
 }
 
-auto Filter::ep(const ColorUtils::ColorSpaceTrc &trc) -> QString
+auto Filter::ep(const MediaConfig::Equalizer &equalizer) -> QString
 {
     return QString("eq=contrast=%1:saturation=%2:brightness=%3")
-        .arg(QString::number(trc.eqContrast()),
-             QString::number(trc.eqSaturation()),
-             QString::number(trc.eqBrightness()));
+        .arg(QString::number(equalizer.eqContrast()),
+             QString::number(equalizer.eqSaturation()),
+             QString::number(equalizer.eqBrightness()));
 }
 
 // need z.lib libzimg support zscale

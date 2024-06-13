@@ -2,6 +2,7 @@
 #define FILTER_HPP
 
 #include <ffmpeg/colorutils.hpp>
+#include <mediaconfig/equalizer.hpp>
 #include <videorender/tonemap.hpp>
 
 #include <QObject>
@@ -34,7 +35,7 @@ public:
     auto buffersinkCtx() -> FilterContext *;
 
     static auto scale(const QSize &size) -> QString;
-    static auto ep(const ColorUtils::ColorSpaceTrc &trc) -> QString;
+    static auto ep(const MediaConfig::Equalizer &equalizer) -> QString;
     static auto zscale(ColorUtils::Primaries::Type destPrimaries, Tonemap::Type type) -> QString;
 
 private:

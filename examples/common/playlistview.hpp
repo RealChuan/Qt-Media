@@ -3,6 +3,8 @@
 
 #include <QListView>
 
+auto isPlaylist(const QUrl &url) -> bool;
+
 class PlayListView : public QListView
 {
 public:

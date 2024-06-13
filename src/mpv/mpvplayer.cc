@@ -181,7 +181,7 @@ void MpvPlayer::openMedia(const QString &filePath)
         return;
     }
     const QByteArray c_filename = filePath.toUtf8();
-    const char *args[] = {"loadfile", c_filename.data(), NULL};
+    const char *args[] = {"loadfile", c_filename.data(), nullptr};
     mpv_command_async(d_ptr->mpv, 0, args);
 }
 
@@ -378,6 +378,66 @@ void MpvPlayer::setSubtitleDelay(double delay)
 auto MpvPlayer::subtitleDelay() const -> double
 {
     return mpv::qt::get_property(d_ptr->mpv, "sub-delay").toDouble();
+}
+
+void MpvPlayer::setBrightness(int value)
+{
+    qInfo() << "brightness: " << value;
+    Q_ASSERT(value >= -100 && value <= 100);
+    mpv::qt::set_property_async(d_ptr->mpv, "brightness", value);
+}
+
+auto MpvPlayer::brightness() const -> int
+{
+    return mpv::qt::get_property(d_ptr->mpv, "brightness").toInt();
+}
+
+void MpvPlayer::setContrast(int value)
+{
+    qInfo() << "contrast: " << value;
+    Q_ASSERT(value >= -100 && value <= 100);
+    mpv::qt::set_property_async(d_ptr->mpv, "contrast", value);
+}
+
+auto MpvPlayer::contrast() const -> int
+{
+    return mpv::qt::get_property(d_ptr->mpv, "contrast").toInt();
+}
+
+void MpvPlayer::setSaturation(int value)
+{
+    qInfo() << "saturation: " << value;
+    Q_ASSERT(value >= -100 && value <= 100);
+    mpv::qt::set_property_async(d_ptr->mpv, "saturation", value);
+}
+
+auto MpvPlayer::saturation() const -> int
+{
+    return mpv::qt::get_property(d_ptr->mpv, "saturation").toInt();
+}
+
+void MpvPlayer::setGamma(int value)
+{
+    qInfo() << "gamma: " << value;
+    Q_ASSERT(value >= -100 && value <= 100);
+    mpv::qt::set_property_async(d_ptr->mpv, "gamma", value);
+}
+
+auto MpvPlayer::gamma() const -> int
+{
+    return mpv::qt::get_property(d_ptr->mpv, "gamma").toInt();
+}
+
+void MpvPlayer::setHue(int value)
+{
+    qInfo() << "hue: " << value;
+    Q_ASSERT(value >= -100 && value <= 100);
+    mpv::qt::set_property_async(d_ptr->mpv, "hue", value);
+}
+
+auto MpvPlayer::hue() const -> int
+{
+    return mpv::qt::get_property(d_ptr->mpv, "hue").toInt();
 }
 
 void MpvPlayer::pauseAsync()

@@ -9,6 +9,7 @@ set(PROJECT_SOURCES
     logasync.cpp
     logasync.h
     osspecificaspects.h
+    range.hpp
     singleton.hpp
     speed.cc
     speed.hpp

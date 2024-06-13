@@ -78,7 +78,22 @@ public:
     [[nodiscard]] auto speed() const -> double;
 
     void setSubtitleDelay(double delay); // seconds
-    auto subtitleDelay() const -> double;
+    [[nodiscard]] auto subtitleDelay() const -> double;
+
+    void setBrightness(int value);
+    [[nodiscard]] auto brightness() const -> int;
+
+    void setContrast(int value);
+    [[nodiscard]] auto contrast() const -> int;
+
+    void setSaturation(int value);
+    [[nodiscard]] auto saturation() const -> int;
+
+    void setGamma(int value);
+    [[nodiscard]] auto gamma() const -> int;
+
+    void setHue(int value);
+    [[nodiscard]] auto hue() const -> int;
 
     void pauseAsync();
     void pauseSync(bool state);

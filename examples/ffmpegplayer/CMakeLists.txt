@@ -1,6 +1,8 @@
 set(PROJECT_SOURCES
     ../common/controlwidget.cc
     ../common/controlwidget.hpp
+    ../common/equalizerdialog.cpp
+    ../common/equalizerdialog.h
     ../common/openwebmediadialog.cc
     ../common/openwebmediadialog.hpp
     ../common/playlistmodel.cpp
@@ -16,8 +18,6 @@ set(PROJECT_SOURCES
     ../common/slider.h
     ../common/titlewidget.cc
     ../common/titlewidget.hpp
-    colorspacedialog.cc
-    colorspacedialog.hpp
     main.cpp
     mainwindow.cpp
     mainwindow.h)
@@ -26,6 +26,7 @@ qt_add_executable(FfmpegPlayer MANUAL_FINALIZATION ${PROJECT_SOURCES})
 target_link_libraries(
   FfmpegPlayer
   PRIVATE ffmpeg
+          mediaconfig
           thirdparty
           dump
           utils

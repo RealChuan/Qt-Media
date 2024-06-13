@@ -72,9 +72,9 @@ public:
             frameConverterPtr->flush(framePtr.data(), size, dst_pix_fmt);
         }
         frameConverterPtr->setColorspaceDetails(framePtr.data(),
-                                                q_ptr->m_colorSpaceTrc.brightness(),
-                                                q_ptr->m_colorSpaceTrc.contrast(),
-                                                q_ptr->m_colorSpaceTrc.saturation());
+                                                q_ptr->m_equalizer.ffBrightness(),
+                                                q_ptr->m_equalizer.ffContrast(),
+                                                q_ptr->m_equalizer.ffSaturation());
         QSharedPointer<Frame> frameRgbPtr(new Frame);
         frameRgbPtr->imageAlloc(size, dst_pix_fmt);
         frameConverterPtr->scale(framePtr.data(), frameRgbPtr.data());
@@ -93,12 +93,12 @@ public:
         size.scale(q_ptr->size() * q_ptr->devicePixelRatio(), Qt::KeepAspectRatio);
 
         if (framePtr.isNull() || filterPtr.isNull() || lastFrameParam != frameParam
-            || lastScaleSize != size || colorSpaceTrc != q_ptr->m_colorSpaceTrc
+            || lastScaleSize != size || equalizer != q_ptr->m_equalizer
             /*|| tonemapType != q_ptr->m_tonemapType || destPrimaries != q_ptr->m_destPrimaries*/) {
             filterPtr.reset(new Filter);
             lastFrameParam = frameParam;
             lastScaleSize = size;
-            colorSpaceTrc = q_ptr->m_colorSpaceTrc;
+            equalizer = q_ptr->m_equalizer;
             destPrimaries = q_ptr->m_destPrimaries;
         }
         if (!filterPtr->isInitialized()) {
@@ -110,7 +110,7 @@ public:
                            reinterpret_cast<uint8_t *>(&pix_fmt),
                            sizeof(pix_fmt),
                            AV_OPT_SEARCH_CHILDREN);
-            auto filterSpec = QString("%1,%2").arg(Filter::scale(size), Filter::ep(colorSpaceTrc));
+            auto filterSpec = QString("%1,%2").arg(Filter::scale(size), Filter::ep(equalizer));
             filterPtr->config(filterSpec);
         }
         auto framePtrs = filterPtr->filterFrame(framePtr.data());
@@ -139,7 +139,7 @@ public:
     QColor backgroundColor = Qt::black;
 
     QSize lastScaleSize;
-    ColorUtils::ColorSpaceTrc colorSpaceTrc;
+    MediaConfig::Equalizer equalizer;
     Tonemap::Type tonemapType;
     ColorUtils::Primaries::Type destPrimaries;
 };

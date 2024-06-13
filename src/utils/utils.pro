@@ -20,6 +20,7 @@ HEADERS += \
     hostosinfo.h \
     logasync.h \
     osspecificaspects.h \
+    range.hpp \
     singleton.hpp \
     speed.hpp \
     threadsafequeue.hpp \

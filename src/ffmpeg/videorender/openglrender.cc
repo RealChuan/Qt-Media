@@ -6,6 +6,8 @@
 #include <ffmpeg/frame.hpp>
 #include <ffmpeg/subtitle.h>
 #include <ffmpeg/videoframeconverter.hpp>
+#include <mediaconfig/equalizer.hpp>
+#include <utils/utils.h>
 
 #include <QImage>
 
@@ -294,9 +296,9 @@ void OpenglRender::paintVideoFrame()
     }
     d_ptr->programPtr->bind(); // 绑定着色器
     d_ptr->programPtr->setUniformValue("transform", fitToScreen({avFrame->width, avFrame->height}));
-    d_ptr->programPtr->setUniformValue("contrast", m_colorSpaceTrc.contrast());
-    d_ptr->programPtr->setUniformValue("saturation", m_colorSpaceTrc.saturation());
-    d_ptr->programPtr->setUniformValue("brightness", m_colorSpaceTrc.brightness());
+    d_ptr->programPtr->setUniformValue("contrast", m_equalizer.ffContrast());
+    d_ptr->programPtr->setUniformValue("saturation", m_equalizer.ffSaturation());
+    d_ptr->programPtr->setUniformValue("brightness", m_equalizer.ffBrightness());
     draw();
     d_ptr->programPtr->release();
     d_ptr->frameChanged = false;

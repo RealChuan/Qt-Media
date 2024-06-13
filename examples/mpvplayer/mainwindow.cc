@@ -3,6 +3,7 @@
 #include "subtitledelaydialog.hpp"
 
 #include <examples/common/controlwidget.hpp>
+#include <examples/common/equalizerdialog.h>
 #include <examples/common/openwebmediadialog.hpp>
 #include <examples/common/playlistmodel.h>
 #include <examples/common/playlistview.hpp>
@@ -14,16 +15,6 @@
 #include <mpv/previewwidget.hpp>
 
 #include <QtWidgets>
-
-static auto isPlaylist(const QUrl &url) -> bool // Check for ".m3u" playlists.
-{
-    if (!url.isLocalFile()) {
-        return false;
-    }
-    const QFileInfo fileInfo(url.toLocalFile());
-    return fileInfo.exists()
-           && (fileInfo.suffix().compare(QLatin1String("m3u"), Qt::CaseInsensitive) == 0);
-}
 
 class MainWindow::MainWindowPrivate
 {
@@ -397,6 +388,28 @@ void MainWindow::onRenderChanged(QAction *action)
     }
 }
 
+void MainWindow::onEqualizer()
+{
+    MediaConfig::Equalizer equalizer;
+    equalizer.contrastRange().setValue(d_ptr->mpvPlayer->contrast());
+    equalizer.brightnessRange().setValue(d_ptr->mpvPlayer->brightness());
+    equalizer.saturationRange().setValue(d_ptr->mpvPlayer->saturation());
+    equalizer.gammaRange().setValue(d_ptr->mpvPlayer->gamma());
+    equalizer.hueRange().setValue(d_ptr->mpvPlayer->hue());
+
+    EqualizerDialog dialog(this);
+    dialog.setEqualizer(equalizer);
+    connect(&dialog, &EqualizerDialog::equalizerChanged, this, [&] {
+        auto equalizer = dialog.equalizer();
+        d_ptr->mpvPlayer->setContrast(equalizer.contrastRange().value());
+        d_ptr->mpvPlayer->setBrightness(equalizer.brightnessRange().value());
+        d_ptr->mpvPlayer->setSaturation(equalizer.saturationRange().value());
+        d_ptr->mpvPlayer->setGamma(equalizer.gammaRange().value());
+        d_ptr->mpvPlayer->setHue(equalizer.hueRange().value());
+    });
+    dialog.exec();
+}
+
 void MainWindow::onPreview(int pos, int value)
 {
     auto url = d_ptr->mpvPlayer->filepath();
@@ -689,6 +702,10 @@ void MainWindow::initMenu()
     d_ptr->menu->addMenu(d_ptr->videoMenu);
     d_ptr->menu->addMenu(d_ptr->audioMenu);
     d_ptr->menu->addMenu(d_ptr->subMenu);
+
+    auto *equalizerAction = new QAction(tr("Equalizer"), this);
+    connect(equalizerAction, &QAction::triggered, this, &MainWindow::onEqualizer);
+    d_ptr->videoMenu->addAction(equalizerAction);
 
     connect(d_ptr->videoTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         auto data = action->data().value<Mpv::TraskInfo>();
