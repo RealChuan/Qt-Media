@@ -1,5 +1,5 @@
-#ifndef TONEMAP_HPP
-#define TONEMAP_HPP
+#ifndef TONEMAPPING_H
+#define TONEMAPPING_H
 
 #include <ffmpeg/ffmepg_global.h>
 
@@ -7,7 +7,7 @@
 
 namespace Ffmpeg {
 
-class FFMPEG_EXPORT Tonemap : public QObject
+class FFMPEG_EXPORT ToneMapping : public QObject
 {
     Q_OBJECT
 public:
@@ -16,9 +16,9 @@ public:
 
     using QObject::QObject;
 
-    static void toneMap(QByteArray &header, QByteArray &frag, Type type = NONE);
+    static void toneMapping(QByteArray &header, QByteArray &frag, Type type = NONE);
 };
 
 } // namespace Ffmpeg
 
-#endif // TONEMAP_HPP
+#endif // TONEMAPPING_H

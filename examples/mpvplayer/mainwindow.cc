@@ -75,6 +75,29 @@ public:
         initShortcut();
     }
 
+    ~MainWindowPrivate() = default;
+
+    auto createtoneMappingMenu() -> QMenu *
+    {
+        auto *group = new QActionGroup(q_ptr);
+        group->setExclusive(true);
+        auto *menu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Tone-Mapping"),
+                               q_ptr);
+        auto toneMappings = mpvPlayer->toneMappings();
+        for (const auto &toneMapping : std::as_const(toneMappings)) {
+            auto *action = new QAction(toneMapping, q_ptr);
+            action->setCheckable(true);
+            group->addAction(action);
+            menu->addAction(action);
+        }
+        group->actions().at(0)->setChecked(true);
+        q_ptr->connect(group, &QActionGroup::triggered, q_ptr, [this](QAction *action) {
+            mpvPlayer->setToneMapping(action->text());
+        });
+
+        return menu;
+    }
+
     void resetTrackMenu()
     {
         auto actions = audioTracksGroup->actions();
@@ -706,6 +729,7 @@ void MainWindow::initMenu()
     auto *equalizerAction = new QAction(tr("Equalizer"), this);
     connect(equalizerAction, &QAction::triggered, this, &MainWindow::onEqualizer);
     d_ptr->videoMenu->addAction(equalizerAction);
+    d_ptr->videoMenu->addMenu(d_ptr->createtoneMappingMenu());
 
     connect(d_ptr->videoTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         auto data = action->data().value<Mpv::TraskInfo>();

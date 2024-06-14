@@ -11,7 +11,7 @@ public:
     ~SubtitleDelayDialog() override;
 
     void setDelay(double delay);
-    auto delay() const -> double;
+    [[nodiscard]] auto delay() const -> double;
 
 signals:
     void delayChanged(double delay);

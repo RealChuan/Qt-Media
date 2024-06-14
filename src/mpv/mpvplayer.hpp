@@ -95,6 +95,10 @@ public:
     void setHue(int value);
     [[nodiscard]] auto hue() const -> int;
 
+    [[nodiscard]] auto toneMappings() const -> QStringList;
+    void setToneMapping(const QString &toneMapping);
+    [[nodiscard]] auto toneMapping() const -> QString;
+
     void pauseAsync();
     void pauseSync(bool state);
     auto isPaused() -> bool;

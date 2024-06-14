@@ -34,8 +34,8 @@ set(PROJECT_SOURCES
     videorender/openglshaderprogram.hpp
     videorender/shaderutils.cc
     videorender/shaderutils.hpp
-    videorender/tonemap.cc
-    videorender/tonemap.hpp
+    videorender/tonemapping.cc
+    videorender/tonemapping.hpp
     videorender/videopreviewwidget.cc
     videorender/videopreviewwidget.hpp
     videorender/videorender.cc

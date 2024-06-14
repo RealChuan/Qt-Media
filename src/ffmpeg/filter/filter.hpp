@@ -3,7 +3,7 @@
 
 #include <ffmpeg/colorutils.hpp>
 #include <mediaconfig/equalizer.hpp>
-#include <videorender/tonemap.hpp>
+#include <videorender/tonemapping.hpp>
 
 #include <QObject>
 
@@ -37,7 +37,7 @@ public:
     static auto scale(const QSize &size) -> QString;
     static auto eq(const MediaConfig::Equalizer &equalizer) -> QString;
     static auto hue(int value) -> QString;
-    static auto zscale(ColorUtils::Primaries::Type destPrimaries, Tonemap::Type type) -> QString;
+    static auto zscale(ColorUtils::Primaries::Type destPrimaries, ToneMapping::Type type) -> QString;
 
 private:
     class FilterPrivate;

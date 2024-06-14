@@ -1,7 +1,7 @@
 #ifndef OPENGLSHADER_HPP
 #define OPENGLSHADER_HPP
 
-#include "tonemap.hpp"
+#include "tonemapping.hpp"
 
 #include <ffmpeg/colorutils.hpp>
 
@@ -17,7 +17,7 @@ public:
     ~OpenglShader() override;
 
     auto generate(Frame *frame,
-                  Tonemap::Type type = Tonemap::Type::NONE,
+                  ToneMapping::Type type = ToneMapping::Type::NONE,
                   ColorUtils::Primaries::Type destPrimaries = ColorUtils::Primaries::Type::AUTO)
         -> QByteArray;
 

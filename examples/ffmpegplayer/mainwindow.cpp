@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 
-#include <examples/common/equalizerdialog.h>
 #include <examples/common/controlwidget.hpp>
+#include <examples/common/equalizerdialog.h>
 #include <examples/common/openwebmediadialog.hpp>
 #include <examples/common/playlistmodel.h>
 #include <examples/common/playlistview.hpp>
@@ -75,6 +75,36 @@ public:
     }
 
     ~MainWindowPrivate() = default;
+
+    auto createtoneMappingMenu() -> QMenu *
+    {
+        auto *group = new QActionGroup(q_ptr);
+        group->setExclusive(true);
+        auto *menu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Tone-Mapping"),
+                               q_ptr);
+        auto toneMappings = QMetaEnum::fromType<Ffmpeg::ToneMapping::Type>();
+        for (int i = 0; i < toneMappings.keyCount(); ++i) {
+            auto value = toneMappings.value(i);
+            auto *action = new QAction(toneMappings.key(i), q_ptr);
+            action->setCheckable(true);
+            action->setData(value);
+            group->addAction(action);
+            menu->addAction(action);
+            if (value == Ffmpeg::ToneMapping::Type::AUTO) {
+                action->setChecked(true);
+            }
+        }
+        q_ptr->connect(group, &QActionGroup::triggered, q_ptr, [this](QAction *action) {
+            toneMappingType = static_cast<Ffmpeg::ToneMapping::Type>(action->data().toInt());
+            if (videoRender.isNull()) {
+                return;
+            }
+            videoRender->setToneMappingType(toneMappingType);
+        });
+        group->checkedAction()->trigger();
+
+        return menu;
+    }
 
     void resetTrackMenu()
     {
@@ -218,7 +248,7 @@ public:
 
     QSplitter *splitter;
 
-    Ffmpeg::Tonemap::Type tonemapType = Ffmpeg::Tonemap::Type::AUTO;
+    Ffmpeg::ToneMapping::Type toneMappingType = Ffmpeg::ToneMapping::Type::AUTO;
     Ffmpeg::ColorUtils::Primaries::Type primarisType = Ffmpeg::ColorUtils::Primaries::Type::AUTO;
 };
 
@@ -340,7 +370,7 @@ void MainWindow::onRenderChanged(QAction *action)
     d_ptr->splitter->insertWidget(0, videoRender->widget());
     // 为什么切换成widget还是有使用GPU 0-3D，而且使用量是切换为opengl的两倍！！！
     d_ptr->videoRender.reset(videoRender);
-    d_ptr->videoRender->setTonemapType(d_ptr->tonemapType);
+    d_ptr->videoRender->setToneMappingType(d_ptr->toneMappingType);
     d_ptr->videoRender->setDestPrimaries(d_ptr->primarisType);
 }
 
@@ -651,7 +681,8 @@ void MainWindow::initMenu()
     connect(equalizerAction, &QAction::triggered, this, &MainWindow::onEqualizer);
     d_ptr->videoMenu->addAction(equalizerAction);
 
-    tonemapMenu();
+    d_ptr->videoMenu->addMenu(d_ptr->createtoneMappingMenu());
+
     destPrimarisMenu();
 
     connect(d_ptr->audioTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
@@ -671,34 +702,6 @@ void MainWindow::initMenu()
     });
 
     connect(d_ptr->mediaInfoAction, &QAction::triggered, this, &MainWindow::onShowMediaInfo);
-}
-
-void MainWindow::tonemapMenu()
-{
-    auto *tonemapGroup = new QActionGroup(this);
-    tonemapGroup->setExclusive(true);
-    auto *tonemapMenu = new QMenu(tr("Tonemap"), this);
-    auto tonemaps = QMetaEnum::fromType<Ffmpeg::Tonemap::Type>();
-    for (int i = 0; i < tonemaps.keyCount(); ++i) {
-        auto value = tonemaps.value(i);
-        auto *action = new QAction(tonemaps.key(i), this);
-        action->setCheckable(true);
-        action->setData(value);
-        tonemapGroup->addAction(action);
-        tonemapMenu->addAction(action);
-        if (value == Ffmpeg::Tonemap::Type::AUTO) {
-            action->setChecked(true);
-        }
-    }
-    d_ptr->videoMenu->addMenu(tonemapMenu);
-    connect(tonemapGroup, &QActionGroup::triggered, this, [this](QAction *action) {
-        d_ptr->tonemapType = static_cast<Ffmpeg::Tonemap::Type>(action->data().toInt());
-        if (d_ptr->videoRender.isNull()) {
-            return;
-        }
-        d_ptr->videoRender->setTonemapType(d_ptr->tonemapType);
-    });
-    tonemapGroup->checkedAction()->trigger();
 }
 
 void MainWindow::destPrimarisMenu()

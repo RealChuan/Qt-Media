@@ -440,6 +440,34 @@ auto MpvPlayer::hue() const -> int
     return mpv::qt::get_property(d_ptr->mpv, "hue").toInt();
 }
 
+auto MpvPlayer::toneMappings() const -> QStringList
+{
+    static QStringList list{"auto",
+                            "clip",
+                            "mobius",
+                            "reinhard",
+                            "hable",
+                            "bt.2390",
+                            "gamma",
+                            "linear",
+                            "spline",
+                            "bt.2446a",
+                            "st2094-40",
+                            "st2094-10"};
+    return list;
+}
+
+void MpvPlayer::setToneMapping(const QString &toneMapping)
+{
+    qInfo() << "tone-mapping: " << toneMapping;
+    mpv::qt::set_property_async(d_ptr->mpv, "tone-mapping", toneMapping);
+}
+
+auto MpvPlayer::toneMapping() const -> QString
+{
+    return mpv::qt::get_property(d_ptr->mpv, "tone-mapping").toString();
+}
+
 void MpvPlayer::pauseAsync()
 {
     auto state = !isPaused();

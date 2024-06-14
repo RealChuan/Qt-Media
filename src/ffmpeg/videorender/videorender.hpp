@@ -1,7 +1,7 @@
 #ifndef VIDEORENDER_HPP
 #define VIDEORENDER_HPP
 
-#include "tonemap.hpp"
+#include "tonemapping.hpp"
 
 #include <ffmpeg/colorutils.hpp>
 #include <ffmpeg/ffmepg_global.h>
@@ -38,8 +38,8 @@ public:
     void setEqualizer(const MediaConfig::Equalizer &equalizer) { m_equalizer = equalizer; }
     [[nodiscard]] auto equalizer() const -> MediaConfig::Equalizer { return m_equalizer; }
 
-    virtual void setTonemapType(Tonemap::Type type) { m_tonemapType = type; }
-    [[nodiscard]] auto tonemapType() const -> Tonemap::Type { return m_tonemapType; }
+    virtual void setToneMappingType(ToneMapping::Type type) { m_tonemapType = type; }
+    [[nodiscard]] auto tonemapType() const -> ToneMapping::Type { return m_tonemapType; }
 
     virtual void setDestPrimaries(ColorUtils::Primaries::Type type) { m_destPrimaries = type; }
     [[nodiscard]] auto destPrimaries() const -> ColorUtils::Primaries::Type
@@ -61,7 +61,7 @@ protected:
     virtual void updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr) = 0;
 
     MediaConfig::Equalizer m_equalizer;
-    Tonemap::Type m_tonemapType = Tonemap::Type::AUTO;
+    ToneMapping::Type m_tonemapType = ToneMapping::Type::AUTO;
     ColorUtils::Primaries::Type m_destPrimaries = ColorUtils::Primaries::AUTO;
 
     QColor m_backgroundColor = Qt::black;

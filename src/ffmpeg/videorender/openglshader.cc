@@ -65,7 +65,7 @@ OpenglShader::OpenglShader(QObject *parent)
 OpenglShader::~OpenglShader() = default;
 
 auto OpenglShader::generate(Frame *frame,
-                            Tonemap::Type type,
+                            ToneMapping::Type type,
                             ColorUtils::Primaries::Type destPrimaries) -> QByteArray
 {
     d_ptr->dstPrimariesType = destPrimaries;
@@ -85,10 +85,10 @@ auto OpenglShader::generate(Frame *frame,
     //ShaderUtils::passOotf(frag, d_ptr->srcHdrMetaData.maxLuma, avFrame->color_trc);
 
     // Tone map
-    if (type == Tonemap ::AUTO) {
-        type = ShaderUtils::trcIsHdr(avFrame->color_trc) ? Tonemap::FILMIC : Tonemap::NONE;
+    if (type == ToneMapping ::AUTO) {
+        type = ShaderUtils::trcIsHdr(avFrame->color_trc) ? ToneMapping::FILMIC : ToneMapping::NONE;
     }
-    Tonemap::toneMap(header, frag, type);
+    ToneMapping::toneMapping(header, frag, type);
 
     // Convert primaries
     d_ptr->isConvertPrimaries = ShaderUtils::convertPrimaries(header,

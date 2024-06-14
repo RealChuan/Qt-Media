@@ -61,7 +61,7 @@ public:
     bool frameChanged = true;
     QSharedPointer<Subtitle> subTitleFramePtr;
     bool subChanged = true;
-    Tonemap::Type tonemapType;
+    ToneMapping::Type tonemapType;
     ColorUtils::Primaries::Type destPrimaries;
 };
 

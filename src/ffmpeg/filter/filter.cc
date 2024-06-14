@@ -174,7 +174,7 @@ auto Filter::hue(int value) -> QString
 }
 
 // need z.lib libzimg support zscale
-auto Filter::zscale(ColorUtils::Primaries::Type destPrimaries, Tonemap::Type type) -> QString
+auto Filter::zscale(ColorUtils::Primaries::Type destPrimaries, ToneMapping::Type type) -> QString
 {
     QString primaries;
     switch (destPrimaries) {
@@ -187,12 +187,12 @@ auto Filter::zscale(ColorUtils::Primaries::Type destPrimaries, Tonemap::Type typ
 
     QString tonemap;
     switch (type) {
-    case Tonemap::Type::CLIP: tonemap = "clip"; break;
-    case Tonemap::Type::LINEAR: tonemap = "linear"; break;
-    case Tonemap::Type::GAMMA: tonemap = "gamma"; break;
-    case Tonemap::Type::REINHARD: tonemap = "reinhard"; break;
-    case Tonemap::Type::HABLE: tonemap = "hable"; break;
-    case Tonemap::Type::MOBIUS: tonemap = "mobius"; break;
+    case ToneMapping::Type::CLIP: tonemap = "clip"; break;
+    case ToneMapping::Type::LINEAR: tonemap = "linear"; break;
+    case ToneMapping::Type::GAMMA: tonemap = "gamma"; break;
+    case ToneMapping::Type::REINHARD: tonemap = "reinhard"; break;
+    case ToneMapping::Type::HABLE: tonemap = "hable"; break;
+    case ToneMapping::Type::MOBIUS: tonemap = "mobius"; break;
     default: return {};
     }
     return QString("zscale=t=linear:p=%1,tonemap=%2").arg(primaries, tonemap);

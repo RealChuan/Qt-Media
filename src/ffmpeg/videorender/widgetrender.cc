@@ -143,7 +143,7 @@ public:
 
     QSize lastScaleSize;
     MediaConfig::Equalizer equalizer;
-    Tonemap::Type tonemapType;
+    ToneMapping::Type tonemapType;
     ColorUtils::Primaries::Type destPrimaries;
 };
 
