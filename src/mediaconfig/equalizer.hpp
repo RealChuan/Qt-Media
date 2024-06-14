@@ -35,8 +35,12 @@ public:
     [[nodiscard]] auto eqBrightness() const -> float;
 
     [[nodiscard]] auto gammaRange() const -> EqualizerRange &;
+    [[nodiscard]] auto ffGamma() const -> float;
+    [[nodiscard]] auto eqGamma() const -> float;
 
     [[nodiscard]] auto hueRange() const -> EqualizerRange &;
+    [[nodiscard]] auto ffHue() const -> float;
+    [[nodiscard]] auto eqHue() const -> float;
 
 private:
     class EqualizerPrivate;

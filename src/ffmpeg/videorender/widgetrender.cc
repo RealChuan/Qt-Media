@@ -110,7 +110,10 @@ public:
                            reinterpret_cast<uint8_t *>(&pix_fmt),
                            sizeof(pix_fmt),
                            AV_OPT_SEARCH_CHILDREN);
-            auto filterSpec = QString("%1,%2").arg(Filter::scale(size), Filter::ep(equalizer));
+            auto filterSpec = QString("%1,%2,%3")
+                                  .arg(Filter::scale(size),
+                                       Filter::eq(equalizer),
+                                       Filter::hue(equalizer.eqHue()));
             filterPtr->config(filterSpec);
         }
         auto framePtrs = filterPtr->filterFrame(framePtr.data());

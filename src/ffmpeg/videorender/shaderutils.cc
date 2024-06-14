@@ -185,6 +185,8 @@ void finishFragment(QByteArray &frag)
     frag.append(GLSL(color.rgb = adjustContrast(color.rgb, contrast);\n));
     frag.append(GLSL(color.rgb = adjustSaturation(color.rgb, saturation);\n));
     frag.append(GLSL(color.rgb = adjustBrightness(color.rgb, brightness);\n));
+    frag.append(GLSL(color.rgb = adjustGamma(color.rgb, gamma);\n));
+    frag.append(GLSL(color.rgb = adjustHue(color.rgb, hue);\n));
     frag.append(GLSL(FragColor = color;\n));
 }
 

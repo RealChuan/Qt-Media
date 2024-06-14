@@ -35,7 +35,8 @@ public:
     auto buffersinkCtx() -> FilterContext *;
 
     static auto scale(const QSize &size) -> QString;
-    static auto ep(const MediaConfig::Equalizer &equalizer) -> QString;
+    static auto eq(const MediaConfig::Equalizer &equalizer) -> QString;
+    static auto hue(int value) -> QString;
     static auto zscale(ColorUtils::Primaries::Type destPrimaries, Tonemap::Type type) -> QString;
 
 private:

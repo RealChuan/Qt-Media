@@ -1,6 +1,8 @@
 uniform float contrast;
 uniform float saturation;
 uniform float brightness;
+uniform float gamma;
+uniform float hue;
 
 vec3 adjustBrightness(vec3 rgb, float brightness) // 调整亮度
 {
@@ -39,5 +41,18 @@ vec3 adjustSaturation(vec3 rgb, float saturation) // 调整饱和度
     saturation = clamp(saturation, 0.0, 2.0);
     vec3 hsv = rgb2Hsv(rgb);
     hsv.y = hsv.y * saturation;
+    return hsv2Rgb(hsv);
+}
+
+vec3 adjustGamma(vec3 rgb, float gamma) // 调整gamma
+{
+    gamma = clamp(gamma, 0.1, 10.0);
+    return pow(rgb, vec3(1.0 / gamma));
+}
+
+vec3 adjustHue(vec3 color, float hue)
+{
+    vec3 hsv = rgb2Hsv(color);
+    hsv.x = hsv.x + hue / 360.0;
     return hsv2Rgb(hsv);
 }

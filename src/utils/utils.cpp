@@ -18,7 +18,7 @@ void Utils::setSurfaceFormatVersion(int major, int minor)
     QSurfaceFormat::setDefaultFormat(surfaceFormat);
 }
 
-QByteArray Utils::readAllFile(const QString &filePath)
+auto Utils::readAllFile(const QString &filePath) -> QByteArray
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -30,10 +30,9 @@ QByteArray Utils::readAllFile(const QString &filePath)
     return buf;
 }
 
-float Utils::rangeMap(float value, float min, float max, float newMin, float newMax)
+auto Utils::rangeMap(float value, float min, float max, float newMin, float newMax) -> float
 {
-    Q_ASSERT(min <= max);
-    Q_ASSERT(newMin <= newMax);
+    Q_ASSERT(min <= max && newMin <= newMax);
     Q_ASSERT(min <= value && value <= max);
     return (value - min) * (newMax - newMin) / (max - min) + newMin;
 }

@@ -299,6 +299,8 @@ void OpenglRender::paintVideoFrame()
     d_ptr->programPtr->setUniformValue("contrast", m_equalizer.ffContrast());
     d_ptr->programPtr->setUniformValue("saturation", m_equalizer.ffSaturation());
     d_ptr->programPtr->setUniformValue("brightness", m_equalizer.ffBrightness());
+    d_ptr->programPtr->setUniformValue("gamma", m_equalizer.ffGamma());
+    d_ptr->programPtr->setUniformValue("hue", m_equalizer.ffHue());
     draw();
     d_ptr->programPtr->release();
     d_ptr->frameChanged = false;

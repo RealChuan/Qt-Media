@@ -7,7 +7,7 @@ namespace MediaConfig {
 class Equalizer::EqualizerPrivate
 {
 public:
-    EqualizerPrivate(Equalizer *q)
+    explicit EqualizerPrivate(Equalizer *q)
         : q_ptr(q)
         , contrastRange(-100, 100)
         , saturationRange(-100, 100)
@@ -45,7 +45,7 @@ Equalizer::Equalizer(const Equalizer &other)
     d_ptr->hueRange = other.d_ptr->hueRange;
 }
 
-Equalizer &Equalizer::operator=(const Equalizer &other)
+auto Equalizer::operator=(const Equalizer &other) -> Equalizer &
 {
     d_ptr->contrastRange = other.d_ptr->contrastRange;
     d_ptr->saturationRange = other.d_ptr->saturationRange;
@@ -56,9 +56,9 @@ Equalizer &Equalizer::operator=(const Equalizer &other)
     return *this;
 }
 
-Equalizer::~Equalizer() {}
+Equalizer::~Equalizer() = default;
 
-bool Equalizer::operator==(const Equalizer &other) const
+auto Equalizer::operator==(const Equalizer &other) const -> bool
 {
     return d_ptr->contrastRange == other.d_ptr->contrastRange
            && d_ptr->saturationRange == other.d_ptr->saturationRange
@@ -67,94 +67,115 @@ bool Equalizer::operator==(const Equalizer &other) const
            && d_ptr->hueRange == other.d_ptr->hueRange;
 }
 
-bool Equalizer::operator!=(const Equalizer &other) const
+auto Equalizer::operator!=(const Equalizer &other) const -> bool
 {
     return !(*this == other);
 }
 
-Equalizer::EqualizerRange &Equalizer::contrastRange() const
+auto Equalizer::contrastRange() const -> Equalizer::EqualizerRange &
 {
     return d_ptr->contrastRange;
 }
 
-float Equalizer::ffContrast() const
+auto Equalizer::ffContrast() const -> float
 {
-    return Utils::rangeMap(d_ptr->contrastRange.value(),
-                           d_ptr->contrastRange.min(),
-                           d_ptr->contrastRange.max(),
-                           0.0,
-                           2.0);
+    return eqContrast();
 }
 
-float Equalizer::eqContrast() const
+auto Equalizer::eqContrast() const -> float
 {
-    return Utils::rangeMap(d_ptr->contrastRange.value(),
-                           d_ptr->contrastRange.min(),
-                           d_ptr->contrastRange.max(),
-                           0.0,
-                           2.0);
     // The value must be a float value in range -1000.0 to 1000.0. The default value is "1".
+    return Utils::rangeMap(d_ptr->contrastRange.value(),
+                           d_ptr->contrastRange.min(),
+                           d_ptr->contrastRange.max(),
+                           0.0,
+                           2.0);
 }
 
-Equalizer::EqualizerRange &Equalizer::saturationRange() const
+auto Equalizer::saturationRange() const -> Equalizer::EqualizerRange &
 {
     return d_ptr->saturationRange;
 }
 
-float Equalizer::ffSaturation() const
+auto Equalizer::ffSaturation() const -> float
 {
-    return Utils::rangeMap(d_ptr->saturationRange.value(),
-                           d_ptr->saturationRange.min(),
-                           d_ptr->saturationRange.max(),
-                           0.0,
-                           2.0);
+    return eqSaturation();
 }
 
-float Equalizer::eqSaturation() const
+auto Equalizer::eqSaturation() const -> float
 {
     // The value must be a float in range 0.0 to 3.0. The default value is "1".
     auto value = d_ptr->saturationRange.value();
     if (value == 0) {
         return 1.0;
     }
-    if (value > 1) {
+    if (value > 0) {
         return Utils::rangeMap(value, 0, d_ptr->saturationRange.max(), 1.0, 3.0);
     }
     return Utils::rangeMap(value, d_ptr->saturationRange.min(), 0, 0, 1.0);
 }
 
-Equalizer::EqualizerRange &Equalizer::brightnessRange() const
+auto Equalizer::brightnessRange() const -> Equalizer::EqualizerRange &
 {
     return d_ptr->brightnessRange;
 }
 
-float Equalizer::ffBrightness() const
+auto Equalizer::ffBrightness() const -> float
 {
+    return eqBrightness();
+}
+
+auto Equalizer::eqBrightness() const -> float
+{
+    // The value must be a float value in range -1.0 to 1.0. The default value is "0".
     return Utils::rangeMap(d_ptr->brightnessRange.value(),
                            d_ptr->brightnessRange.min(),
                            d_ptr->brightnessRange.max(),
-                           -1,
+                           -1.0,
                            1.0);
 }
 
-float Equalizer::eqBrightness() const
-{
-    return Utils::rangeMap(d_ptr->brightnessRange.value(),
-                           d_ptr->brightnessRange.min(),
-                           d_ptr->brightnessRange.max(),
-                           -1,
-                           1);
-    // The value must be a float value in range -1000.0 to 1000.0. The default value is "1".
-}
-
-Equalizer::EqualizerRange &Equalizer::gammaRange() const
+auto Equalizer::gammaRange() const -> Equalizer::EqualizerRange &
 {
     return d_ptr->gammaRange;
 }
 
-Equalizer::EqualizerRange &Equalizer::hueRange() const
+auto Equalizer::ffGamma() const -> float
+{
+    return eqGamma();
+}
+
+auto Equalizer::eqGamma() const -> float
+{
+    // The value must be a float in range 0.1 to 10.0. The default value is "1".
+    auto value = d_ptr->gammaRange.value();
+    if (value == 0) {
+        return 1.0;
+    }
+    if (value > 0) {
+        return Utils::rangeMap(value, 0, d_ptr->gammaRange.max(), 1.0, 10.0);
+    }
+    return Utils::rangeMap(value, d_ptr->gammaRange.min(), 0, 0.1, 1.0);
+}
+
+auto Equalizer::hueRange() const -> Equalizer::EqualizerRange &
 {
     return d_ptr->hueRange;
+}
+
+auto Equalizer::ffHue() const -> float
+{
+    return eqHue();
+}
+
+auto Equalizer::eqHue() const -> float
+{
+    // Set the hue shift in degrees to apply. Default is 0. Allowed range is from -180 to 180.
+    return Utils::rangeMap(d_ptr->hueRange.value(),
+                           d_ptr->hueRange.min(),
+                           d_ptr->hueRange.max(),
+                           -180.0,
+                           180.0);
 }
 
 } // namespace MediaConfig
