@@ -99,6 +99,10 @@ public:
     void setToneMapping(const QString &toneMapping);
     [[nodiscard]] auto toneMapping() const -> QString;
 
+    [[nodiscard]] auto targetPrimaries() const -> QStringList;
+    void setTargetPrimaries(const QString &targetPrimaries);
+    [[nodiscard]] auto targetPrimariesName() const -> QString;
+
     void pauseAsync();
     void pauseSync(bool state);
     auto isPaused() -> bool;

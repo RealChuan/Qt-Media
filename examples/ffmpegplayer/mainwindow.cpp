@@ -106,6 +106,35 @@ public:
         return menu;
     }
 
+    auto createTargetPrimariesMenu() -> QMenu *
+    {
+        auto *group = new QActionGroup(q_ptr);
+        group->setExclusive(true);
+        auto *menu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Target Primaries"),
+                               q_ptr);
+        auto primaris = QMetaEnum::fromType<Ffmpeg::ColorUtils::Primaries::Type>();
+        for (int i = 0; i < primaris.keyCount(); ++i) {
+            auto value = primaris.value(i);
+            auto *action = new QAction(primaris.key(i), q_ptr);
+            action->setCheckable(true);
+            action->setData(value);
+            group->addAction(action);
+            menu->addAction(action);
+            if (value == Ffmpeg::ColorUtils::Primaries::Type::AUTO) {
+                action->setChecked(true);
+            }
+        }
+        q_ptr->connect(group, &QActionGroup::triggered, q_ptr, [this](QAction *action) {
+            primarisType = static_cast<Ffmpeg::ColorUtils::Primaries::Type>(action->data().toInt());
+            if (videoRender.isNull()) {
+                return;
+            }
+            videoRender->setDestPrimaries(primarisType);
+        });
+        group->checkedAction()->trigger();
+        return menu;
+    }
+
     void resetTrackMenu()
     {
         auto actions = audioTracksGroup->actions();
@@ -682,8 +711,7 @@ void MainWindow::initMenu()
     d_ptr->videoMenu->addAction(equalizerAction);
 
     d_ptr->videoMenu->addMenu(d_ptr->createtoneMappingMenu());
-
-    destPrimarisMenu();
+    d_ptr->videoMenu->addMenu(d_ptr->createTargetPrimariesMenu());
 
     connect(d_ptr->audioTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         d_ptr->playerPtr->addEvent(Ffmpeg::EventPtr(
@@ -702,35 +730,6 @@ void MainWindow::initMenu()
     });
 
     connect(d_ptr->mediaInfoAction, &QAction::triggered, this, &MainWindow::onShowMediaInfo);
-}
-
-void MainWindow::destPrimarisMenu()
-{
-    auto *destPrimarisGroup = new QActionGroup(this);
-    destPrimarisGroup->setExclusive(true);
-    auto *destPrimarisMenu = new QMenu(tr("Dest Primaris"), this);
-    auto destPrimaris = QMetaEnum::fromType<Ffmpeg::ColorUtils::Primaries::Type>();
-    for (int i = 0; i < destPrimaris.keyCount(); ++i) {
-        auto value = destPrimaris.value(i);
-        auto *action = new QAction(destPrimaris.key(i), this);
-        action->setCheckable(true);
-        action->setData(value);
-        destPrimarisGroup->addAction(action);
-        destPrimarisMenu->addAction(action);
-        if (value == Ffmpeg::ColorUtils::Primaries::Type::AUTO) {
-            action->setChecked(true);
-        }
-    }
-    d_ptr->videoMenu->addMenu(destPrimarisMenu);
-    connect(destPrimarisGroup, &QActionGroup::triggered, this, [this](QAction *action) {
-        d_ptr->primarisType = static_cast<Ffmpeg::ColorUtils::Primaries::Type>(
-            action->data().toInt());
-        if (d_ptr->videoRender.isNull()) {
-            return;
-        }
-        d_ptr->videoRender->setDestPrimaries(d_ptr->primarisType);
-    });
-    destPrimarisGroup->checkedAction()->trigger();
 }
 
 void MainWindow::renderMenu()

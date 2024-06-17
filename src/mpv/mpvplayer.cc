@@ -468,6 +468,35 @@ auto MpvPlayer::toneMapping() const -> QString
     return mpv::qt::get_property(d_ptr->mpv, "tone-mapping").toString();
 }
 
+QStringList MpvPlayer::targetPrimaries() const
+{
+    static QStringList list{"auto",
+                            "bt.470m",
+                            "bt.601-525",
+                            "bt.601-625",
+                            "bt.709",
+                            "bt.2020",
+                            "apple",
+                            "adobe",
+                            "prophoto",
+                            "cie1931",
+                            "dci-p3",
+                            "v-gamut",
+                            "s-gamut"};
+    return list;
+}
+
+void MpvPlayer::setTargetPrimaries(const QString &targetPrimaries)
+{
+    qInfo() << "target-prim: " << targetPrimaries;
+    mpv::qt::set_property_async(d_ptr->mpv, "target-prim", targetPrimaries);
+}
+
+QString MpvPlayer::targetPrimariesName() const
+{
+    return mpv::qt::get_property(d_ptr->mpv, "target-prim").toString();
+}
+
 void MpvPlayer::pauseAsync()
 {
     auto state = !isPaused();

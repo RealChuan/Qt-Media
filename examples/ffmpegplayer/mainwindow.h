@@ -38,7 +38,6 @@ private:
     void setupUI();
     void buildConnect();
     void initMenu();
-    void destPrimarisMenu();
     void renderMenu();
     void initPlayListMenu();
     void addToPlaylist(const QList<QUrl> &urls);

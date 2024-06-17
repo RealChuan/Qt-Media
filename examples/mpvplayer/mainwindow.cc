@@ -98,6 +98,27 @@ public:
         return menu;
     }
 
+    auto createTargetPrimariesMenu() -> QMenu *
+    {
+        auto *group = new QActionGroup(q_ptr);
+        group->setExclusive(true);
+        auto *menu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Target Primaries"),
+                               q_ptr);
+        auto targetPrimaries = mpvPlayer->targetPrimaries();
+        for (const auto &targetPrimary : std::as_const(targetPrimaries)) {
+            auto *action = new QAction(targetPrimary, q_ptr);
+            action->setCheckable(true);
+            group->addAction(action);
+            menu->addAction(action);
+        }
+        group->actions().at(0)->setChecked(true);
+        q_ptr->connect(group, &QActionGroup::triggered, q_ptr, [this](QAction *action) {
+            mpvPlayer->setTargetPrimaries(action->text());
+        });
+
+        return menu;
+    }
+
     void resetTrackMenu()
     {
         auto actions = audioTracksGroup->actions();
@@ -730,6 +751,7 @@ void MainWindow::initMenu()
     connect(equalizerAction, &QAction::triggered, this, &MainWindow::onEqualizer);
     d_ptr->videoMenu->addAction(equalizerAction);
     d_ptr->videoMenu->addMenu(d_ptr->createtoneMappingMenu());
+    d_ptr->videoMenu->addMenu(d_ptr->createTargetPrimariesMenu());
 
     connect(d_ptr->videoTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         auto data = action->data().value<Mpv::TraskInfo>();
