@@ -52,8 +52,6 @@ public:
         //playlistView->setMaximumWidth(250);
 
         menu = new QMenu(q_ptr);
-        gpuAction = new QAction(QCoreApplication::translate("MainWindowPrivate", "H/W"), q_ptr);
-        gpuAction->setCheckable(true);
         videoMenu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Video"), q_ptr);
         audioMenu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Audio"), q_ptr);
         subMenu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Subtitles"), q_ptr);
@@ -76,6 +74,46 @@ public:
     }
 
     ~MainWindowPrivate() = default;
+
+    auto createHWMenu() -> QMenu *
+    {
+        hwdecGroup = new QActionGroup(q_ptr);
+        hwdecGroup->setExclusive(true);
+        auto *menu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "H/W"), q_ptr);
+        auto hwdecs = mpvPlayer->hwdecs();
+        for (const auto &hwdec : std::as_const(hwdecs)) {
+            auto *action = new QAction(hwdec, q_ptr);
+            action->setCheckable(true);
+            hwdecGroup->addAction(action);
+            menu->addAction(action);
+        }
+        hwdecGroup->actions().at(1)->setChecked(true);
+        q_ptr->connect(hwdecGroup, &QActionGroup::triggered, q_ptr, [this](QAction *action) {
+            mpvPlayer->setHwdec(action->text());
+        });
+
+        return menu;
+    }
+
+    auto createGpuApiMenu() -> QMenu *
+    {
+        gpuApiGroup = new QActionGroup(q_ptr);
+        gpuApiGroup->setExclusive(true);
+        auto *menu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Gpu Api"), q_ptr);
+        auto gpuApis = mpvPlayer->gpuApis();
+        for (const auto &gpuApi : std::as_const(gpuApis)) {
+            auto *action = new QAction(gpuApi, q_ptr);
+            action->setCheckable(true);
+            gpuApiGroup->addAction(action);
+            menu->addAction(action);
+        }
+        gpuApiGroup->actions().at(0)->setChecked(true);
+        q_ptr->connect(gpuApiGroup, &QActionGroup::triggered, q_ptr, [this](QAction *action) {
+            mpvPlayer->setGpuApi(action->text());
+        });
+
+        return menu;
+    }
 
     auto createtoneMappingMenu() -> QMenu *
     {
@@ -269,7 +307,8 @@ public:
     PlaylistModel *playlistModel;
 
     QMenu *menu;
-    QAction *gpuAction;
+    QActionGroup *hwdecGroup;
+    QActionGroup *gpuApiGroup;
 
     QMenu *videoMenu;
     QPointer<QMenu> videoTracksMenuPtr;
@@ -421,11 +460,10 @@ void MainWindow::onChapterChanged()
 
 void MainWindow::onRenderChanged(QAction *action)
 {
-    auto value = static_cast<Mpv::MpvPlayer::GpuApiType>(action->data().toInt());
     d_ptr->mpvPlayer->initMpv(d_ptr->mpvWidget);
-    d_ptr->mpvPlayer->setGpuApi(value);
     d_ptr->mpvPlayer->setPrintToStd(true);
-    d_ptr->mpvPlayer->setUseGpu(d_ptr->gpuAction->isChecked());
+    d_ptr->mpvPlayer->setHwdec(d_ptr->hwdecGroup->checkedAction()->text());
+    d_ptr->mpvPlayer->setGpuApi(d_ptr->gpuApiGroup->checkedAction()->text());
     auto index = d_ptr->playlistModel->playlist()->currentIndex();
     if (index > -1) {
         playlistPositionChanged(d_ptr->playlistModel->playlist()->currentIndex());
@@ -721,28 +759,8 @@ void MainWindow::initMenu()
     d_ptr->menu->addAction(tr("Open Local Media"), this, &MainWindow::onOpenLocalMedia);
     d_ptr->menu->addAction(tr("Open Web Media"), this, &MainWindow::onOpenWebMedia);
 
-    d_ptr->menu->addAction(d_ptr->gpuAction);
-    connect(d_ptr->gpuAction, &QAction::toggled, d_ptr->mpvPlayer, [this](bool checked) {
-        d_ptr->mpvPlayer->setUseGpu(checked);
-    });
-    d_ptr->gpuAction->setChecked(true);
-#ifdef Q_OS_WIN
-    auto *menu = new QMenu(tr("Render"), this);
-    auto *actionGroup = new QActionGroup(this);
-    actionGroup->setExclusive(true);
-    auto metaEnum = QMetaEnum::fromType<Mpv::MpvPlayer::GpuApiType>();
-    for (int i = 0; i < metaEnum.keyCount(); i++) {
-        auto value = metaEnum.value(i);
-        auto *action = new QAction(metaEnum.valueToKey(value), this);
-        action->setData(value);
-        action->setCheckable(true);
-        actionGroup->addAction(action);
-        menu->addAction(action);
-        action->setChecked(i == 0);
-    }
-    connect(actionGroup, &QActionGroup::triggered, this, &MainWindow::onRenderChanged);
-    d_ptr->menu->addMenu(menu);
-#endif
+    d_ptr->menu->addMenu(d_ptr->createHWMenu());
+    d_ptr->menu->addMenu(d_ptr->createGpuApiMenu());
     d_ptr->menu->addMenu(d_ptr->videoMenu);
     d_ptr->menu->addMenu(d_ptr->audioMenu);
     d_ptr->menu->addMenu(d_ptr->subMenu);

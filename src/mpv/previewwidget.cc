@@ -21,7 +21,7 @@ public:
         mpvWidget = new Mpv::MpvOpenglWidget(mpvPlayer, owner);
         mpvPlayer->initMpv(nullptr);
 #endif
-        mpvPlayer->setUseGpu(true);
+        mpvPlayer->setHwdec("auto-safe");
         mpvPlayer->setCache(false);
         mpvPlayer->pauseAsync();
     }

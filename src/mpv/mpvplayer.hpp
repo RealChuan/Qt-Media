@@ -14,16 +14,6 @@ class MPV_LIB_EXPORT MpvPlayer : public QObject
 {
     Q_OBJECT
 public:
-    enum GpuApiType {
-        Auto,
-        Opengl,
-        Vulkan,
-#ifdef Q_OS_WIN
-        D3d11
-#endif
-    };
-    Q_ENUM(GpuApiType)
-
     explicit MpvPlayer(QObject *parent = nullptr);
     ~MpvPlayer() override;
 
@@ -64,8 +54,13 @@ public:
     [[nodiscard]] auto cacheSpeed() const -> double; // seconds
     void setCacheSpeed(double speed);                // bytes / seconds
 
-    void setUseGpu(bool use);
-    void setGpuApi(GpuApiType type);
+    [[nodiscard]] auto hwdecs() const -> QStringList;
+    void setHwdec(const QString &hwdec);
+    [[nodiscard]] auto hwdec() const -> QString;
+
+    [[nodiscard]] auto gpuApis() const -> QStringList;
+    void setGpuApi(const QString &gpuApi);
+    [[nodiscard]] auto gpuApi() const -> QString;
 
     void setVolume(int value);
     [[nodiscard]] auto volume() const -> int;

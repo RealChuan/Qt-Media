@@ -311,28 +311,68 @@ auto MpvPlayer::cacheSpeed() const -> double
 
 void MpvPlayer::setCacheSpeed(double speed)
 {
+    qInfo() << "cache-speed: " << speed;
     mpv::qt::set_property_async(d_ptr->mpv, "cache-speed", speed);
 }
 
-void MpvPlayer::setUseGpu(bool use)
+QStringList MpvPlayer::hwdecs() const
 {
-    mpv::qt::set_property_async(d_ptr->mpv, "hwdec", use ? "auto-safe" : "no");
-    //mpv::qt::set_property_async(d_ptr->mpv, "d3d11va-zero-copy", "yes");
+    static QStringList list{"no",
+                            "auto-safe",
+                            "auto",
+                            "yes",
+                            "auto-copy",
+                            "d3d11va",
+                            "d3d11va-copy",
+                            "videotoolbox",
+                            "videotoolbox-copy",
+                            "vaapi",
+                            "vaapi-copy",
+                            "nvdec",
+                            "nvdec-copy",
+                            "drm",
+                            "drm-copy",
+                            "vulkan",
+                            "vulkan-copy"};
+    // list.append(QStringList{"dxva2",
+    //                         "dxva2-copy",
+    //                         "vdpau",
+    //                         "vdpau-copy",
+    //                         "mediacodec",
+    //                         "mediacodec-copy",
+    //                         "cuda",
+    //                         "cuda-copy",
+    //                         "crystalhd",
+    //                         "rkmpp"});
+    return list;
 }
 
-void MpvPlayer::setGpuApi(GpuApiType type)
+void MpvPlayer::setHwdec(const QString &hwdec)
 {
-    QString typeStr;
-    switch (type) {
-    case Opengl: typeStr = "opengl"; break;
-    case Vulkan: typeStr = "vulkan"; break;
-#ifdef Q_OS_WIN
-    case D3d11: typeStr = "d3d11"; break;
-#endif
-    default: typeStr = "auto"; break;
-    }
-    mpv::qt::set_property(d_ptr->mpv, "gpu-api", typeStr);
-    qInfo() << "GpuApi: " << typeStr;
+    qInfo() << "hwdec: " << hwdec;
+    mpv::qt::set_property_async(d_ptr->mpv, "hwdec", hwdec);
+}
+
+QString MpvPlayer::hwdec() const
+{
+    return mpv::qt::get_property(d_ptr->mpv, "hwdec").toString();
+}
+
+QStringList MpvPlayer::gpuApis() const
+{
+    static QStringList list{"auto", "opengl", "vulkan", "d3d11"};
+    return list;
+}
+
+void MpvPlayer::setGpuApi(const QString &gpuApi)
+{
+    qInfo() << "gpu-api: " << gpuApi;
+    mpv::qt::set_property_async(d_ptr->mpv, "gpu-api", gpuApi);
+}
+
+QString MpvPlayer::gpuApi() const
+{
+    return mpv::qt::get_property(d_ptr->mpv, "gpu-api").toString();
 }
 
 void MpvPlayer::setVolume(int value)
