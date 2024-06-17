@@ -37,12 +37,14 @@ public:
     [[nodiscard]] auto audioTracks() const -> TraskInfos;
     [[nodiscard]] auto subTracks() const -> TraskInfos;
 
-    void setVideoTrack(int vid);
-    void blockVideoTrack();
-    void setAudioTrack(int aid);
-    void blockAudioTrack();
-    void setSubTrack(int sid);
-    void blockSubTrack();
+    void setVid(const QVariant &vid);
+    [[nodiscard]] auto vid() const -> QVariant;
+
+    void setAid(const QVariant &aid);
+    [[nodiscard]] auto aid() const -> QVariant;
+
+    void setSid(const QVariant &sid);
+    [[nodiscard]] auto sid() const -> QVariant;
 
     void addAudio(const QStringList &paths);
     void addSub(const QStringList &paths);
@@ -97,6 +99,12 @@ public:
     [[nodiscard]] auto targetPrimaries() const -> QStringList;
     void setTargetPrimaries(const QString &targetPrimaries);
     [[nodiscard]] auto targetPrimariesName() const -> QString;
+
+    void setLogFile(const QString &logFile);
+    [[nodiscard]] auto logFile() const -> QString;
+
+    void setConfigDir(const QString &configDir);
+    [[nodiscard]] auto configDir() const -> QString;
 
     void pauseAsync();
     void pauseSync(bool state);

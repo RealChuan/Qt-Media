@@ -45,8 +45,8 @@ void PreviewWidget::startPreview(const QString &filepath, int timestamp)
 {
     if (filepath != d_ptr->mpvPlayer->filepath()) {
         d_ptr->mpvPlayer->openMedia(filepath);
-        d_ptr->mpvPlayer->blockAudioTrack();
-        d_ptr->mpvPlayer->blockSubTrack();
+        d_ptr->mpvPlayer->setAid("no");
+        d_ptr->mpvPlayer->setSid("no");
     }
     d_ptr->mpvPlayer->seek(timestamp);
 }

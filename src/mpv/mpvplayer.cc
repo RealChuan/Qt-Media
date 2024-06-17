@@ -242,37 +242,37 @@ auto MpvPlayer::subTracks() const -> TraskInfos
     return d_ptr->subTracks;
 }
 
-void MpvPlayer::setVideoTrack(int vid)
+void MpvPlayer::setVid(const QVariant &vid)
 {
     qInfo() << "vid: " << vid;
     mpv::qt::set_property_async(d_ptr->mpv, "vid", vid);
 }
 
-void MpvPlayer::blockVideoTrack()
+QVariant MpvPlayer::vid() const
 {
-    mpv::qt::set_property_async(d_ptr->mpv, "vid", "no");
+    return mpv::qt::get_property(d_ptr->mpv, "vid");
 }
 
-void MpvPlayer::setAudioTrack(int aid)
+void MpvPlayer::setAid(const QVariant &aid)
 {
     qInfo() << "aid: " << aid;
     mpv::qt::set_property_async(d_ptr->mpv, "aid", aid);
 }
 
-void MpvPlayer::blockAudioTrack()
+QVariant MpvPlayer::aid() const
 {
-    mpv::qt::set_property_async(d_ptr->mpv, "aid", "no");
+    return mpv::qt::get_property(d_ptr->mpv, "aid");
 }
 
-void MpvPlayer::setSubTrack(int sid)
+void MpvPlayer::setSid(const QVariant &sid)
 {
     qInfo() << "sid: " << sid;
     mpv::qt::set_property_async(d_ptr->mpv, "sid", sid);
 }
 
-void MpvPlayer::blockSubTrack()
+QVariant MpvPlayer::sid() const
 {
-    mpv::qt::set_property_async(d_ptr->mpv, "sid", "no");
+    return mpv::qt::get_property(d_ptr->mpv, "sid");
 }
 
 void MpvPlayer::addAudio(const QStringList &paths)
@@ -535,6 +535,28 @@ void MpvPlayer::setTargetPrimaries(const QString &targetPrimaries)
 QString MpvPlayer::targetPrimariesName() const
 {
     return mpv::qt::get_property(d_ptr->mpv, "target-prim").toString();
+}
+
+void MpvPlayer::setLogFile(const QString &logFile)
+{
+    qInfo() << "log-file: " << logFile;
+    mpv::qt::set_property_async(d_ptr->mpv, "log-file", logFile);
+}
+
+QString MpvPlayer::logFile() const
+{
+    return mpv::qt::get_property(d_ptr->mpv, "log-file").toString();
+}
+
+void MpvPlayer::setConfigDir(const QString &configDir)
+{
+    qInfo() << "config-dir: " << configDir;
+    mpv::qt::set_property_async(d_ptr->mpv, "config-dir", configDir);
+}
+
+QString MpvPlayer::configDir() const
+{
+    return mpv::qt::get_property(d_ptr->mpv, "config-dir").toString();
 }
 
 void MpvPlayer::pauseAsync()

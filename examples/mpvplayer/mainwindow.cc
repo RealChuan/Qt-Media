@@ -13,6 +13,7 @@
 #include <mpv/mpvplayer.hpp>
 #include <mpv/mpvwidget.hpp>
 #include <mpv/previewwidget.hpp>
+#include <utils/utils.h>
 
 #include <QtWidgets>
 
@@ -33,6 +34,12 @@ public:
         mpvWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         mpvWidget->setAcceptDrops(true);
         mpvPlayer->setPrintToStd(true);
+
+        auto logFilePath = QString("%1/mpv_%2.log")
+                               .arg(Utils::logPath(),
+                                    QDateTime::currentDateTime().toString("yyyyMMdd"));
+        mpvPlayer->setLogFile(logFilePath);
+        mpvPlayer->setConfigDir(Utils::configPath());
 
         logWindow = new Mpv::MpvLogWindow(q_ptr);
         logWindow->setMinimumSize(500, 325);
@@ -773,15 +780,15 @@ void MainWindow::initMenu()
 
     connect(d_ptr->videoTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         auto data = action->data().value<Mpv::TraskInfo>();
-        d_ptr->mpvPlayer->setVideoTrack(data.id);
+        d_ptr->mpvPlayer->setVid(data.id);
     });
     connect(d_ptr->audioTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         auto data = action->data().value<Mpv::TraskInfo>();
-        d_ptr->mpvPlayer->setAudioTrack(data.id);
+        d_ptr->mpvPlayer->setAid(data.id);
     });
     connect(d_ptr->subTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
         auto data = action->data().value<Mpv::TraskInfo>();
-        d_ptr->mpvPlayer->setSubTrack(data.id);
+        d_ptr->mpvPlayer->setSid(data.id);
     });
     connect(d_ptr->loadSubTitlesAction, &QAction::triggered, this, &MainWindow::onLoadSubtitleFiles);
     connect(d_ptr->subDelayAction,
