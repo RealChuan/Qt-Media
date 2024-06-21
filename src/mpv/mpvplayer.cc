@@ -624,6 +624,8 @@ void MpvPlayer::initMpv(QWidget *widget)
         int64_t wid = raw_wid;
 #endif
         mpv_set_property(d_ptr->mpv, "wid", MPV_FORMAT_INT64, &wid);
+    } else {
+        mpv_set_option_string(d_ptr->mpv, "vo", "libmpv");
     }
     // Enable default bindings, because we're lazy. Normally, a player using
     // mpv as backend would implement its own key bindings.
