@@ -1,38 +1,38 @@
 {
-    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-    "name": "qt-media",
-    "version": "0.0.1",
-    "description": "manifest",
-    "dependencies": [
-        "breakpad",
-        "crashpad",
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "qt-media",
+  "version": "0.0.1",
+  "description": "manifest",
+  "dependencies": [
+    "breakpad",
+    "crashpad",
+    {
+      "name": "ffmpeg",
+      "features": [
+        "opengl",
+        "ass",
+        "bzip2",
+        "freetype",
+        "fribidi",
+        "zlib",
+        "gpl",
+        "ffmpeg",
+        "ffplay",
+        "ffprobe",
         {
-            "name": "ffmpeg",
-            "features": [
-                "opengl",
-                "ass",
-                "bzip2",
-                "freetype",
-                "fribidi",
-                "zlib",
-                "gpl",
-                "ffmpeg",
-                "ffplay",
-                "ffprobe",
-                {
-                    "name": "qsv",
-                    "platform": "windows"
-                },
-                {
-                    "name": "amf",
-                    "platform": "windows | linux"
-                },
-                {
-                    "name": "nvcodec",
-                    "platform": "windows | linux"
-                }
-            ]
+          "name": "qsv",
+          "platform": "windows"
+        },
+        {
+          "name": "amf",
+          "platform": "windows | linux"
+        },
+        {
+          "name": "nvcodec",
+          "platform": "windows | linux"
         }
-    ],
-    "builtin-baseline": "dee924de74e81388140a53c32a919ecec57d20ab"
+      ]
+    }
+  ],
+  "builtin-baseline": "c4467cb686f92671f0172aa8299a77d908175b4e"
 }

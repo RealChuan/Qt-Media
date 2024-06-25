@@ -122,7 +122,7 @@ public:
         return menu;
     }
 
-    auto createtoneMappingMenu() -> QMenu *
+    auto createToneMappingMenu() -> QMenu *
     {
         auto *group = new QActionGroup(q_ptr);
         group->setExclusive(true);
@@ -423,7 +423,15 @@ void MainWindow::onTrackChanged()
 {
     d_ptr->resetTrackMenu();
 
+    Mpv::TraskInfo noTrackInfo;
+    noTrackInfo.id = "no";
+    noTrackInfo.title = "no";
+    noTrackInfo.selected = true;
+
     auto videoTracks = d_ptr->mpvPlayer->videoTracks();
+    if (!videoTracks.isEmpty()) {
+        videoTracks.insert(0, noTrackInfo);
+    }
     for (const auto &item : std::as_const(videoTracks)) {
         auto *action = new QAction(item.text(), this);
         action->setData(QVariant::fromValue(item));
@@ -436,6 +444,9 @@ void MainWindow::onTrackChanged()
     }
 
     auto audioTracks = d_ptr->mpvPlayer->audioTracks();
+    if (!audioTracks.isEmpty()) {
+        audioTracks.insert(0, noTrackInfo);
+    }
     for (const auto &item : std::as_const(audioTracks)) {
         auto *action = new QAction(item.text(), this);
         action->setData(QVariant::fromValue(item));
@@ -448,6 +459,9 @@ void MainWindow::onTrackChanged()
     }
 
     auto subTracks = d_ptr->mpvPlayer->subTracks();
+    if (!subTracks.isEmpty()) {
+        subTracks.insert(0, noTrackInfo);
+    }
     for (const auto &item : std::as_const(subTracks)) {
         auto *action = new QAction(item.text(), this);
         action->setData(QVariant::fromValue(item));
@@ -775,7 +789,7 @@ void MainWindow::initMenu()
     auto *equalizerAction = new QAction(tr("Equalizer"), this);
     connect(equalizerAction, &QAction::triggered, this, &MainWindow::onEqualizer);
     d_ptr->videoMenu->addAction(equalizerAction);
-    d_ptr->videoMenu->addMenu(d_ptr->createtoneMappingMenu());
+    d_ptr->videoMenu->addMenu(d_ptr->createToneMappingMenu());
     d_ptr->videoMenu->addMenu(d_ptr->createTargetPrimariesMenu());
 
     connect(d_ptr->videoTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {

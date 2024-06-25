@@ -22,7 +22,7 @@ struct MPV_LIB_EXPORT TraskInfo
     int ff_index = 0;
     bool forced = false;
     bool hearing_impaired = false;
-    int id = 0;
+    QVariant id;
     bool image = false;
     QString lang;
     bool selected = false;

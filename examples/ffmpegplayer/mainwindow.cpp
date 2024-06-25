@@ -76,7 +76,7 @@ public:
 
     ~MainWindowPrivate() = default;
 
-    auto createtoneMappingMenu() -> QMenu *
+    auto createToneMappingMenu() -> QMenu *
     {
         auto *group = new QActionGroup(q_ptr);
         group->setExclusive(true);
@@ -710,7 +710,7 @@ void MainWindow::initMenu()
     connect(equalizerAction, &QAction::triggered, this, &MainWindow::onEqualizer);
     d_ptr->videoMenu->addAction(equalizerAction);
 
-    d_ptr->videoMenu->addMenu(d_ptr->createtoneMappingMenu());
+    d_ptr->videoMenu->addMenu(d_ptr->createToneMappingMenu());
     d_ptr->videoMenu->addMenu(d_ptr->createTargetPrimariesMenu());
 
     connect(d_ptr->audioTracksGroup, &QActionGroup::triggered, this, [this](QAction *action) {
