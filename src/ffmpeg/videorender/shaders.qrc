@@ -2,8 +2,6 @@
     <qresource prefix="/">
         <file>shader/video.frag</file>
         <file>shader/video.vert</file>
-        <file>shader/video_vulkan.frag</file>
-        <file>shader/video_vulkan.vert</file>
         <file>shader/sub.frag</file>
         <file>shader/video_nv12.frag</file>
         <file>shader/video_yuv420p.frag</file>

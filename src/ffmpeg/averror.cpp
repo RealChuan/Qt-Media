@@ -69,9 +69,9 @@ auto AVError::setErrorCode(int error) -> AVError &
 {
     d_ptr->error = error;
     if (error < 0) {
-        char errbuf[AV_ERROR_MAX_STRING_SIZE] = {0};
-        av_strerror(error, errbuf, sizeof(errbuf));
-        d_ptr->errorString = QString::fromUtf8(errbuf);
+        char buffer[AV_ERROR_MAX_STRING_SIZE + 1] = {};
+        av_make_error_string(buffer, AV_ERROR_MAX_STRING_SIZE, error);
+        d_ptr->errorString = QString::fromLocal8Bit(buffer);
     } else {
         d_ptr->errorString.clear();
     }

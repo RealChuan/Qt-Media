@@ -9,11 +9,12 @@ set(PROJECT_SOURCES
     ../common/playlistmodel.h
     ../common/playlistview.cc
     ../common/playlistview.hpp
+    ../common/qmediaplaylist_p.cpp
     ../common/qmediaplaylist_p.h
     ../common/qmediaplaylist.cpp
     ../common/qmediaplaylist.h
-    ../common/qplaylistfileparser_p.h
     ../common/qplaylistfileparser.cpp
+    ../common/qplaylistfileparser.h
     ../common/slider.cpp
     ../common/slider.h
     ../common/titlewidget.cc

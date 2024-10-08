@@ -21,6 +21,7 @@ SOURCES += \
     ../common/openwebmediadialog.cc \
     ../common/playlistmodel.cpp \
     ../common/playlistview.cc \
+    ../common/qmediaplaylist_p.cpp \
     ../common/qmediaplaylist.cpp \
     ../common/qplaylistfileparser.cpp \
     ../common/slider.cpp \
@@ -36,7 +37,7 @@ HEADERS += \
     ../common/playlistview.hpp \
     ../common/qmediaplaylist.h \
     ../common/qmediaplaylist_p.h \
-    ../common/qplaylistfileparser_p.h \
+    ../common/qplaylistfileparser.h \
     ../common/slider.h \
     ../common/titlewidget.hpp \
     mainwindow.h

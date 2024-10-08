@@ -1,13 +1,10 @@
 // Copyright (C) 2016 The Qt Company Ltd.
-// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
 #ifndef QMEDIAPLAYLIST_H
 #define QMEDIAPLAYLIST_H
 
-#include <QtCore/qobject.h>
-
-#include <QtMultimedia/qmediaenumdebug.h>
-#include <QtMultimedia/qtmultimediaglobal.h>
+#include <QObject>
 
 QT_BEGIN_NAMESPACE
 
@@ -27,41 +24,41 @@ public:
     Q_ENUM(Error)
 
     explicit QMediaPlaylist(QObject *parent = nullptr);
-    ~QMediaPlaylist() override;
+    virtual ~QMediaPlaylist();
 
-    [[nodiscard]] auto playbackMode() const -> PlaybackMode;
+    PlaybackMode playbackMode() const;
     void setPlaybackMode(PlaybackMode mode);
 
-    [[nodiscard]] auto currentIndex() const -> int;
-    [[nodiscard]] auto currentMedia() const -> QUrl;
+    int currentIndex() const;
+    QUrl currentMedia() const;
 
-    [[nodiscard]] auto nextIndex(int steps = 1) const -> int;
-    [[nodiscard]] auto previousIndex(int steps = 1) const -> int;
+    int nextIndex(int steps = 1) const;
+    int previousIndex(int steps = 1) const;
 
-    [[nodiscard]] auto media(int index) const -> QUrl;
+    QUrl media(int index) const;
 
-    [[nodiscard]] auto mediaCount() const -> int;
-    [[nodiscard]] auto isEmpty() const -> bool;
+    int mediaCount() const;
+    bool isEmpty() const;
 
     void addMedia(const QUrl &content);
     void addMedia(const QList<QUrl> &items);
-    auto insertMedia(int index, const QUrl &content) -> bool;
-    auto insertMedia(int index, const QList<QUrl> &items) -> bool;
-    auto moveMedia(int from, int to) -> bool;
-    auto removeMedia(int pos) -> bool;
-    auto removeMedia(int start, int end) -> bool;
+    bool insertMedia(int index, const QUrl &content);
+    bool insertMedia(int index, const QList<QUrl> &items);
+    bool moveMedia(int from, int to);
+    bool removeMedia(int pos);
+    bool removeMedia(int start, int end);
     void clear();
 
     void load(const QUrl &location, const char *format = nullptr);
     void load(QIODevice *device, const char *format = nullptr);
 
-    auto save(const QUrl &location, const char *format = nullptr) const -> bool;
-    auto save(QIODevice *device, const char *format) const -> bool;
+    bool save(const QUrl &location, const char *format = nullptr) const;
+    bool save(QIODevice *device, const char *format) const;
 
-    [[nodiscard]] auto error() const -> Error;
-    [[nodiscard]] auto errorString() const -> QString;
+    Error error() const;
+    QString errorString() const;
 
-public Q_SLOTS:
+public slots:
     void shuffle();
 
     void next();
@@ -69,7 +66,7 @@ public Q_SLOTS:
 
     void setCurrentIndex(int index);
 
-Q_SIGNALS:
+signals:
     void currentIndexChanged(int index);
     void playbackModeChanged(QMediaPlaylist::PlaybackMode mode);
     void currentMediaChanged(const QUrl &);
@@ -89,8 +86,5 @@ private:
 };
 
 QT_END_NAMESPACE
-
-Q_MEDIA_ENUM_DEBUG(QMediaPlaylist, PlaybackMode)
-Q_MEDIA_ENUM_DEBUG(QMediaPlaylist, Error)
 
 #endif // QMEDIAPLAYLIST_H
