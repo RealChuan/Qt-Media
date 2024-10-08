@@ -53,7 +53,7 @@ QModelIndex PlaylistModel::parent(const QModelIndex &child) const
 
 QVariant PlaylistModel::data(const QModelIndex &index, int role) const
 {
-    if (index.isValid() && (role == Qt::DisplayRole || role == Qt::ToolTipRole)) {
+    if (index.isValid() && role == Qt::DisplayRole) {
         QVariant value = m_data[index];
         if (!value.isValid() && index.column() == Title) {
             QUrl location = m_playlist->media(index.row());
@@ -97,7 +97,7 @@ void PlaylistModel::beginRemoveItems(int start, int end)
 
 void PlaylistModel::endRemoveItems()
 {
-    endRemoveRows();
+    endInsertRows();
 }
 
 void PlaylistModel::changeItems(int start, int end)
@@ -105,3 +105,5 @@ void PlaylistModel::changeItems(int start, int end)
     m_data.clear();
     emit dataChanged(index(start, 0), index(end, ColumnCount));
 }
+
+#include "moc_playlistmodel.cpp"
