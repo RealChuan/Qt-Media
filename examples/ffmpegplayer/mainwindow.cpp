@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 
+#include <examples/common/commonstr.hpp>
 #include <examples/common/controlwidget.hpp>
 #include <examples/common/equalizerdialog.h>
 #include <examples/common/openwebmediadialog.hpp>
@@ -18,6 +19,7 @@
 #include <ffmpeg/videorender/videorendercreate.hpp>
 #include <ffmpeg/widgets/mediainfodialog.hpp>
 
+#include <QMediaDevices>
 #include <QtWidgets>
 
 class MainWindow::MainWindowPrivate
@@ -32,6 +34,38 @@ public:
         titleWidget = new TitleWidget(q_ptr);
         titleWidget->setMinimumHeight(80);
         titleWidget->setVisible(false);
+
+        playlistModel = new PlaylistModel(q_ptr);
+        playlistView = new PlayListView(q_ptr);
+        playlistView->setModel(playlistModel);
+        playlistView->setCurrentIndex(
+            playlistModel->index(playlistModel->playlist()->currentIndex(), 0));
+        //playlistView->setMaximumWidth(250);
+        playListMenu = new QMenu(q_ptr);
+
+        menu = new QMenu(q_ptr);
+        videoMenu = new QMenu(Common::Tr::tr("Video"), q_ptr);
+        audioMenu = new QMenu(Common::Tr::tr("Audio"), q_ptr);
+        subMenu = new QMenu(Common::Tr::tr("Subtitles"), q_ptr);
+
+        videoTracksGroup = new QActionGroup(q_ptr);
+        videoTracksGroup->setExclusive(true);
+        audioTracksGroup = new QActionGroup(q_ptr);
+        audioTracksGroup->setExclusive(true);
+        subTracksGroup = new QActionGroup(q_ptr);
+        subTracksGroup->setExclusive(true);
+
+        mediaInfoAction = new QAction(Common::Tr::tr("Media Info"), q_ptr);
+
+        fpsTimer = new QTimer(q_ptr);
+
+        initShortcut();
+    }
+
+    ~MainWindowPrivate() = default;
+
+    void setupUI()
+    {
         auto *bottomLayout = new QHBoxLayout;
         bottomLayout->addStretch();
         bottomLayout->addWidget(controlWidget);
@@ -41,47 +75,16 @@ public:
         controlLayout->addStretch();
         controlLayout->addLayout(bottomLayout);
 
-        playlistModel = new PlaylistModel(q_ptr);
-        playlistView = new PlayListView(q_ptr);
-        playlistView->setModel(playlistModel);
-        playlistView->setCurrentIndex(
-            playlistModel->index(playlistModel->playlist()->currentIndex(), 0));
-        //playlistView->setMaximumWidth(250);
-
-        menu = new QMenu(q_ptr);
-
-        videoMenu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Video"), q_ptr);
-        audioMenu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Audio"), q_ptr);
-        subMenu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Subtitles"), q_ptr);
-
-        videoTracksGroup = new QActionGroup(q_ptr);
-        videoTracksGroup->setExclusive(true);
-        audioTracksGroup = new QActionGroup(q_ptr);
-        audioTracksGroup->setExclusive(true);
-        subTracksGroup = new QActionGroup(q_ptr);
-        subTracksGroup->setExclusive(true);
-
-        mediaInfoAction = new QAction(QCoreApplication::translate("MainWindowPrivate", "Media Info"),
-                                      q_ptr);
-
-        playListMenu = new QMenu(q_ptr);
-
-        fpsTimer = new QTimer(q_ptr);
-
         splitter = new QSplitter(q_ptr);
         splitter->addWidget(playlistView);
-
-        initShortcut();
+        q_ptr->setCentralWidget(splitter);
     }
-
-    ~MainWindowPrivate() = default;
 
     auto createToneMappingMenu() -> QMenu *
     {
         auto *group = new QActionGroup(q_ptr);
         group->setExclusive(true);
-        auto *menu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Tone-Mapping"),
-                               q_ptr);
+        auto *menu = new QMenu(Common::Tr::tr("Tone-Mapping"), q_ptr);
         auto toneMappings = QMetaEnum::fromType<Ffmpeg::ToneMapping::Type>();
         for (int i = 0; i < toneMappings.keyCount(); ++i) {
             auto value = toneMappings.value(i);
@@ -110,8 +113,7 @@ public:
     {
         auto *group = new QActionGroup(q_ptr);
         group->setExclusive(true);
-        auto *menu = new QMenu(QCoreApplication::translate("MainWindowPrivate", "Target Primaries"),
-                               q_ptr);
+        auto *menu = new QMenu(Common::Tr::tr("Target Primaries"), q_ptr);
         auto primaris = QMetaEnum::fromType<Ffmpeg::ColorUtils::Primaries::Type>();
         for (int i = 0; i < primaris.keyCount(); ++i) {
             auto value = primaris.value(i);
@@ -242,6 +244,24 @@ public:
         controlWidget->setPosition(0);
     }
 
+    void addToPlaylist(const QList<QUrl> &urls)
+    {
+        auto *playlist = playlistModel->playlist();
+        const int previousMediaCount = playlist->mediaCount();
+        for (const auto &url : urls) {
+            if (isPlaylist(url)) {
+                playlist->load(url);
+            } else {
+                playlist->addMedia(url);
+            }
+        }
+        if (playlist->mediaCount() > previousMediaCount) {
+            auto index = playlistModel->index(previousMediaCount, 0);
+            playlistView->setCurrentIndex(index);
+            q_ptr->jump(index);
+        }
+    }
+
     MainWindow *q_ptr;
 
     QScopedPointer<Ffmpeg::Player> playerPtr;
@@ -254,6 +274,8 @@ public:
 
     PlayListView *playlistView;
     PlaylistModel *playlistModel;
+    QMenu *playListMenu;
+    QSplitter *splitter;
 
     QMenu *menu;
 
@@ -271,11 +293,7 @@ public:
 
     QAction *mediaInfoAction;
 
-    QMenu *playListMenu;
-
     QTimer *fpsTimer;
-
-    QSplitter *splitter;
 
     Ffmpeg::ToneMapping::Type toneMappingType = Ffmpeg::ToneMapping::Type::AUTO;
     Ffmpeg::ColorUtils::Primaries::Type primarisType = Ffmpeg::ColorUtils::Primaries::Type::AUTO;
@@ -287,7 +305,12 @@ MainWindow::MainWindow(QWidget *parent)
 {
     Ffmpeg::printFfmpegInfo();
 
-    setupUI();
+    // QPlatformMediaDevices中有一个static std::unique_ptr<QPlatformMediaDevices> create();
+    // 这个QPlatformMediaDevices最终会在主线程释放，需要在主线程创建
+    // 如果在主线程创建，会导致退出程序崩溃，ASSERT: "m_threadId == GetCurrentThreadId()"
+    QMediaDevices mediaDevices;
+
+    d_ptr->setupUI();
     buildConnect();
     initMenu();
     initPlayListMenu();
@@ -369,7 +392,7 @@ void MainWindow::onOpenLocalMedia()
     if (urls.isEmpty()) {
         return;
     }
-    addToPlaylist(urls);
+    d_ptr->addToPlaylist(urls);
 }
 
 void MainWindow::onOpenWebMedia()
@@ -379,7 +402,7 @@ void MainWindow::onOpenWebMedia()
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
-    addToPlaylist({QUrl(dialog.url())});
+    d_ptr->addToPlaylist({QUrl(dialog.url())});
 }
 
 void MainWindow::onRenderChanged(QAction *action)
@@ -552,7 +575,7 @@ auto MainWindow::eventFilter(QObject *watched, QEvent *event) -> bool
             auto *ev = dynamic_cast<QDropEvent *>(event);
             auto urls = ev->mimeData()->urls();
             if (!urls.isEmpty()) {
-                addToPlaylist(urls);
+                d_ptr->addToPlaylist(urls);
             }
         } break;
         case QEvent::ContextMenu: {
@@ -617,11 +640,6 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     case Qt::Key_Q: qApp->quit(); break;
     default: break;
     }
-}
-
-void MainWindow::setupUI()
-{
-    setCentralWidget(d_ptr->splitter);
 }
 
 void MainWindow::buildConnect()
@@ -775,22 +793,4 @@ void MainWindow::initPlayListMenu()
     d_ptr->playListMenu->addAction(tr("Clear"), d_ptr->playlistView, [this] {
         d_ptr->playlistModel->playlist()->clear();
     });
-}
-
-void MainWindow::addToPlaylist(const QList<QUrl> &urls)
-{
-    auto *playlist = d_ptr->playlistModel->playlist();
-    const int previousMediaCount = playlist->mediaCount();
-    for (const auto &url : urls) {
-        if (isPlaylist(url)) {
-            playlist->load(url);
-        } else {
-            playlist->addMedia(url);
-        }
-    }
-    if (playlist->mediaCount() > previousMediaCount) {
-        auto index = d_ptr->playlistModel->index(previousMediaCount, 0);
-        d_ptr->playlistView->setCurrentIndex(index);
-        jump(index);
-    }
 }
