@@ -46,6 +46,11 @@ public:
         logWindow->show();
         logWindow->move(qApp->primaryScreen()->availableGeometry().topLeft());
 
+        floatingWidget = new QWidget(q_ptr);
+        floatingWidget->setWindowFlags(floatingWidget->windowFlags() | Qt::FramelessWindowHint
+                                       | Qt::Tool);
+        floatingWidget->setAttribute(Qt::WA_TranslucentBackground); //设置窗口背景透明
+        floatingWidget->setVisible(true);
         controlWidget = new ControlWidget(q_ptr);
         controlWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
         titleWidget = new TitleWidget(q_ptr);
@@ -213,17 +218,13 @@ public:
     {
         new QShortcut(QKeySequence::MoveToNextChar, q_ptr, q_ptr, [this] {
             mpvPlayer->seekRelative(5);
-            titleWidget->setText(
+            setTitleWidgetText(
                 QCoreApplication::translate("MainWindowPrivate", "Fast forward: 5 seconds"));
-            titleWidget->setAutoHide(3000);
-            setTitleWidgetGeometry(true);
         });
         new QShortcut(QKeySequence::MoveToPreviousChar, q_ptr, q_ptr, [this] {
             mpvPlayer->seekRelative(-5);
-            titleWidget->setText(
+            setTitleWidgetText(
                 QCoreApplication::translate("MainWindowPrivate", "Fast return: 5 seconds"));
-            titleWidget->setAutoHide(3000);
-            setTitleWidgetGeometry(true);
         });
         new QShortcut(QKeySequence::MoveToPreviousLine, q_ptr, q_ptr, [this] {
             controlWidget->setVolume(controlWidget->volume() + 10);
@@ -234,18 +235,16 @@ public:
         new QShortcut(Qt::Key_Space, q_ptr, q_ptr, [this] { pause(); });
     }
 
-    void setupUI() const
+    void setupUI()
     {
-#ifndef Q_OS_WIN
-        auto controlLayout = new QHBoxLayout;
+        auto *controlLayout = new QHBoxLayout;
         controlLayout->addStretch();
         controlLayout->addWidget(controlWidget);
         controlLayout->addStretch();
-        auto layout = new QVBoxLayout(mpvWidget);
+        auto *layout = new QVBoxLayout(floatingWidget);
         layout->addWidget(titleWidget);
         layout->addStretch();
         layout->addLayout(controlLayout);
-#endif
 
         auto *splitter = new QSplitter(q_ptr);
         splitter->setHandleWidth(0);
@@ -256,42 +255,32 @@ public:
         q_ptr->setCentralWidget(splitter);
     }
 
+    void setTitleWidgetText(const QString &text)
+    {
+        setTitleWidgetGeometry(true);
+        titleWidget->setText(text);
+        titleWidget->setAutoHide(3000);
+    }
+
     void setControlWidgetGeometry(bool show = true)
     {
-#ifdef Q_OS_WIN
-        controlWidget->setFixedSize({QWIDGETSIZE_MAX, QWIDGETSIZE_MAX});
-        controlWidget->setMinimumWidth(mpvWidget->width() / 2);
-        controlWidget->adjustSize();
-        if (controlWidget->width() * 2 < mpvWidget->width()) {
-            controlWidget->setMinimumWidth(mpvWidget->width() / 2);
-        }
-        auto margain = 10;
-        auto geometry = mpvWidget->geometry();
-        auto p1 = QPoint(geometry.x() + (geometry.width() - controlWidget->width()) / 2.0,
-                         geometry.bottomLeft().y() - controlWidget->height() - margain);
-        globalControlWidgetGeometry = {q_ptr->mapToGlobal(p1), controlWidget->size()};
-        controlWidget->setFixedSize(globalControlWidgetGeometry.size());
-        controlWidget->setGeometry(globalControlWidgetGeometry);
+        controlWidget->setVisible(true);
+        setFloatingWidgetGeometry(show);
         controlWidget->setVisible(show);
-#else
-        controlWidget->setVisible(show);
-#endif
     }
 
     void setTitleWidgetGeometry(bool show = true)
     {
-#ifdef Q_OS_WIN
-        auto margain = 10;
+        titleWidget->setVisible(true);
+        setFloatingWidgetGeometry(show);
+        titleWidget->setVisible(show);
+    }
+
+    void setFloatingWidgetGeometry(bool show = true)
+    {
         auto geometry = mpvWidget->geometry();
-        auto p1 = QPoint(geometry.x() + margain, geometry.y() + margain);
-        auto p2 = QPoint(geometry.topRight().x() - margain, geometry.y() + margain + 80);
-        globalTitlelWidgetGeometry = {q_ptr->mapToGlobal(p1), q_ptr->mapToGlobal(p2)};
-        titleWidget->setFixedSize(globalTitlelWidgetGeometry.size());
-        titleWidget->setGeometry(globalTitlelWidgetGeometry);
-        titleWidget->setVisible(show);
-#else
-        titleWidget->setVisible(show);
-#endif
+        geometry = QRect{q_ptr->mapToGlobal(geometry.topLeft()), geometry.size()};
+        floatingWidget->setGeometry(geometry);
     }
 
     void pause() const { mpvPlayer->pauseAsync(); }
@@ -303,12 +292,9 @@ public:
     QScopedPointer<Mpv::PreviewWidget> previewWidgetPtr;
     Mpv::MpvLogWindow *logWindow;
 
+    QWidget *floatingWidget;
     ControlWidget *controlWidget;
     TitleWidget *titleWidget;
-#ifdef Q_OS_WIN
-    QRect globalTitlelWidgetGeometry;
-    QRect globalControlWidgetGeometry;
-#endif
 
     PlayListView *playlistView;
     PlaylistModel *playlistModel;
@@ -580,7 +566,6 @@ auto MainWindow::eventFilter(QObject *watched, QEvent *event) -> bool
             auto *e = static_cast<QContextMenuEvent *>(event);
             d_ptr->menu->exec(e->globalPos());
         } break;
-#ifdef Q_OS_WIN
         case QEvent::Resize:
             QMetaObject::invokeMethod(
                 this,
@@ -590,7 +575,6 @@ auto MainWindow::eventFilter(QObject *watched, QEvent *event) -> bool
                 },
                 Qt::QueuedConnection);
             break;
-#endif
             //        case QEvent::MouseButtonPress: {
             //            auto e = static_cast<QMouseEvent *>(event);
             //            if (e->button() & Qt::LeftButton) {
@@ -617,7 +601,6 @@ auto MainWindow::eventFilter(QObject *watched, QEvent *event) -> bool
         }
     } else if (watched == this) {
         switch (event->type()) {
-#ifdef Q_OS_WIN
         case QEvent::Show:
         case QEvent::Move:
             QMetaObject::invokeMethod(
@@ -628,50 +611,19 @@ auto MainWindow::eventFilter(QObject *watched, QEvent *event) -> bool
                 },
                 Qt::QueuedConnection);
             break;
-        case QEvent::Hide: d_ptr->controlWidget->hide(); break;
-        case QEvent::HoverMove:
-            if (d_ptr->globalControlWidgetGeometry.isValid()) {
-                auto *e = static_cast<QHoverEvent *>(event);
-                bool contain = d_ptr->globalControlWidgetGeometry.contains(
-                    e->globalPosition().toPoint());
-                bool isVisible = d_ptr->controlWidget->isVisible();
-                if (contain && !isVisible) {
-                    d_ptr->setControlWidgetGeometry(true);
-                } else if (!contain && isVisible) {
-                    d_ptr->controlWidget->hide();
-                }
-            }
-            if (d_ptr->globalTitlelWidgetGeometry.isValid() && isFullScreen()) {
-                auto *e = static_cast<QHoverEvent *>(event);
-                bool contain = d_ptr->globalTitlelWidgetGeometry.contains(
-                    e->globalPosition().toPoint());
-                bool isVisible = d_ptr->titleWidget->isVisible();
-                if (contain && !isVisible) {
-                    d_ptr->titleWidget->setText(windowTitle());
-                    d_ptr->setTitleWidgetGeometry(true);
-                } else if (!contain && isVisible) {
-                    d_ptr->titleWidget->hide();
-                }
-            }
-            break;
-#else
+        case QEvent::Hide: d_ptr->setFloatingWidgetGeometry(false); break;
         case QEvent::HoverMove: {
-            d_ptr->controlWidget->show();
-            d_ptr->controlWidget->hide();
             auto controlWidgetGeometry = d_ptr->controlWidget->geometry();
             auto e = static_cast<QHoverEvent *>(event);
             bool contain = controlWidgetGeometry.contains(e->position().toPoint());
             d_ptr->setControlWidgetGeometry(contain);
             if (isFullScreen()) {
-                d_ptr->titleWidget->show();
-                d_ptr->titleWidget->hide();
                 auto titleWidgetGeometry = d_ptr->titleWidget->geometry();
                 contain = titleWidgetGeometry.contains(e->position().toPoint());
                 d_ptr->setTitleWidgetGeometry(contain);
             }
             break;
         }
-#endif
         default: break;
         }
     }
@@ -731,19 +683,15 @@ void MainWindow::buildConnect()
             &QMediaPlaylist::next);
     connect(d_ptr->controlWidget, &ControlWidget::seek, d_ptr->mpvPlayer, [this](int value) {
         d_ptr->mpvPlayer->seek(value);
-        d_ptr->titleWidget->setText(
+        d_ptr->setTitleWidgetText(
             tr("Fast forward to: %1")
                 .arg(QTime::fromMSecsSinceStartOfDay(value * 1000).toString("hh:mm:ss")));
-        d_ptr->titleWidget->setAutoHide(3000);
-        d_ptr->setTitleWidgetGeometry(true);
     });
     connect(d_ptr->controlWidget, &ControlWidget::hoverPosition, this, &MainWindow::onPreview);
     connect(d_ptr->controlWidget, &ControlWidget::leavePosition, this, &MainWindow::onPreviewFinish);
     connect(d_ptr->controlWidget, &ControlWidget::volumeChanged, d_ptr->mpvPlayer, [this](int value) {
         d_ptr->mpvPlayer->setVolume(value);
-        d_ptr->titleWidget->setText(tr("Volume: %1%").arg(value));
-        d_ptr->titleWidget->setAutoHide(3000);
-        d_ptr->setTitleWidgetGeometry(true);
+        d_ptr->setTitleWidgetText(tr("Volume: %1%").arg(value));
     });
     auto max = d_ptr->mpvPlayer->volumeMax();
     d_ptr->controlWidget->setVolumeMax(max);
@@ -753,9 +701,7 @@ void MainWindow::buildConnect()
             d_ptr->mpvPlayer,
             [this](double value) {
                 d_ptr->mpvPlayer->setSpeed(value);
-                d_ptr->titleWidget->setText(tr("Speed: %1").arg(value));
-                d_ptr->titleWidget->setAutoHide(3000);
-                d_ptr->setTitleWidgetGeometry(true);
+                d_ptr->setTitleWidgetText(tr("Speed: %1").arg(value));
             });
     connect(d_ptr->controlWidget,
             &ControlWidget::modelChanged,

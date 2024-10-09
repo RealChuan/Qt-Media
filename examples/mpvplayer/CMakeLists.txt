@@ -36,10 +36,10 @@ target_link_libraries(
           thirdparty
           dump
           utils
-          Qt6::Widgets
-          Qt6::Multimedia
-          Qt6::Network
-          Qt6::OpenGLWidgets)
+          Qt::Widgets
+          Qt::Multimedia
+          Qt::Network
+          Qt::OpenGLWidgets)
 if(CMAKE_HOST_WIN32)
   target_link_libraries(MpvPlayer PRIVATE C:\\3rd\\x64\\mpv\\libmpv.dll.a)
   file(COPY C:\\3rd\\x64\\mpv\\libmpv-2.dll

@@ -1,15 +1,12 @@
 include(../../common.pri)
 
-QT       += core gui widgets network multimedia openglwidgets core5compat
+QT       += core gui widgets network multimediawidgets core5compat
 
 TEMPLATE = app
 
-TARGET = FfmpegPlayer
-
-DEFINES += FFMPEG_ON
+TARGET = QPlayer
 
 LIBS += \
-    -l$$replaceLibName(ffmpeg) \
     -l$$replaceLibName(mediaconfig) \
     -l$$replaceLibName(thirdparty) \
     -l$$replaceLibName(dump) \
@@ -28,8 +25,9 @@ SOURCES += \
     ../common/qplaylistfileparser.cpp \
     ../common/slider.cpp \
     ../common/titlewidget.cc \
-    main.cpp \
-    mainwindow.cpp
+    main.cc \
+    mainwindow.cc \
+    videowidget.cc
 
 HEADERS += \
     ../common/controlwidget.hpp \
@@ -42,6 +40,7 @@ HEADERS += \
     ../common/qplaylistfileparser.h \
     ../common/slider.h \
     ../common/titlewidget.hpp \
-    mainwindow.h
+    mainwindow.hpp \
+    videowidget.hpp
 
 DESTDIR = $$APP_OUTPUT_PATH

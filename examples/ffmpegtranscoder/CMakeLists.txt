@@ -37,9 +37,9 @@ target_link_libraries(
           thirdparty
           dump
           utils
-          Qt6::Widgets
-          Qt6::Multimedia
-          Qt6::OpenGLWidgets)
+          Qt::Widgets
+          Qt::Multimedia
+          Qt::OpenGLWidgets)
 target_link_libraries(FfmpegTranscoder PRIVATE PkgConfig::ffmpeg)
 
 if(CMAKE_HOST_APPLE)
