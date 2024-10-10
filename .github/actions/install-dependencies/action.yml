@@ -104,10 +104,20 @@ runs:
           ffmpeg[${{ inputs.vcpkg_ffmpeg_features }},amf,nvcodec] --triplet x64-linux \
           || (cat /usr/local/share/vcpkg/installed/vcpkg/issue_body.md && exit 1)
 
-    - name: Install Qt
+    - name: Install Qt on non-windows
+      if: runner.os == 'macOS' || runner.os == 'Linux'
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ inputs.qt_ver }}
         modules: ${{ inputs.qt_modules }}
         cache: 'true'
+
+    - name: Install Qt on windows
+      if: runner.os == 'Windows'
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ inputs.qt_ver }}
+        modules: ${{ inputs.qt_modules }}
+        cache: 'true'
+        arch: 'win64_msvc2022_64'
         
