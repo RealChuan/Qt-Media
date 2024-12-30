@@ -3,7 +3,8 @@ CONFIG += ordered
 
 SUBDIRS += \
     ffmpegplayer \
-    ffmpegtranscoder
+    ffmpegtranscoder \
+    qplayer
 
 win32 {
     exists("C:/3rd/x64/mpv/include"){

@@ -1,20 +1,21 @@
 #pragma once
 
-#include <QMutex>
-
-#include <deque>
-#include <functional>
+#include "boundedblockingqueue.hpp"
 
 namespace Utils {
 
 template<typename T>
 class ThreadSafeQueue
 {
+    static_assert(is_smart_or_non_pointer<T>::value,
+                  "T must be a smart pointer or a non-pointer type.");
+
     Q_DISABLE_COPY_MOVE(ThreadSafeQueue);
 
-public:
-    using ClearCallback = std::function<void(T &)>;
+    mutable QMutex m_mutex;
+    std::deque<T> m_queue;
 
+public:
     explicit ThreadSafeQueue() = default;
 
     void append(const T &x)
@@ -52,19 +53,10 @@ public:
         return front;
     }
 
-    void clear(ClearCallback callback = nullptr)
+    void clear()
     {
         QMutexLocker locker(&m_mutex);
-        if (callback) {
-            while (!m_queue.empty()) {
-                if (callback) {
-                    callback(m_queue.front());
-                }
-                m_queue.pop_front();
-            }
-        } else if (!m_queue.empty()) {
-            m_queue.clear();
-        }
+        m_queue.clear();
     }
 
     [[nodiscard]] auto size() const -> int
@@ -78,10 +70,6 @@ public:
         QMutexLocker locker(&m_mutex);
         return m_queue.empty();
     }
-
-private:
-    mutable QMutex m_mutex;
-    std::deque<T> m_queue;
 };
 
 } // namespace Utils

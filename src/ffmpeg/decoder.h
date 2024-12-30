@@ -1,5 +1,4 @@
-#ifndef DECODER_H
-#define DECODER_H
+#pragma once
 
 #include <QSharedPointer>
 #include <QThread>
@@ -118,5 +117,3 @@ protected:
 };
 
 } // namespace Ffmpeg
-
-#endif // DECODER_H

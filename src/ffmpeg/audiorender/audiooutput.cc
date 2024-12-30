@@ -36,6 +36,10 @@ public:
 
         int sampleSize = 0;
         auto format = getAudioFormatFromCodecCtx(contextInfo->codecCtx(), sampleSize);
+        if (!audioDevice.isFormatSupported(format)) {
+            qWarning() << "Raw audio format not supported by backend, cannot play audio.";
+            return;
+        }
         audioConverterPtr.reset(new AudioFrameConverter(contextInfo->codecCtx(), format));
 
         audioSinkPtr.reset(new QAudioSink(format));

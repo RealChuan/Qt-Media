@@ -35,6 +35,7 @@ SOURCES += \
     subtitledelaydialog.cc
 
 HEADERS += \
+    ../common/commonstr.hpp \
     ../common/controlwidget.hpp \
     ../common/equalizerdialog.h \
     ../common/openwebmediadialog.hpp \
