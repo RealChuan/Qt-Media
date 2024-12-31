@@ -52,7 +52,7 @@ you have to use`ass_process_chunk`and set pts and duration, and in[vf_subtitles.
 Dialogue: 0,0:01:06.77,0:01:08.00,en,,0000,0000,0000,,Peek-a-boo!\r\n
 ```
 
-使用 `ass_process_data`;
+use`ass_process_data`;
 
 ### Issue with subtitle display timing when using subtitle filter
 
@@ -111,20 +111,19 @@ transcodeCtx->audioPts += frame->nb_samples;
     qt.dbus.integration: Could not connect "org.freedesktop.IBus" to globalEngineChanged(QString)
     ```
 
--   ControlWidget and TitleWidget are controlled differently under Windows and Unix
-
-    1.  Use under Windows`mpv_set_property(d_ptr->mpv, "wid", MPV_FORMAT_INT64, &wid);`, using layout will make the video window at the front, blocking ControlWidget and TitleWidget, so float ControlWidget and TitleWidget above the video window, use`eventFilter`To handle the display of ControlWidget and TitleWidget in most cases, it is very verbose to write, but in order to be able to use D3D11 rendering and better performance, it can only be handled in this way, and it is worthwhile;
-    2.  Using QOpenGLWidget under Unix, it is more convenient to use layout layout;
-
 -   MacOS packaging requirements[install_name_tool](/mac/change_lib_dependencies.rb), the dependency copy script file comes from[there](https://github.com/iina/iina/blob/develop/other/change_lib_dependencies.rb)；
 
-    **current`brew`Installed`mpv`middle,`libmpv.dylib`The dependency is`@loader_path/`, so some modifications were made to the script;**
+    **current`brew`installed`mpv`middle,`libmpv.dylib`The dependency is`@loader_path/`, so some modifications were made to the script;**
 
     ```shell
     ./mac/change_lib_dependencies.rb "$(brew --prefix)" "$(brew --prefix mpv)/lib/libmpv.dylib"
     ```
 
 Dependencies will be copied to`packet/Qt-Mpv.app/Contents/Frameworks/`；
+
+# QPlayer
+
+-   reference[Media Player Example](https://doc.qt.io/qt-6/qtmultimedia-player-example.html)
 
 ## QT-BUG
 
