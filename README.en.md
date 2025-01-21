@@ -14,7 +14,7 @@
 ### Requires a powerful opengl and vulkan yuv rendering module
 
 -   Opengl's fragment shader currently supports limited image formats;
--   In WidgetRender, use the QImage::Format_RGB32 and QImage::Format_ARGB32_Premultiplied image formats whenever possible. The following reasons:
+-   在WidgetRender中，尽可能使用QImage::Format_RGB32和QImage::Format_ARGB32_Premultiplied图像格式。如下原因：
     -   Avoid most rendering directly to most of these formats using QPainter. Rendering is best optimized to the Format_RGB32  and Format_ARGB32_Premultiplied formats, and secondarily for rendering to the Format_RGB16, Format_RGBX8888,  Format_RGBA8888_Premultiplied, Format_RGBX64 and Format_RGBA64_Premultiplied formats.
 
 ### AVFrame image adjustment
@@ -24,7 +24,7 @@
 -   according to`AVColorPrimaries`Perform color gamut conversion;
 -   according to`AVColorRange`Make color range adjustments;
 
-#### In the case of opengl rendering, how to modify the shader?
+#### opengl 渲染的情况下，该怎么样修改shader？
 
 -   reference[MPV video_shaders](https://github.com/mpv-player/mpv/blob/master/video/out/gpu/video_shaders.c)；
 
@@ -52,7 +52,7 @@ you have to use`ass_process_chunk`and set pts and duration, and in[vf_subtitles.
 Dialogue: 0,0:01:06.77,0:01:08.00,en,,0000,0000,0000,,Peek-a-boo!\r\n
 ```
 
-使用 `ass_process_data`;
+use`ass_process_data`;
 
 ### Issue with subtitle display timing when using subtitle filter
 
@@ -66,7 +66,7 @@ subtitles=filename='%1':original_size=%2x%3
 
 -   reference[HandBrake encavcodec](https://github.com/HandBrake/HandBrake/blob/master/libhb/encavcodec.c#L359)
 
-### How to calculate pts from frames obtained by AVAudioFifo?
+### 如何从AVAudioFifo获取的帧中计算pts？
 
 ```C++
 // fix me?
@@ -92,7 +92,7 @@ transcodeCtx->audioPts += frame->nb_samples;
     [vo/gpu] opengl cocoa backend is deprecated, use vo=libmpv instead
     ```
 
-    But use`vo=libmpv`The video cannot be displayed normally;
+    But use`vo=libmpv`The video cannot be displayed normally either;
 
     Using opengl version greater than 3 has better performance;
 
@@ -111,14 +111,9 @@ transcodeCtx->audioPts += frame->nb_samples;
     qt.dbus.integration: Could not connect "org.freedesktop.IBus" to globalEngineChanged(QString)
     ```
 
--   ControlWidget and TitleWidget are controlled differently under Windows and Unix
-
-    1.  Use under Windows`mpv_set_property(d_ptr->mpv, "wid", MPV_FORMAT_INT64, &wid);`, using layout will make the video window at the front, blocking ControlWidget and TitleWidget, so float ControlWidget and TitleWidget above the video window, use`eventFilter`To handle the display of ControlWidget and TitleWidget in most cases, it is very verbose to write, but in order to be able to use D3D11 rendering and better performance, it can only be handled in this way, and it is worthwhile;
-    2.  Using QOpenGLWidget under Unix, it is more convenient to use layout layout;
-
 -   MacOS packaging requirements[install_name_tool](/mac/change_lib_dependencies.rb), the dependency copy script file comes from[there](https://github.com/iina/iina/blob/develop/other/change_lib_dependencies.rb)；
 
-    **current`brew`Installed`mpv`middle,`libmpv.dylib`The dependency is`@loader_path/`, so some modifications were made to the script;**
+    **current`brew`installed`mpv`middle,`libmpv.dylib`The dependency is`@loader_path/`, so some modifications were made to the script;**
 
     ```shell
     ./mac/change_lib_dependencies.rb "$(brew --prefix)" "$(brew --prefix mpv)/lib/libmpv.dylib"
@@ -126,11 +121,15 @@ transcodeCtx->audioPts += frame->nb_samples;
 
 Dependencies will be copied to`packet/Qt-Mpv.app/Contents/Frameworks/`；
 
+# QPlayer
+
+-   reference[Media Player Example](https://doc.qt.io/qt-6/qtmultimedia-player-example.html)
+
 ## QT-BUG
 
--   Dynamically switching Video Render, switching from opengl to widget, still consumes GPU 0-3D, and the usage is twice that of opengl! ! ! QT-BUG?
+-   动态切换Video Render，从opengl切换到widget，还是有GPU 0-3D占用，而且使用量是opengl的2倍！！！QT-BUG？
 
--   QOpenGLWidget memory leaks, moves to zoom in and out the window, the code is as follows
+-   QOpenGLWidget内存泄漏，移动放大和缩小窗口，代码如下
 
     ```C++
     int main(int argc, char *argv[])
