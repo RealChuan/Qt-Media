@@ -15,20 +15,20 @@ public:
     explicit AudioDecoderPrivate(AudioDecoder *q)
         : q_ptr(q)
     {
-        decoderAudioFrame = new AudioDisplay(q_ptr);
+        audioDisplay = new AudioDisplay(q_ptr);
     }
 
     void processEvent() const
     {
-        while (q_ptr->m_runing.load() && !q_ptr->m_eventQueue.empty()) {
+        while (q_ptr->m_runing.load() && !q_ptr->m_eventQueue.isEmpty()) {
             auto eventPtr = q_ptr->m_eventQueue.take();
             switch (eventPtr->type()) {
-            case Event::EventType::Pause: decoderAudioFrame->addEvent(eventPtr); break;
+            case Event::EventType::Pause: audioDisplay->addEvent(eventPtr); break;
             case Event::EventType::Seek: {
                 auto *seekEvent = static_cast<SeekEvent *>(eventPtr.data());
                 seekEvent->countDown();
                 q_ptr->clear();
-                decoderAudioFrame->addEvent(eventPtr);
+                audioDisplay->addEvent(eventPtr);
             } break;
             default: break;
             }
@@ -37,14 +37,14 @@ public:
 
     AudioDecoder *q_ptr;
 
-    AudioDisplay *decoderAudioFrame;
+    AudioDisplay *audioDisplay;
 };
 
 AudioDecoder::AudioDecoder(QObject *parent)
     : Decoder<PacketPtr>(parent)
     , d_ptr(new AudioDecoderPrivate(this))
 {
-    connect(d_ptr->decoderAudioFrame,
+    connect(d_ptr->audioDisplay,
             &AudioDisplay::positionChanged,
             this,
             &AudioDecoder::positionChanged);
@@ -57,19 +57,19 @@ AudioDecoder::~AudioDecoder()
 
 void AudioDecoder::setVolume(qreal volume)
 {
-    d_ptr->decoderAudioFrame->setVolume(volume);
+    d_ptr->audioDisplay->setVolume(volume);
 }
 
 void AudioDecoder::setMasterClock()
 {
-    d_ptr->decoderAudioFrame->setMasterClock();
+    d_ptr->audioDisplay->setMasterClock();
 }
 
 void AudioDecoder::runDecoder()
 {
-    d_ptr->decoderAudioFrame->startDecoder(m_formatContext, m_contextInfo);
+    d_ptr->audioDisplay->startDecoder(m_formatContext, m_contextInfo);
 
-    while (m_runing) {
+    while (m_runing.load()) {
         d_ptr->processEvent();
 
         auto packetPtr(m_queue.take());
@@ -77,16 +77,16 @@ void AudioDecoder::runDecoder()
             continue;
         }
         auto framePtrs = m_contextInfo->decodeFrame(packetPtr);
-        for (const auto &framePtr : framePtrs) {
+        for (const auto &framePtr : std::as_const(framePtrs)) {
             calculatePts(framePtr.data(), m_contextInfo, m_formatContext);
-            d_ptr->decoderAudioFrame->append(framePtr);
+            d_ptr->audioDisplay->append(framePtr);
         }
     }
-    while (m_runing && d_ptr->decoderAudioFrame->size() != 0) {
+    while (m_runing.load() && d_ptr->audioDisplay->size() != 0) {
         msleep(s_waitQueueEmptyMilliseconds);
     }
 
-    d_ptr->decoderAudioFrame->stopDecoder();
+    d_ptr->audioDisplay->stopDecoder();
 }
 
 } // namespace Ffmpeg

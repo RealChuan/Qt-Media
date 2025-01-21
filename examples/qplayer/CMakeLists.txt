@@ -1,3 +1,5 @@
+find_package(Qt6 REQUIRED COMPONENTS MultimediaWidgets)
+
 set(PROJECT_SOURCES
     ../common/commonstr.hpp
     ../common/controlwidget.cc
@@ -23,33 +25,17 @@ set(PROJECT_SOURCES
     main.cc
     mainwindow.cc
     mainwindow.hpp
-    mpvlogwindow.cc
-    mpvlogwindow.hpp
-    subtitledelaydialog.cc
-    subtitledelaydialog.hpp)
+    videowidget.cc
+    videowidget.hpp)
 
-qt_add_executable(MpvPlayer MANUAL_FINALIZATION ${PROJECT_SOURCES})
-target_compile_definitions(MpvPlayer PRIVATE "MPV_ON")
+qt_add_executable(QPlayer MANUAL_FINALIZATION ${PROJECT_SOURCES})
 target_link_libraries(
-  MpvPlayer
-  PRIVATE qmpv
-          mediaconfig
+  QPlayer
+  PRIVATE mediaconfig
           thirdparty
           dump
           utils
-          Qt::Widgets
-          Qt::Multimedia
+          Qt::MultimediaWidgets
           Qt::Network
-          Qt::OpenGLWidgets)
-if(CMAKE_HOST_WIN32)
-  target_link_libraries(MpvPlayer PRIVATE C:\\3rd\\x64\\mpv\\libmpv.dll.a)
-  file(COPY C:\\3rd\\x64\\mpv\\libmpv-2.dll
-       DESTINATION ${EXECUTABLE_OUTPUT_PATH}/)
-elseif(CMAKE_HOST_APPLE)
-  target_link_directories(MpvPlayer PRIVATE "/opt/homebrew/lib")
-  target_link_libraries(MpvPlayer PRIVATE mpv)
-elseif(CMAKE_HOST_LINUX)
-  target_link_libraries(MpvPlayer PRIVATE mpv)
-endif()
-
-qt_finalize_executable(MpvPlayer)
+          Qt::GuiPrivate)
+qt_finalize_executable(QPlayer)

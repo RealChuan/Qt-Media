@@ -1,5 +1,5 @@
 // Copyright (C) 2016 The Qt Company Ltd.
-// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
 #ifndef PLAYLISTFILEPARSER_P_H
 #define PLAYLISTFILEPARSER_P_H
@@ -16,7 +16,9 @@
 //
 
 #include "qmediaplaylist.h"
-#include <QtCore/qobject.h>
+#include "qtmultimediaglobal.h"
+
+#include <QObject>
 
 QT_BEGIN_NAMESPACE
 
@@ -30,8 +32,8 @@ class QPlaylistFileParser : public QObject
 {
     Q_OBJECT
 public:
-    explicit QPlaylistFileParser(QObject *parent = nullptr);
-    ~QPlaylistFileParser() override;
+    QPlaylistFileParser(QObject *parent = nullptr);
+    ~QPlaylistFileParser();
 
     enum FileType {
         UNKNOWN,
@@ -47,24 +49,22 @@ public:
 
     QList<QUrl> playlist;
 
-Q_SIGNALS:
+signals:
     void newItem(const QVariant &content);
     void finished();
     void error(QMediaPlaylist::Error err, const QString &errorMsg);
 
-private Q_SLOTS:
+private slots:
     void handleData();
     void handleError();
 
 private:
-    static auto findByMimeType(const QString &mime) -> FileType;
-    static auto findBySuffixType(const QString &suffix) -> FileType;
-    static auto findByDataHeader(const char *data, quint32 size) -> FileType;
-    static auto findPlaylistType(QIODevice *device, const QString &mime) -> FileType;
-    static auto findPlaylistType(const QString &suffix,
-                                 const QString &mime,
-                                 const char *data = nullptr,
-                                 quint32 size = 0) -> FileType;
+    static FileType findByMimeType(const QString &mime);
+    static FileType findBySuffixType(const QString &suffix);
+    static FileType findByDataHeader(const char *data, quint32 size);
+    static FileType findPlaylistType(QIODevice *device, const QString &mime);
+    static FileType findPlaylistType(const QString &suffix, const QString &mime,
+                                     const char *data = nullptr, quint32 size = 0);
 
     Q_DISABLE_COPY(QPlaylistFileParser)
     Q_DECLARE_PRIVATE(QPlaylistFileParser)

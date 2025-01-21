@@ -25,8 +25,6 @@ TitleWidget::TitleWidget(QWidget *parent)
     : QWidget{parent}
     , d_ptr(new TitleWidgetPrivate(this))
 {
-    setWindowFlags(windowFlags() | Qt::FramelessWindowHint | Qt::Tool);
-    setAttribute(Qt::WA_TranslucentBackground);
 
     setupUI();
     buildConnect();

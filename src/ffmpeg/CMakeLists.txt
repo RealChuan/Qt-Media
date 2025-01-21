@@ -109,8 +109,8 @@ set(PROJECT_SOURCES
 qt_add_resources(SOURCES videorender/shaders.qrc)
 
 add_custom_library(ffmpeg ${PROJECT_SOURCES} ${SOURCES})
-target_link_libraries(ffmpeg PRIVATE mediaconfig utils Qt6::Widgets
-                                     Qt6::Multimedia Qt6::OpenGLWidgets)
+target_link_libraries(ffmpeg PRIVATE mediaconfig utils Qt::Widgets
+                                     Qt::Multimedia Qt::OpenGLWidgets)
 target_link_libraries(ffmpeg PRIVATE PkgConfig::ffmpeg PkgConfig::ass)
 if(CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
   target_link_libraries(ffmpeg PRIVATE PkgConfig::fontconfig expat::expat)

@@ -7,6 +7,7 @@
 #include "subtitleencoderwidget.hpp"
 #include "videoencoderwidget.hpp"
 
+#include <examples/common/commonstr.hpp>
 #include <ffmpeg/averror.h>
 #include <ffmpeg/encodecontext.hpp>
 #include <ffmpeg/event/errorevent.hpp>
@@ -36,14 +37,10 @@ public:
         videoEncoderWidget = new VideoEncoderWidget(q_ptr);
         audioEncoderWidget = new AudioEncoderWidget(q_ptr);
         subtitleEncoderWidget = new SubtitleEncoderWidget(q_ptr);
-        tabWidget->addTab(previewWidget,
-                          QCoreApplication::translate("MainWindowPrivate", "Preview"));
-        tabWidget->addTab(videoEncoderWidget,
-                          QCoreApplication::translate("MainWindowPrivate", "Video"));
-        tabWidget->addTab(audioEncoderWidget,
-                          QCoreApplication::translate("MainWindowPrivate", "Audio"));
-        tabWidget->addTab(subtitleEncoderWidget,
-                          QCoreApplication::translate("MainWindowPrivate", "Subtitle"));
+        tabWidget->addTab(previewWidget, Common::Tr::tr("Preview"));
+        tabWidget->addTab(videoEncoderWidget, Common::Tr::tr("Video"));
+        tabWidget->addTab(audioEncoderWidget, Common::Tr::tr("Audio"));
+        tabWidget->addTab(subtitleEncoderWidget, Common::Tr::tr("Subtitle"));
 
         outPutWidget = new OutPutWidget(q_ptr);
         statusWidget = new StautusWidget(q_ptr);

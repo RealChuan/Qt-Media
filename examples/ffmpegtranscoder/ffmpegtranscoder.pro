@@ -33,6 +33,7 @@ SOURCES += \
     videoencoderwidget.cc
 
 HEADERS += \
+    ../common/commonstr.hpp \
     audioencodermodel.hpp \
     audioencodertableview.hpp \
     audioencoderwidget.hpp \

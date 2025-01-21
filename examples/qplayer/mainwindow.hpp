@@ -1,34 +1,29 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
-
-namespace Ffmpeg {
-class AVError;
-}
+#include <QMediaPlayer>
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+
 public:
     explicit MainWindow(QWidget *parent = nullptr);
-    ~MainWindow() override;
+    ~MainWindow();
 
 private slots:
-    void onHoverSlider(int pos, int value);
-    void onLeaveSlider();
-    void onShowCurrentFPS();
-    void onEqualizer();
-    void onShowMediaInfo();
-
     void onOpenLocalMedia();
     void onOpenWebMedia();
-    void onRenderChanged(QAction *action);
+
+    void onTrackChanged();
+    void onBufferingProgress(float progress);
+    void onDisplayError();
+    void onStatusChanged(QMediaPlayer::MediaStatus status);
+
+    void onAudioOutputsChanged();
 
     void playlistPositionChanged(int /*currentItem*/);
     void jump(const QModelIndex &index);
-
-    void onProcessEvents();
 
 protected:
     auto eventFilter(QObject *watched, QEvent *event) -> bool override;
@@ -37,11 +32,8 @@ protected:
 private:
     void buildConnect();
     void initMenu();
-    void renderMenu();
     void initPlayListMenu();
 
     class MainWindowPrivate;
     QScopedPointer<MainWindowPrivate> d_ptr;
 };
-
-#endif // MAINWINDOW_H

@@ -13,7 +13,7 @@ set(PROJECT_SOURCES
     qthelper.hpp)
 
 add_custom_library(qmpv ${PROJECT_SOURCES})
-target_link_libraries(qmpv PRIVATE Qt6::Widgets Qt6::OpenGLWidgets)
+target_link_libraries(qmpv PRIVATE Qt::Widgets Qt::OpenGLWidgets)
 
 if(CMAKE_HOST_WIN32)
   target_include_directories(qmpv PRIVATE "C:\\3rd\\x64\\mpv\\include")

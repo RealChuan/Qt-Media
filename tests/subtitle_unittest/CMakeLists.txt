@@ -2,8 +2,8 @@ set(PROJECT_SOURCES main.cc mainwindow.cc mainwindow.hpp subtitlethread.cc
                     subtitlethread.hpp)
 
 qt_add_executable(subtitle_unittest MANUAL_FINALIZATION ${PROJECT_SOURCES})
-target_link_libraries(subtitle_unittest PRIVATE Qt6::Widgets Qt6::Multimedia
-                                                Qt6::OpenGLWidgets ffmpeg utils)
+target_link_libraries(subtitle_unittest PRIVATE Qt::Widgets Qt::Multimedia
+                                                Qt::OpenGLWidgets ffmpeg utils)
 target_link_libraries(subtitle_unittest PRIVATE PkgConfig::ffmpeg)
 
 if(CMAKE_HOST_APPLE)

@@ -110,11 +110,6 @@ transcodeCtx->audioPts += frame->nb_samples;
     qt.dbus.integration: Could not connect "org.freedesktop.IBus" to globalEngineChanged(QString)
     ```
 
-- 在Windows和Unix下，ControlWidget和TitleWidget的控制方式不同
-  
-  1. Windows下使用 `mpv_set_property(d_ptr->mpv, "wid", MPV_FORMAT_INT64, &wid);`，使用layout布局，会使得视频窗口在最前面，遮挡ControlWidget和TitleWidget，所以将ControlWidget和TitleWidget悬浮在视频窗口上方，使用 `eventFilter`去处理大部分情况下ControlWidget和TitleWidget的显示，写的非常啰嗦，但是为了能够使用D3D11渲染，更棒的性能，只能这样处理，也是值得的；
-  2. Unix下使用QOpenGLWidget，使用layout布局更加方便；
-
 - MacOS打包需要[install_name_tool](/mac/change_lib_dependencies.rb)，依赖拷贝脚本文件来自[iina](https://github.com/iina/iina/blob/develop/other/change_lib_dependencies.rb)；
 
     **当前 `brew`安装的 `mpv`中，`libmpv.dylib`的依赖是 `@loader_path/`，所以对脚本进行了一些修改；**
@@ -124,6 +119,10 @@ transcodeCtx->audioPts += frame->nb_samples;
     ```
 
 依赖会拷贝到 `packet/Qt-Mpv.app/Contents/Frameworks/`；
+
+# QPlayer
+
+- 参考 [Media Player Example](https://doc.qt.io/qt-6/qtmultimedia-player-example.html)
 
 ## QT-BUG
 

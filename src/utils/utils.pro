@@ -15,6 +15,7 @@ SOURCES += \
 
 HEADERS += \
     boundedblockingqueue.hpp \
+    concurrentqueue.hpp \
     countdownlatch.hpp \
     fps.hpp \
     hostosinfo.h \
@@ -23,6 +24,5 @@ HEADERS += \
     range.hpp \
     singleton.hpp \
     speed.hpp \
-    threadsafequeue.hpp \
     utils_global.h \
     utils.h

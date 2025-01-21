@@ -1,4 +1,5 @@
 set(PROJECT_SOURCES
+    ../common/commonstr.hpp
     ../common/controlwidget.cc
     ../common/controlwidget.hpp
     ../common/equalizerdialog.cpp
@@ -9,11 +10,12 @@ set(PROJECT_SOURCES
     ../common/playlistmodel.h
     ../common/playlistview.cc
     ../common/playlistview.hpp
+    ../common/qmediaplaylist_p.cpp
     ../common/qmediaplaylist_p.h
     ../common/qmediaplaylist.cpp
     ../common/qmediaplaylist.h
-    ../common/qplaylistfileparser_p.h
     ../common/qplaylistfileparser.cpp
+    ../common/qplaylistfileparser.h
     ../common/slider.cpp
     ../common/slider.h
     ../common/titlewidget.cc
@@ -23,6 +25,7 @@ set(PROJECT_SOURCES
     mainwindow.h)
 
 qt_add_executable(FfmpegPlayer MANUAL_FINALIZATION ${PROJECT_SOURCES})
+target_compile_definitions(FfmpegPlayer PRIVATE "FFMPEG_ON")
 target_link_libraries(
   FfmpegPlayer
   PRIVATE ffmpeg
@@ -30,9 +33,9 @@ target_link_libraries(
           thirdparty
           dump
           utils
-          Qt6::Widgets
-          Qt6::Multimedia
-          Qt6::OpenGLWidgets)
+          Qt::Widgets
+          Qt::Multimedia
+          Qt::OpenGLWidgets)
 target_link_libraries(FfmpegPlayer PRIVATE PkgConfig::ffmpeg)
 if(CMAKE_HOST_APPLE)
   target_link_libraries(

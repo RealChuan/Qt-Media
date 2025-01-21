@@ -1,5 +1,5 @@
 // Copyright (C) 2016 The Qt Company Ltd.
-// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
 #ifndef QMEDIAPLAYLIST_P_H
 #define QMEDIAPLAYLIST_P_H
@@ -16,12 +16,14 @@
 //
 
 #include "qmediaplaylist.h"
-#include "qplaylistfileparser_p.h"
+#include "qplaylistfileparser.h"
 
-#include <QtCore/qdebug.h>
+#include <QUrl>
+
+#include <QDebug>
 
 #ifdef Q_MOC_RUN
-#pragma Q_MOC_EXPAND_MACROS
+#    pragma Q_MOC_EXPAND_MACROS
 #endif
 
 QT_BEGIN_NAMESPACE
@@ -32,69 +34,20 @@ class QMediaPlaylistPrivate
 {
     Q_DECLARE_PUBLIC(QMediaPlaylist)
 public:
-    QMediaPlaylistPrivate()
-        : error(QMediaPlaylist::NoError)
-    {}
+    QMediaPlaylistPrivate();
 
-    virtual ~QMediaPlaylistPrivate()
-    {
-        if (parser)
-            delete parser;
-    }
+    virtual ~QMediaPlaylistPrivate();
 
-    void loadFailed(QMediaPlaylist::Error error, const QString &errorString)
-    {
-        this->error = error;
-        this->errorString = errorString;
+    void loadFailed(QMediaPlaylist::Error error, const QString &errorString);
 
-        emit q_ptr->loadFailed();
-    }
+    void loadFinished();
 
-    void loadFinished() const
-    {
-        q_ptr->addMedia(parser->playlist);
+    bool checkFormat(const char *format) const;
 
-        emit q_ptr->loaded();
-    }
+    void ensureParser();
 
-    auto checkFormat(const char *format) const -> bool
-    {
-        QLatin1String f(format);
-        QPlaylistFileParser::FileType type = format != nullptr ? QPlaylistFileParser::UNKNOWN
-                                                               : QPlaylistFileParser::M3U8;
-        if (format != nullptr) {
-            if (f == QLatin1String("m3u") || f == QLatin1String("text/uri-list")
-                || f == QLatin1String("audio/x-mpegurl") || f == QLatin1String("audio/mpegurl"))
-                type = QPlaylistFileParser::M3U;
-            else if (f == QLatin1String("m3u8") || f == QLatin1String("application/x-mpegURL")
-                     || f == QLatin1String("application/vnd.apple.mpegurl"))
-                type = QPlaylistFileParser::M3U8;
-        }
-
-        if (type == QPlaylistFileParser::UNKNOWN || type == QPlaylistFileParser::PLS) {
-            error = QMediaPlaylist::FormatNotSupportedError;
-            errorString = QMediaPlaylist::tr("This file format is not supported.");
-            return false;
-        }
-        return true;
-    }
-
-    void ensureParser()
-    {
-        if (parser != nullptr)
-            return;
-
-        parser = new QPlaylistFileParser(q_ptr);
-        QObject::connect(parser, &QPlaylistFileParser::finished, [this]() { loadFinished(); });
-        QObject::connect(parser,
-                         &QPlaylistFileParser::error,
-                         [this](QMediaPlaylist::Error err, const QString &errorMsg) {
-                             loadFailed(err, errorMsg);
-                         });
-    }
-
-    auto nextPosition(int steps) const -> int;
-    auto prevPosition(int steps) const -> int;
+    int nextPosition(int steps) const;
+    int prevPosition(int steps) const;
 
     QList<QUrl> playlist;
 

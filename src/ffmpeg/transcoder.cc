@@ -17,8 +17,8 @@
 #include <event/valueevent.hpp>
 #include <filter/filter.hpp>
 #include <filter/filtercontext.hpp>
+#include <utils/concurrentqueue.hpp>
 #include <utils/fps.hpp>
-#include <utils/threadsafequeue.hpp>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -446,7 +446,7 @@ public:
 
     void addPropertyChangeEvent(PropertyChangeEvent *event)
     {
-        propertyChangeEventQueue.append(PropertyChangeEventPtr(event));
+        propertyChangeEventQueue.push_back(PropertyChangeEventPtr(event));
         while (propertyChangeEventQueue.size() > maxPropertyEventQueueSize.load()) {
             propertyChangeEventQueue.take();
         }
@@ -513,7 +513,7 @@ public:
 
     bool gpuDecode = true;
 
-    Utils::ThreadSafeQueue<PropertyChangeEventPtr> propertyChangeEventQueue;
+    Utils::ConcurrentQueue<PropertyChangeEventPtr> propertyChangeEventQueue;
     std::atomic<size_t> maxPropertyEventQueueSize = 100;
 
     std::vector<FramePtr> previewFrames;
