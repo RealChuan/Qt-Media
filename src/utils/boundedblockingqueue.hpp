@@ -1,128 +1,189 @@
 #pragma once
 
-#include <QMutex>
+#include <QMutexLocker>
+#include <QObject>
 #include <QWaitCondition>
 
 #include <deque>
 
 namespace Utils {
 
+template<typename T, typename = void>
+struct is_smart_or_non_pointer
+{
+    static constexpr bool value = false;
+};
+
+template<typename T>
+struct is_smart_or_non_pointer<
+    T,
+    std::enable_if_t<std::is_base_of<std::unique_ptr<typename std::decay<T>::type>, T>::value
+                     || std::is_base_of<std::shared_ptr<typename std::decay<T>::type>, T>::value
+                     || !std::is_pointer<T>::value>>
+{
+    static constexpr bool value = true;
+};
+
 template<typename T>
 class BoundedBlockingQueue
 {
-    Q_DISABLE_COPY_MOVE(BoundedBlockingQueue);
+    static_assert(is_smart_or_non_pointer<T>::value,
+                  "T must be a smart pointer or a non-pointer type.");
+
+    Q_DISABLE_COPY_MOVE(BoundedBlockingQueue)
+
+    std::deque<T> m_queue;
+    mutable QMutex m_mutex;
+    QWaitCondition m_notEmpty;
+    QWaitCondition m_notFull;
+    std::atomic<std::size_t> m_maxSize{1000};
+    std::atomic_bool m_abort = false;
 
 public:
-    using ClearCallback = std::function<void(T &)>;
-
-    explicit BoundedBlockingQueue(int maxSize)
-        : m_maxSize(maxSize)
+    BoundedBlockingQueue() = default;
+    explicit BoundedBlockingQueue(std::size_t max_size)
+        : m_maxSize(max_size)
     {}
+    ~BoundedBlockingQueue()
+    {
+        abort();
+        clear();
+    }
 
-    void append(const T &x)
+    void push_back(const T &value)
     {
         QMutexLocker locker(&m_mutex);
-        while (m_queue.size() >= m_maxSize) {
+        while (!m_abort.load() && m_queue.size() >= m_maxSize.load()) {
             m_notFull.wait(&m_mutex);
         }
-        m_queue.push_back(x);
+        if (m_abort.load()) {
+            return;
+        }
+        m_queue.push_back(value);
         m_notEmpty.wakeOne();
     }
 
-    void append(T &&x)
+    void push_back(T &&value)
     {
         QMutexLocker locker(&m_mutex);
-        while (m_queue.size() >= m_maxSize) {
+        while (!m_abort.load() && m_queue.size() >= m_maxSize.load()) {
             m_notFull.wait(&m_mutex);
         }
-        m_queue.push_back(std::move(x));
+        if (m_abort.load()) {
+            return;
+        }
+        m_queue.push_back(std::move(value));
         m_notEmpty.wakeOne();
     }
 
-    void insertHead(const T &x)
+    void push_front(const T &value)
     {
         QMutexLocker locker(&m_mutex);
-        while (m_queue.size() >= m_maxSize) {
+        while (!m_abort.load() && m_queue.size() >= m_maxSize.load()) {
             m_notFull.wait(&m_mutex);
         }
-        m_queue.push_front(x);
+        if (m_abort.load()) {
+            return;
+        }
+        m_queue.push_front(value);
         m_notEmpty.wakeOne();
     }
 
-    void insertHead(T &&x)
+    void push_front(T &&value)
     {
         QMutexLocker locker(&m_mutex);
-        while (m_queue.size() >= m_maxSize) {
+        while (!m_abort.load() && m_queue.size() >= m_maxSize.load()) {
             m_notFull.wait(&m_mutex);
         }
-        m_queue.push_front(std::move(x));
+        if (m_abort.load()) {
+            return;
+        }
+        m_queue.push_front(std::move(value));
         m_notEmpty.wakeOne();
     }
 
-    auto take() -> T
+    void push(const std::deque<T> &values)
     {
         QMutexLocker locker(&m_mutex);
-        while (m_queue.empty()) {
+        m_queue.insert(m_queue.end(), values.begin(), values.end());
+        m_notEmpty.wakeAll();
+    }
+
+    void push(std::deque<T> &&values)
+    {
+        QMutexLocker locker(&m_mutex);
+        m_queue.insert(m_queue.end(),
+                       std::make_move_iterator(values.begin()),
+                       std::make_move_iterator(values.end()));
+        m_notEmpty.wakeAll();
+    }
+
+    T take()
+    {
+        QMutexLocker locker(&m_mutex);
+        while (m_queue.empty() && !m_abort.load()) {
             m_notEmpty.wait(&m_mutex);
         }
-        T front(std::move(m_queue.front()));
+        if (m_abort.load()) {
+            return T();
+        }
+        T value = std::move(m_queue.front());
         m_queue.pop_front();
         m_notFull.wakeOne();
-        return front;
+        return value;
     }
 
-    void clear(ClearCallback callback = nullptr)
+    void unique()
     {
         QMutexLocker locker(&m_mutex);
-        if (callback) {
-            while (!m_queue.empty()) {
-                if (callback) {
-                    callback(m_queue.front());
-                }
-                m_queue.pop_front();
-            }
-        } else if (!m_queue.empty()) {
-            m_queue.clear();
+        if (m_queue.empty()) {
+            return;
         }
+        std::sort(m_queue.begin(), m_queue.end(), [](const T &a, const T &b) { return a > b; });
+        auto last = std::unique(m_queue.begin(), m_queue.end());
+        m_queue.erase(last, m_queue.end());
         m_notFull.wakeAll();
     }
 
-    [[nodiscard]] auto empty() const -> bool
+    void clear()
+    {
+        QMutexLocker locker(&m_mutex);
+        m_queue.clear();
+        m_notFull.wakeAll();
+    }
+
+    bool isEmpty() const
     {
         QMutexLocker locker(&m_mutex);
         return m_queue.empty();
     }
 
-    [[nodiscard]] auto full() const -> bool
-    {
-        QMutexLocker locker(&m_mutex);
-        return m_queue.size() >= m_maxSize;
-    }
-
-    [[nodiscard]] auto size() const -> size_t
+    int size() const
     {
         QMutexLocker locker(&m_mutex);
         return m_queue.size();
     }
 
-    void setMaxSize(int maxSize)
+    void setMaxSize(std::size_t max_size) { m_maxSize.store(max_size); }
+
+    std::size_t maxSize() const { return m_maxSize.load(); }
+
+    bool isFull() const
     {
         QMutexLocker locker(&m_mutex);
-        m_maxSize = maxSize;
+        return m_queue.size() >= m_maxSize.load();
     }
 
-    [[nodiscard]] auto maxSize() const -> size_t
+    void start() { m_abort.store(false); }
+
+    void abort()
     {
-        QMutexLocker locker(&m_mutex);
-        return m_maxSize;
+        m_abort.store(true);
+        m_notEmpty.wakeAll();
+        m_notFull.wakeAll();
     }
 
-private:
-    mutable QMutex m_mutex;
-    QWaitCondition m_notEmpty;
-    QWaitCondition m_notFull;
-    std::deque<T> m_queue;
-    int m_maxSize;
+    bool isAborted() const { return m_abort.load(); }
 };
 
 } // namespace Utils

@@ -1,9 +1,9 @@
 #ifndef CONTROLWIDGET_HPP
 #define CONTROLWIDGET_HPP
 
-#ifdef MPV_ON
+#if defined(MPV_ON)
 #include <mpv/mediainfo.hpp>
-#else
+#elif defined(FFMPEG_ON)
 #include <ffmpeg/mediainfo.hpp>
 #endif
 
@@ -21,9 +21,9 @@ public:
 
     void setDuration(int value);
     [[nodiscard]] auto duration() const -> int;
-#ifdef MPV_ON
+#if defined(MPV_ON)
     void setChapters(const Mpv::Chapters &chapters);
-#else
+#elif defined(FFMPEG_ON)
     void setChapters(const Ffmpeg::Chapters &chapters);
 #endif
     [[nodiscard]] auto sliderGlobalPos() const -> QPoint;

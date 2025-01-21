@@ -14,8 +14,8 @@
 #include <event/seekevent.hpp>
 #include <event/trackevent.hpp>
 #include <event/valueevent.hpp>
+#include <utils/concurrentqueue.hpp>
 #include <utils/speed.hpp>
-#include <utils/threadsafequeue.hpp>
 #include <utils/utils.h>
 #include <videorender/videorender.hpp>
 
@@ -261,7 +261,7 @@ public:
 
     void addPropertyChangeEvent(PropertyChangeEvent *event)
     {
-        propertyChangeEventQueue.append(PropertyChangeEventPtr(event));
+        propertyChangeEventQueue.push_back(PropertyChangeEventPtr(event));
         while (propertyChangeEventQueue.size() > maxPropertyEventQueueSize.load()) {
             propertyChangeEventQueue.take();
         }
@@ -270,7 +270,7 @@ public:
 
     void addEvent(const EventPtr &eventPtr)
     {
-        eventQueue.append(eventPtr);
+        eventQueue.push_back(eventPtr);
         while (eventQueue.size() > maxEventQueueSize.load()) {
             eventQueue.take();
         }
@@ -280,7 +280,7 @@ public:
         switch (eventPtr->type()) {
         case Event::EventType::Pause: break;
         default: {
-            eventQueue.append(EventPtr(new PauseEvent(true)));
+            eventQueue.push_back(EventPtr(new PauseEvent(true)));
         } break;
         }
         wakePause();
@@ -288,7 +288,7 @@ public:
 
     void processEvent()
     {
-        while (!eventQueue.empty()) {
+        while (!eventQueue.isEmpty()) {
             auto eventPtr = eventQueue.take();
             switch (eventPtr->type()) {
             case Event::EventType::Pause: processPauseEvent(eventPtr); break;
@@ -394,7 +394,7 @@ public:
         } else if (position > q_ptr->duration()) {
             position = q_ptr->duration();
         }
-        eventQueue.insertHead(EventPtr(new SeekEvent(position)));
+        eventQueue.push_front(EventPtr(new SeekEvent(position)));
     }
 
     void processGpuEvent(const EventPtr &eventPtr)
@@ -417,7 +417,7 @@ public:
 
         q_ptr->addEvent(EventPtr(new CloseMediaEvent));
         q_ptr->addEvent(EventPtr(new OpenMediaEvent(filepath)));
-        eventQueue.insertHead(EventPtr(new SeekEvent(position)));
+        eventQueue.push_front(EventPtr(new SeekEvent(position)));
     }
 
     void processSelectedMediaTrackEvent(const EventPtr &eventPtr)
@@ -451,7 +451,7 @@ public:
 
         q_ptr->addEvent(EventPtr(new CloseMediaEvent));
         q_ptr->addEvent(EventPtr(new OpenMediaEvent(filepath)));
-        eventQueue.insertHead(EventPtr(new SeekEvent(position)));
+        eventQueue.push_front(EventPtr(new SeekEvent(position)));
     }
 
     void processOpenMediaEvent(const EventPtr &eventPtr)
@@ -514,9 +514,9 @@ public:
     QMutex mutex;
     QWaitCondition waitCondition;
 
-    Utils::ThreadSafeQueue<PropertyChangeEventPtr> propertyChangeEventQueue;
+    Utils::ConcurrentQueue<PropertyChangeEventPtr> propertyChangeEventQueue;
     std::atomic<size_t> maxPropertyEventQueueSize = 100;
-    Utils::ThreadSafeQueue<EventPtr> eventQueue;
+    Utils::ConcurrentQueue<EventPtr> eventQueue;
     std::atomic<size_t> maxEventQueueSize = 100;
 
     QScopedPointer<Utils::Speed> speedPtr;

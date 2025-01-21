@@ -1,16 +1,15 @@
 // Copyright (C) 2016 The Qt Company Ltd.
-// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
 #include "qmediaplaylist.h"
 #include "qmediaplaylist_p.h"
-#include "qplaylistfileparser_p.h"
+#include "qplaylistfileparser.h"
 
+#include <QCoreApplication>
+#include <QFile>
+#include <QList>
 #include <QRandomGenerator>
-#include <QtCore/qcoreapplication.h>
-#include <QtCore/qcoreevent.h>
-#include <QtCore/qfile.h>
-#include <QtCore/qlist.h>
-#include <QtCore/qurl.h>
+#include <QUrl>
 
 QT_BEGIN_NAMESPACE
 
@@ -124,10 +123,12 @@ int QMediaPlaylistPrivate::prevPosition(int steps) const
 
     \value CurrentItemInLoop  The current item is played repeatedly in a loop.
 
-    \value Sequential         Playback starts from the current and moves through each successive item until the last is reached and then stops.
-                              The next item is a null item when the last one is currently playing.
+    \value Sequential         Playback starts from the current and moves through each successive
+   item until the last is reached and then stops. The next item is a null item when the last one is
+   currently playing.
 
-    \value Loop               Playback restarts at the first item after the last has finished playing.
+    \value Loop               Playback restarts at the first item after the last has finished
+   playing.
 
     \value Random             Play items in random order.
 */

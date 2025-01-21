@@ -1,12 +1,10 @@
-#ifndef DECODER_H
-#define DECODER_H
+#pragma once
 
 #include <QSharedPointer>
 #include <QThread>
 
 #include <event/event.hpp>
-#include <utils/boundedblockingqueue.hpp>
-#include <utils/threadsafequeue.hpp>
+#include <utils/concurrentqueue.hpp>
 
 #include "avcontextinfo.h"
 #include "formatcontext.h"
@@ -64,7 +62,7 @@ public:
     void append(const T &t)
     {
         assertVaild();
-        m_queue.append(t);
+        m_queue.push_back(t);
     }
     void append(T &&t)
     {
@@ -78,8 +76,8 @@ public:
 
     void wakeup()
     {
-        if (m_queue.empty()) {
-            m_queue.insertHead(T());
+        if (m_queue.isEmpty()) {
+            m_queue.push_front(T());
         }
     }
 
@@ -88,7 +86,7 @@ public:
         if (!m_contextInfo->isIndexVaild()) {
             return;
         }
-        m_eventQueue.append(event);
+        m_eventQueue.push_back(event);
         wakeup();
     }
 
@@ -111,12 +109,10 @@ protected:
     }
 
     Utils::BoundedBlockingQueue<T> m_queue;
-    Utils::ThreadSafeQueue<EventPtr> m_eventQueue;
+    Utils::ConcurrentQueue<EventPtr> m_eventQueue;
     AVContextInfo *m_contextInfo = nullptr;
     FormatContext *m_formatContext = nullptr;
     std::atomic_bool m_runing = true;
 };
 
 } // namespace Ffmpeg
-
-#endif // DECODER_H

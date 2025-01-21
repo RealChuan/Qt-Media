@@ -131,9 +131,6 @@ ControlWidget::ControlWidget(QWidget *parent)
     : QWidget{parent}
     , d_ptr(new ControlWidgetPrivate(this))
 {
-    setWindowFlags(windowFlags() | Qt::FramelessWindowHint | Qt::Tool);
-    setAttribute(Qt::WA_TranslucentBackground); //设置窗口背景透明
-
     d_ptr->setupUI();
     buildConnect();
     d_ptr->initModelButton();
@@ -213,7 +210,7 @@ void ControlWidget::setDuration(int value)
     setPosition(0);
 }
 
-#ifdef MPV_ON
+#if defined(MPV_ON)
 void ControlWidget::setChapters(const Mpv::Chapters &chapters)
 {
     QVector<qint64> nodes;
@@ -222,7 +219,7 @@ void ControlWidget::setChapters(const Mpv::Chapters &chapters)
     }
     d_ptr->slider->setNodes(nodes);
 }
-#else
+#elif defined(FFMPEG_ON)
 void ControlWidget::setChapters(const Ffmpeg::Chapters &chapters)
 {
     QVector<qint64> nodes;

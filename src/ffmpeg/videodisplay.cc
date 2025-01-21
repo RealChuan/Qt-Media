@@ -34,7 +34,7 @@ public:
 
     void processEvent(bool &firstFrame) const
     {
-        while (q_ptr->m_runing.load() && !q_ptr->m_eventQueue.empty()) {
+        while (q_ptr->m_runing.load() && !q_ptr->m_eventQueue.isEmpty()) {
             qDebug() << "DecoderVideoFrame::processEvent";
             auto eventPtr = q_ptr->m_eventQueue.take();
             switch (eventPtr->type()) {

@@ -9,20 +9,16 @@
     {
       "name": "ffmpeg",
       "features": [
-        "opengl",
         "ass",
         "bzip2",
-        "freetype",
-        "fribidi",
-        "zlib",
-        "gpl",
         "ffmpeg",
         "ffplay",
         "ffprobe",
-        {
-          "name": "qsv",
-          "platform": "windows"
-        },
+        "freetype",
+        "fribidi",
+        "gpl",
+        "opengl",
+        "zlib",
         {
           "name": "amf",
           "platform": "windows | linux"
@@ -30,9 +26,13 @@
         {
           "name": "nvcodec",
           "platform": "windows | linux"
+        },
+        {
+          "name": "qsv",
+          "platform": "windows"
         }
       ]
     }
   ],
-  "builtin-baseline": "c4467cb686f92671f0172aa8299a77d908175b4e"
+  "builtin-baseline": "b545373a9a536dc559dac8583467a21497a0e897"
 }
