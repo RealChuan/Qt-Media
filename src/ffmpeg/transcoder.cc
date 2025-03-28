@@ -500,7 +500,7 @@ public:
     QString outFilepath;
     FormatContext *inFormatContext;
     FormatContext *outFormatContext;
-    QVector<TranscoderContext *> transcodeContexts{};
+    QList<TranscoderContext *> transcodeContexts{};
     QString subtitleFilename;
 
     QPair<qint64, qint64> range;

@@ -287,7 +287,7 @@ auto FormatContext::findBestStreamIndex(AVMediaType type) const -> int
     return d_ptr->findBestStreamIndex(type);
 }
 
-void FormatContext::discardStreamExcluded(const QVector<int> &indexs)
+void FormatContext::discardStreamExcluded(const QList<int> &indexs)
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
     for (uint i = 0; i < d_ptr->formatCtx->nb_streams; i++) {

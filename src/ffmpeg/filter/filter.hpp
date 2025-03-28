@@ -30,14 +30,15 @@ public:
     // Audio is "anull"
     void config(const QString &filterSpec);
 
-    auto filterFrame(Frame *frame) -> QVector<QSharedPointer<Frame>>;
+    auto filterFrame(Frame *frame) -> QList<QSharedPointer<Frame>>;
 
     auto buffersinkCtx() -> FilterContext *;
 
     static auto scale(const QSize &size) -> QString;
     static auto eq(const MediaConfig::Equalizer &equalizer) -> QString;
     static auto hue(int value) -> QString;
-    static auto zscale(ColorUtils::Primaries::Type destPrimaries, ToneMapping::Type type) -> QString;
+    static auto zscale(ColorUtils::Primaries::Type destPrimaries, ToneMapping::Type type)
+        -> QString;
 
 private:
     class FilterPrivate;

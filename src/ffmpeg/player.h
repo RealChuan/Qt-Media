@@ -35,8 +35,8 @@ public:
     [[nodiscard]] auto videoIndex() const -> int;
     [[nodiscard]] auto subtitleIndex() const -> int;
 
-    void setVideoRenders(const QVector<VideoRender *> &videoRenders);
-    auto videoRenders() -> QVector<VideoRender *>;
+    void setVideoRenders(const QList<VideoRender *> &videoRenders);
+    auto videoRenders() -> QList<VideoRender *>;
 
     void setPropertyEventQueueMaxSize(size_t size);
     [[nodiscard]] auto propertEventyQueueMaxSize() const -> size_t;

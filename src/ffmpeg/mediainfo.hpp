@@ -64,7 +64,7 @@ struct FFMPEG_EXPORT StreamInfo
     Metadatas metadatas;
 };
 
-using StreamInfos = QVector<StreamInfo>;
+using StreamInfos = QList<StreamInfo>;
 
 struct FFMPEG_EXPORT Chapter
 {
@@ -83,7 +83,7 @@ struct FFMPEG_EXPORT Chapter
     Metadatas metadatas;
 };
 
-using Chapters = QVector<Chapter>;
+using Chapters = QList<Chapter>;
 
 struct FFMPEG_EXPORT MediaInfo
 {

@@ -52,69 +52,81 @@ public:
 
     void push_back(const T &value)
     {
-        QMutexLocker locker(&m_mutex);
-        while (!m_abort.load() && m_queue.size() >= m_maxSize.load()) {
-            m_notFull.wait(&m_mutex);
+        {
+            QMutexLocker locker(&m_mutex);
+            while (!m_abort.load() && m_queue.size() >= m_maxSize.load()) {
+                m_notFull.wait(&m_mutex);
+            }
+            if (m_abort.load()) {
+                return;
+            }
+            m_queue.push_back(value);
         }
-        if (m_abort.load()) {
-            return;
-        }
-        m_queue.push_back(value);
         m_notEmpty.wakeOne();
     }
 
     void push_back(T &&value)
     {
-        QMutexLocker locker(&m_mutex);
-        while (!m_abort.load() && m_queue.size() >= m_maxSize.load()) {
-            m_notFull.wait(&m_mutex);
+        {
+            QMutexLocker locker(&m_mutex);
+            while (!m_abort.load() && m_queue.size() >= m_maxSize.load()) {
+                m_notFull.wait(&m_mutex);
+            }
+            if (m_abort.load()) {
+                return;
+            }
+            m_queue.push_back(std::move(value));
         }
-        if (m_abort.load()) {
-            return;
-        }
-        m_queue.push_back(std::move(value));
         m_notEmpty.wakeOne();
     }
 
     void push_front(const T &value)
     {
-        QMutexLocker locker(&m_mutex);
-        while (!m_abort.load() && m_queue.size() >= m_maxSize.load()) {
-            m_notFull.wait(&m_mutex);
+        {
+            QMutexLocker locker(&m_mutex);
+            while (!m_abort.load() && m_queue.size() >= m_maxSize.load()) {
+                m_notFull.wait(&m_mutex);
+            }
+            if (m_abort.load()) {
+                return;
+            }
+            m_queue.push_front(value);
         }
-        if (m_abort.load()) {
-            return;
-        }
-        m_queue.push_front(value);
         m_notEmpty.wakeOne();
     }
 
     void push_front(T &&value)
     {
-        QMutexLocker locker(&m_mutex);
-        while (!m_abort.load() && m_queue.size() >= m_maxSize.load()) {
-            m_notFull.wait(&m_mutex);
+        {
+            QMutexLocker locker(&m_mutex);
+            while (!m_abort.load() && m_queue.size() >= m_maxSize.load()) {
+                m_notFull.wait(&m_mutex);
+            }
+            if (m_abort.load()) {
+                return;
+            }
+            m_queue.push_front(std::move(value));
         }
-        if (m_abort.load()) {
-            return;
-        }
-        m_queue.push_front(std::move(value));
         m_notEmpty.wakeOne();
     }
 
     void push(const std::deque<T> &values)
     {
-        QMutexLocker locker(&m_mutex);
-        m_queue.insert(m_queue.end(), values.begin(), values.end());
+        {
+            QMutexLocker locker(&m_mutex);
+            m_queue.insert(m_queue.end(), values.begin(), values.end());
+        }
         m_notEmpty.wakeAll();
     }
 
     void push(std::deque<T> &&values)
     {
-        QMutexLocker locker(&m_mutex);
-        m_queue.insert(m_queue.end(),
-                       std::make_move_iterator(values.begin()),
-                       std::make_move_iterator(values.end()));
+        {
+            QMutexLocker locker(&m_mutex);
+            m_queue.insert(m_queue.end(),
+                           std::make_move_iterator(values.begin()),
+                           std::make_move_iterator(values.end()));
+        }
         m_notEmpty.wakeAll();
     }
 
@@ -135,20 +147,24 @@ public:
 
     void unique()
     {
-        QMutexLocker locker(&m_mutex);
-        if (m_queue.empty()) {
-            return;
+        {
+            QMutexLocker locker(&m_mutex);
+            if (m_queue.empty()) {
+                return;
+            }
+            std::sort(m_queue.begin(), m_queue.end(), [](const T &a, const T &b) { return a > b; });
+            auto last = std::unique(m_queue.begin(), m_queue.end());
+            m_queue.erase(last, m_queue.end());
         }
-        std::sort(m_queue.begin(), m_queue.end(), [](const T &a, const T &b) { return a > b; });
-        auto last = std::unique(m_queue.begin(), m_queue.end());
-        m_queue.erase(last, m_queue.end());
         m_notFull.wakeAll();
     }
 
     void clear()
     {
-        QMutexLocker locker(&m_mutex);
-        m_queue.clear();
+        {
+            QMutexLocker locker(&m_mutex);
+            m_queue.clear();
+        }
         m_notFull.wakeAll();
     }
 

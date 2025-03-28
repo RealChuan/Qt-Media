@@ -135,7 +135,7 @@ public:
             setMusicCover(track.image);
         }
 
-        QVector<StreamInfo> tracks = audioTracks;
+        QList<StreamInfo> tracks = audioTracks;
         tracks.append(videoTracks);
         tracks.append(subtitleTracks);
         addPropertyChangeEvent(new MediaTrackEvent(tracks));
@@ -522,7 +522,7 @@ public:
     QScopedPointer<Utils::Speed> speedPtr;
     QElapsedTimer speedTimer;
 
-    QVector<VideoRender *> videoRenders = {};
+    QList<VideoRender *> videoRenders = {};
 };
 
 Player::Player(QObject *parent)
@@ -626,14 +626,14 @@ auto Player::subtitleIndex() const -> int
     return d_ptr->subtitleInfo->index();
 }
 
-void Player::setVideoRenders(const QVector<VideoRender *> &videoRenders)
+void Player::setVideoRenders(const QList<VideoRender *> &videoRenders)
 {
     d_ptr->videoRenders = videoRenders;
     d_ptr->videoDecoder->setVideoRenders(videoRenders);
     d_ptr->subtitleDecoder->setVideoRenders(videoRenders);
 }
 
-auto Player::videoRenders() -> QVector<VideoRender *>
+auto Player::videoRenders() -> QList<VideoRender *>
 {
     return d_ptr->videoRenders;
 }

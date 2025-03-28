@@ -15,7 +15,7 @@ public:
     explicit VideoDisplay(QObject *parent = nullptr);
     ~VideoDisplay() override;
 
-    void setVideoRenders(const QVector<VideoRender *> &videoRenders);
+    void setVideoRenders(const QList<VideoRender *> &videoRenders);
 
     void setMasterClock();
 

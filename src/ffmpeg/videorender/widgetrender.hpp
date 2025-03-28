@@ -16,7 +16,7 @@ public:
     auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool override;
     auto convertSupported_pix_fmt(const QSharedPointer<Frame> &framePtr)
         -> QSharedPointer<Frame> override;
-    auto supportedOutput_pix_fmt() -> QVector<AVPixelFormat> override;
+    auto supportedOutput_pix_fmt() -> QList<AVPixelFormat> override;
 
     void resetAllFrame() override;
 

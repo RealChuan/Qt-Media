@@ -28,22 +28,22 @@ public:
 
     auto setParameters(const AVCodecParameters *par) -> bool;
 
-    [[nodiscard]] auto supportedFrameRates() const -> QVector<AVRational>;
+    [[nodiscard]] auto supportedFrameRates() const -> QList<AVRational>;
     void setFrameRate(const AVRational &frameRate);
 
-    [[nodiscard]] auto supportedPixFmts() const -> QVector<AVPixelFormat>;
+    [[nodiscard]] auto supportedPixFmts() const -> QList<AVPixelFormat>;
     void setPixfmt(AVPixelFormat pixfmt);
 
-    [[nodiscard]] auto supportedSampleRates() const -> QVector<int>;
+    [[nodiscard]] auto supportedSampleRates() const -> QList<int>;
     void setSampleRate(int sampleRate);
 
-    [[nodiscard]] auto supportedSampleFmts() const -> QVector<AVSampleFormat>;
+    [[nodiscard]] auto supportedSampleFmts() const -> QList<AVSampleFormat>;
     void setSampleFmt(AVSampleFormat sampleFmt);
 
-    [[nodiscard]] auto supportedProfiles() const -> QVector<AVProfile>;
+    [[nodiscard]] auto supportedProfiles() const -> QList<AVProfile>;
     void setProfile(int profile);
 
-    [[nodiscard]] auto supportedChLayouts() const -> QVector<AVChannelLayout>;
+    [[nodiscard]] auto supportedChLayouts() const -> QList<AVChannelLayout>;
     [[nodiscard]] auto chLayout() const -> AVChannelLayout;
     void setChLayout(const AVChannelLayout &chLayout);
 

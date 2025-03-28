@@ -27,15 +27,15 @@ public:
 
     HardWareEncode *q_ptr;
 
-    QVector<AVHWDeviceType> hwDeviceTypes = getCurrentHWDeviceTypes();
+    QList<AVHWDeviceType> hwDeviceTypes = getCurrentHWDeviceTypes();
     AVHWDeviceType hwDeviceType = AV_HWDEVICE_TYPE_NONE;
     BufferRef *bufferRef;
     AVPixelFormat sw_format = AV_PIX_FMT_NV12;
     AVPixelFormat hw_pix_fmt = AV_PIX_FMT_NONE;
-    QVector<AVPixelFormat> hw_pix_fmts = {AV_PIX_FMT_VDPAU,
-                                          AV_PIX_FMT_QSV,
-                                          AV_PIX_FMT_MMAL,
-                                          AV_PIX_FMT_CUDA};
+    QList<AVPixelFormat> hw_pix_fmts = {AV_PIX_FMT_VDPAU,
+                                        AV_PIX_FMT_QSV,
+                                        AV_PIX_FMT_MMAL,
+                                        AV_PIX_FMT_CUDA};
     bool vaild = false;
 };
 
@@ -55,17 +55,28 @@ auto HardWareEncode::initEncoder(const AVCodec *encoder) -> bool
         return false;
     }
     auto hw_pix_fmt = AV_PIX_FMT_NONE;
-    for (AVHWDeviceType type : std::as_const(d_ptr->hwDeviceTypes)) {
+    for (auto type : std::as_const(d_ptr->hwDeviceTypes)) {
         hw_pix_fmt = getPixelFormat(encoder, type);
         if (hw_pix_fmt != AV_PIX_FMT_NONE) {
             d_ptr->hwDeviceType = type;
             break;
         }
     }
-    if (encoder->pix_fmts != nullptr) {
-        for (const auto *pix_fmt = encoder->pix_fmts; *pix_fmt != -1; pix_fmt++) {
-            if (d_ptr->hw_pix_fmts.contains(*pix_fmt)) {
-                d_ptr->hw_pix_fmt = *pix_fmt;
+
+    int nb_pix_fmts;
+    const void *pix_fmts = nullptr;
+    avcodec_get_supported_config(nullptr,
+                                 encoder,
+                                 AV_CODEC_CONFIG_PIX_FORMAT,
+                                 0,
+                                 &pix_fmts,
+                                 &nb_pix_fmts);
+    if (nb_pix_fmts > 0) {
+        const auto *supported_pix_fmts = static_cast<const AVPixelFormat *>(pix_fmts);
+        for (int i = 0; i < nb_pix_fmts; ++i) {
+            auto pix_fmt = supported_pix_fmts[i];
+            if (d_ptr->hw_pix_fmts.contains(pix_fmt)) {
+                d_ptr->hw_pix_fmt = pix_fmt;
                 break;
             }
         }

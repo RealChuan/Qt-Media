@@ -42,7 +42,7 @@ public:
 
     HardWareDecode *q_ptr;
 
-    QVector<AVHWDeviceType> hwDeviceTypes = getCurrentHWDeviceTypes();
+    QList<AVHWDeviceType> hwDeviceTypes = getCurrentHWDeviceTypes();
     AVHWDeviceType hwDeviceType = AV_HWDEVICE_TYPE_NONE;
     BufferRef *bufferRef;
     bool vaild = false;

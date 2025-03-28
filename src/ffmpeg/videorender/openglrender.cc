@@ -37,24 +37,24 @@ public:
     QScopedPointer<OpenGLShaderProgram> subProgramPtr;
     GLuint textureSub;
 
-    const QVector<AVPixelFormat> supportFormats = {AV_PIX_FMT_YUV420P,
-                                                   AV_PIX_FMT_YUYV422,
-                                                   AV_PIX_FMT_RGB24,
-                                                   AV_PIX_FMT_BGR24,
-                                                   AV_PIX_FMT_YUV422P,
-                                                   AV_PIX_FMT_YUV444P,
-                                                   AV_PIX_FMT_YUV410P,
-                                                   AV_PIX_FMT_YUV411P,
-                                                   AV_PIX_FMT_UYVY422,
-                                                   AV_PIX_FMT_BGR8,
-                                                   AV_PIX_FMT_RGB8,
-                                                   AV_PIX_FMT_NV12,
-                                                   AV_PIX_FMT_NV21,
-                                                   AV_PIX_FMT_ARGB,
-                                                   AV_PIX_FMT_RGBA,
-                                                   AV_PIX_FMT_ABGR,
-                                                   AV_PIX_FMT_BGRA,
-                                                   AV_PIX_FMT_P010LE};
+    const QList<AVPixelFormat> supportFormats = {AV_PIX_FMT_YUV420P,
+                                                 AV_PIX_FMT_YUYV422,
+                                                 AV_PIX_FMT_RGB24,
+                                                 AV_PIX_FMT_BGR24,
+                                                 AV_PIX_FMT_YUV422P,
+                                                 AV_PIX_FMT_YUV444P,
+                                                 AV_PIX_FMT_YUV410P,
+                                                 AV_PIX_FMT_YUV411P,
+                                                 AV_PIX_FMT_UYVY422,
+                                                 AV_PIX_FMT_BGR8,
+                                                 AV_PIX_FMT_RGB8,
+                                                 AV_PIX_FMT_NV12,
+                                                 AV_PIX_FMT_NV21,
+                                                 AV_PIX_FMT_ARGB,
+                                                 AV_PIX_FMT_RGBA,
+                                                 AV_PIX_FMT_ABGR,
+                                                 AV_PIX_FMT_BGRA,
+                                                 AV_PIX_FMT_P010LE};
     QScopedPointer<VideoFrameConverter> frameConverterPtr;
 
     QSharedPointer<Frame> framePtr;
@@ -116,7 +116,7 @@ auto OpenglRender::convertSupported_pix_fmt(const QSharedPointer<Frame> &frame)
     return frameRgbPtr;
 }
 
-auto OpenglRender::supportedOutput_pix_fmt() -> QVector<AVPixelFormat>
+auto OpenglRender::supportedOutput_pix_fmt() -> QList<AVPixelFormat>
 {
     return d_ptr->supportFormats;
 }
@@ -134,14 +134,12 @@ auto OpenglRender::widget() -> QWidget *
 
 void OpenglRender::updateFrame(const QSharedPointer<Frame> &framePtr)
 {
-    QMetaObject::invokeMethod(
-        this, [=] { onUpdateFrame(framePtr); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, [=] { onUpdateFrame(framePtr); }, Qt::QueuedConnection);
 }
 
 void OpenglRender::updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr)
 {
-    QMetaObject::invokeMethod(
-        this, [=] { onUpdateSubTitleFrame(framePtr); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, [=] { onUpdateSubTitleFrame(framePtr); }, Qt::QueuedConnection);
 }
 
 void OpenglRender::initTexture()

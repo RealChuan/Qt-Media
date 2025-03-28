@@ -14,7 +14,7 @@ public:
 
     bool print = false;
     int max = 100;
-    QVector<int> errorCodes{};
+    QList<int> errorCodes{};
     AVError error;
 };
 
@@ -56,7 +56,7 @@ auto AVErrorManager::lastErrorString() const -> QString
     return d_ptr->error.errorString();
 }
 
-auto AVErrorManager::errorCodes() const -> QVector<int>
+auto AVErrorManager::errorCodes() const -> QList<int>
 {
     return d_ptr->errorCodes;
 }

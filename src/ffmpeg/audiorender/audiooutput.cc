@@ -49,10 +49,10 @@ public:
         if (ioDevice == nullptr) {
             qWarning() << "Create AudioDevice Failed!";
         }
-        QObject::connect(audioSinkPtr.data(),
-                         &QAudioSink::stateChanged,
-                         q_ptr,
-                         &AudioOutput::onStateChanged);
+        q_ptr->connect(audioSinkPtr.data(),
+                       &QAudioSink::stateChanged,
+                       q_ptr,
+                       &AudioOutput::onStateChanged);
     }
 
     AudioOutput *q_ptr;

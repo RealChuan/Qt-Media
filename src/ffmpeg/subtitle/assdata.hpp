@@ -48,7 +48,7 @@ private:
     QExplicitlySharedDataPointer<AssData> d_ptr;
 };
 
-using AssDataInfoList = QVector<AssDataInfo>;
+using AssDataInfoList = QList<AssDataInfo>;
 
 } // namespace Ffmpeg
 
