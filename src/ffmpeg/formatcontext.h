@@ -49,7 +49,7 @@ public:
 
     [[nodiscard]] auto findBestStreamIndex(AVMediaType type) const -> int;
     // 丢弃除indexs中包含的音视频流，优化av_read_frame性能
-    void discardStreamExcluded(const QVector<int> &indexs);
+    void discardStreamExcluded(const QList<int> &indexs);
 
     auto seekFirstFrame() -> bool;
     auto seek(qint64 timestamp) -> bool;

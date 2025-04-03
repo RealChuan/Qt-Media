@@ -106,9 +106,9 @@ void printFfmpegInfo()
     qInfo() << avutil_configuration();
 }
 
-auto getCurrentHWDeviceTypes() -> QVector<AVHWDeviceType>
+auto getCurrentHWDeviceTypes() -> QList<AVHWDeviceType>
 {
-    static QVector<AVHWDeviceType> types{};
+    static QList<AVHWDeviceType> types{};
     if (types.isEmpty()) {
         auto type = AV_HWDEVICE_TYPE_NONE; // ffmpeg支持的硬件解码器
         QStringList list;
@@ -200,18 +200,18 @@ auto getMetaDatas(AVDictionary *metadata) -> Metadatas
     return metadatas;
 }
 
-auto getChLayouts(const QVector<AVChannelLayout> &channelLayout) -> ChLayouts
+auto getChLayouts(const QList<AVChannelLayout> &channelLayout) -> ChLayouts
 {
     static ChLayouts s_chLayouts;
     if (s_chLayouts.isEmpty()) {
-        QVector<qint64> channels{AV_CH_LAYOUT_MONO,
-                                 AV_CH_LAYOUT_STEREO,
-                                 AV_CH_LAYOUT_2_1,
-                                 AV_CH_LAYOUT_QUAD,
-                                 AV_CH_LAYOUT_5POINT0_BACK,
-                                 AV_CH_LAYOUT_6POINT0_FRONT,
-                                 AV_CH_LAYOUT_6POINT1,
-                                 AV_CH_LAYOUT_7POINT1};
+        QList<qint64> channels{AV_CH_LAYOUT_MONO,
+                               AV_CH_LAYOUT_STEREO,
+                               AV_CH_LAYOUT_2_1,
+                               AV_CH_LAYOUT_QUAD,
+                               AV_CH_LAYOUT_5POINT0_BACK,
+                               AV_CH_LAYOUT_6POINT0_FRONT,
+                               AV_CH_LAYOUT_6POINT1,
+                               AV_CH_LAYOUT_7POINT1};
 
         for (const auto &channel : std::as_const(channels)) {
             auto ch = static_cast<AVChannel>(channel);

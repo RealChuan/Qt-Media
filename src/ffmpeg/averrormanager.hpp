@@ -29,7 +29,7 @@ public:
     auto setFuncInfo(const QString &funcInfo) -> AVErrorManager &;
     auto setErrorCode(int errorCode) -> AVErrorManager &;
     [[nodiscard]] auto lastErrorString() const -> QString;
-    [[nodiscard]] auto errorCodes() const -> QVector<int>;
+    [[nodiscard]] auto errorCodes() const -> QList<int>;
 
 signals:
     void error(const Ffmpeg::AVError &avError);

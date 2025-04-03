@@ -66,7 +66,7 @@ void SubtitleThread::run()
     }
     formatCtxPtr->seekFirstFrame();
     auto tracks = formatCtxPtr->subtitleTracks();
-    QVector<int> indexs;
+    QList<int> indexs;
     for (const auto &track : std::as_const(tracks)) {
         indexs.append(track.index);
     }

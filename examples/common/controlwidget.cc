@@ -213,7 +213,7 @@ void ControlWidget::setDuration(int value)
 #if defined(MPV_ON)
 void ControlWidget::setChapters(const Mpv::Chapters &chapters)
 {
-    QVector<qint64> nodes;
+    QList<qint64> nodes;
     for (const auto &chapter : std::as_const(chapters)) {
         nodes.append(chapter.milliseconds / 1000);
     }
@@ -222,7 +222,7 @@ void ControlWidget::setChapters(const Mpv::Chapters &chapters)
 #elif defined(FFMPEG_ON)
 void ControlWidget::setChapters(const Ffmpeg::Chapters &chapters)
 {
-    QVector<qint64> nodes;
+    QList<qint64> nodes;
     for (const auto &chapter : std::as_const(chapters)) {
         nodes.append(chapter.startTime);
     }

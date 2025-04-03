@@ -60,7 +60,7 @@ public:
     QWaitCondition waitCondition;
 
     QMutex mutex_render;
-    QVector<VideoRender *> videoRenders = {};
+    QList<VideoRender *> videoRenders = {};
 };
 
 VideoDisplay::VideoDisplay(QObject *parent)
@@ -73,7 +73,7 @@ VideoDisplay::~VideoDisplay()
     stopDecoder();
 }
 
-void VideoDisplay::setVideoRenders(const QVector<VideoRender *> &videoRenders)
+void VideoDisplay::setVideoRenders(const QList<VideoRender *> &videoRenders)
 {
     QMutexLocker locker(&d_ptr->mutex_render);
     d_ptr->videoRenders = videoRenders;

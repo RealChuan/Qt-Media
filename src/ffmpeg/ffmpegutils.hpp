@@ -25,7 +25,7 @@ void FFMPEG_EXPORT printFfmpegInfo();
 void calculatePts(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext);
 void calculatePts(Packet *packet, AVContextInfo *contextInfo);
 
-auto getCurrentHWDeviceTypes() -> QVector<AVHWDeviceType>;
+auto getCurrentHWDeviceTypes() -> QList<AVHWDeviceType>;
 
 auto getPixelFormat(const AVCodec *codec, AVHWDeviceType type) -> AVPixelFormat;
 
@@ -44,7 +44,7 @@ struct CodecInfo
     enum AVCodecID codecId;
 };
 
-using CodecInfos = QVector<CodecInfo>;
+using CodecInfos = QList<CodecInfo>;
 
 auto FFMPEG_EXPORT getCodecsInfo(AVMediaType mediaType, bool encoder) -> CodecInfos;
 
@@ -57,9 +57,9 @@ struct ChLayout
     QString channelName;
 };
 
-using ChLayouts = QVector<ChLayout>;
+using ChLayouts = QList<ChLayout>;
 
-auto FFMPEG_EXPORT getChLayouts(const QVector<AVChannelLayout> &channelLayout) -> ChLayouts;
+auto FFMPEG_EXPORT getChLayouts(const QList<AVChannelLayout> &channelLayout) -> ChLayouts;
 
 auto convertUrlToFfmpegInput(const QString &url) -> QByteArray;
 

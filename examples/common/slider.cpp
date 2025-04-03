@@ -14,7 +14,7 @@ public:
 
     Slider *q_ptr;
 
-    QVector<qint64> nodes;
+    QList<qint64> nodes;
 };
 
 Slider::Slider(QWidget *parent)
@@ -27,18 +27,16 @@ Slider::Slider(QWidget *parent)
 
 Slider::~Slider() = default;
 
-void Slider::setNodes(const QVector<qint64> &nodes)
+void Slider::setNodes(const QList<qint64> &nodes)
 {
     d_ptr->nodes = nodes;
-    QMetaObject::invokeMethod(
-        this, [this] { update(); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, [this] { update(); }, Qt::QueuedConnection);
 }
 
 void Slider::clearNodes()
 {
     d_ptr->nodes.clear();
-    QMetaObject::invokeMethod(
-        this, [this] { update(); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, [this] { update(); }, Qt::QueuedConnection);
 }
 
 // Function copied from qslider.cpp

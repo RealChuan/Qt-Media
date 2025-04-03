@@ -23,7 +23,7 @@ inputs:
   qt_ver:
     description: 'qt version'
     required: false
-    default: '6.8.1'
+    default: '6.9.0'
     type: string
 
 runs:
@@ -78,13 +78,10 @@ runs:
       if: runner.os == 'macOS'
       shell: bash
       run: |
-        brew install ninja nasm python-setuptools mpv
+        brew install nasm python-setuptools mpv
         ninja --version
         cmake --version
         clang --version
-        vcpkg install ${{ inputs.vcpkg_libs }} \
-          ffmpeg[${{ inputs.vcpkg_ffmpeg_features }}] --triplet x64-osx \
-          || (cat /usr/local/share/vcpkg/installed/vcpkg/issue_body.md && exit 1)
         vcpkg install ${{ inputs.vcpkg_libs }} \
           ffmpeg[${{ inputs.vcpkg_ffmpeg_features }}] --triplet arm64-osx \
           || (cat /usr/local/share/vcpkg/installed/vcpkg/issue_body.md && exit 1)

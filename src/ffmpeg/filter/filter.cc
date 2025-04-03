@@ -133,9 +133,9 @@ void Filter::config(const QString &filterSpec)
     d_ptr->config(filterSpec);
 }
 
-auto Filter::filterFrame(Frame *frame) -> QVector<FramePtr>
+auto Filter::filterFrame(Frame *frame) -> QList<FramePtr>
 {
-    QVector<FramePtr> framepPtrs{};
+    QList<FramePtr> framepPtrs{};
     if (!d_ptr->buffersrcCtx->buffersrcAddFrameFlags(frame)) {
         return framepPtrs;
     }

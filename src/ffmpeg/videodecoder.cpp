@@ -56,7 +56,7 @@ VideoDecoder::~VideoDecoder()
     stopDecoder();
 }
 
-void VideoDecoder::setVideoRenders(const QVector<VideoRender *> &videoRenders)
+void VideoDecoder::setVideoRenders(const QList<VideoRender *> &videoRenders)
 {
     d_ptr->decoderVideoFrame->setVideoRenders(videoRenders);
 }

@@ -308,7 +308,7 @@ void VideoEncoderWidget::buildConnect()
             this,
             &VideoEncoderWidget::onVideoHeightChanged);
     connect(d_ptr->aspectCheckBox,
-            &QCheckBox::stateChanged,
+            &QCheckBox::checkStateChanged,
             this,
             &VideoEncoderWidget::onVideoWidthChanged);
 

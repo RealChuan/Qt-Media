@@ -18,7 +18,7 @@ namespace EncodeLimit {
 
 static const int crf_min = 0;
 static const int crf_max = 51;
-static const int invalid_crf= -999;
+static const int invalid_crf = -999;
 
 static const QStringList presets = QStringList{"ultrafast",
                                                "superfast",
@@ -79,9 +79,9 @@ struct FFMPEG_EXPORT EncodeContext
     bool burn = false;
     bool external = false;
 
-    QVector<AVProfile> profiles;
+    QList<AVProfile> profiles;
     ChLayouts chLayouts;
-    QVector<int> sampleRates;
+    QList<int> sampleRates;
 
 private:
     void init(AVContextInfo *info);
@@ -91,7 +91,7 @@ private:
     AVProfile m_profile;
 };
 
-using EncodeContexts = QVector<EncodeContext>;
+using EncodeContexts = QList<EncodeContext>;
 
 } // namespace Ffmpeg
 

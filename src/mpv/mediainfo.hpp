@@ -38,7 +38,7 @@ struct MPV_LIB_EXPORT TraskInfo
     int samplerate = 0;
 };
 
-using TraskInfos = QVector<TraskInfo>;
+using TraskInfos = QList<TraskInfo>;
 
 struct MPV_LIB_EXPORT Chapter
 {
@@ -49,7 +49,7 @@ struct MPV_LIB_EXPORT Chapter
     qint64 milliseconds;
 };
 
-using Chapters = QVector<Chapter>;
+using Chapters = QList<Chapter>;
 
 } // namespace Mpv
 

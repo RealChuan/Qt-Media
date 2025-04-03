@@ -31,40 +31,98 @@ public:
     void init()
     {
         const auto *codec = codecCtx->codec;
-        if (codec->supported_framerates != nullptr) {
-            for (const auto *framerate = codec->supported_framerates;
-                 (*framerate).num != 0 && (*framerate).den != 0;
-                 framerate++) {
-                supported_framerates.append(*framerate);
+
+        int nb_frame_rates;
+        const void *frame_rates = nullptr;
+        avcodec_get_supported_config(nullptr,
+                                     codec,
+                                     AV_CODEC_CONFIG_FRAME_RATE,
+                                     0,
+                                     &frame_rates,
+                                     &nb_frame_rates);
+
+        if (nb_frame_rates > 0) {
+            const auto *codec_frame_rates = static_cast<const AVRational *>(frame_rates);
+            for (int i = 0; i < nb_frame_rates; ++i) {
+                auto frame_rate = codec_frame_rates[i];
+                supported_framerates.append(frame_rate);
             }
         }
-        if (codec->pix_fmts != nullptr) {
-            for (const auto *pix_fmt = codec->pix_fmts; *pix_fmt != -1; pix_fmt++) {
-                supported_pix_fmts.append(*pix_fmt);
+
+        int nb_pix_fmts;
+        const void *pix_fmts = nullptr;
+        avcodec_get_supported_config(nullptr,
+                                     codec,
+                                     AV_CODEC_CONFIG_PIX_FORMAT,
+                                     0,
+                                     &pix_fmts,
+                                     &nb_pix_fmts);
+
+        if (nb_pix_fmts > 0) {
+            const auto *codec_pix_fmts = static_cast<const AVPixelFormat *>(pix_fmts);
+            for (int i = 0; i < nb_pix_fmts; ++i) {
+                auto pix_fmt = codec_pix_fmts[i];
+                supported_pix_fmts.append(pix_fmt);
             }
         }
-        if (codec->supported_samplerates != nullptr) {
-            for (const auto *samplerate = codec->supported_samplerates; *samplerate != 0;
-                 samplerate++) {
-                supported_samplerates.append(*samplerate);
+
+        int nb_sample_rates;
+        const void *sample_rates = nullptr;
+        avcodec_get_supported_config(nullptr,
+                                     codec,
+                                     AV_CODEC_CONFIG_SAMPLE_RATE,
+                                     0,
+                                     &sample_rates,
+                                     &nb_sample_rates);
+
+        if (nb_sample_rates > 0) {
+            const int *codec_sample_rates = static_cast<const int *>(sample_rates);
+            for (int i = 0; i < nb_sample_rates; ++i) {
+                auto sample_rate = codec_sample_rates[i];
+                supported_samplerates.append(sample_rate);
             }
         }
-        if (codec->sample_fmts != nullptr) {
-            for (const auto *sample_fmt = codec->sample_fmts; *sample_fmt != -1; sample_fmt++) {
-                supported_sample_fmts.append(*sample_fmt);
+
+        int nb_sample_fmts;
+        const void *sample_fmts = nullptr;
+        avcodec_get_supported_config(nullptr,
+                                     codec,
+                                     AV_CODEC_CONFIG_SAMPLE_FORMAT,
+                                     0,
+                                     &sample_fmts,
+                                     &nb_sample_fmts);
+
+        if (nb_sample_fmts > 0) {
+            const auto *codec_sample_fmts = static_cast<const AVSampleFormat *>(sample_fmts);
+            for (int i = 0; i < nb_sample_fmts; ++i) {
+                auto sample_fmt = codec_sample_fmts[i];
+                supported_sample_fmts.append(sample_fmt);
             }
         }
-        if (codec->ch_layouts != nullptr) {
-            const auto *ch_layout = codec->ch_layouts;
-            while (ch_layout->nb_channels != 0) {
-                supported_ch_layouts.append(*ch_layout);
-                ch_layout++;
+
+        int nb_ch_layouts;
+        const void *ch_layouts = nullptr;
+        avcodec_get_supported_config(nullptr,
+                                     codec,
+                                     AV_CODEC_CONFIG_CHANNEL_LAYOUT,
+                                     0,
+                                     &ch_layouts,
+                                     &nb_ch_layouts);
+
+        if (nb_ch_layouts > 0) {
+            const auto *codec_ch_layouts = static_cast<const AVChannelLayout *>(ch_layouts);
+            for (int i = 0; i < nb_ch_layouts; ++i) {
+                auto ch_layout = codec_ch_layouts[i];
+                supported_ch_layouts.append(ch_layout);
             }
         }
+
         const auto *profile = codec->profiles;
-        while (profile != nullptr && profile->profile != AV_PROFILE_UNKNOWN) {
-            supported_profiles.append(*profile);
-            profile++;
+        if (profile != nullptr) {
+            while (profile->profile != AV_PROFILE_UNKNOWN) {
+                supported_profiles.append(*profile);
+                profile++;
+            }
         }
     }
 
@@ -185,12 +243,12 @@ public:
 
     AVCodecContext *codecCtx = nullptr; //解码器上下文
 
-    QVector<AVRational> supported_framerates{};
-    QVector<AVPixelFormat> supported_pix_fmts{};
-    QVector<int> supported_samplerates{};
-    QVector<AVSampleFormat> supported_sample_fmts{};
-    QVector<AVChannelLayout> supported_ch_layouts{};
-    QVector<AVProfile> supported_profiles{};
+    QList<AVRational> supported_framerates{};
+    QList<AVPixelFormat> supported_pix_fmts{};
+    QList<int> supported_samplerates{};
+    QList<AVSampleFormat> supported_sample_fmts{};
+    QList<AVChannelLayout> supported_ch_layouts{};
+    QList<AVProfile> supported_profiles{};
 
     AVDictionary *encodeOptions = nullptr;
 };
@@ -230,9 +288,9 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
         dst->setSampleRate(d_ptr->codecCtx->sample_rate);
         dst->setChLayout(d_ptr->codecCtx->ch_layout);
         /* take first format from list of supported formats */
-        dst->setSampleFmt(d_ptr->codecCtx->codec->sample_fmts != nullptr
-                              ? d_ptr->codecCtx->codec->sample_fmts[0]
-                              : d_ptr->codecCtx->sample_fmt);
+        dst->setSampleFmt(d_ptr->supported_sample_fmts.isEmpty()
+                              ? d_ptr->codecCtx->sample_fmt
+                              : d_ptr->supported_sample_fmts.first());
         dstCodecCtx->time_base = AVRational{1, dstCodecCtx->sample_rate};
         break;
     case AVMEDIA_TYPE_VIDEO:
@@ -240,9 +298,8 @@ void CodecContext::copyToCodecParameters(CodecContext *dst)
         dstCodecCtx->width = d_ptr->codecCtx->width;
         dstCodecCtx->sample_aspect_ratio = d_ptr->codecCtx->sample_aspect_ratio;
         /* take first format from list of supported formats */
-        dst->setPixfmt(d_ptr->codecCtx->codec->pix_fmts != nullptr
-                           ? d_ptr->codecCtx->codec->pix_fmts[0]
-                           : d_ptr->codecCtx->pix_fmt);
+        dst->setPixfmt(d_ptr->supported_pix_fmts.isEmpty() ? d_ptr->codecCtx->pix_fmt
+                                                           : d_ptr->supported_pix_fmts.first());
         dst->setFrameRate(d_ptr->codecCtx->framerate);
         /* video time_base can be set to whatever is handy and supported by encoder */
         dstCodecCtx->time_base = av_inv_q(dstCodecCtx->framerate);
@@ -268,7 +325,7 @@ auto CodecContext::setParameters(const AVCodecParameters *par) -> bool
     ERROR_RETURN(ret)
 }
 
-auto CodecContext::supportedFrameRates() const -> QVector<AVRational>
+auto CodecContext::supportedFrameRates() const -> QList<AVRational>
 {
     return d_ptr->supported_framerates;
 }
@@ -304,7 +361,7 @@ void CodecContext::setPixfmt(AVPixelFormat pixfmt)
     d_ptr->codecCtx->pix_fmt = d_ptr->supported_pix_fmts.first();
 }
 
-auto CodecContext::supportedSampleRates() const -> QVector<int>
+auto CodecContext::supportedSampleRates() const -> QList<int>
 {
     return d_ptr->supported_samplerates;
 }
@@ -328,7 +385,7 @@ void CodecContext::setSampleFmt(AVSampleFormat sampleFmt)
     d_ptr->codecCtx->sample_fmt = d_ptr->supported_sample_fmts.first();
 }
 
-auto CodecContext::supportedProfiles() const -> QVector<AVProfile>
+auto CodecContext::supportedProfiles() const -> QList<AVProfile>
 {
     return d_ptr->supported_profiles;
 }
@@ -348,7 +405,7 @@ void CodecContext::setProfile(int profile)
     d_ptr->codecCtx->profile = d_ptr->supported_profiles.first().profile;
 }
 
-auto CodecContext::supportedChLayouts() const -> QVector<AVChannelLayout>
+auto CodecContext::supportedChLayouts() const -> QList<AVChannelLayout>
 {
     return d_ptr->supported_ch_layouts;
 }
@@ -427,12 +484,12 @@ auto CodecContext::quantizer() const -> QPair<int, int>
     return {d_ptr->codecCtx->qmin, d_ptr->codecCtx->qmax};
 }
 
-auto CodecContext::supportedPixFmts() const -> QVector<AVPixelFormat>
+auto CodecContext::supportedPixFmts() const -> QList<AVPixelFormat>
 {
     return d_ptr->supported_pix_fmts;
 }
 
-auto CodecContext::supportedSampleFmts() const -> QVector<AVSampleFormat>
+auto CodecContext::supportedSampleFmts() const -> QList<AVSampleFormat>
 {
     return d_ptr->supported_sample_fmts;
 }

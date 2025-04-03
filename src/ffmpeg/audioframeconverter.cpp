@@ -215,17 +215,10 @@ auto getAudioFormatFromCodecCtx(CodecContext *codecCtx, int &sampleSize) -> QAud
     qInfo() << "AudioDevice Support ChannelCount" << audioDevice.minimumChannelCount() << "~"
             << audioDevice.maximumChannelCount();
     if (!audioDevice.isFormatSupported(autioFormat)) {
-        qWarning() << autioFormat << " is not supported by backend, cannot play audio.";
-        Q_ASSERT(48000 >= audioDevice.minimumSampleRate()
-                 && 48000 <= audioDevice.maximumSampleRate());
-        Q_ASSERT(2 >= audioDevice.minimumChannelCount() && 2 <= audioDevice.maximumChannelCount());
-        autioFormat.setSampleRate(48000);
-        autioFormat.setChannelCount(2);
-        autioFormat.setChannelConfig(QAudioFormat::ChannelConfigStereo);
-        autioFormat.setSampleFormat(QAudioFormat::Int16);
-        sampleSize = 8 * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
+        autioFormat = audioDevice.preferredFormat();
+        sampleSize = 8 * av_get_bytes_per_sample(getAVSampleFormat(autioFormat.sampleFormat()));
+        qInfo() << "Use preferred audio parameters: " << autioFormat;
     }
-
     qInfo() << "Current Audio parameters:" << ctx->sample_rate << ctx->ch_layout.nb_channels
             << ctx->ch_layout.u.mask << ctx->sample_fmt;
     qInfo() << autioFormat << autioFormat.channelConfig();

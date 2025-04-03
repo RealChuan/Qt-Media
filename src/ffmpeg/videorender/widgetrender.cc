@@ -167,7 +167,7 @@ auto WidgetRender::convertSupported_pix_fmt(const QSharedPointer<Frame> &framePt
     // return d_ptr->swsScaleFrame(framePtr);
 }
 
-auto WidgetRender::supportedOutput_pix_fmt() -> QVector<AVPixelFormat>
+auto WidgetRender::supportedOutput_pix_fmt() -> QList<AVPixelFormat>
 {
     return {};
 }
@@ -213,8 +213,7 @@ void WidgetRender::paintEvent(QPaintEvent *event)
 
 void WidgetRender::updateFrame(const QSharedPointer<Frame> &framePtr)
 {
-    QMetaObject::invokeMethod(
-        this, [=] { displayFrame(framePtr); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, [=] { displayFrame(framePtr); }, Qt::QueuedConnection);
 }
 
 void WidgetRender::updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr)

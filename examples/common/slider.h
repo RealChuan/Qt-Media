@@ -10,7 +10,7 @@ public:
     explicit Slider(QWidget *parent = nullptr);
     ~Slider() override;
 
-    void setNodes(const QVector<qint64> &nodes);
+    void setNodes(const QList<qint64> &nodes);
     void clearNodes();
 
 signals:

@@ -26,7 +26,7 @@ public:
     virtual ~VideoRender();
 
     virtual auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool = 0;
-    virtual auto supportedOutput_pix_fmt() -> QVector<AVPixelFormat> = 0;
+    virtual auto supportedOutput_pix_fmt() -> QList<AVPixelFormat> = 0;
     virtual auto convertSupported_pix_fmt(const QSharedPointer<Frame> &framePtr)
         -> QSharedPointer<Frame>
         = 0;
