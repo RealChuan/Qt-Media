@@ -10,15 +10,15 @@ namespace Mpv {
 class PreviewWidget::PreviewWidgetPrivate
 {
 public:
-    PreviewWidgetPrivate(PreviewWidget *parent)
-        : owner(parent)
+    explicit PreviewWidgetPrivate(PreviewWidget *q)
+        : q_ptr(q)
     {
-        mpvPlayer = new Mpv::MpvPlayer(owner);
+        mpvPlayer = new Mpv::MpvPlayer(q_ptr);
 #ifdef Q_OS_WIN
-        mpvWidget = new Mpv::MpvWidget(owner);
+        mpvWidget = new Mpv::MpvWidget(q_ptr);
         mpvPlayer->initMpv(mpvWidget);
 #else
-        mpvWidget = new Mpv::MpvOpenglWidget(mpvPlayer, owner);
+        mpvWidget = new Mpv::MpvOpenglWidget(mpvPlayer, q_ptr);
         mpvPlayer->initMpv(nullptr);
 #endif
         mpvPlayer->setHwdec("auto-safe");
@@ -26,7 +26,7 @@ public:
         mpvPlayer->pauseAsync();
     }
 
-    PreviewWidget *owner;
+    PreviewWidget *q_ptr;
 
     Mpv::MpvPlayer *mpvPlayer;
     QWidget *mpvWidget;
@@ -39,7 +39,10 @@ PreviewWidget::PreviewWidget(QWidget *parent)
     setupUI();
 }
 
-PreviewWidget::~PreviewWidget() {}
+PreviewWidget::~PreviewWidget()
+{
+    delete d_ptr->mpvWidget;
+}
 
 void PreviewWidget::startPreview(const QString &filepath, int timestamp)
 {
@@ -58,8 +61,8 @@ void PreviewWidget::clearAllTask()
 
 void PreviewWidget::setupUI()
 {
-    auto layout = new QHBoxLayout(this);
-    layout->setContentsMargins(QMargins());
+    auto *layout = new QHBoxLayout(this);
+    layout->setContentsMargins({});
     layout->setSpacing(0);
     layout->addWidget(d_ptr->mpvWidget);
 }
