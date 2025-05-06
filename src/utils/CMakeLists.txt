@@ -9,6 +9,8 @@ set(PROJECT_SOURCES
     hostosinfo.h
     logasync.cpp
     logasync.h
+    logfile.cc
+    logfile.hpp
     osspecificaspects.h
     range.hpp
     singleton.hpp

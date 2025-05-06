@@ -134,12 +134,14 @@ auto OpenglRender::widget() -> QWidget *
 
 void OpenglRender::updateFrame(const QSharedPointer<Frame> &framePtr)
 {
-    QMetaObject::invokeMethod(this, [=] { onUpdateFrame(framePtr); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(
+        this, [this, framePtr] { onUpdateFrame(framePtr); }, Qt::QueuedConnection);
 }
 
 void OpenglRender::updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr)
 {
-    QMetaObject::invokeMethod(this, [=] { onUpdateSubTitleFrame(framePtr); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(
+        this, [this, framePtr] { onUpdateSubTitleFrame(framePtr); }, Qt::QueuedConnection);
 }
 
 void OpenglRender::initTexture()

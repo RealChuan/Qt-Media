@@ -1,5 +1,4 @@
-#ifndef LOGASYNC_H
-#define LOGASYNC_H
+#pragma once
 
 #include <QThread>
 
@@ -8,32 +7,15 @@
 
 namespace Utils {
 
-class FileUtil : public QObject
-{
-    Q_OBJECT
-public:
-    explicit FileUtil(QObject *parent = nullptr);
-    ~FileUtil() override;
-
-public slots:
-    void onWrite(const QString & /*msg*/);
-
-private slots:
-    void onFlush();
-
-private:
-    auto rollFile(int /*count*/) -> bool;
-    void setTimer();
-
-    class FileUtilPrivate;
-    QScopedPointer<FileUtilPrivate> d_ptr;
-};
-
 class UTILS_EXPORT LogAsync : public QThread
 {
     Q_OBJECT
 public:
-    enum Orientation { Std = 1, File, StdAndFile };
+    enum class Orientation : int {
+        Standard = 1 << 0,
+        File = 1 << 1,
+        StandardAndFile = Standard | File
+    };
 
     void setLogPath(const QString &path);
     auto logPath() -> QString;
@@ -44,11 +26,14 @@ public:
     void setAutoDelFileDays(qint64 days);
     auto autoDelFileDays() -> qint64;
 
-    void setOrientation(Orientation /*orientation*/);
+    void setOrientation(Orientation orientation);
     auto orientation() -> Orientation;
 
-    void setLogLevel(QtMsgType /*type*/);
+    void setLogLevel(QtMsgType type);
     auto logLevel() -> QtMsgType;
+
+    void setMaxConsoleLineSize(int size);
+    auto maxConsoleLineSize() -> int;
 
     void startWork();
     void stop();
@@ -70,5 +55,3 @@ private:
 };
 
 } // namespace Utils
-
-#endif // LOGASYNC_H

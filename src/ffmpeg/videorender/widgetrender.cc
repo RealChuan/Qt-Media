@@ -213,7 +213,8 @@ void WidgetRender::paintEvent(QPaintEvent *event)
 
 void WidgetRender::updateFrame(const QSharedPointer<Frame> &framePtr)
 {
-    QMetaObject::invokeMethod(this, [=] { displayFrame(framePtr); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(
+        this, [this, framePtr] { displayFrame(framePtr); }, Qt::QueuedConnection);
 }
 
 void WidgetRender::updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr)
@@ -224,7 +225,7 @@ void WidgetRender::updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr)
     img.setDevicePixelRatio(devicePixelRatio());
     QMetaObject::invokeMethod(
         this,
-        [=] {
+        [this, img, framePtr] {
             d_ptr->subTitleFramePtr = framePtr;
             d_ptr->subTitleImage = img;
             // need update?

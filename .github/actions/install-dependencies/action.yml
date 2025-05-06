@@ -1,10 +1,6 @@
 name: 'Install Dependencies'
 description: 'Install vcpkg libraries and qt environment'
 inputs:
-  os_name:
-    description: 'os name'
-    required: true
-    type: string
   vcpkg_libs:
     description: 'vcpkg libraries'
     required: false
@@ -32,9 +28,6 @@ runs:
   steps:
     - name: Install Custom VCPKG
       uses: RealChuan/install-vcpkg@main
-      with:
-        repo: 'https://github.com/RealChuan/vcpkg.git'
-        branch: 'dev'
         
     - name: Delete vcpkg.json
       shell: bash
@@ -46,22 +39,20 @@ runs:
       uses: actions/cache@v4
       with: 
         path: C:\vcpkg\installed
-        key: ${{ inputs.os_name }}-vcpkg-installed-${{ runner.os }}-${{ github.sha }}
+        key: ${{ runner.os }}-vcpkg-installed-${{ github.sha }}
         restore-keys: |
-          ${{ inputs.os_name }}-vcpkg-installed-${{ runner.os_name }}-
-          ${{ inputs.os_name }}-vcpkg-installed-
-          ${{ inputs.os_name }}-
+          ${{ runner.os }}-vcpkg-installed-
+          ${{ runner.os }}-
 
     - name: Cache macos or linux vcpkg
       if: runner.os == 'macOS' || runner.os == 'Linux'
       uses: actions/cache@v4
       with: 
         path: /usr/local/share/vcpkg/installed
-        key: ${{ inputs.os_name }}-vcpkg-installed-${{ runner.os }}-${{ github.sha }}
+        key: ${{ runner.os }}-vcpkg-installed-${{ github.sha }}
         restore-keys: |
-          ${{ inputs.os_name }}-vcpkg-installed-${{ runner.os_name }}-
-          ${{ inputs.os_name }}-vcpkg-installed-
-          ${{ inputs.os_name }}-
+          ${{ runner.os }}-vcpkg-installed-
+          ${{ runner.os }}-
 
     - name: Install dependencies on windows
       if: runner.os == 'Windows'

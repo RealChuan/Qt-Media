@@ -92,7 +92,7 @@ void VideoPreviewWidget::setDisplayImage(const QSharedPointer<Frame> &framePtr,
     img.setDevicePixelRatio(devicePixelRatio());
     QMetaObject::invokeMethod(
         this,
-        [=] {
+        [this, img, pts, framePtr, chapterText] {
             d_ptr->timestamp = pts;
             d_ptr->image = img;
             d_ptr->framePtr = framePtr;
@@ -107,7 +107,7 @@ void VideoPreviewWidget::setDisplayText(const QString &text)
 {
     QMetaObject::invokeMethod(
         this,
-        [=] {
+        [this, text] {
             d_ptr->displayText = text;
             update();
         },

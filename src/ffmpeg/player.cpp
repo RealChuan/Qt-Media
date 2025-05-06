@@ -678,7 +678,7 @@ auto Player::addEvent(const EventPtr &eventPtr) -> bool
     if (eventPtr->type() < Event::EventType::Pause) {
         QMetaObject::invokeMethod(
             this,
-            [=] { d_ptr->processEvent(eventPtr); },
+            [this, eventPtr] { d_ptr->processEvent(eventPtr); },
             QThread::currentThread() == this->thread() ? Qt::DirectConnection
                                                        : Qt::QueuedConnection);
         return true;

@@ -10,6 +10,7 @@ SOURCES += \
     fps.cc \
     hostosinfo.cpp \
     logasync.cpp \
+    logfile.cc \
     speed.cc \
     utils.cpp
 
@@ -20,6 +21,7 @@ HEADERS += \
     fps.hpp \
     hostosinfo.h \
     logasync.h \
+    logfile.hpp \
     osspecificaspects.h \
     range.hpp \
     singleton.hpp \

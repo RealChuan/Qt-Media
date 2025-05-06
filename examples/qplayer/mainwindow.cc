@@ -490,7 +490,7 @@ auto MainWindow::eventFilter(QObject *watched, QEvent *event) -> bool
         case QEvent::Resize:
             QMetaObject::invokeMethod(
                 this,
-                [=] {
+                [this] {
                     d_ptr->setControlWidgetGeometry(d_ptr->controlWidget->isVisible());
                     d_ptr->setTitleWidgetGeometry(d_ptr->titleWidget->isVisible());
                 },
@@ -526,7 +526,7 @@ auto MainWindow::eventFilter(QObject *watched, QEvent *event) -> bool
         case QEvent::Move:
             QMetaObject::invokeMethod(
                 this,
-                [=] {
+                [this] {
                     d_ptr->setControlWidgetGeometry(d_ptr->controlWidget->isVisible());
                     d_ptr->setTitleWidgetGeometry(d_ptr->titleWidget->isVisible());
                 },

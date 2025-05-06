@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 
     // 异步日志
     Utils::LogAsync *log = Utils::LogAsync::instance();
-    log->setOrientation(Utils::LogAsync::Orientation::StdAndFile);
+    log->setOrientation(Utils::LogAsync::Orientation::StandardAndFile);
     log->setLogLevel(QtDebugMsg);
     log->startWork();
 

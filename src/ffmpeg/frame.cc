@@ -235,7 +235,7 @@ auto Frame::fromQImage(const QImage &image) -> Frame *
     avFrame->format = AV_PIX_FMT_RGBA;
     framePtr->getBuffer();
 
-    memcpy(avFrame->data[0], img.bits(), avFrame->width * avFrame->height * 4);
+    memcpy(avFrame->data[0], img.bits(), static_cast<size_t>(avFrame->width) * avFrame->height * 4);
 
     return framePtr.release();
 }

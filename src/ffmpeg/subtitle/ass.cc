@@ -166,7 +166,8 @@ void Ass::getRGBAData(AssDataInfoList &list, qint64 pts)
                                  &ch);
     while (img != nullptr) {
         auto rect = QRect(img->dst_x, img->dst_y, img->w, img->h);
-        auto rgba = QByteArray(img->w * img->h * sizeof(uint32_t), Qt::Uninitialized);
+        auto rgba = QByteArray(static_cast<qsizetype>(img->w) * img->h * sizeof(uint32_t),
+                               Qt::Uninitialized);
 
         const quint8 r = img->color >> 24;
         const quint8 g = img->color >> 16;

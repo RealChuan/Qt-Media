@@ -567,7 +567,7 @@ void Transcoder::setPreviewFrames(const std::vector<QSharedPointer<Frame>> &fram
 {
     QMetaObject::invokeMethod(
         this,
-        [=] {
+        [this, framePtrs]() {
             d_ptr->previewFrames = framePtrs;
             auto *propertChangeEvent = new PropertyChangeEvent;
             propertChangeEvent->setType(PropertyChangeEvent::EventType::PreviewFramesChanged);
