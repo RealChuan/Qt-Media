@@ -170,7 +170,7 @@ MpvPlayer::MpvPlayer(QObject *parent)
     : QObject{parent}
     , d_ptr(new MpvPlayerPrivate(this))
 {
-    qInfo() << mpv_client_api_version();
+    qInfo() << "mpv client api version: " << mpv_client_api_version();
 }
 
 MpvPlayer::~MpvPlayer() = default;
@@ -240,6 +240,11 @@ auto MpvPlayer::audioTracks() const -> TraskInfos
 auto MpvPlayer::subTracks() const -> TraskInfos
 {
     return d_ptr->subTracks;
+}
+
+void MpvPlayer::start(qint64 seconds)
+{
+    mpv::qt::set_property(d_ptr->mpv, "start", QString::number(seconds));
 }
 
 void MpvPlayer::setVid(const QVariant &vid)
@@ -648,6 +653,8 @@ void MpvPlayer::initMpv(QWidget *widget)
     mpv_request_log_messages(d_ptr->mpv, "info");
 
     mpv::qt::set_property(d_ptr->mpv, "volume-max", 200);
+
+    mpv::qt::set_property(d_ptr->mpv, "save-position-on-quit", true);
 
     // From this point on, the wakeup function will be called. The callback
     // can come from any thread, so we use the QueuedConnection mechanism to

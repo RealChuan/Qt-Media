@@ -37,6 +37,8 @@ public:
     [[nodiscard]] auto audioTracks() const -> TraskInfos;
     [[nodiscard]] auto subTracks() const -> TraskInfos;
 
+    void start(qint64 seconds = 0);
+
     void setVid(const QVariant &vid);
     [[nodiscard]] auto vid() const -> QVariant;
 
