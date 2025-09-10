@@ -1,43 +1,25 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of Qt Creator.
-**
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 3 as published by the Free Software
-** Foundation with exceptions as appearing in the file LICENSE.GPL3-EXCEPT
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-3.0.html.
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
 
 #include "qtsingleapplication.h"
 #include "qtlocalpeer.h"
 
-#include <qtlockedfile.h>
+#include <3rdparty/ui_watchdog/uiwatchdog.h>
 
 #include <QDir>
 #include <QFileOpenEvent>
+#include <QLockFile>
+#include <QPointer>
 #include <QSharedMemory>
 #include <QWidget>
+
+using namespace std::chrono;
 
 namespace SharedTools {
 
 static const int instancesSize = 1024;
 
-static auto instancesLockFilename(const QString &appSessionId) -> QString
+static QString instancesLockFilename(const QString &appSessionId)
 {
     const QChar slash(QLatin1Char('/'));
     QString res = QDir::tempPath();
@@ -46,11 +28,19 @@ static auto instancesLockFilename(const QString &appSessionId) -> QString
     return res + appSessionId + QLatin1String("-instances");
 }
 
+static const char s_uiWatchDog[] = "QTC_UI_WATCHDOG";
+
 QtSingleApplication::QtSingleApplication(const QString &appId, int &argc, char **argv)
-    : QApplication(argc, argv),
-      firstPeer(-1),
-      pidPeer(0)
+    : QApplication(argc, argv)
+    , firstPeer(-1)
+    , pidPeer(0)
 {
+    if (qEnvironmentVariableIsSet(s_uiWatchDog)) {
+        auto watchDog = new UiWatchdog(UiWatchdogWorker::OptionNone, this);
+        qDebug() << s_uiWatchDog << "env var is set. The freezes of main thread, above"
+                 << MAX_TIME_BLOCKED << "ms, will be reported.";
+        watchDog->start();
+    }
     this->appId = appId;
 
     const QString appSessionId = QtLocalPeer::appSessionId(appId);
@@ -72,16 +62,15 @@ QtSingleApplication::QtSingleApplication(const QString &appId, int &argc, char *
         }
     }
 
-    // QtLockedFile is used to workaround QTBUG-10364
-    QtLockedFile lockfile(instancesLockFilename(appSessionId));
+    // QLockFile is used to workaround QTBUG-10364
+    QLockFile lockfile(instancesLockFilename(appSessionId));
 
-    lockfile.open(QtLockedFile::ReadWrite);
-    lockfile.lock(QtLockedFile::WriteLock);
+    lockfile.lock();
     qint64 *pids = static_cast<qint64 *>(instances->data());
     if (!created) {
         // Find the first instance that it still running
         // The whole list needs to be iterated in order to append to it
-        for (; *pids != 0; ++pids) {
+        for (; *pids; ++pids) {
             if (firstPeer == -1 && isRunning(*pids))
                 firstPeer = *pids;
         }
@@ -89,8 +78,9 @@ QtSingleApplication::QtSingleApplication(const QString &appId, int &argc, char *
     // Add current pid to list and terminate it
     *pids++ = QCoreApplication::applicationPid();
     *pids = 0;
-    pidPeer = new QtLocalPeer(this, appId + QLatin1Char('-') +
-                              QString::number(QCoreApplication::applicationPid()));
+    pidPeer = new QtLocalPeer(this,
+                              appId + QLatin1Char('-')
+                                  + QString::number(QCoreApplication::applicationPid()));
     connect(pidPeer, &QtLocalPeer::messageReceived, this, &QtSingleApplication::messageReceived);
     pidPeer->isClient();
     lockfile.unlock();
@@ -98,16 +88,15 @@ QtSingleApplication::QtSingleApplication(const QString &appId, int &argc, char *
 
 QtSingleApplication::~QtSingleApplication()
 {
-    if (instances == nullptr)
+    if (!instances)
         return;
     const qint64 appPid = QCoreApplication::applicationPid();
-    QtLockedFile lockfile(instancesLockFilename(QtLocalPeer::appSessionId(appId)));
-    lockfile.open(QtLockedFile::ReadWrite);
-    lockfile.lock(QtLockedFile::WriteLock);
+    QLockFile lockfile(instancesLockFilename(QtLocalPeer::appSessionId(appId)));
+    lockfile.lock();
     // Rewrite array, removing current pid and previously crashed ones
     qint64 *pids = static_cast<qint64 *>(instances->data());
     qint64 *newpids = pids;
-    for (; *pids != 0; ++pids) {
+    for (; *pids; ++pids) {
         if (*pids != appPid && isRunning(*pids))
             *newpids++ = *pids;
     }
@@ -115,17 +104,17 @@ QtSingleApplication::~QtSingleApplication()
     lockfile.unlock();
 }
 
-auto QtSingleApplication::event(QEvent *event) -> bool
+bool QtSingleApplication::event(QEvent *event)
 {
     if (event->type() == QEvent::FileOpen) {
-        QFileOpenEvent *foe = static_cast<QFileOpenEvent*>(event);
+        QFileOpenEvent *foe = static_cast<QFileOpenEvent *>(event);
         emit fileOpenRequest(foe->file());
         return true;
     }
     return QApplication::event(event);
 }
 
-auto QtSingleApplication::isRunning(qint64 pid) -> bool
+bool QtSingleApplication::isRunning(qint64 pid)
 {
     if (pid == -1) {
         pid = firstPeer;
@@ -137,7 +126,7 @@ auto QtSingleApplication::isRunning(qint64 pid) -> bool
     return peer.isClient();
 }
 
-auto QtSingleApplication::sendMessage(const QString &message, int timeout, qint64 pid) -> bool
+bool QtSingleApplication::sendMessage(const QString &message, int timeout, qint64 pid)
 {
     if (pid == -1) {
         pid = firstPeer;
@@ -149,7 +138,7 @@ auto QtSingleApplication::sendMessage(const QString &message, int timeout, qint6
     return peer.sendMessage(message, timeout, block);
 }
 
-auto QtSingleApplication::applicationId() const -> QString
+QString QtSingleApplication::applicationId() const
 {
     return appId;
 }
@@ -162,28 +151,104 @@ void QtSingleApplication::setBlock(bool value)
 void QtSingleApplication::setActivationWindow(QWidget *aw, bool activateOnMessage)
 {
     actWin = aw;
-    if (pidPeer == nullptr)
+    if (!pidPeer)
         return;
     if (activateOnMessage)
         connect(pidPeer, &QtLocalPeer::messageReceived, this, &QtSingleApplication::activateWindow);
     else
-        disconnect(pidPeer, &QtLocalPeer::messageReceived, this, &QtSingleApplication::activateWindow);
+        disconnect(pidPeer,
+                   &QtLocalPeer::messageReceived,
+                   this,
+                   &QtSingleApplication::activateWindow);
 }
 
-
-auto QtSingleApplication::activationWindow() const -> QWidget*
+QWidget *QtSingleApplication::activationWindow() const
 {
     return actWin;
 }
 
-
 void QtSingleApplication::activateWindow()
 {
-    if (actWin != nullptr) {
+    if (actWin) {
         actWin->setWindowState(actWin->windowState() & ~Qt::WindowMinimized);
         actWin->raise();
         actWin->activateWindow();
     }
+}
+
+static const char s_freezeDetector[] = "QTC_FREEZE_DETECTOR";
+
+static std::optional<int> isUsingFreezeDetector()
+{
+    if (!qEnvironmentVariableIsSet(s_freezeDetector))
+        return {};
+
+    bool ok = false;
+    const int threshold = qEnvironmentVariableIntValue(s_freezeDetector, &ok);
+    return ok ? threshold : 100; // default value 100ms
+}
+
+class ApplicationWithFreezerDetector : public SharedTools::QtSingleApplication
+{
+public:
+    ApplicationWithFreezerDetector(const QString &id, int &argc, char **argv)
+        : QtSingleApplication(id, argc, argv)
+        , m_align(21, QChar::Space)
+    {}
+    void setFreezeTreshold(milliseconds freezeAbove) { m_threshold = freezeAbove; }
+
+    bool notify(QObject *receiver, QEvent *event) override
+    {
+        if (m_inNotify)
+            return QtSingleApplication::notify(receiver, event);
+        const auto start = system_clock::now();
+        const QPointer<QObject> p(receiver);
+        const QString className = QLatin1String(receiver->metaObject()->className());
+        const QString name = receiver->objectName();
+
+        m_inNotify = true;
+        const bool ret = QtSingleApplication::notify(receiver, event);
+        m_inNotify = false;
+
+        const auto end = system_clock::now();
+        const auto freeze = duration_cast<milliseconds>(end - start);
+        if (freeze > m_threshold) {
+            m_total += freeze;
+            const QString time = QTime::currentTime().toString(Qt::ISODateWithMs);
+            qDebug().noquote() << QString("FREEZE [%1]").arg(time) << "of" << freeze.count()
+                               << "ms, total" << m_total.count() << "ms, on:" << event;
+            const QString receiverMessage = name.isEmpty()
+                                                ? QString("receiver class: %1").arg(className)
+                                                : QString("receiver class: %1, object name: %2")
+                                                      .arg(className, name);
+            qDebug().noquote() << m_align << receiverMessage;
+            if (!p)
+                qDebug().noquote()
+                    << m_align << "THE RECEIVER GOT DELETED inside the event filter!";
+        }
+        return ret;
+    }
+
+private:
+    bool m_inNotify = false;
+    const QString m_align;
+    milliseconds m_threshold{100};
+    milliseconds m_total{0};
+};
+
+QtSingleApplication *createApplication(const QString &id, int &argc, char **argv)
+{
+    const std::optional<int> freezeDetector = isUsingFreezeDetector();
+    if (!freezeDetector)
+        return new SharedTools::QtSingleApplication(id, argc, argv);
+
+    qDebug() << s_freezeDetector << "evn var is set. The freezes of main thread, above"
+             << *freezeDetector << "ms, will be reported.";
+    qDebug() << "Change the freeze detection threshold by setting the" << s_freezeDetector
+             << "env var to a different numeric value (in ms).";
+    ApplicationWithFreezerDetector *app = new ApplicationWithFreezerDetector(id, argc, argv);
+    app->setFreezeTreshold(milliseconds(*freezeDetector));
+    return app;
 }
 
 } // namespace SharedTools

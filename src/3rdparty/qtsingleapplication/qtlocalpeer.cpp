@@ -1,27 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of Qt Creator.
-**
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 3 as published by the Free Software
-** Foundation with exceptions as appearing in the file LICENSE.GPL3-EXCEPT
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-3.0.html.
-**
-****************************************************************************/
+// Copyright (C) 2016 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
 
 #include "qtlocalpeer.h"
 
@@ -45,25 +23,21 @@ namespace SharedTools {
 
 static const char ack[] = "ack";
 
-auto QtLocalPeer::appSessionId(const QString &appId) -> QString
+QString QtLocalPeer::appSessionId(const QString &appId)
 {
-    QByteArray idc = appId.toUtf8();
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    quint16 idNum = qChecksum(idc);
-#else
-    quint16 idNum = qChecksum(idc.constData(), idc.size());
-#endif
+    const QByteArray idc = appId.toUtf8();
+    const quint16 idNum = qChecksum(idc);
 
     //### could do: two 16bit checksums over separate halves of id, for a 32bit result - improved uniqeness probability. Every-other-char split would be best.
 
     QString res = QLatin1String("qtsingleapplication-")
                  + QString::number(idNum, 16);
 #if defined(Q_OS_WIN)
-    if (pProcessIdToSessionId == nullptr) {
+    if (!pProcessIdToSessionId) {
         QLibrary lib(QLatin1String("kernel32"));
         pProcessIdToSessionId = (PProcessIdToSessionId)lib.resolve("ProcessIdToSessionId");
     }
-    if (pProcessIdToSessionId != nullptr) {
+    if (pProcessIdToSessionId) {
         DWORD sessionId = 0;
         pProcessIdToSessionId(GetCurrentProcessId(), &sessionId);
         res += QLatin1Char('-') + QString::number(sessionId, 16);
@@ -85,16 +59,16 @@ QtLocalPeer::QtLocalPeer(QObject *parent, const QString &appId)
     QString lockName = QDir(QDir::tempPath()).absolutePath()
                        + QLatin1Char('/') + socketName
                        + QLatin1String("-lockfile");
-    lockFile.setFileName(lockName);
-    lockFile.open(QIODevice::ReadWrite);
+    lockFile.reset(new QLockFile(lockName));
+    lockFile->setStaleLockTime(0);
 }
 
-auto QtLocalPeer::isClient() -> bool
+bool QtLocalPeer::isClient()
 {
-    if (lockFile.isLocked())
+    if (lockFile->isLocked())
         return false;
 
-    if (!lockFile.lock(QtLockedFile::WriteLock, false))
+    if (!lockFile->tryLock())
         return true;
 
     if (!QLocalServer::removeServer(socketName))
@@ -106,7 +80,7 @@ auto QtLocalPeer::isClient() -> bool
     return false;
 }
 
-auto QtLocalPeer::sendMessage(const QString &message, int timeout, bool block) -> bool
+bool QtLocalPeer::sendMessage(const QString &message, int timeout, bool block)
 {
     if (!isClient())
         return false;
@@ -117,7 +91,7 @@ auto QtLocalPeer::sendMessage(const QString &message, int timeout, bool block) -
         // Try twice, in case the other instance is just starting up
         socket.connectToServer(socketName);
         connOk = socket.waitForConnected(timeout/2);
-        if (connOk || (i != 0))
+        if (connOk || i)
             break;
         int ms = 250;
 #if defined(Q_OS_WIN)
@@ -144,7 +118,7 @@ auto QtLocalPeer::sendMessage(const QString &message, int timeout, bool block) -
 void QtLocalPeer::receiveConnection()
 {
     QLocalSocket* socket = server->nextPendingConnection();
-    if (socket == nullptr)
+    if (!socket)
         return;
 
     // Why doesn't Qt have a blocking stream that takes care of this shait???
@@ -166,7 +140,7 @@ void QtLocalPeer::receiveConnection()
         remaining -= got;
         uMsgBuf += got;
         //qDebug() << "RCV: got" << got << "remaining" << remaining;
-    } while ((remaining != 0u) && got >= 0 && socket->waitForReadyRead(2000));
+    } while (remaining && got >= 0 && socket->waitForReadyRead(2000));
     //### error check: got<0
     if (got < 0) {
         qWarning() << "QtLocalPeer: Message reception failed" << socket->errorString();
