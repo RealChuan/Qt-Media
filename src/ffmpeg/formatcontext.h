@@ -1,8 +1,8 @@
-#ifndef FORMATCONTEXT_H
-#define FORMATCONTEXT_H
+#pragma once
 
 #include "ffmepg_global.h"
 #include "mediainfo.hpp"
+#include "packet.hpp"
 
 #include <QObject>
 
@@ -15,7 +15,6 @@ struct AVFormatContext;
 
 namespace Ffmpeg {
 
-class Packet;
 class FFMPEG_EXPORT FormatContext : public QObject
 {
 public:
@@ -34,7 +33,7 @@ public:
     void avioClose();
 
     auto writeHeader() -> bool;
-    auto writePacket(Packet *packet) -> bool;
+    auto writePacket(const PacketPtr &packetPt) -> bool;
     auto writeTrailer() -> bool;
 
     auto findStream() -> bool;
@@ -56,9 +55,9 @@ public:
     auto seek(qint64 timestamp, bool forward) -> bool;   // microsecond
     auto seekFrame(int index, qint64 timestamp) -> bool; // microsecond
 
-    auto readFrame(Packet *packet) -> bool;
+    auto readFrame(const PacketPtr &packetPtr) -> bool;
 
-    auto checkPktPlayRange(Packet *packet) -> bool;
+    auto checkPktPlayRange(const PacketPtr &packetPt) -> bool;
 
     [[nodiscard]] auto guessFrameRate(int index) const -> AVRational;
     auto guessFrameRate(AVStream *stream) const -> AVRational;
@@ -76,5 +75,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // FORMATCONTEXT_H

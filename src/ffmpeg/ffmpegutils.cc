@@ -3,7 +3,6 @@
 #include "avcontextinfo.h"
 #include "codeccontext.h"
 #include "formatcontext.h"
-#include "packet.h"
 
 #include <QDebug>
 
@@ -34,16 +33,16 @@ void calculatePts(const FramePtr &framePtr, AVContextInfo *contextInfo, FormatCo
     //          << "frame_rate:" << frame_rate.num << frame_rate.den;
 }
 
-void calculatePts(Packet *packet, AVContextInfo *contextInfo)
+void calculatePts(const PacketPtr &packetPtr, AVContextInfo *contextInfo)
 {
     auto timeBase = av_q2d(contextInfo->timebase());
     // 当前帧播放时长
-    auto *avPacket = packet->avPacket();
+    auto *avPacket = packetPtr->avPacket();
     auto duration = avPacket->duration * timeBase;
     // 当前帧显示时间戳
     auto pts = (avPacket->pts == AV_NOPTS_VALUE) ? NAN : avPacket->pts * timeBase;
-    packet->setDuration(duration * AV_TIME_BASE);
-    packet->setPts(pts * AV_TIME_BASE);
+    packetPtr->setDuration(duration * AV_TIME_BASE);
+    packetPtr->setPts(pts * AV_TIME_BASE);
     // qDebug() << "Packet duration:" << duration << "pts:" << pts << "tb:" << tb.num << tb.den;
 }
 

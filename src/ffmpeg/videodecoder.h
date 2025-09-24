@@ -1,8 +1,7 @@
-#ifndef VIDEODECODER_H
-#define VIDEODECODER_H
+#pragma once
 
 #include "decoder.h"
-#include "packet.h"
+#include "packet.hpp"
 
 namespace Ffmpeg {
 
@@ -31,5 +30,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // VIDEODECODER_H

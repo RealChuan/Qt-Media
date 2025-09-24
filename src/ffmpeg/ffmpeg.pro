@@ -35,7 +35,7 @@ SOURCES += \
     frame.cc \
     hdrmetadata.cc \
     mediainfo.cc \
-    packet.cpp \
+    packet.cc \
     player.cpp \
     previewtask.cc \
     subtitle.cpp \
@@ -67,7 +67,7 @@ HEADERS += \
     frame.hpp \
     hdrmetadata.hpp \
     mediainfo.hpp \
-    packet.h \
+    packet.hpp \
     player.h \
     previewtask.hpp \
     subtitle.h \

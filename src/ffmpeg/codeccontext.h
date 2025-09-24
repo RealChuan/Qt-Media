@@ -2,6 +2,7 @@
 
 #include "ffmepg_global.h"
 #include "frame.hpp"
+#include "packet.hpp"
 
 #include <QObject>
 
@@ -16,7 +17,6 @@ namespace Ffmpeg {
 
 struct EncodeContext;
 class Subtitle;
-class Packet;
 class FFMPEG_EXPORT CodecContext : public QObject
 {
 public:
@@ -57,12 +57,12 @@ public:
     void setThreadCount(int threadCount);
     auto open() -> bool;
 
-    auto sendPacket(Packet *packet) -> bool;
+    auto sendPacket(const PacketPtr &packetPtr) -> bool;
     auto receiveFrame(const FramePtr &framePtr) -> bool;
-    auto decodeSubtitle2(Subtitle *subtitle, Packet *packet) -> bool;
+    auto decodeSubtitle2(Subtitle *subtitle, const PacketPtr &packetPtr) -> bool;
 
     auto sendFrame(const FramePtr &framePtr) -> bool;
-    auto receivePacket(Packet *packet) -> bool;
+    auto receivePacket(const PacketPtr &packetPtr) -> bool;
 
     [[nodiscard]] auto mediaTypeString() const -> QString;
     [[nodiscard]] auto isDecoder() const -> bool;

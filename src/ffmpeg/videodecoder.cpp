@@ -74,7 +74,7 @@ void VideoDecoder::runDecoder()
         d_ptr->processEvent();
 
         auto packetPtr(m_queue.take());
-        if (packetPtr.isNull()) {
+        if (nullptr == packetPtr) {
             continue;
         }
         auto framePtrs = m_contextInfo->decodeFrame(packetPtr);

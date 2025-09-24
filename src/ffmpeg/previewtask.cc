@@ -4,7 +4,7 @@
 #include "codeccontext.h"
 #include "formatcontext.h"
 #include "frame.hpp"
-#include "packet.h"
+#include "packet.hpp"
 #include "transcoder.hpp"
 #include "videoframeconverter.hpp"
 
@@ -22,10 +22,10 @@ static auto getKeyFrame(FormatContext *formatContext,
                         FramePtr &outPtr) -> bool
 {
     PacketPtr packetPtr(new Packet);
-    if (!formatContext->readFrame(packetPtr.get())) {
+    if (!formatContext->readFrame(packetPtr)) {
         return false;
     }
-    if (!formatContext->checkPktPlayRange(packetPtr.get())) {
+    if (!formatContext->checkPktPlayRange(packetPtr)) {
     } else if (packetPtr->streamIndex() == videoInfo->index()
                && ((videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC) == 0)
                && packetPtr->isKey()) {

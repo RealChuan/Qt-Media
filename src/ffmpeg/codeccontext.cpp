@@ -2,7 +2,6 @@
 #include "averrormanager.hpp"
 #include "encodecontext.hpp"
 #include "ffmpegutils.hpp"
-#include "packet.h"
 #include "subtitle.h"
 
 #include <QDebug>
@@ -501,9 +500,9 @@ auto CodecContext::open() -> bool
     ERROR_RETURN(ret)
 }
 
-auto CodecContext::sendPacket(Packet *packet) -> bool
+auto CodecContext::sendPacket(const PacketPtr &packetPtr) -> bool
 {
-    int ret = avcodec_send_packet(d_ptr->codecCtx, packet->avPacket());
+    int ret = avcodec_send_packet(d_ptr->codecCtx, packetPtr->avPacket());
     AVERROR(EINVAL);
     ERROR_RETURN(ret)
 }
@@ -524,13 +523,13 @@ auto CodecContext::receiveFrame(const FramePtr &framePtr) -> bool
     return false;
 }
 
-auto CodecContext::decodeSubtitle2(Subtitle *subtitle, Packet *packet) -> bool
+auto CodecContext::decodeSubtitle2(Subtitle *subtitle, const PacketPtr &packetPtr) -> bool
 {
     int got_sub_ptr = 0;
     int ret = avcodec_decode_subtitle2(d_ptr->codecCtx,
                                        subtitle->avSubtitle(),
                                        &got_sub_ptr,
-                                       packet->avPacket());
+                                       packetPtr->avPacket());
     if (ret < 0 || got_sub_ptr <= 0) {
         SET_ERROR_CODE(ret);
         return false;
@@ -547,9 +546,9 @@ auto CodecContext::sendFrame(const FramePtr &framePtr) -> bool
     ERROR_RETURN(ret)
 }
 
-auto CodecContext::receivePacket(Packet *packet) -> bool
+auto CodecContext::receivePacket(const PacketPtr &packetPtr) -> bool
 {
-    auto ret = avcodec_receive_packet(d_ptr->codecCtx, packet->avPacket());
+    auto ret = avcodec_receive_packet(d_ptr->codecCtx, packetPtr->avPacket());
     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
         return false;
     }

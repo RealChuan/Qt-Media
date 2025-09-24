@@ -6,7 +6,7 @@
 #include "codeccontext.h"
 #include "formatcontext.h"
 #include "mediainfo.hpp"
-#include "packet.h"
+#include "packet.hpp"
 #include "subtitledecoder.h"
 #include "videodecoder.h"
 
@@ -206,13 +206,13 @@ public:
             processEvent();
 
             PacketPtr packetPtr(new Packet);
-            if (!formatCtx->readFrame(packetPtr.data())) {
+            if (!formatCtx->readFrame(packetPtr)) {
                 break;
             }
             addSpeedChangeEvent(packetPtr->avPacket()->size);
 
             auto stream_index = packetPtr->streamIndex();
-            if (!formatCtx->checkPktPlayRange(packetPtr.data())) {
+            if (!formatCtx->checkPktPlayRange(packetPtr)) {
             } else if (stream_index == audioInfo->index()) { // 如果是音频数据
                 audioDecoder->append(packetPtr);
             } else if (stream_index == videoInfo->index()

@@ -1,6 +1,5 @@
 #include "avcontextinfo.h"
 #include "codeccontext.h"
-#include "packet.h"
 
 #include <gpu/hardwaredecode.hpp>
 #include <gpu/hardwareencode.hpp>
@@ -148,15 +147,15 @@ auto AVContextInfo::openCodec(GpuType type) -> bool
 }
 
 auto AVContextInfo::decodeSubtitle2(const QSharedPointer<Subtitle> &subtitlePtr,
-                                    const QSharedPointer<Packet> &packetPtr) -> bool
+                                    const PacketPtr &packetPtr) -> bool
 {
-    return d_ptr->codecCtx->decodeSubtitle2(subtitlePtr.data(), packetPtr.data());
+    return d_ptr->codecCtx->decodeSubtitle2(subtitlePtr.data(), packetPtr);
 }
 
-auto AVContextInfo::decodeFrame(const QSharedPointer<Packet> &packetPtr) -> std::vector<FramePtr>
+auto AVContextInfo::decodeFrame(const PacketPtr &packetPtr) -> FramePtrList
 {
     FramePtrList framePtrs;
-    if (!d_ptr->codecCtx->sendPacket(packetPtr.data())) {
+    if (!d_ptr->codecCtx->sendPacket(packetPtr)) {
         return framePtrs;
     }
     FramePtr framePtr(new Frame);
@@ -175,9 +174,9 @@ auto AVContextInfo::decodeFrame(const QSharedPointer<Packet> &packetPtr) -> std:
     return framePtrs;
 }
 
-auto AVContextInfo::encodeFrame(const FramePtr &framePtr) -> std::vector<QSharedPointer<Packet>>
+auto AVContextInfo::encodeFrame(const FramePtr &framePtr) -> PacketPtrList
 {
-    std::vector<PacketPtr> packetPtrs{};
+    PacketPtrList packetPtrs{};
     auto frame_tmp_ptr = framePtr;
     if (d_ptr->gpuType == GpuEncode && mediaType() == AVMEDIA_TYPE_VIDEO
         && framePtr->avFrame() != nullptr) {
@@ -191,7 +190,7 @@ auto AVContextInfo::encodeFrame(const FramePtr &framePtr) -> std::vector<QShared
         return packetPtrs;
     }
     PacketPtr packetPtr(new Packet);
-    while (d_ptr->codecCtx->receivePacket(packetPtr.get())) {
+    while (d_ptr->codecCtx->receivePacket(packetPtr)) {
         packetPtrs.push_back(packetPtr);
         packetPtr.reset(new Packet);
     }

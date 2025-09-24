@@ -2,7 +2,7 @@
 
 #include "ffmepg_global.h"
 #include "frame.hpp"
-#include "packet.h"
+#include "packet.hpp"
 
 #include <QObject>
 
@@ -40,10 +40,10 @@ public:
     auto openCodec(GpuType type = NotUseGpu) -> bool;
 
     // sendPacket and receiveFrame
-    auto decodeFrame(const QSharedPointer<Packet> &packetPtr) -> FramePtrList;
-    auto encodeFrame(const FramePtr &framePtr) -> std::vector<QSharedPointer<Packet>>;
-    auto decodeSubtitle2(const QSharedPointer<Subtitle> &subtitlePtr,
-                         const QSharedPointer<Packet> &packetPtr) -> bool;
+    auto decodeFrame(const PacketPtr &packetPtr) -> FramePtrList;
+    auto encodeFrame(const FramePtr &framePtr) -> PacketPtrList;
+    auto decodeSubtitle2(const QSharedPointer<Subtitle> &subtitlePtr, const PacketPtr &packetPtr)
+        -> bool;
 
     [[nodiscard]] auto calTimebase() const -> double;
     [[nodiscard]] auto timebase() const -> AVRational;

@@ -7,7 +7,7 @@
 #include "encodecontext.hpp"
 #include "ffmpegutils.hpp"
 #include "formatcontext.h"
-#include "packet.h"
+#include "packet.hpp"
 #include "previewtask.hpp"
 #include "transcodercontext.hpp"
 
@@ -369,7 +369,7 @@ public:
                           const FramePtr &framePtr,
                           bool flush) const -> bool
     {
-        std::vector<PacketPtr> packetPtrs{};
+        PacketPtrList packetPtrs{};
         if (flush) {
             FramePtr frame_tmp_ptr(new Frame);
             frame_tmp_ptr->destroyFrame();
@@ -382,7 +382,7 @@ public:
             packetPtr->setStreamIndex(outStreamIndex);
             packetPtr->rescaleTs(transcodeCtx->encContextInfoPtr->timebase(),
                                  outFormatContext->stream(outStreamIndex)->time_base);
-            outFormatContext->writePacket(packetPtr.data());
+            outFormatContext->writePacket(packetPtr);
         }
         return true;
     }
@@ -407,7 +407,7 @@ public:
     {
         while (runing.load()) {
             PacketPtr packetPtr(new Packet);
-            if (!inFormatContext->readFrame(packetPtr.get())) {
+            if (!inFormatContext->readFrame(packetPtr)) {
                 break;
             }
             auto stream_index = packetPtr->streamIndex();
@@ -423,7 +423,7 @@ public:
             if (encContextInfoPtr.isNull()) {
                 packetPtr->rescaleTs(inTimebase, outFormatContext->stream(outIndex)->time_base);
                 packetPtr->setStreamIndex(outIndex);
-                outFormatContext->writePacket(packetPtr.data());
+                outFormatContext->writePacket(packetPtr);
             } else {
                 packetPtr->rescaleTs(inTimebase, transcodeCtx->decContextInfoPtr->timebase());
                 auto framePtrs = transcodeCtx->decContextInfoPtr->decodeFrame(packetPtr);
@@ -434,7 +434,7 @@ public:
                     filterEncodeWriteframe(framePtr, stream_index);
                 }
 
-                calculatePts(packetPtr.data(), decContextInfoPtr.data());
+                calculatePts(packetPtr, decContextInfoPtr.data());
                 addPropertyChangeEvent(new PositionEvent(packetPtr->pts()));
                 if (transcodeCtx->decContextInfoPtr->mediaType() == AVMEDIA_TYPE_VIDEO) {
                     fpsPtr->update();
@@ -470,10 +470,10 @@ public:
                             FramePtr &outPtr) -> bool
     {
         PacketPtr packetPtr(new Packet);
-        if (!formatContext->readFrame(packetPtr.get())) {
+        if (!formatContext->readFrame(packetPtr)) {
             return false;
         }
-        if (!formatContext->checkPktPlayRange(packetPtr.get())) {
+        if (!formatContext->checkPktPlayRange(packetPtr)) {
         } else if (packetPtr->streamIndex() == videoInfo->index()
                    && ((videoInfo->stream()->disposition & AV_DISPOSITION_ATTACHED_PIC) == 0)
                    && packetPtr->isKey()) {

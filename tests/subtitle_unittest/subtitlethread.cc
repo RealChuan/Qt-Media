@@ -2,7 +2,7 @@
 
 #include <ffmpeg/avcontextinfo.h>
 #include <ffmpeg/formatcontext.h>
-#include <ffmpeg/packet.h>
+#include <ffmpeg/packet.hpp>
 #include <ffmpeg/subtitle.h>
 
 #include <QMap>
@@ -94,7 +94,7 @@ void SubtitleThread::run()
     }
     while (d_ptr->runing.load()) {
         Ffmpeg::PacketPtr packetPtr(new Ffmpeg::Packet);
-        if (!formatCtxPtr->readFrame(packetPtr.data())) {
+        if (!formatCtxPtr->readFrame(packetPtr)) {
             break;
         }
         auto stream_index = packetPtr->streamIndex();

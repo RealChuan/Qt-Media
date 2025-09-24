@@ -2,6 +2,7 @@
 
 #include "ffmepg_global.h"
 #include "frame.hpp"
+#include "packet.hpp"
 
 #include <QMetaType>
 #include <QSize>
@@ -13,7 +14,6 @@ extern "C" {
 
 namespace Ffmpeg {
 
-class Packet;
 class AVContextInfo;
 class FormatContext;
 
@@ -24,7 +24,7 @@ void FFMPEG_EXPORT printFfmpegInfo();
 void calculatePts(const FramePtr &framePtr,
                   AVContextInfo *contextInfo,
                   FormatContext *formatContext);
-void calculatePts(Packet *packet, AVContextInfo *contextInfo);
+void calculatePts(const PacketPtr &packetPtr, AVContextInfo *contextInfo);
 
 auto getCurrentHWDeviceTypes() -> QList<AVHWDeviceType>;
 

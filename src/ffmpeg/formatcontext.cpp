@@ -1,7 +1,6 @@
 #include "formatcontext.h"
 #include "averrormanager.hpp"
 #include "ffmpegutils.hpp"
-#include "packet.h"
 
 #include <QDebug>
 #include <QImage>
@@ -226,10 +225,10 @@ auto FormatContext::writeHeader() -> bool
     ERROR_RETURN(ret)
 }
 
-auto FormatContext::writePacket(Packet *packet) -> bool
+auto FormatContext::writePacket(const PacketPtr &packetPt) -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
-    auto ret = av_interleaved_write_frame(d_ptr->formatCtx, packet->avPacket());
+    auto ret = av_interleaved_write_frame(d_ptr->formatCtx, packetPt->avPacket());
     ERROR_RETURN(ret)
 }
 
@@ -314,17 +313,17 @@ auto FormatContext::createStream() -> AVStream *
     return stream;
 }
 
-auto FormatContext::readFrame(Packet *packet) -> bool
+auto FormatContext::readFrame(const PacketPtr &packetPtr) -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
-    int ret = av_read_frame(d_ptr->formatCtx, packet->avPacket());
+    int ret = av_read_frame(d_ptr->formatCtx, packetPtr->avPacket());
     ERROR_RETURN(ret)
 }
 
-auto FormatContext::checkPktPlayRange(Packet *packet) -> bool
+auto FormatContext::checkPktPlayRange(const PacketPtr &packetPtr) -> bool
 {
     Q_ASSERT(d_ptr->formatCtx != nullptr);
-    auto *avPacket = packet->avPacket();
+    auto *avPacket = packetPtr->avPacket();
     /* check if packet is in play range specified by user, then queue, otherwise discard */
     auto start_time = AV_NOPTS_VALUE;
     auto duration = AV_NOPTS_VALUE;

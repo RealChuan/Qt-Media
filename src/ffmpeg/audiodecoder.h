@@ -1,8 +1,7 @@
-#ifndef AUDIODECODER_H
-#define AUDIODECODER_H
+#pragma once
 
 #include "decoder.h"
-#include "packet.h"
+#include "packet.hpp"
 
 namespace Ffmpeg {
 
@@ -29,5 +28,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // AUDIODECODER_H

@@ -81,8 +81,8 @@ set(PROJECT_SOURCES
     hdrmetadata.hpp
     mediainfo.cc
     mediainfo.hpp
-    packet.cpp
-    packet.h
+    packet.cc
+    packet.hpp
     player.cpp
     player.h
     previewtask.cc

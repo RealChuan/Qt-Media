@@ -70,7 +70,7 @@ void SubtitleDecoder::runDecoder()
         d_ptr->processEvent();
 
         auto packetPtr(m_queue.take());
-        if (packetPtr.isNull()) {
+        if (nullptr == packetPtr) {
             continue;
         }
         //qDebug() << "packet ass :" << QString::fromUtf8(packetPtr->avPacket()->data);
@@ -79,7 +79,7 @@ void SubtitleDecoder::runDecoder()
             continue;
         }
 
-        calculatePts(packetPtr.data(), m_contextInfo);
+        calculatePts(packetPtr, m_contextInfo);
         subtitlePtr->setDefault(packetPtr->pts(),
                                 packetPtr->duration(),
                                 reinterpret_cast<const char *>(packetPtr->avPacket()->data));
