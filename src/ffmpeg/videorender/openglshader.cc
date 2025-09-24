@@ -2,7 +2,6 @@
 #include "hdrmetadata.hpp"
 #include "shaderutils.hpp"
 
-#include <ffmpeg/frame.hpp>
 #include <utils/utils.h>
 
 #include <QFile>
@@ -20,10 +19,10 @@ public:
         : q_ptr(q)
     {}
 
-    void init(Frame *frame)
+    void init(const FramePtr &framePtr)
     {
-        auto *avFrame = frame->avFrame();
-        srcHdrMetaData = HdrMetaData(frame);
+        auto *avFrame = framePtr->avFrame();
+        srcHdrMetaData = HdrMetaData(framePtr);
         if (srcHdrMetaData.maxLuma == 0.0f) {
             srcHdrMetaData.maxLuma = ShaderUtils::trcNomPeak(avFrame->color_trc) * MP_REF_WHITE;
         }
@@ -64,14 +63,14 @@ OpenglShader::OpenglShader(QObject *parent)
 
 OpenglShader::~OpenglShader() = default;
 
-auto OpenglShader::generate(Frame *frame,
+auto OpenglShader::generate(const FramePtr &framePtr,
                             ToneMapping::Type type,
                             ColorUtils::Primaries::Type destPrimaries) -> QByteArray
 {
     d_ptr->dstPrimariesType = destPrimaries;
-    d_ptr->init(frame);
+    d_ptr->init(framePtr);
 
-    auto *avFrame = frame->avFrame();
+    auto *avFrame = framePtr->avFrame();
     auto format = avFrame->format;
 
     qInfo() << "Generate Shader:" << format;

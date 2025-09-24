@@ -3,7 +3,6 @@
 #include "openglshaderprogram.hpp"
 
 #include <ffmpeg/colorutils.hpp>
-#include <ffmpeg/frame.hpp>
 #include <ffmpeg/subtitle.h>
 #include <ffmpeg/videoframeconverter.hpp>
 #include <mediaconfig/equalizer.hpp>
@@ -57,7 +56,7 @@ public:
                                                  AV_PIX_FMT_P010LE};
     QScopedPointer<VideoFrameConverter> frameConverterPtr;
 
-    QSharedPointer<Frame> framePtr;
+    FramePtr framePtr;
     bool frameChanged = true;
     QSharedPointer<Subtitle> subTitleFramePtr;
     bool subChanged = true;
@@ -91,8 +90,7 @@ auto OpenglRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool
     return d_ptr->supportFormats.contains(pix_fmt);
 }
 
-auto OpenglRender::convertSupported_pix_fmt(const QSharedPointer<Frame> &frame)
-    -> QSharedPointer<Frame>
+auto OpenglRender::convertSupported_pix_fmt(const FramePtr &frame) -> FramePtr
 {
     auto dst_pix_fmt = AV_PIX_FMT_RGBA;
     auto *avframe = frame->avFrame();
@@ -100,17 +98,17 @@ auto OpenglRender::convertSupported_pix_fmt(const QSharedPointer<Frame> &frame)
     // 部分图像格式转换存在问题，比如转换成BGR8格式，会导致图像错位
     // size.scale(this->size() * devicePixelRatio(), Qt::KeepAspectRatio);
     if (d_ptr->frameConverterPtr.isNull()) {
-        d_ptr->frameConverterPtr.reset(new VideoFrameConverter(frame.data(), size, dst_pix_fmt));
+        d_ptr->frameConverterPtr.reset(new VideoFrameConverter(frame, size, dst_pix_fmt));
     } else {
-        d_ptr->frameConverterPtr->flush(frame.data(), size, dst_pix_fmt);
+        d_ptr->frameConverterPtr->flush(frame, size, dst_pix_fmt);
     }
-    QSharedPointer<Frame> frameRgbPtr(new Frame);
+    FramePtr frameRgbPtr(new Frame);
     auto ret = frameRgbPtr->imageAlloc(size, dst_pix_fmt);
     if (!ret) {
         qWarning() << "imageAlloc failed";
         return {};
     }
-    d_ptr->frameConverterPtr->scale(frame.data(), frameRgbPtr.data());
+    d_ptr->frameConverterPtr->scale(frame, frameRgbPtr);
     //    qDebug() << frameRgbPtr->avFrame()->width << frameRgbPtr->avFrame()->height
     //             << frameRgbPtr->avFrame()->format;
     return frameRgbPtr;
@@ -132,7 +130,7 @@ auto OpenglRender::widget() -> QWidget *
     return this;
 }
 
-void OpenglRender::updateFrame(const QSharedPointer<Frame> &framePtr)
+void OpenglRender::updateFrame(const FramePtr &framePtr)
 {
     QMetaObject::invokeMethod(
         this, [this, framePtr] { onUpdateFrame(framePtr); }, Qt::QueuedConnection);
@@ -214,14 +212,14 @@ void OpenglRender::cleanup()
     }
 }
 
-void OpenglRender::resetShader(Frame *frame)
+void OpenglRender::resetShader(const FramePtr &framePtr)
 {
     makeCurrent();
     cleanup();
     d_ptr->programPtr->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shader/video.vert");
     OpenglShader shader;
     d_ptr->programPtr->addShaderFromSourceCode(QOpenGLShader::Fragment,
-                                               shader.generate(frame,
+                                               shader.generate(framePtr,
                                                                m_tonemapType,
                                                                m_destPrimaries));
     glBindVertexArray(d_ptr->vao);
@@ -233,7 +231,7 @@ void OpenglRender::resetShader(Frame *frame)
         d_ptr->programPtr->setUniformValue("cms_matrix", shader.convertPrimariesMatrix());
         qDebug() << "CMS matrix:" << shader.convertPrimariesMatrix();
     }
-    auto param = Ffmpeg::ColorUtils::getYuvToRgbParam(frame);
+    auto param = Ffmpeg::ColorUtils::getYuvToRgbParam(framePtr);
     d_ptr->programPtr->setUniformValue("offset", param.offset);
     d_ptr->programPtr->setUniformValue("colorConversion", param.matrix);
     d_ptr->programPtr->release();
@@ -243,12 +241,12 @@ void OpenglRender::resetShader(Frame *frame)
     doneCurrent();
 }
 
-void OpenglRender::onUpdateFrame(const QSharedPointer<Frame> &framePtr)
+void OpenglRender::onUpdateFrame(const FramePtr &framePtr)
 {
-    if (d_ptr->framePtr.isNull()
+    if (nullptr == d_ptr->framePtr
         || d_ptr->framePtr->avFrame()->format != framePtr->avFrame()->format
         || m_tonemapType != d_ptr->tonemapType || m_destPrimaries != d_ptr->destPrimaries) {
-        resetShader(framePtr.data());
+        resetShader(framePtr);
         d_ptr->frameChanged = true;
         d_ptr->tonemapType = m_tonemapType;
         d_ptr->destPrimaries = m_destPrimaries;
@@ -312,7 +310,7 @@ void OpenglRender::paintVideoFrame()
 
 void OpenglRender::paintSubTitleFrame()
 {
-    if (d_ptr->subTitleFramePtr.isNull() || d_ptr->framePtr.isNull()) {
+    if (d_ptr->subTitleFramePtr.isNull() || nullptr == d_ptr->framePtr) {
         return;
     }
     if (d_ptr->subTitleFramePtr->pts() > d_ptr->framePtr->pts()
@@ -414,7 +412,7 @@ void OpenglRender::paintGL()
 {
     clear();
 
-    if (d_ptr->framePtr.isNull()) {
+    if (nullptr == d_ptr->framePtr) {
         return;
     }
 

@@ -1,7 +1,7 @@
-#ifndef FILTER_HPP
-#define FILTER_HPP
+#pragma once
 
 #include <ffmpeg/colorutils.hpp>
+#include <ffmpeg/frame.hpp>
 #include <mediaconfig/equalizer.hpp>
 #include <videorender/tonemapping.hpp>
 
@@ -13,7 +13,6 @@ extern "C" {
 
 namespace Ffmpeg {
 
-class Frame;
 class FilterContext;
 class Filter : public QObject
 {
@@ -24,13 +23,13 @@ public:
 
     [[nodiscard]] auto isInitialized() const -> bool;
 
-    auto init(AVMediaType type, Frame *frame) -> bool;
+    auto init(AVMediaType type, const FramePtr &framePtr) -> bool;
     // default args:
     // Video is "null"
     // Audio is "anull"
     void config(const QString &filterSpec);
 
-    auto filterFrame(Frame *frame) -> QList<QSharedPointer<Frame>>;
+    auto filterFrame(const FramePtr &framePtr) -> FramePtrList;
 
     auto buffersinkCtx() -> FilterContext *;
 
@@ -48,5 +47,3 @@ private:
 using FilterPtr = QSharedPointer<Filter>;
 
 } // namespace Ffmpeg
-
-#endif // FILTER_HPP

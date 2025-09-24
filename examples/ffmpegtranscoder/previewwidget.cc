@@ -1,6 +1,5 @@
 #include "previewwidget.hpp"
 
-#include <ffmpeg/frame.hpp>
 #include <ffmpeg/videorender/videorendercreate.hpp>
 
 #include <QtWidgets>
@@ -50,7 +49,7 @@ public:
     QToolButton *leftButton;
     QToolButton *rightButton;
 
-    std::vector<Ffmpeg::FramePtr> framePtrs;
+    Ffmpeg::FramePtrList framePtrs;
     int frameIndex = 0;
 };
 
@@ -64,7 +63,7 @@ PreviewWidget::PreviewWidget(QWidget *parent)
 
 PreviewWidget::~PreviewWidget() = default;
 
-void PreviewWidget::setFrames(const std::vector<QSharedPointer<Ffmpeg::Frame>> &framePtrs)
+void PreviewWidget::setFrames(const Ffmpeg::FramePtrList &framePtrs)
 {
     d_ptr->framePtrs = framePtrs;
     d_ptr->frameIndex = 2;

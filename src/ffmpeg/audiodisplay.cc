@@ -89,7 +89,7 @@ void AudioDisplay::runDecoder()
         d_ptr->processEvent(firstFrame);
 
         auto framePtr(m_queue.take());
-        if (framePtr.isNull()) {
+        if (nullptr == framePtr) {
             continue;
         }
         if (!firstFrame) {

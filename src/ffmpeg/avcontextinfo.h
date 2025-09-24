@@ -1,7 +1,8 @@
-#ifndef AVCONTEXTINFO_H
-#define AVCONTEXTINFO_H
+#pragma once
 
 #include "ffmepg_global.h"
+#include "frame.hpp"
+#include "packet.h"
 
 #include <QObject>
 
@@ -14,8 +15,6 @@ struct AVStream;
 namespace Ffmpeg {
 
 class Subtitle;
-class Packet;
-class Frame;
 class CodecContext;
 
 class FFMPEG_EXPORT AVContextInfo : public QObject
@@ -41,8 +40,8 @@ public:
     auto openCodec(GpuType type = NotUseGpu) -> bool;
 
     // sendPacket and receiveFrame
-    auto decodeFrame(const QSharedPointer<Packet> &packetPtr) -> std::vector<QSharedPointer<Frame>>;
-    auto encodeFrame(const QSharedPointer<Frame> &framePtr) -> std::vector<QSharedPointer<Packet>>;
+    auto decodeFrame(const QSharedPointer<Packet> &packetPtr) -> FramePtrList;
+    auto encodeFrame(const FramePtr &framePtr) -> std::vector<QSharedPointer<Packet>>;
     auto decodeSubtitle2(const QSharedPointer<Subtitle> &subtitlePtr,
                          const QSharedPointer<Packet> &packetPtr) -> bool;
 
@@ -68,5 +67,3 @@ private:
 using AVContextInfoPtr = QSharedPointer<AVContextInfo>;
 
 } // namespace Ffmpeg
-
-#endif // AVCONTEXTINFO_H

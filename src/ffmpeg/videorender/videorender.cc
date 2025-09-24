@@ -1,6 +1,5 @@
 #include "videorender.hpp"
 
-#include <ffmpeg/frame.hpp>
 #include <ffmpeg/subtitle.h>
 #include <utils/fps.hpp>
 
@@ -35,7 +34,7 @@ VideoRender::VideoRender()
 
 VideoRender::~VideoRender() = default;
 
-void VideoRender::setFrame(QSharedPointer<Frame> framePtr)
+void VideoRender::setFrame(FramePtr framePtr)
 {
     auto *avFrame = framePtr->avFrame();
     if (avFrame->width <= 0 || avFrame->height <= 0) {
@@ -44,7 +43,7 @@ void VideoRender::setFrame(QSharedPointer<Frame> framePtr)
     if (!isSupportedOutput_pix_fmt(static_cast<AVPixelFormat>(avFrame->format))) {
         framePtr = convertSupported_pix_fmt(framePtr);
     }
-    if (framePtr.isNull()) {
+    if (nullptr == framePtr) {
         return;
     }
     updateFrame(framePtr);
@@ -57,8 +56,8 @@ void VideoRender::setImage(const QImage &image)
     if (image.isNull()) {
         return;
     }
-    QSharedPointer<Frame> frame(Frame::fromQImage(image));
-    setFrame(frame);
+    FramePtr framePtr(Frame::fromQImage(image));
+    setFrame(framePtr);
 }
 
 void VideoRender::setSubTitleFrame(const QSharedPointer<Subtitle> &framePtr)

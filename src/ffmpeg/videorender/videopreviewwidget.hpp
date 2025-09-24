@@ -1,13 +1,12 @@
-#ifndef VIDEOPREVIEWWIDGET_HPP
-#define VIDEOPREVIEWWIDGET_HPP
+#pragma once
+
+#include <ffmpeg/frame.hpp>
 
 #include <QWidget>
 
 #include <ffmpeg/ffmepg_global.h>
 
 namespace Ffmpeg {
-
-class Frame;
 
 class FFMPEG_EXPORT VideoPreviewWidget : public QWidget
 {
@@ -19,7 +18,7 @@ public:
     void startPreview(const QString &filepath, int videoIndex, qint64 timestamp, qint64 duration);
     void clearAllTask();
 
-    void setDisplayImage(const QSharedPointer<Ffmpeg::Frame> &framePtr,
+    void setDisplayImage(const FramePtr &framePtr,
                          const QImage &image,
                          qint64 pts,
                          const QString &chapterText);
@@ -40,5 +39,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // VIDEOPREVIEWWIDGET_HPP

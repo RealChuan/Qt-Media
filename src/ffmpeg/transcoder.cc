@@ -7,7 +7,6 @@
 #include "encodecontext.hpp"
 #include "ffmpegutils.hpp"
 #include "formatcontext.h"
-#include "frame.hpp"
 #include "packet.h"
 #include "previewtask.hpp"
 #include "transcodercontext.hpp"
@@ -337,7 +336,7 @@ public:
     auto filterEncodeWriteframe(const FramePtr &framePtr, int inStreamIndex) const -> bool
     {
         auto *transcodeCtx = transcodeContexts.at(inStreamIndex);
-        auto framePtrs = transcodeCtx->filterPtr->filterFrame(framePtr.data());
+        auto framePtrs = transcodeCtx->filterPtr->filterFrame(framePtr);
         for (const auto &framePtr : std::as_const(framePtrs)) {
             framePtr->setPictType(AV_PICTURE_TYPE_NONE);
             if (transcodeCtx->audioFifoPtr.isNull()) {
@@ -354,12 +353,12 @@ public:
                          bool finish = false) const
     {
         //qDebug() << "old: " << stream_index << frame->avFrame()->pts;
-        if (!framePtr.isNull()) {
+        if (nullptr != framePtr) {
             addSamplesToFifo(transcodeCtx, framePtr);
         }
         while (1) {
             auto framePtr = takeSamplesFromFifo(transcodeCtx, finish);
-            if (framePtr.isNull()) {
+            if (nullptr == framePtr) {
                 return;
             }
             encodeWriteFrame(transcodeCtx, framePtr, false);
@@ -480,10 +479,10 @@ public:
                    && packetPtr->isKey()) {
             auto framePtrs = videoInfo->decodeFrame(packetPtr);
             for (const auto &framePtr : std::as_const(framePtrs)) {
-                if (!framePtr->isKey() && framePtr.isNull()) {
+                if (nullptr == framePtr || !framePtr->isKey()) {
                     continue;
                 }
-                calculatePts(framePtr.data(), videoInfo, formatContext);
+                calculatePts(framePtr, videoInfo, formatContext);
                 auto pts = framePtr->pts();
                 if (timestamp > pts) {
                     continue;
@@ -516,7 +515,7 @@ public:
     Utils::ConcurrentQueue<PropertyChangeEventPtr> propertyChangeEventQueue;
     std::atomic<size_t> maxPropertyEventQueueSize = 100;
 
-    std::vector<FramePtr> previewFrames;
+    FramePtrList previewFrames;
     QThreadPool *threadPool;
 };
 
@@ -563,7 +562,7 @@ void Transcoder::startPreviewFrames(int count)
     d_ptr->threadPool->start(new PreviewCountTask(d_ptr->inFilePath, count, this));
 }
 
-void Transcoder::setPreviewFrames(const std::vector<QSharedPointer<Frame>> &framePtrs)
+void Transcoder::setPreviewFrames(const FramePtrList &framePtrs)
 {
     QMetaObject::invokeMethod(
         this,
@@ -576,7 +575,7 @@ void Transcoder::setPreviewFrames(const std::vector<QSharedPointer<Frame>> &fram
         Qt::QueuedConnection);
 }
 
-auto Transcoder::previewFrames() const -> std::vector<QSharedPointer<Frame>>
+auto Transcoder::previewFrames() const -> FramePtrList
 {
     return d_ptr->previewFrames;
 }

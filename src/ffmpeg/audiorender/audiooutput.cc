@@ -81,13 +81,13 @@ AudioOutput::AudioOutput(AVContextInfo *contextInfo, qreal volume, QObject *pare
 
 AudioOutput::~AudioOutput() = default;
 
-void AudioOutput::onConvertData(const QSharedPointer<Ffmpeg::Frame> &framePtr)
+void AudioOutput::onConvertData(const FramePtr &framePtr)
 {
     if (d_ptr->ioDevice == nullptr) {
         return;
     }
 
-    auto audioBuf = d_ptr->audioConverterPtr->convert(framePtr.data());
+    auto audioBuf = d_ptr->audioConverterPtr->convert(framePtr);
     d_ptr->audioBuf += audioBuf;
 }
 

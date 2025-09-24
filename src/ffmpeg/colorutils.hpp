@@ -1,9 +1,9 @@
 // Most of this code comes from mpv
 
-#ifndef COLORUTILS_HPP
-#define COLORUTILS_HPP
+#pragma once
 
 #include "ffmepg_global.h"
+#include "frame.hpp"
 
 #include <QGenericMatrix>
 #include <QObject>
@@ -14,8 +14,6 @@ extern "C" {
 }
 
 namespace Ffmpeg {
-
-class Frame;
 
 namespace ColorUtils {
 
@@ -30,7 +28,7 @@ struct YuvToRgbParam
     QMatrix3x3 matrix;
 };
 
-auto getYuvToRgbParam(Frame *frame) -> YuvToRgbParam;
+auto getYuvToRgbParam(const FramePtr &framePtr) -> YuvToRgbParam;
 
 auto getRawPrimaries(AVColorPrimaries color_primaries) -> RawPrimaries;
 
@@ -59,5 +57,3 @@ public:
 } // namespace ColorUtils
 
 } // namespace Ffmpeg
-
-#endif // COLORUTILS_HPP

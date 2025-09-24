@@ -4,9 +4,7 @@
 #include "filterinout.hpp"
 
 #include <ffmpeg/audioframeconverter.h>
-#include <ffmpeg/frame.hpp>
 
-#include <memory>
 #include <QDebug>
 
 extern "C" {
@@ -24,11 +22,11 @@ public:
         filterGraph = new FilterGraph(q_ptr);
     }
 
-    void initVideoFilter(Frame *frame)
+    void initVideoFilter(const FramePtr &framePtr)
     {
         buffersrcCtx = new FilterContext("buffer", q_ptr);
         buffersinkCtx = new FilterContext("buffersink", q_ptr);
-        auto *avFrame = frame->avFrame();
+        auto *avFrame = framePtr->avFrame();
         auto timeBase = avFrame->time_base;
         auto sampleAspectRatio = avFrame->sample_aspect_ratio;
         auto args
@@ -45,11 +43,11 @@ public:
         create(args);
     }
 
-    void initAudioFilter(Frame *frame)
+    void initAudioFilter(const FramePtr &framePtr)
     {
         buffersrcCtx = new FilterContext("abuffer", q_ptr);
         buffersinkCtx = new FilterContext("abuffersink", q_ptr);
-        auto *avFrame = frame->avFrame();
+        auto *avFrame = framePtr->avFrame();
         if (avFrame->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC) {
             av_channel_layout_default(&avFrame->ch_layout, avFrame->ch_layout.nb_channels);
         }
@@ -117,11 +115,11 @@ auto Filter::isInitialized() const -> bool
     return d_ptr->buffersrcCtx != nullptr;
 }
 
-auto Filter::init(AVMediaType type, Frame *frame) -> bool
+auto Filter::init(AVMediaType type, const FramePtr &framePtr) -> bool
 {
     switch (type) {
-    case AVMEDIA_TYPE_AUDIO: d_ptr->initAudioFilter(frame); break;
-    case AVMEDIA_TYPE_VIDEO: d_ptr->initVideoFilter(frame); break;
+    case AVMEDIA_TYPE_AUDIO: d_ptr->initAudioFilter(framePtr); break;
+    case AVMEDIA_TYPE_VIDEO: d_ptr->initVideoFilter(framePtr); break;
     default: return false;
     }
     return true;
@@ -133,17 +131,17 @@ void Filter::config(const QString &filterSpec)
     d_ptr->config(filterSpec);
 }
 
-auto Filter::filterFrame(Frame *frame) -> QList<FramePtr>
+auto Filter::filterFrame(const FramePtr &framePtr) -> FramePtrList
 {
-    QList<FramePtr> framepPtrs{};
-    if (!d_ptr->buffersrcCtx->buffersrcAddFrameFlags(frame)) {
+    FramePtrList framepPtrs{};
+    if (!d_ptr->buffersrcCtx->buffersrcAddFrameFlags(framePtr)) {
         return framepPtrs;
     }
-    std::unique_ptr<Frame> framePtr(new Frame);
-    while (d_ptr->buffersinkCtx->buffersinkGetFrame(framePtr.get())) {
-        framePtr->setPictType(AV_PICTURE_TYPE_NONE);
-        framepPtrs.emplace_back(framePtr.release());
-        framePtr = std::make_unique<Frame>();
+    FramePtr outPtr(new Frame);
+    while (d_ptr->buffersinkCtx->buffersinkGetFrame(outPtr)) {
+        outPtr->setPictType(AV_PICTURE_TYPE_NONE);
+        framepPtrs.push_back(outPtr);
+        outPtr = std::make_shared<Frame>();
     }
     return framepPtrs;
 }

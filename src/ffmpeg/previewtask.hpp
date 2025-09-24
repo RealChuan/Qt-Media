@@ -1,5 +1,4 @@
-#ifndef PREVIEWTASK_HPP
-#define PREVIEWTASK_HPP
+#pragma once
 
 #include <QRunnable>
 #include <QtCore>
@@ -39,5 +38,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // PREVIEWTASK_HPP

@@ -1,7 +1,7 @@
-#ifndef CODECCONTEXT_H
-#define CODECCONTEXT_H
+#pragma once
 
 #include "ffmepg_global.h"
+#include "frame.hpp"
 
 #include <QObject>
 
@@ -17,7 +17,6 @@ namespace Ffmpeg {
 struct EncodeContext;
 class Subtitle;
 class Packet;
-class Frame;
 class FFMPEG_EXPORT CodecContext : public QObject
 {
 public:
@@ -59,10 +58,10 @@ public:
     auto open() -> bool;
 
     auto sendPacket(Packet *packet) -> bool;
-    auto receiveFrame(Frame *frame) -> bool;
+    auto receiveFrame(const FramePtr &framePtr) -> bool;
     auto decodeSubtitle2(Subtitle *subtitle, Packet *packet) -> bool;
 
-    auto sendFrame(Frame *frame) -> bool;
+    auto sendFrame(const FramePtr &framePtr) -> bool;
     auto receivePacket(Packet *packet) -> bool;
 
     [[nodiscard]] auto mediaTypeString() const -> QString;
@@ -78,5 +77,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // CODECCONTEXT_H

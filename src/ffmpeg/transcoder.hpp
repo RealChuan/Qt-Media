@@ -1,7 +1,7 @@
-#ifndef TRANSCODER_H
-#define TRANSCODER_H
+#pragma once
 
 #include "encodecontext.hpp"
+#include "frame.hpp"
 #include "mediainfo.hpp"
 
 #include <ffmpeg/event/event.hpp>
@@ -15,7 +15,6 @@ extern "C" {
 namespace Ffmpeg {
 
 class AVError;
-class Frame;
 class FFMPEG_EXPORT Transcoder : public QThread
 {
     Q_OBJECT
@@ -37,8 +36,8 @@ public:
     [[nodiscard]] auto duration() const -> qint64; // microsecond
     auto mediaInfo() -> MediaInfo;
     void startPreviewFrames(int count);
-    void setPreviewFrames(const std::vector<QSharedPointer<Frame>> &framePtrs);
-    [[nodiscard]] auto previewFrames() const -> std::vector<QSharedPointer<Frame>>;
+    void setPreviewFrames(const FramePtrList &framePtrs);
+    [[nodiscard]] auto previewFrames() const -> FramePtrList;
 
     void setRange(const QPair<qint64, qint64> &range);
 
@@ -66,5 +65,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // TRANSCODER_H

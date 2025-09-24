@@ -4,7 +4,6 @@
 #include <ffmpeg/averrormanager.hpp>
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/ffmpegutils.hpp>
-#include <ffmpeg/frame.hpp>
 
 #include <QDebug>
 
@@ -112,8 +111,7 @@ auto HardWareEncode::initHardWareDevice(CodecContext *codecContext) -> bool
     return d_ptr->vaild;
 }
 
-auto HardWareEncode::transToGpu(CodecContext *codecContext, QSharedPointer<Frame> inPtr, bool &ok)
-    -> QSharedPointer<Frame>
+auto HardWareEncode::transToGpu(CodecContext *codecContext, FramePtr inPtr, bool &ok) -> FramePtr
 {
     ok = true;
     if (!isVaild()) {
@@ -121,7 +119,7 @@ auto HardWareEncode::transToGpu(CodecContext *codecContext, QSharedPointer<Frame
     }
     auto *avctx = codecContext->avCodecCtx();
     auto *sw_frame = inPtr->avFrame();
-    QSharedPointer<Frame> outPtr(new Frame);
+    FramePtr outPtr(new Frame);
     auto *hw_frame = outPtr->avFrame();
     auto err = av_hwframe_get_buffer(avctx->hw_frames_ctx, hw_frame, 0);
     if (err < 0) {
@@ -138,7 +136,7 @@ auto HardWareEncode::transToGpu(CodecContext *codecContext, QSharedPointer<Frame
         SET_ERROR_CODE(err);
         return inPtr;
     }
-    outPtr->copyPropsFrom(inPtr.data());
+    outPtr->copyPropsFrom(inPtr.get());
     return outPtr;
 }
 

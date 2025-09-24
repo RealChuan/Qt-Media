@@ -1,5 +1,4 @@
-#ifndef VIDEODISPLAY_H
-#define VIDEODISPLAY_H
+#pragma once
 
 #include "decoder.h"
 #include "frame.hpp"
@@ -31,5 +30,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // VIDEODISPLAY_H

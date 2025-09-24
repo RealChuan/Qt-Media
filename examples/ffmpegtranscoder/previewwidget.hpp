@@ -1,13 +1,8 @@
-#ifndef PREVIEWWIDGET_HPP
-#define PREVIEWWIDGET_HPP
+#pragma once
+
+#include <ffmpeg/frame.hpp>
 
 #include <QWidget>
-
-#include <vector>
-
-namespace Ffmpeg {
-class Frame;
-};
 
 class PreviewWidget : public QWidget
 {
@@ -16,7 +11,7 @@ public:
     explicit PreviewWidget(QWidget *parent = nullptr);
     ~PreviewWidget() override;
 
-    void setFrames(const std::vector<QSharedPointer<Ffmpeg::Frame>> &framePtrs);
+    void setFrames(const Ffmpeg::FramePtrList &framePtrs);
 
 private slots:
     void onPerFrame();
@@ -29,5 +24,3 @@ private:
     class PreviewWidgetPrivate;
     QScopedPointer<PreviewWidgetPrivate> d_ptr;
 };
-
-#endif // PREVIEWWIDGET_HPP

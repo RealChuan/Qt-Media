@@ -3,7 +3,6 @@
 #include "avcontextinfo.h"
 #include "codeccontext.h"
 #include "formatcontext.h"
-#include "frame.hpp"
 #include "packet.h"
 
 #include <QDebug>
@@ -18,7 +17,7 @@ extern "C" {
 
 namespace Ffmpeg {
 
-void calculatePts(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext)
+void calculatePts(const FramePtr &framePtr, AVContextInfo *contextInfo, FormatContext *formatContext)
 {
     auto timeBase = av_q2d(contextInfo->timebase());
     auto frameRate = formatContext->guessFrameRate(contextInfo->stream());
@@ -27,10 +26,10 @@ void calculatePts(Frame *frame, AVContextInfo *contextInfo, FormatContext *forma
                          ? av_q2d(AVRational{frameRate.den, frameRate.num})
                          : 0);
     // 当前帧显示时间戳
-    auto *avFrame = frame->avFrame();
+    auto *avFrame = framePtr->avFrame();
     auto pts = (avFrame->pts == AV_NOPTS_VALUE) ? NAN : avFrame->pts * timeBase;
-    frame->setDuration(duration * AV_TIME_BASE);
-    frame->setPts(pts * AV_TIME_BASE);
+    framePtr->setDuration(duration * AV_TIME_BASE);
+    framePtr->setPts(pts * AV_TIME_BASE);
     // qDebug() << "Frame duration:" << duration << "pts:" << pts << "tb:" << tb.num << tb.den
     //          << "frame_rate:" << frame_rate.num << frame_rate.den;
 }

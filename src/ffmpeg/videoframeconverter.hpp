@@ -1,5 +1,7 @@
 #pragma once
 
+#include "frame.hpp"
+
 #include <QObject>
 #include <QSize>
 
@@ -9,7 +11,6 @@ extern "C" {
 
 namespace Ffmpeg {
 
-class Frame;
 class CodecContext;
 
 class VideoFrameConverter : public QObject
@@ -19,18 +20,21 @@ public:
                                  const QSize &size = QSize(-1, -1),
                                  AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA,
                                  QObject *parent = nullptr);
-    explicit VideoFrameConverter(Frame *frame,
+    explicit VideoFrameConverter(const FramePtr &framePtr,
                                  const QSize &size = QSize(-1, -1),
                                  AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA,
                                  QObject *parent = nullptr);
     ~VideoFrameConverter() override;
 
-    void setColorspaceDetails(Frame *frame, float brightness, float contrast, float saturation);
-    void flush(Frame *frame,
+    void setColorspaceDetails(const FramePtr &framePtr,
+                              float brightness,
+                              float contrast,
+                              float saturation);
+    void flush(const FramePtr &framePtr,
                const QSize &dstSize = QSize(-1, -1),
                AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA);
 
-    auto scale(Frame *in, Frame *out) -> int;
+    auto scale(const FramePtr &inPtr, const FramePtr &outPtr) -> int;
 
     static auto isSupportedInput_pix_fmt(AVPixelFormat pix_fmt) -> bool;
     static auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool;

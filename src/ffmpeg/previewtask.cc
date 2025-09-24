@@ -31,10 +31,10 @@ static auto getKeyFrame(FormatContext *formatContext,
                && packetPtr->isKey()) {
         auto framePtrs = videoInfo->decodeFrame(packetPtr);
         for (const auto &framePtr : std::as_const(framePtrs)) {
-            if (!framePtr->isKey() && framePtr.isNull()) {
+            if (nullptr == framePtr || !framePtr->isKey()) {
                 continue;
             }
-            calculatePts(framePtr.data(), videoInfo, formatContext);
+            calculatePts(framePtr, videoInfo, formatContext);
             auto pts = framePtr->pts();
             if (timestamp > pts) {
                 continue;
@@ -56,7 +56,7 @@ public:
     {
         while (!videoPreviewWidgetPtr.isNull() && taskId == videoPreviewWidgetPtr->currentTaskId()) {
             FramePtr framePtr;
-            while (framePtr.isNull()) {
+            while (nullptr == framePtr) {
                 if (!getKeyFrame(formatContext, videoInfo, timestamp, framePtr)) {
                     qWarning() << "can't get key frame";
                     if (!videoPreviewWidgetPtr.isNull()) {
@@ -75,11 +75,11 @@ public:
 
             auto dst_pix_fmt = AV_PIX_FMT_RGB32;
             QScopedPointer<VideoFrameConverter> frameConverterPtr(
-                new VideoFrameConverter(framePtr.data(), dstSize, dst_pix_fmt));
-            QSharedPointer<Frame> frameRgbPtr(new Frame);
+                new VideoFrameConverter(framePtr, dstSize, dst_pix_fmt));
+            FramePtr frameRgbPtr(new Frame);
             frameRgbPtr->imageAlloc(dstSize, dst_pix_fmt);
             //frameConverterPtr->flush(framePtr.data(), dstSize);
-            frameConverterPtr->scale(framePtr.data(), frameRgbPtr.data());
+            frameConverterPtr->scale(framePtr, frameRgbPtr);
             auto image = frameRgbPtr->toImage();
             auto chapterText = getChapterText(formatContext);
             if (!videoPreviewWidgetPtr.isNull()
@@ -169,7 +169,7 @@ public:
     {
         auto step = formatContext->duration() / count;
 
-        std::vector<FramePtr> framePtrs;
+        FramePtrList framePtrs;
         for (int i = 0; i < count; ++i) {
             if (!runing.load() || transcoderPtr.isNull()) {
                 return;
@@ -183,7 +183,7 @@ public:
             }
             videoInfo->codecCtx()->flush();
             FramePtr framePtr;
-            while (framePtr.isNull()) {
+            while (nullptr == framePtr) {
                 if (!getKeyFrame(formatContext, videoInfo, timestamp, framePtr)) {
                     qWarning() << "can't get key frame";
                     return;

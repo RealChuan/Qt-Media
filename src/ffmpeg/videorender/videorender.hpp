@@ -1,10 +1,10 @@
-#ifndef VIDEORENDER_HPP
-#define VIDEORENDER_HPP
+#pragma once
 
 #include "tonemapping.hpp"
 
 #include <ffmpeg/colorutils.hpp>
 #include <ffmpeg/ffmepg_global.h>
+#include <ffmpeg/frame.hpp>
 #include <mediaconfig/equalizer.hpp>
 
 #include <QWidget>
@@ -15,7 +15,6 @@ extern "C" {
 
 namespace Ffmpeg {
 
-class Frame;
 class Subtitle;
 
 class FFMPEG_EXPORT VideoRender
@@ -27,10 +26,8 @@ public:
 
     virtual auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool = 0;
     virtual auto supportedOutput_pix_fmt() -> QList<AVPixelFormat> = 0;
-    virtual auto convertSupported_pix_fmt(const QSharedPointer<Frame> &framePtr)
-        -> QSharedPointer<Frame>
-        = 0;
-    void setFrame(QSharedPointer<Frame> framePtr);
+    virtual auto convertSupported_pix_fmt(const FramePtr &framePtr) -> FramePtr = 0;
+    void setFrame(FramePtr framePtr);
     void setImage(const QImage &image);
     void setSubTitleFrame(const QSharedPointer<Subtitle> &framePtr);
     virtual void resetAllFrame() = 0;
@@ -57,7 +54,7 @@ public:
 
 protected:
     // may use in anthoer thread, suggest use QMetaObject::invokeMethod(Qt::QueuedConnection)
-    virtual void updateFrame(const QSharedPointer<Frame> &framePtr) = 0;
+    virtual void updateFrame(const FramePtr &framePtr) = 0;
     virtual void updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr) = 0;
 
     MediaConfig::Equalizer m_equalizer;
@@ -72,5 +69,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // VIDEORENDER_HPP

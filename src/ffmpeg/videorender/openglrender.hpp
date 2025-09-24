@@ -1,12 +1,11 @@
-#ifndef OPENGLRENDER_HPP
-#define OPENGLRENDER_HPP
+#pragma once
 
 #include "videorender.hpp"
 
+#include <ffmpeg/frame.hpp>
+
 #include <QOpenGLFunctions_3_3_Core>
 #include <QOpenGLWidget>
-
-struct AVFrame;
 
 namespace Ffmpeg {
 
@@ -19,8 +18,7 @@ public:
     ~OpenglRender() override;
 
     auto isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool override;
-    auto convertSupported_pix_fmt(const QSharedPointer<Frame> &frame)
-        -> QSharedPointer<Frame> override;
+    auto convertSupported_pix_fmt(const FramePtr &frame) -> FramePtr override;
     auto supportedOutput_pix_fmt() -> QList<AVPixelFormat> override;
 
     void resetAllFrame() override;
@@ -32,7 +30,7 @@ protected:
     void resizeGL(int w, int h) override;
     void paintGL() override;
 
-    void updateFrame(const QSharedPointer<Frame> &framePtr) override;
+    void updateFrame(const FramePtr &framePtr) override;
     void updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr) override;
 
 private:
@@ -42,9 +40,9 @@ private:
     void initSubTexture();
     auto fitToScreen(const QSize &size) -> QMatrix4x4;
     void cleanup();
-    void resetShader(Frame *frame);
+    void resetShader(const FramePtr &framePtr);
 
-    void onUpdateFrame(const QSharedPointer<Frame> &framePtr);
+    void onUpdateFrame(const FramePtr &framePtr);
     void onUpdateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr);
 
     void paintVideoFrame();
@@ -67,5 +65,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // OPENGLRENDER_HPP

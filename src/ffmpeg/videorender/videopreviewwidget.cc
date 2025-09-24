@@ -4,7 +4,6 @@
 #include <ffmpeg/averrormanager.hpp>
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/decoder.h>
-#include <ffmpeg/frame.hpp>
 #include <ffmpeg/previewtask.hpp>
 #include <ffmpeg/videodecoder.h>
 #include <ffmpeg/videoframeconverter.hpp>
@@ -37,7 +36,7 @@ public:
     QImage image;
     qint64 timestamp;
     qint64 duration;
-    QSharedPointer<Frame> framePtr;
+    FramePtr framePtr;
     QString chapterText;
     QString displayText;
 
@@ -81,7 +80,7 @@ void VideoPreviewWidget::clearAllTask()
     d_ptr->threadPool->clear();
 }
 
-void VideoPreviewWidget::setDisplayImage(const QSharedPointer<Frame> &framePtr,
+void VideoPreviewWidget::setDisplayImage(const FramePtr &framePtr,
                                          const QImage &image,
                                          qint64 pts,
                                          const QString &chapterText)

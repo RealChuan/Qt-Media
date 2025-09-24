@@ -4,7 +4,6 @@
 #include <ffmpeg/averrormanager.hpp>
 #include <ffmpeg/codeccontext.h>
 #include <ffmpeg/ffmpegutils.hpp>
-#include <ffmpeg/frame.hpp>
 
 #include <QDebug>
 
@@ -88,8 +87,7 @@ auto HardWareDecode::initHardWareDevice(CodecContext *codecContext) -> bool
     return d_ptr->vaild;
 }
 
-auto HardWareDecode::transFromGpu(const QSharedPointer<Frame> &inPtr, bool &ok)
-    -> QSharedPointer<Frame>
+auto HardWareDecode::transFromGpu(const FramePtr &inPtr, bool &ok) -> FramePtr
 {
     ok = true;
     if (!isVaild()) {
@@ -111,7 +109,7 @@ auto HardWareDecode::transFromGpu(const QSharedPointer<Frame> &inPtr, bool &ok)
         return inPtr;
     }
     // 拷贝其他信息
-    outPtr->copyPropsFrom(inPtr.data());
+    outPtr->copyPropsFrom(inPtr.get());
     return outPtr;
 }
 

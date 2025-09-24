@@ -1,19 +1,19 @@
-#ifndef TRANSCODERCONTEXT_HPP
-#define TRANSCODERCONTEXT_HPP
+#pragma once
+
+#include "frame.hpp"
 
 #include <QSharedPointer>
 
 namespace Ffmpeg {
 
-class Frame;
 class AVContextInfo;
 class Filter;
 class AudioFifo;
 
 struct TranscoderContext
 {
-    [[nodiscard]] auto initFilter(const QString &filter_spec,
-                                  const QSharedPointer<Frame> &framePtr) const -> bool;
+    [[nodiscard]] auto initFilter(const QString &filter_spec, const FramePtr &framePtr) const
+        -> bool;
 
     QSharedPointer<AVContextInfo> decContextInfoPtr;
     QSharedPointer<AVContextInfo> encContextInfoPtr;
@@ -28,5 +28,3 @@ struct TranscoderContext
 };
 
 } // namespace Ffmpeg
-
-#endif // TRANSCODERCONTEXT_HPP

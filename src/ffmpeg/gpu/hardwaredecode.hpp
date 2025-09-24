@@ -1,5 +1,6 @@
-#ifndef HARDWAREDECODE_HPP
-#define HARDWAREDECODE_HPP
+#pragma once
+
+#include <ffmpeg/frame.hpp>
 
 #include <QObject>
 
@@ -7,7 +8,6 @@ struct AVCodec;
 
 namespace Ffmpeg {
 
-class Frame;
 class CodecContext;
 class HardWareDecode : public QObject
 {
@@ -17,7 +17,7 @@ public:
 
     auto initPixelFormat(const AVCodec *decoder) -> bool;
     auto initHardWareDevice(CodecContext *codecContext) -> bool;
-    auto transFromGpu(const QSharedPointer<Frame> &inPtr, bool &ok) -> QSharedPointer<Frame>;
+    auto transFromGpu(const FramePtr &inPtr, bool &ok) -> FramePtr;
 
     auto isVaild() -> bool;
 
@@ -27,5 +27,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // HARDWAREDECODE_HPP

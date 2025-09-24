@@ -1,7 +1,7 @@
-#ifndef FFMPEGUTILS_HPP
-#define FFMPEGUTILS_HPP
+#pragma once
 
 #include "ffmepg_global.h"
+#include "frame.hpp"
 
 #include <QMetaType>
 #include <QSize>
@@ -14,7 +14,6 @@ extern "C" {
 namespace Ffmpeg {
 
 class Packet;
-class Frame;
 class AVContextInfo;
 class FormatContext;
 
@@ -22,7 +21,9 @@ using Metadatas = QMap<QString, QString>;
 
 void FFMPEG_EXPORT printFfmpegInfo();
 
-void calculatePts(Frame *frame, AVContextInfo *contextInfo, FormatContext *formatContext);
+void calculatePts(const FramePtr &framePtr,
+                  AVContextInfo *contextInfo,
+                  FormatContext *formatContext);
 void calculatePts(Packet *packet, AVContextInfo *contextInfo);
 
 auto getCurrentHWDeviceTypes() -> QList<AVHWDeviceType>;
@@ -66,5 +67,3 @@ auto convertUrlToFfmpegInput(const QString &url) -> QByteArray;
 } // namespace Ffmpeg
 
 Q_DECLARE_METATYPE(Ffmpeg::CodecInfo);
-
-#endif // FFMPEGUTILS_HPP

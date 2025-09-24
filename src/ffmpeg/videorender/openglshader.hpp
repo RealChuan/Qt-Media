@@ -1,22 +1,21 @@
-#ifndef OPENGLSHADER_HPP
-#define OPENGLSHADER_HPP
+#pragma once
 
 #include "tonemapping.hpp"
 
 #include <ffmpeg/colorutils.hpp>
+#include <ffmpeg/frame.hpp>
 
 #include <QGenericMatrix>
 
 namespace Ffmpeg {
 
-class Frame;
 class OpenglShader : public QObject
 {
 public:
     explicit OpenglShader(QObject *parent = nullptr);
     ~OpenglShader() override;
 
-    auto generate(Frame *frame,
+    auto generate(const FramePtr &framePtr,
                   ToneMapping::Type type = ToneMapping::Type::NONE,
                   ColorUtils::Primaries::Type destPrimaries = ColorUtils::Primaries::Type::AUTO)
         -> QByteArray;
@@ -30,5 +29,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // OPENGLSHADER_HPP

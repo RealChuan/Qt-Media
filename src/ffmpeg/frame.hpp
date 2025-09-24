@@ -3,7 +3,9 @@
 #include "ffmepg_global.h"
 
 #include <QImage>
-#include <QSharedPointer>
+
+#include <memory>
+#include <vector>
 
 extern "C" {
 #include <libavutil/avutil.h>
@@ -20,46 +22,35 @@ public:
     Frame();
     Frame(const Frame &other);
     Frame(Frame &&other) noexcept;
+    Frame &operator=(const Frame &other);
+    Frame &operator=(Frame &&other) noexcept;
     ~Frame();
 
-    auto operator=(const Frame &other) -> Frame &;
-    auto operator=(Frame &&other) noexcept -> Frame &;
-
     auto compareProps(Frame *other) -> bool;
-
     void copyPropsFrom(Frame *src);
-
-    auto isKey() -> bool;
-
-    void unref();
-
     auto imageAlloc(const QSize &size, AVPixelFormat pix_fmt = AV_PIX_FMT_RGBA, int align = 1)
         -> bool;
     void freeImageAlloc();
-
     void setPictType(AVPictureType type);
-
-    void setPts(qint64 pts); // microseconds
+    void unref();
+    void setPts(qint64 pts);
     auto pts() -> qint64;
-
-    void setDuration(qint64 duration); // microseconds
+    void setDuration(qint64 duration);
     auto duration() -> qint64;
-
-    auto toImage() -> QImage; // maybe null
-
-    auto getBuffer() -> bool;
-
     void destroyFrame();
-
+    auto toImage() -> QImage; // maybe null
+    auto getBuffer() -> bool;
+    auto isKey() -> bool;
     auto avFrame() -> AVFrame *;
 
     static auto fromQImage(const QImage &image) -> Frame *;
 
 private:
     class FramePrivate;
-    QScopedPointer<FramePrivate> d_ptr;
+    std::unique_ptr<FramePrivate> d_ptr;
 };
 
-using FramePtr = QSharedPointer<Frame>;
+using FramePtr = std::shared_ptr<Frame>;
+using FramePtrList = std::vector<FramePtr>;
 
 } // namespace Ffmpeg

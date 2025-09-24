@@ -1,7 +1,6 @@
 // Most of this code comes from mpv
 
 #include "colorutils.hpp"
-#include "frame.hpp"
 
 #include <utils/utils.h>
 
@@ -66,9 +65,9 @@ static constexpr std::array<std::array<float, 3>, 3> kBT2020_12bit_limited_yuv_t
        std::array<float, 3>{-0.000000F, -0.188015F, 2.149647F},
        std::array<float, 3>{1.684846F, -0.652816F, -0.000000F}};
 
-auto getYuvToRgbParam(Frame *frame) -> YuvToRgbParam
+auto getYuvToRgbParam(const FramePtr &framePtr) -> YuvToRgbParam
 {
-    auto *avFrame = frame->avFrame();
+    auto *avFrame = framePtr->avFrame();
     bool isFullRange = avFrame->color_range == AVCOL_RANGE_JPEG;
     YuvToRgbParam param;
     switch (avFrame->colorspace) {

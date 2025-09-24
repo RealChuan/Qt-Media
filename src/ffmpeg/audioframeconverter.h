@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ffmpeg/frame.hpp>
+
 #include <QAudioFormat>
 
 extern "C" {
@@ -9,7 +11,6 @@ extern "C" {
 namespace Ffmpeg {
 
 class CodecContext;
-class Frame;
 class AudioFrameConverter : public QObject
 {
 public:
@@ -18,7 +19,7 @@ public:
                                  QObject *parent = nullptr);
     ~AudioFrameConverter() override;
 
-    auto convert(Frame *frame) -> QByteArray;
+    auto convert(const FramePtr &framePtr) -> QByteArray;
 
 private:
     class AudioFrameConverterPrivate;

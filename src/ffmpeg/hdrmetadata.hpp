@@ -1,11 +1,9 @@
-#ifndef HDRMETADATA_HPP
-#define HDRMETADATA_HPP
+#pragma once
 
 #include "colorutils.hpp"
+#include "frame.hpp"
 
 namespace Ffmpeg {
-
-class Frame;
 
 struct HdrBezier
 {
@@ -19,7 +17,7 @@ struct HdrMetaData
 {
 public:
     HdrMetaData() = default;
-    explicit HdrMetaData(Frame *frame);
+    explicit HdrMetaData(const FramePtr &framePtr);
 
     float minLuma = 0, maxLuma = 0;
     ColorUtils::RawPrimaries primaries;
@@ -32,5 +30,3 @@ public:
 };
 
 } // namespace Ffmpeg
-
-#endif // HDRMETADATA_HPP

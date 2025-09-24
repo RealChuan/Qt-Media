@@ -1,5 +1,6 @@
-#ifndef AUDIOOUTPUT_HPP
-#define AUDIOOUTPUT_HPP
+#pragma once
+
+#include <ffmpeg/frame.hpp>
 
 #include <QAudio>
 #include <QObject>
@@ -7,8 +8,6 @@
 namespace Ffmpeg {
 
 class AVContextInfo;
-class Frame;
-
 class AudioOutput : public QObject
 {
     Q_OBJECT
@@ -17,7 +16,7 @@ public:
     ~AudioOutput() override;
 
 public slots:
-    void onConvertData(const QSharedPointer<Ffmpeg::Frame> &framePtr);
+    void onConvertData(const FramePtr &framePtr);
     void onWrite();
     void onSetVolume(qreal value);
 
@@ -33,5 +32,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // AUDIOOUTPUT_HPP

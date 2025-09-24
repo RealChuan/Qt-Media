@@ -1,11 +1,11 @@
-#ifndef AUDIOOUTPUTTHREAD_HPP
-#define AUDIOOUTPUTTHREAD_HPP
+#pragma once
+
+#include <ffmpeg/frame.hpp>
 
 #include <QThread>
 
 namespace Ffmpeg {
 
-class Frame;
 class AVContextInfo;
 
 class AudioOutputThread : public QThread
@@ -19,7 +19,7 @@ public:
     void closeOutput();
 
 signals:
-    void convertData(const QSharedPointer<Ffmpeg::Frame> &frameptr);
+    void convertData(const FramePtr &frameptr);
     void wirteData();
     void volumeChanged(qreal value);
 
@@ -32,5 +32,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // AUDIOOUTPUTTHREAD_HPP

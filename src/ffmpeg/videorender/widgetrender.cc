@@ -1,7 +1,6 @@
 #include "widgetrender.hpp"
 
 #include <ffmpeg/ffmpegutils.hpp>
-#include <ffmpeg/frame.hpp>
 #include <ffmpeg/subtitle.h>
 #include <ffmpeg/videoformat.hpp>
 #include <ffmpeg/videoframeconverter.hpp>
@@ -21,9 +20,9 @@ struct FrameParam
 {
     FrameParam() = default;
 
-    explicit FrameParam(Frame *frame)
+    explicit FrameParam(const FramePtr &framePtr)
     {
-        auto *avFrame = frame->avFrame();
+        auto *avFrame = framePtr->avFrame();
         size = QSize(avFrame->width, avFrame->height);
         format = avFrame->format;
         time_base = avFrame->time_base;
@@ -67,17 +66,17 @@ public:
         auto size = QSize(avframe->width, avframe->height);
         size.scale(q_ptr->size() * q_ptr->devicePixelRatio(), Qt::KeepAspectRatio);
         if (frameConverterPtr.isNull()) {
-            frameConverterPtr.reset(new VideoFrameConverter(framePtr.data(), size, dst_pix_fmt));
+            frameConverterPtr.reset(new VideoFrameConverter(framePtr, size, dst_pix_fmt));
         } else {
-            frameConverterPtr->flush(framePtr.data(), size, dst_pix_fmt);
+            frameConverterPtr->flush(framePtr, size, dst_pix_fmt);
         }
-        frameConverterPtr->setColorspaceDetails(framePtr.data(),
+        frameConverterPtr->setColorspaceDetails(framePtr,
                                                 q_ptr->m_equalizer.ffBrightness(),
                                                 q_ptr->m_equalizer.ffContrast(),
                                                 q_ptr->m_equalizer.ffSaturation());
-        QSharedPointer<Frame> frameRgbPtr(new Frame);
+        FramePtr frameRgbPtr(new Frame);
         frameRgbPtr->imageAlloc(size, dst_pix_fmt);
-        frameConverterPtr->scale(framePtr.data(), frameRgbPtr.data());
+        frameConverterPtr->scale(framePtr, frameRgbPtr);
         //    qDebug() << frameRgbPtr->avFrame()->width << frameRgbPtr->avFrame()->height
         //             << frameRgbPtr->avFrame()->format;
         return frameRgbPtr;
@@ -86,13 +85,13 @@ public:
     auto fliterFrame(const FramePtr &framePtr) -> FramePtr
     {
         static FrameParam lastFrameParam;
-        FrameParam frameParam(framePtr.data());
+        FrameParam frameParam(framePtr);
 
         auto *avframe = framePtr->avFrame();
         auto size = QSize(avframe->width, avframe->height);
         size.scale(q_ptr->size() * q_ptr->devicePixelRatio(), Qt::KeepAspectRatio);
 
-        if (framePtr.isNull() || filterPtr.isNull() || lastFrameParam != frameParam
+        if (nullptr == framePtr || filterPtr.isNull() || lastFrameParam != frameParam
             || lastScaleSize != size || equalizer != q_ptr->m_equalizer
             /*|| tonemapType != q_ptr->m_tonemapType || destPrimaries != q_ptr->m_destPrimaries*/) {
             filterPtr.reset(new Filter);
@@ -102,7 +101,7 @@ public:
             destPrimaries = q_ptr->m_destPrimaries;
         }
         if (!filterPtr->isInitialized()) {
-            filterPtr->init(AVMEDIA_TYPE_VIDEO, framePtr.data());
+            filterPtr->init(AVMEDIA_TYPE_VIDEO, framePtr);
             tonemapType = q_ptr->m_tonemapType;
             auto pix_fmt = AV_PIX_FMT_RGB32;
             av_opt_set_bin(filterPtr->buffersinkCtx()->avFilterContext(),
@@ -116,20 +115,20 @@ public:
                                        Filter::hue(equalizer.eqHue()));
             filterPtr->config(filterSpec);
         }
-        auto framePtrs = filterPtr->filterFrame(framePtr.data());
-        if (framePtrs.isEmpty()) {
+        auto framePtrs = filterPtr->filterFrame(framePtr);
+        if (framePtrs.empty()) {
             return {};
         }
         // qDebug() << framePtrs.first()->avFrame()->width << framePtrs.first()->avFrame()->height
         //          << framePtrs.first()->avFrame()->format;
-        return framePtrs.first();
+        return framePtrs.front();
     }
 
     WidgetRender *q_ptr;
 
     QSizeF size;
     QRectF frameRect;
-    QSharedPointer<Frame> framePtr;
+    FramePtr framePtr;
     // Rendering is best optimized to the Format_RGB32 and Format_ARGB32_Premultiplied formats
     //QList<AVPixelFormat> supportFormats = VideoFormat::qFormatMaps.keys();
     QList<AVPixelFormat> supportFormats = {AV_PIX_FMT_RGB32};
@@ -159,8 +158,7 @@ auto WidgetRender::isSupportedOutput_pix_fmt(AVPixelFormat pix_fmt) -> bool
     return d_ptr->supportFormats.contains(pix_fmt);
 }
 
-auto WidgetRender::convertSupported_pix_fmt(const QSharedPointer<Frame> &framePtr)
-    -> QSharedPointer<Frame>
+auto WidgetRender::convertSupported_pix_fmt(const FramePtr &framePtr) -> FramePtr
 {
     return d_ptr->fliterFrame(framePtr);
 
@@ -211,7 +209,7 @@ void WidgetRender::paintEvent(QPaintEvent *event)
     paintSubTitleFrame(rect, &painter);
 }
 
-void WidgetRender::updateFrame(const QSharedPointer<Frame> &framePtr)
+void WidgetRender::updateFrame(const FramePtr &framePtr)
 {
     QMetaObject::invokeMethod(
         this, [this, framePtr] { displayFrame(framePtr); }, Qt::QueuedConnection);
@@ -234,7 +232,7 @@ void WidgetRender::updateSubTitleFrame(const QSharedPointer<Subtitle> &framePtr)
         Qt::QueuedConnection);
 }
 
-void WidgetRender::displayFrame(const QSharedPointer<Frame> &framePtr)
+void WidgetRender::displayFrame(const FramePtr &framePtr)
 {
     d_ptr->framePtr = framePtr;
     d_ptr->videoImage = framePtr->toImage();

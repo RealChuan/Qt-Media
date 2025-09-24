@@ -24,7 +24,7 @@ public:
         clock = new Clock(q);
     }
 
-    void renderFrame(const QSharedPointer<Frame> &framePtr)
+    void renderFrame(const FramePtr &framePtr)
     {
         QMutexLocker locker(&mutex_render);
         for (auto *render : videoRenders) {
@@ -95,7 +95,7 @@ void VideoDisplay::runDecoder()
         d_ptr->processEvent(firstFrame);
 
         auto framePtr(m_queue.take());
-        if (framePtr.isNull()) {
+        if (nullptr == framePtr) {
             continue;
         }
         if (!firstFrame) {

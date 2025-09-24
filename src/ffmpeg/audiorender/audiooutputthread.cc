@@ -1,8 +1,6 @@
 #include "audiooutputthread.hpp"
 #include "audiooutput.hpp"
 
-#include <ffmpeg/frame.hpp>
-
 namespace Ffmpeg {
 
 class AudioOutputThread::AudioOutputThreadPrivate
@@ -22,7 +20,7 @@ AudioOutputThread::AudioOutputThread(QObject *parent)
     : QThread{parent}
     , d_ptr(new AudioOutputThreadPrivate(this))
 {
-    qRegisterMetaType<QSharedPointer<Ffmpeg::Frame>>("QSharedPointer<Ffmpeg::Frame>");
+    qRegisterMetaType<FramePtr>("FramePtr");
 }
 
 AudioOutputThread::~AudioOutputThread()

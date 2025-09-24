@@ -1,5 +1,6 @@
-#ifndef FILTERCONTEXT_HPP
-#define FILTERCONTEXT_HPP
+#pragma once
+
+#include <ffmpeg/frame.hpp>
 
 #include <QObject>
 
@@ -7,7 +8,6 @@ struct AVFilterContext;
 
 namespace Ffmpeg {
 
-class Frame;
 class FilterGraph;
 class FilterContext : public QObject
 {
@@ -22,8 +22,8 @@ public:
 
     auto create(const QString &name, const QString &args, FilterGraph *filterGraph) -> bool;
 
-    auto buffersrcAddFrameFlags(Frame *frame) -> bool;
-    auto buffersinkGetFrame(Frame *frame) -> bool;
+    auto buffersrcAddFrameFlags(const FramePtr &framePtr) -> bool;
+    auto buffersinkGetFrame(const FramePtr &framePtr) -> bool;
     void buffersinkSetFrameSize(int size);
 
     auto avFilterContext() -> AVFilterContext *;
@@ -34,5 +34,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // FILTERCONTEXT_HPP

@@ -2,8 +2,6 @@
 #include "averrormanager.hpp"
 #include "filtergraph.hpp"
 
-#include <ffmpeg/frame.hpp>
-
 #include <QDebug>
 
 extern "C" {
@@ -60,17 +58,17 @@ auto FilterContext::create(const QString &name, const QString &args, FilterGraph
     ERROR_RETURN(ret)
 }
 
-auto FilterContext::buffersrcAddFrameFlags(Frame *frame) -> bool
+auto FilterContext::buffersrcAddFrameFlags(const FramePtr &framePtr) -> bool
 {
     auto ret = av_buffersrc_add_frame_flags(d_ptr->filterContext,
-                                            frame->avFrame(),
+                                            framePtr->avFrame(),
                                             AV_BUFFERSRC_FLAG_KEEP_REF | AV_BUFFERSRC_FLAG_PUSH);
     ERROR_RETURN(ret)
 }
 
-auto FilterContext::buffersinkGetFrame(Frame *frame) -> bool
+auto FilterContext::buffersinkGetFrame(const FramePtr &framePtr) -> bool
 {
-    auto ret = av_buffersink_get_frame(d_ptr->filterContext, frame->avFrame());
+    auto ret = av_buffersink_get_frame(d_ptr->filterContext, framePtr->avFrame());
     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
         return false;
     }

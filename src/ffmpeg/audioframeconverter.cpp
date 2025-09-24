@@ -1,7 +1,6 @@
 #include "audioframeconverter.h"
 #include "averrormanager.hpp"
 #include "codeccontext.h"
-#include "frame.hpp"
 
 #include <QAudioDevice>
 #include <QDebug>
@@ -150,9 +149,9 @@ AudioFrameConverter::~AudioFrameConverter()
     swr_free(&d_ptr->swrContext);
 }
 
-auto AudioFrameConverter::convert(Frame *frame) -> QByteArray
+auto AudioFrameConverter::convert(const FramePtr &framePtr) -> QByteArray
 {
-    auto *avFrame = frame->avFrame();
+    auto *avFrame = framePtr->avFrame();
     auto nb_samples = avFrame->nb_samples;
     auto out_count = static_cast<int64_t>(nb_samples) * d_ptr->format.sampleRate()
                          / avFrame->sample_rate

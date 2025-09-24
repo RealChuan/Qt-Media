@@ -2,7 +2,6 @@
 #include "averrormanager.hpp"
 #include "encodecontext.hpp"
 #include "ffmpegutils.hpp"
-#include "frame.hpp"
 #include "packet.h"
 #include "subtitle.h"
 
@@ -509,11 +508,11 @@ auto CodecContext::sendPacket(Packet *packet) -> bool
     ERROR_RETURN(ret)
 }
 
-auto CodecContext::receiveFrame(Frame *frame) -> bool
+auto CodecContext::receiveFrame(const FramePtr &framePtr) -> bool
 {
-    int ret = avcodec_receive_frame(d_ptr->codecCtx, frame->avFrame());
+    int ret = avcodec_receive_frame(d_ptr->codecCtx, framePtr->avFrame());
     if (ret >= 0) {
-        auto *avFrame = frame->avFrame();
+        auto *avFrame = framePtr->avFrame();
         avFrame->sample_aspect_ratio = d_ptr->codecCtx->sample_aspect_ratio;
         avFrame->sample_rate = d_ptr->codecCtx->sample_rate;
         avFrame->ch_layout = d_ptr->codecCtx->ch_layout;
@@ -539,9 +538,9 @@ auto CodecContext::decodeSubtitle2(Subtitle *subtitle, Packet *packet) -> bool
     return true;
 }
 
-auto CodecContext::sendFrame(Frame *frame) -> bool
+auto CodecContext::sendFrame(const FramePtr &framePtr) -> bool
 {
-    auto ret = avcodec_send_frame(d_ptr->codecCtx, frame->avFrame());
+    auto ret = avcodec_send_frame(d_ptr->codecCtx, framePtr->avFrame());
     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
         return false;
     }

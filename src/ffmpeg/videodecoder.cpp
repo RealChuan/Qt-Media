@@ -78,8 +78,8 @@ void VideoDecoder::runDecoder()
             continue;
         }
         auto framePtrs = m_contextInfo->decodeFrame(packetPtr);
-        for (const auto &framePtr : framePtrs) {
-            calculatePts(framePtr.data(), m_contextInfo, m_formatContext);
+        for (const auto &framePtr : std::as_const(framePtrs)) {
+            calculatePts(framePtr, m_contextInfo, m_formatContext);
             d_ptr->decoderVideoFrame->append(framePtr);
         }
     }

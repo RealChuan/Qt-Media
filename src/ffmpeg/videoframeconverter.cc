@@ -1,7 +1,6 @@
 #include "videoframeconverter.hpp"
 #include "averrormanager.hpp"
 #include "codeccontext.h"
-#include "frame.hpp"
 #include "videoformat.hpp"
 
 #include <QDebug>
@@ -73,14 +72,14 @@ VideoFrameConverter::VideoFrameConverter(CodecContext *codecCtx,
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 
-VideoFrameConverter::VideoFrameConverter(Frame *frame,
+VideoFrameConverter::VideoFrameConverter(const FramePtr &framePtr,
                                          const QSize &size,
                                          AVPixelFormat pix_fmt,
                                          QObject *parent)
     : QObject(parent)
     , d_ptr(new VideoFrameConverterPrivate(this))
 {
-    flush(frame, size, pix_fmt);
+    flush(framePtr, size, pix_fmt);
 }
 
 VideoFrameConverter::~VideoFrameConverter()
@@ -89,12 +88,12 @@ VideoFrameConverter::~VideoFrameConverter()
     sws_freeContext(d_ptr->swsContext);
 }
 
-void VideoFrameConverter::setColorspaceDetails(Frame *frame,
+void VideoFrameConverter::setColorspaceDetails(const FramePtr &framePtr,
                                                float brightness,
                                                float contrast,
                                                float saturation)
 {
-    auto *avFrame = frame->avFrame();
+    auto *avFrame = framePtr->avFrame();
     int srcRange = 0;
     switch (avFrame->color_range) {
     case AVCOL_RANGE_MPEG: srcRange = 0; break;
@@ -110,9 +109,11 @@ void VideoFrameConverter::setColorspaceDetails(Frame *frame,
                              static_cast<int>(saturation * (1 << 16)));
 }
 
-void VideoFrameConverter::flush(Frame *frame, const QSize &dstSize, AVPixelFormat pix_fmt)
+void VideoFrameConverter::flush(const FramePtr &framePtr,
+                                const QSize &dstSize,
+                                AVPixelFormat pix_fmt)
 {
-    auto *avFrame = frame->avFrame();
+    auto *avFrame = framePtr->avFrame();
     d_ptr->src_pix_fmt = static_cast<AVPixelFormat>(avFrame->format);
     d_ptr->dst_pix_fmt = pix_fmt;
     d_ptr->debugMessage();
@@ -133,11 +134,11 @@ void VideoFrameConverter::flush(Frame *frame, const QSize &dstSize, AVPixelForma
     Q_ASSERT(d_ptr->swsContext != nullptr);
 }
 
-auto VideoFrameConverter::scale(Frame *in, Frame *out) -> int
+auto VideoFrameConverter::scale(const FramePtr &inPtr, const FramePtr &outPtr) -> int
 {
     Q_ASSERT(d_ptr->swsContext != nullptr);
-    auto *inFrame = in->avFrame();
-    auto *outFrame = out->avFrame();
+    auto *inFrame = inPtr->avFrame();
+    auto *outFrame = outPtr->avFrame();
     auto ret = sws_scale(d_ptr->swsContext,
                          static_cast<const unsigned char *const *>(inFrame->data),
                          inFrame->linesize,
@@ -152,8 +153,8 @@ auto VideoFrameConverter::scale(Frame *in, Frame *out) -> int
     outFrame->height = d_ptr->dstSize.height();
     outFrame->format = d_ptr->dst_pix_fmt;
     outFrame->pts = inFrame->pts;
-    out->setPts(in->pts());
-    out->setDuration(in->duration());
+    outPtr->setPts(inPtr->pts());
+    outPtr->setDuration(inPtr->duration());
     return ret;
 }
 

@@ -1,5 +1,4 @@
-#ifndef AUDIODISPLAY_H
-#define AUDIODISPLAY_H
+#pragma once
 
 #include "decoder.h"
 #include "frame.hpp"
@@ -29,5 +28,3 @@ private:
 };
 
 } // namespace Ffmpeg
-
-#endif // AUDIODISPLAY_H

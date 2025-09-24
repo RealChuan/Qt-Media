@@ -1,5 +1,4 @@
 #include "hdrmetadata.hpp"
-#include "frame.hpp"
 
 extern "C" {
 #include <libavutil/frame.h>
@@ -9,9 +8,9 @@ extern "C" {
 
 namespace Ffmpeg {
 
-HdrMetaData::HdrMetaData(Frame *frame)
+HdrMetaData::HdrMetaData(const FramePtr &framePtr)
 {
-    auto *avFrame = frame->avFrame();
+    auto *avFrame = framePtr->avFrame();
     auto *mdm = av_frame_get_side_data(avFrame, AV_FRAME_DATA_MASTERING_DISPLAY_METADATA);
     auto *clm = av_frame_get_side_data(avFrame, AV_FRAME_DATA_CONTENT_LIGHT_LEVEL);
     auto *dhp = av_frame_get_side_data(avFrame, AV_FRAME_DATA_DYNAMIC_HDR_PLUS);
