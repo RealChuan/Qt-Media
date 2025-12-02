@@ -8,31 +8,10 @@
     "crashpad",
     {
       "name": "ffmpeg",
-      "features": [
-        "ass",
-        "bzip2",
-        "ffmpeg",
-        "ffplay",
-        "ffprobe",
-        "freetype",
-        "fribidi",
-        "gpl",
-        "opengl",
-        "zlib",
-        {
-          "name": "amf",
-          "platform": "windows | linux"
-        },
-        {
-          "name": "nvcodec",
-          "platform": "windows | linux"
-        },
-        {
-          "name": "qsv",
-          "platform": "windows"
-        }
-      ]
-    }
+      "features": ["all-nonfree", "ffmpeg", "ffplay", "ffprobe"]
+    },
+    "libass",
+    "tl-expected"
   ],
-  "builtin-baseline": "b1b19307e2d2ec1eefbdb7ea069de7d4bcd31f01"
+  "builtin-baseline": "c39217bc52e4917e17971cc026bb861f40846264"
 }

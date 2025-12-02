@@ -1,17 +1,18 @@
 #include "breakpad.hpp"
 
-#include <utils/utils.h>
+#include <utils/utils.hpp>
 
-#include <QDebug>
-#include <QDesktopServices>
-
-#if defined(Q_OS_WIN)
+#ifdef _WIN32
 #include <client/windows/handler/exception_handler.h>
-#elif defined(Q_OS_MAC)
+#elif __APPLE__
 #include <client/mac/handler/exception_handler.h>
-#elif defined(Q_OS_LINUX)
+#elif __linux__
 #include <client/linux/handler/exception_handler.h>
 #endif
+
+#include <filesystem>
+#include <iostream>
+#include <stdexcept>
 
 #ifdef Q_OS_WIN
 #define CrashReportName "CrashReport.exe"
@@ -21,101 +22,185 @@
 
 namespace Dump {
 
-// 程序崩溃回调函数;
-#if defined(Q_OS_WIN)
-auto callback(const wchar_t *dump_path,
-              const wchar_t *id,
-              void * /*unused*/,
-              EXCEPTION_POINTERS * /*unused*/,
-              MDRawAssertionInfo * /*unused*/,
-              bool succeeded) -> bool
-{
-    if (succeeded) {
-        qInfo() << "Create dump file success:" << QString::fromWCharArray(dump_path)
-                << QString::fromWCharArray(id);
-        emit BreakPad::instance()->crash();
-    } else {
-        qWarning() << "Create dump file failed";
-    }
-    return succeeded;
-}
-#elif defined(Q_OS_MAC)
-bool callback(const char *dump_dir, const char *minidump_id, void *, bool succeeded)
-{
-    if (succeeded) {
-        qInfo() << "Create dump file success:" << dump_dir << minidump_id;
-        emit BreakPad::instance()->crash();
-    } else {
-        qWarning() << "Create dump file failed";
-    }
-    return succeeded;
-}
-#elif defined(Q_OS_LINUX)
-bool callback(const google_breakpad::MinidumpDescriptor &descriptor, void *context, bool succeeded)
-{
-    Q_UNUSED(context)
-    if (succeeded) {
-        qInfo() << "Create dump file success:" << QString::fromLocal8Bit(descriptor.path());
-        emit BreakPad::instance()->crash();
-    } else {
-        qWarning() << "Create dump file failed";
-    }
-    return succeeded;
-}
-#endif
-
-class BreakPad::BreakPadPrivate
+class BreakpadPrivate
 {
 public:
-    explicit BreakPadPrivate(BreakPad *q)
-        : q_ptr(q)
-    {}
+    explicit BreakpadPrivate(const std::string &dump_path, Breakpad *q);
+    ~BreakpadPrivate() = default;
 
-    void setDumpPath(const QString &path)
-    {
-#if defined(Q_OS_WIN)
-        exceptionHandlerPtr.reset(
-            new google_breakpad::ExceptionHandler(path.toStdWString(),
-                                                  nullptr,
-                                                  callback,
-                                                  nullptr,
-                                                  google_breakpad::ExceptionHandler::HANDLER_ALL));
-#elif defined(Q_OS_MAC)
-        exceptionHandlerPtr.reset(new google_breakpad::ExceptionHandler(path.toStdString(),
-                                                                        nullptr,
-                                                                        callback,
-                                                                        nullptr,
-                                                                        true,
-                                                                        nullptr));
-#elif defined(Q_OS_LINUX)
-        exceptionHandlerPtr.reset(
-            new google_breakpad::ExceptionHandler(google_breakpad::MinidumpDescriptor(
-                                                      path.toStdString()),
-                                                  nullptr,
-                                                  callback,
-                                                  nullptr,
-                                                  true,
-                                                  -1));
-#endif
-    }
+    bool initialize();
 
-    ~BreakPadPrivate() = default;
+    bool handleCrash(const std::string &dump_path, bool succeeded);
 
-    BreakPad *q_ptr;
-    QScopedPointer<google_breakpad::ExceptionHandler> exceptionHandlerPtr;
+    Breakpad *q_ptr;
+
+    std::string dumpPath;
+    Breakpad::CrashCallback crashCallback;
+    std::unique_ptr<google_breakpad::ExceptionHandler> handlerPtr;
 };
 
-void BreakPad::setDumpPath(const QString &path)
+namespace {
+
+#ifdef _WIN32
+
+std::string toUtf8(const std::wstring &wstr)
 {
-    d_ptr->setDumpPath(path);
+    if (wstr.empty())
+        return {};
+
+    int size_needed = WideCharToMultiByte(CP_UTF8,
+                                          0,
+                                          wstr.c_str(),
+                                          (int) wstr.size(),
+                                          nullptr,
+                                          0,
+                                          nullptr,
+                                          nullptr);
+    if (size_needed == 0)
+        return {};
+
+    std::string str(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8,
+                        0,
+                        wstr.c_str(),
+                        (int) wstr.size(),
+                        &str[0],
+                        size_needed,
+                        nullptr,
+                        nullptr);
+    return str;
 }
 
-BreakPad::BreakPad(QObject *parent)
-    : QObject{parent}
-    , d_ptr(new BreakPadPrivate(this))
+bool windowsCallback(const wchar_t *dump_path,
+                     const wchar_t *id,
+                     void *context,
+                     EXCEPTION_POINTERS *exinfo,
+                     MDRawAssertionInfo *assertion,
+                     bool succeeded)
+{
+    auto *private_impl = static_cast<BreakpadPrivate *>(context);
+    std::string full_path = toUtf8(dump_path) + toUtf8(id) + ".dmp";
+    return private_impl->handleCrash(full_path, succeeded);
+}
+
+#elif __APPLE__
+
+bool macCallback(const char *dump_path, const char *id, void *context, bool succeeded)
+{
+    auto *private_impl = static_cast<BreakpadPrivate *>(context);
+    std::string full_path = std::string(dump_path) + std::string(id) + ".dmp";
+    return private_impl->handleCrash(full_path, succeeded);
+}
+
+#elif __linux__
+
+bool linuxCallback(const google_breakpad::MinidumpDescriptor &descriptor,
+                   void *context,
+                   bool succeeded)
+{
+    auto *private_impl = static_cast<BreakpadPrivate *>(context);
+    return private_impl->handleCrash(descriptor.path(), succeeded);
+}
+
+#endif
+
+} // namespace
+
+BreakpadPrivate::BreakpadPrivate(const std::string &dump_path, Breakpad *q)
+    : q_ptr(q)
+    , dumpPath(dump_path)
+{
+    if (!initialize()) {
+        throw std::runtime_error("Failed to initialize Breakpad");
+    }
+}
+
+bool BreakpadPrivate::initialize()
+{
+    try {
+        std::filesystem::create_directories(dumpPath);
+    } catch (const std::filesystem::filesystem_error &e) {
+        std::cerr << "Failed to create dump directory: " << e.what() << std::endl;
+        return false;
+    }
+
+#ifdef _WIN32
+    handlerPtr = std::make_unique<google_breakpad::ExceptionHandler>(
+        toWide(dumpPath),
+        nullptr,
+        &windowsCallback,
+        this,
+        google_breakpad::ExceptionHandler::HANDLER_ALL);
+#elif __APPLE__
+    handlerPtr = std::make_unique<google_breakpad::ExceptionHandler>(dumpPath,
+                                                                     nullptr,
+                                                                     &macCallback,
+                                                                     this,
+                                                                     true,
+                                                                     nullptr);
+
+#elif __linux__
+    handlerPtr = std::make_unique<google_breakpad::ExceptionHandler>(
+        google_breakpad::MinidumpDescriptor(dumpPath), nullptr, &linuxCallback, this, true, -1);
+#endif
+
+    if (!handlerPtr) {
+        std::cerr << "Failed to create ExceptionHandler" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool BreakpadPrivate::handleCrash(const std::string &dump_path, bool succeeded)
+{
+    // 调用用户设置的回调函数
+    if (crashCallback) {
+        return crashCallback(dump_path, succeeded);
+    }
+
+    // 默认处理：输出日志信息
+    std::cout << "Crash dump " << (succeeded ? "succeeded" : "failed") << ": " << dump_path
+              << std::endl;
+    return succeeded;
+}
+
+Breakpad::Breakpad(const std::string &dump_path)
+    : d_ptr(std::make_unique<BreakpadPrivate>(dump_path, this))
 {}
 
-BreakPad::~BreakPad() = default;
+Breakpad::~Breakpad() = default;
+
+void Breakpad::setCrashCallback(CrashCallback callback)
+{
+    d_ptr->crashCallback = std::move(callback);
+}
+
+bool Breakpad::writeMinidump()
+{
+    return d_ptr->handlerPtr && d_ptr->handlerPtr->WriteMinidump();
+}
+
+std::string Breakpad::getDumpPath() const
+{
+    return d_ptr->dumpPath;
+}
+
+#ifdef _WIN32
+std::wstring toWide(const std::string &str)
+{
+    if (str.empty())
+        return {};
+
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int) str.size(), nullptr, 0);
+    if (size_needed == 0)
+        return {};
+
+    std::wstring wstr(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int) str.size(), &wstr[0], size_needed);
+    return wstr;
+}
+#endif
 
 void openCrashReporter()
 {

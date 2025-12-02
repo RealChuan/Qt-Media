@@ -1,54 +1,33 @@
-name: 'Install Dependencies'
-description: 'Install vcpkg libraries and qt environment'
+name: "Install Dependencies"
+description: "Install vcpkg libraries and qt environment"
 inputs:
-  vcpkg_libs:
-    description: 'vcpkg libraries'
-    required: false
-    default: 'breakpad crashpad'
-    type: string
-  vcpkg_ffmpeg_features:
-    description: 'vcpkg ffmpeg features'
-    required: false
-    default: 'opengl,ass,bzip2,freetype,fribidi,zlib,gpl,ffmpeg,ffplay,ffprobe'
-    type: string
   qt_modules:
-    description: 'qt modules'
+    description: "qt modules"
     required: false
-    default: 'qt5compat qtnetworkauth qtmultimedia qtimageformats'
+    default: "qt5compat qtnetworkauth qtmultimedia qtimageformats"
     type: string
   qt_ver:
-    description: 'qt version'
+    description: "qt version"
     required: false
-    default: '6.9.2'
+    default: "6.10.1"
     type: string
 
 runs:
-  using: 'composite'
+  using: "composite"
 
   steps:
     - name: Install Custom VCPKG
       uses: RealChuan/install-vcpkg@main
-        
-    - name: Delete vcpkg.json
+
+    - name: Update vcpkg manifest baseline
       shell: bash
       run: |
-        rm vcpkg.json
+        vcpkg x-update-baseline
 
-    - name: Cache windows vcpkg
-      if: runner.os == 'Windows'
+    - name: Cache vcpkg
       uses: actions/cache@v4
-      with: 
-        path: C:\vcpkg\installed
-        key: ${{ runner.os }}-vcpkg-installed-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-vcpkg-installed-
-          ${{ runner.os }}-
-
-    - name: Cache macos or linux vcpkg
-      if: runner.os == 'macOS' || runner.os == 'Linux'
-      uses: actions/cache@v4
-      with: 
-        path: /usr/local/share/vcpkg/installed
+      with:
+        path: ${{ github.workspace }}/build/vcpkg_installed
         key: ${{ runner.os }}-vcpkg-installed-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-vcpkg-installed-
@@ -61,21 +40,15 @@ runs:
         choco install ninja
         ninja --version
         cmake --version
-        vcpkg install ${{ inputs.vcpkg_libs }} \
-          ffmpeg[${{ inputs.vcpkg_ffmpeg_features }},amf,nvcodec,qsv] --triplet x64-windows \
-          || (cat C:/vcpkg/installed/vcpkg/issue_body.md && exit 1)
 
     - name: Install dependencies on macos
       if: runner.os == 'macOS'
       shell: bash
       run: |
-        brew install nasm python-setuptools mpv
+        brew install nasm mpv
         ninja --version
         cmake --version
         clang --version
-        vcpkg install ${{ inputs.vcpkg_libs }} \
-          ffmpeg[${{ inputs.vcpkg_ffmpeg_features }}] --triplet arm64-osx \
-          || (cat /usr/local/share/vcpkg/installed/vcpkg/issue_body.md && exit 1)
 
     - name: Install dependencies on linux
       if: runner.os == 'Linux'
@@ -84,18 +57,15 @@ runs:
         sudo apt-get update
         sudo apt-get install ninja-build nasm autopoint gperf libgl1-mesa-dev \
             libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev libltdl-dev \
+            autoconf autoconf-archive automake libtoolize \
             mpv libmpv-dev
         ninja --version
         cmake --version
         gcc --version
-        vcpkg install ${{ inputs.vcpkg_libs }} \
-          ffmpeg[${{ inputs.vcpkg_ffmpeg_features }},amf,nvcodec] --triplet x64-linux \
-          || (cat /usr/local/share/vcpkg/installed/vcpkg/issue_body.md && exit 1)
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ inputs.qt_ver }}
         modules: ${{ inputs.qt_modules }}
-        cache: 'true'
-        
+        cache: "true"

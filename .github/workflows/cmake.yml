@@ -1,25 +1,27 @@
 name: CMake build
 
-on: 
+on:
   push:
     paths-ignore:
-        - 'doc/**'
-        - 'packaging/**'
-        - '.clang*'
-        - '.gitignore'
-        - 'LICENSE'
-        - 'README*'
+      - "docs/**"
+      - "**/*.md"
+      - "**/.clang-*"
+      - "**/.gitignore"
+      - "**/LICENSE*"
+      - "**/README*"
   pull_request:
     paths-ignore:
-        - 'doc/**'
-        - 'packaging/**'
-        - '.clang*'
-        - '.gitignore'
-        - 'LICENSE'
-        - 'README*'
+      - "docs/**"
+      - "**/*.md"
+      - "**/.clang-*"
+      - "**/.gitignore"
+      - "**/LICENSE*"
+      - "**/README*"
 
 env:
-  MACOSX_DEPLOYMENT_TARGET: 11.0
+  MACOSX_DEPLOYMENT_TARGET: 13.0
+  BUILD_DIR: build
+  BUILD_TYPE: RelWithDebInfo
 
 jobs:
   build:
@@ -32,38 +34,35 @@ jobs:
           - windows-latest
           - macos-latest
           - ubuntu-latest
-        build_type:
-          - "RelWithDebInfo"
         generators:
           - "Ninja"
 
     steps:
-      - uses: actions/checkout@v5
-        with: 
+      - uses: actions/checkout@v6
+        with:
           fetch-depth: 1
-          
+
       - uses: ./.github/actions/install-dependencies
 
       - name: Configure and build windows
-        if: startsWith(matrix.os, 'windows')
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          .\scripts\windows\setVsDev.ps1
+          .\packaging\windows\Enter-VsDevShell.ps1
           cmake `
             -S . `
-            -B ./build `
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+            -B "${{ env.BUILD_DIR }}" `
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
             -DBUILD_MPV=OFF `
             -G "${{ matrix.generators }}"
-          cmake --build ./build --config ${{ matrix.build_type }}
+          cmake --build ./build --config ${{ env.BUILD_TYPE }}
       - name: Configure and build on ubuntu or macos
-        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        if: runner.os == 'macOS' || runner.os == 'Linux'
         shell: bash
         run: |
           cmake \
             -S . \
-            -B ./build \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -B "${{ env.BUILD_DIR }}" \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -G "${{ matrix.generators }}"
-          cmake --build ./build --config ${{ matrix.build_type }}
-          
+          cmake --build ./build --config ${{ env.BUILD_TYPE }}

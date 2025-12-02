@@ -1,7 +1,7 @@
 #include "mediainfo.hpp"
 #include "audioframeconverter.h"
 
-#include <utils/utils.h>
+#include <utils/utils.hpp>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -71,8 +71,8 @@ auto StreamInfo::toJson() const -> QJsonObject
     json.insert("Codec", codecName);
     json.insert("NbFrames", nbFrames);
     json.insert("Format", format);
-    json.insert("BitRate", Utils::convertBytesToString(bitRate) + "/s");
-    json.insert("StreamSize", Utils::convertBytesToString(streamSize));
+    json.insert("BitRate", Utils::formatBytes(bitRate) + "/s");
+    json.insert("StreamSize", Utils::formatBytes(streamSize));
     switch (mediaType) {
     case AVMEDIA_TYPE_AUDIO:
         json.insert("ChLayout", chLayout);
@@ -207,8 +207,8 @@ auto MediaInfo::toJson() const -> QJsonObject
     json.insert("Url", url);
     json.insert("StartTime", startTimeText);
     json.insert("Duration", durationText);
-    json.insert("BitRate", Utils::convertBytesToString(bitRate) + "/s");
-    json.insert("Size", Utils::convertBytesToString(size));
+    json.insert("BitRate", Utils::formatBytes(bitRate) + "/s");
+    json.insert("Size", Utils::formatBytes(size));
 
     QJsonObject metadataJson;
     for (auto iter = metadatas.constBegin(); iter != metadatas.constEnd(); ++iter) {

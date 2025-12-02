@@ -31,6 +31,7 @@ set(PROJECT_SOURCES
     videoencoderwidget.hpp)
 
 qt_add_executable(FfmpegTranscoder MANUAL_FINALIZATION ${PROJECT_SOURCES})
+target_include_directories(FfmpegTranscoder PRIVATE ${CMAKE_SOURCE_DIR})
 target_link_libraries(
   FfmpegTranscoder
   PRIVATE ffmpeg
@@ -41,26 +42,8 @@ target_link_libraries(
           Qt::Widgets
           Qt::Multimedia
           Qt::OpenGLWidgets)
-target_link_libraries(FfmpegTranscoder PRIVATE PkgConfig::ffmpeg)
-
-if(CMAKE_HOST_APPLE)
-  target_link_libraries(
-    FfmpegTranscoder
-    PRIVATE ${Foundation_LIBRARY}
-            ${CoreAudio_LIBRARY}
-            ${AVFoundation_LIBRARY}
-            ${CoreGraphics_LIBRARY}
-            ${OpenGL_LIBRARY}
-            ${CoreText_LIBRARY}
-            ${CoreImage_LIBRARY}
-            ${AppKit_LIBRARY}
-            ${Security_LIBRARY}
-            ${AudioToolBox_LIBRARY}
-            ${VideoToolBox_LIBRARY}
-            ${CoreFoundation_LIBRARY}
-            ${CoreMedia_LIBRARY}
-            ${CoreVideo_LIBRARY}
-            ${CoreServices_LIBRARY})
-endif()
+target_include_directories(FfmpegTranscoder PRIVATE ${FFMPEG_INCLUDE_DIRS})
+target_link_directories(FfmpegTranscoder PRIVATE ${FFMPEG_LIBRARY_DIRS})
+target_link_libraries(FfmpegTranscoder PRIVATE ${FFMPEG_LIBRARIES})
 
 qt_finalize_executable(FfmpegTranscoder)

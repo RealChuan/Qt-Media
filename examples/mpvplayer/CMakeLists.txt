@@ -30,6 +30,7 @@ set(PROJECT_SOURCES
 
 qt_add_executable(MpvPlayer MANUAL_FINALIZATION ${PROJECT_SOURCES})
 target_compile_definitions(MpvPlayer PRIVATE "MPV_ON")
+target_include_directories(MpvPlayer PRIVATE ${CMAKE_SOURCE_DIR})
 target_link_libraries(
   MpvPlayer
   PRIVATE qmpv

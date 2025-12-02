@@ -1,35 +1,37 @@
-#ifndef BREAKPAD_HPP
-#define BREAKPAD_HPP
+#pragma once
 
 #include "dump_global.hpp"
 
-#include <utils/singleton.hpp>
-
-#include <QObject>
+#include <functional>
+#include <memory>
+#include <string>
 
 namespace Dump {
 
-class DUMP_EXPORT BreakPad : public QObject
+class BreakpadPrivate;
+class DUMP_EXPORT Breakpad
 {
-    Q_OBJECT
+    Q_DISABLE_COPY_MOVE(Breakpad)
 public:
-    void setDumpPath(const QString &path);
+    using CrashCallback = std::function<bool(const std::string &dump_path, bool succeeded)>;
 
-signals:
-    void crash();
+    explicit Breakpad(const std::string &dump_path);
+    ~Breakpad();
+
+    void setCrashCallback(CrashCallback callback);
+
+    bool writeMinidump();
+
+    std::string getDumpPath() const;
 
 private:
-    explicit BreakPad(QObject *parent = nullptr);
-    ~BreakPad() override;
-
-    class BreakPadPrivate;
-    QScopedPointer<BreakPadPrivate> d_ptr;
-
-    SINGLETON(BreakPad)
+    std::unique_ptr<BreakpadPrivate> d_ptr;
 };
+
+#ifdef _WIN32
+std::wstring toWide(const std::string &str);
+#endif
 
 DUMP_EXPORT void openCrashReporter();
 
 } // namespace Dump
-
-#endif // BREAKPAD_HPP

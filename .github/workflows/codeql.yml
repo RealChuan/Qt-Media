@@ -1,53 +1,52 @@
 name: CodeQL
 
-on: 
+on:
   push:
     paths-ignore:
-        - 'doc/**'
-        - 'packaging/**'
-        - '.clang*'
-        - '.gitignore'
-        - 'LICENSE'
-        - 'README*'
+      - "docs/**"
+      - "**/*.md"
+      - "**/.clang-*"
+      - "**/.gitignore"
+      - "**/LICENSE*"
+      - "**/README*"
     branches-ignore:
-        - 'dependabot/**'
+      - "dependabot/**"
   pull_request:
     paths-ignore:
-        - 'doc/**'
-        - 'packaging/**'
-        - '.clang*'
-        - '.gitignore'
-        - 'LICENSE'
-        - 'README*'
+      - "docs/**"
+      - "**/*.md"
+      - "**/.clang-*"
+      - "**/.gitignore"
+      - "**/LICENSE*"
+      - "**/README*"
     branches-ignore:
-        - 'dependabot/**'
-        
+      - "dependabot/**"
+
   schedule:
-    - cron: '0 0 1 * *'
+    - cron: "0 0 1 * *"
   workflow_dispatch:
-  
+
 env:
-  MACOSX_DEPLOYMENT_TARGET: 11.0
+  MACOSX_DEPLOYMENT_TARGET: 13.0
 
 jobs:
   CodeQL:
     runs-on: ubuntu-latest
-  
-    steps:      
-      - uses: actions/checkout@v5
+
+    steps:
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
       - uses: ./.github/actions/install-dependencies
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
-            languages: cpp
+          languages: cpp
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        
+        uses: github/codeql-action/analyze@v4

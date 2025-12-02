@@ -1,7 +1,7 @@
 #include "tonemapping.hpp"
 #include "shaderutils.hpp"
 
-#include <utils/utils.h>
+#include <utils/utils.hpp>
 
 namespace Ffmpeg {
 

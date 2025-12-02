@@ -14,7 +14,7 @@
 #include <mpv/mpvplayer.hpp>
 #include <mpv/mpvwidget.hpp>
 #include <mpv/previewwidget.hpp>
-#include <utils/utils.h>
+#include <utils/utils.hpp>
 
 #include <QtWidgets>
 

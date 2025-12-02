@@ -29,6 +29,7 @@ set(PROJECT_SOURCES
     videowidget.hpp)
 
 qt_add_executable(QPlayer MANUAL_FINALIZATION ${PROJECT_SOURCES})
+target_include_directories(QPlayer PRIVATE ${CMAKE_SOURCE_DIR})
 target_link_libraries(
   QPlayer
   PRIVATE mediaconfig

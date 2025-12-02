@@ -2,7 +2,7 @@
 #include "qmediaplaylist.h"
 #include "slider.h"
 
-#include <utils/utils.h>
+#include <utils/utils.hpp>
 
 #include <QtWidgets>
 
@@ -242,7 +242,7 @@ void ControlWidget::setPosition(int value)
 
 void ControlWidget::setCacheSpeed(qint64 speed)
 {
-    d_ptr->readSpeedLabel->setText(Utils::convertBytesToString(speed) + "/S");
+    d_ptr->readSpeedLabel->setText(Utils::formatBytes(speed) + "/S");
 }
 
 void ControlWidget::onSpeedChanged()
