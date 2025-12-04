@@ -2,7 +2,7 @@
 #include "hdrmetadata.hpp"
 #include "shaderutils.hpp"
 
-#include <utils/utils.h>
+#include <utils/utils.hpp>
 
 #include <QFile>
 

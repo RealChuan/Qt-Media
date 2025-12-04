@@ -1,10 +1,11 @@
 #include "mainwindow.h"
 
 #include <3rdparty/qtsingleapplication/qtsingleapplication.h>
-#include <dump/breakpad.hpp>
+#include <dump/crashpad.hpp>
 #include <examples/appinfo.hpp>
+#include <utils/hostosinfo.h>
 #include <utils/logasync.h>
-#include <utils/utils.h>
+#include <utils/utils.hpp>
 
 #include <QApplication>
 #include <QDir>
@@ -36,7 +37,6 @@ auto main(int argc, char *argv[]) -> int
     Utils::setHighDpiEnvironmentVariable();
 
     Utils::setSurfaceFormatVersion(3, 3);
-
     SharedTools::QtSingleApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     SharedTools::QtSingleApplication app(AppName, argc, argv);
     if (app.isRunning()) {
@@ -45,27 +45,32 @@ auto main(int argc, char *argv[]) -> int
             return EXIT_SUCCESS;
         }
     }
+    if (Utils::HostOsInfo::isWindowsHost()) {
+        // The Windows 11 default style (Qt 6.7) has major issues, therefore
+        // set the previous default style: "windowsvista"
+        // FIXME: check newer Qt Versions
+        QApplication::setStyle(QLatin1String("windowsvista"));
 
-#ifndef Q_OS_WIN
-    Q_INIT_RESOURCE(shaders);
-#endif
-
-#ifdef Q_OS_WIN
-    if (!qFuzzyCompare(app.devicePixelRatio(), 1.0)
-        && QApplication::style()->objectName().startsWith(QLatin1String("windows"),
-                                                          Qt::CaseInsensitive)) {
-        QApplication::setStyle(QLatin1String("fusion"));
+        // On scaling different than 100% or 200% use the "fusion" style
+        qreal tmp;
+        const bool fractionalDpi = !qFuzzyIsNull(std::modf(qApp->devicePixelRatio(), &tmp));
+        if (fractionalDpi) {
+            QApplication::setStyle(QLatin1String("fusion"));
+        }
     }
-#endif
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     app.setAttribute(Qt::AA_UseHighDpiPixmaps);
     app.setAttribute(Qt::AA_DisableWindowContextHelpButton);
 #endif
+
     setAppInfo();
-    Dump::BreakPad::instance()->setDumpPath(Utils::crashPath());
     QDir::setCurrent(app.applicationDirPath());
 
-    // 异步日志
+    Dump::Crashpad crashpad(Utils::crashPath().toStdString(),
+                            app.applicationDirPath().toStdString(),
+                            {},
+                            true);
+
     auto *log = Utils::LogAsync::instance();
     log->setLogPath(Utils::logPath());
     log->setAutoDelFile(true);
@@ -73,6 +78,13 @@ auto main(int argc, char *argv[]) -> int
     log->setOrientation(Utils::LogAsync::Orientation::StandardAndFile);
     log->setLogLevel(QtDebugMsg);
     log->startWork();
+
+#ifndef Q_OS_WIN
+    Q_INIT_RESOURCE(shaders);
+#endif
+
+    qInfo().noquote() << "\n\n" + Utils::systemInfo() + "\n\n";
+    Utils::setPixmapCacheLimit();
 
     // Make sure we honor the system's proxy settings
     QNetworkProxyFactory::setUseSystemConfiguration(true);

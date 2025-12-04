@@ -2,7 +2,7 @@
 
 #include "event.hpp"
 
-#include <utils/countdownlatch.hpp>
+#include <latch>
 
 namespace Ffmpeg {
 
@@ -12,7 +12,6 @@ public:
     explicit SeekEvent(qint64 position, QObject *parent = nullptr)
         : Event(parent)
         , m_position(position)
-        , m_latch(0)
     {}
 
     [[nodiscard]] auto type() const -> EventType override { return EventType::Seek; }
@@ -20,13 +19,21 @@ public:
     void setPosition(qint64 position) { m_position = position; }
     [[nodiscard]] auto position() const -> qint64 { return m_position; }
 
-    void setWaitCountdown(int count) { m_latch.setCount(count); }
-    void countDown() { m_latch.countDown(); }
-    void wait() { m_latch.wait(); }
+    void setWaitCountdown(int count) { m_latchPtr = std::make_unique<std::latch>(count); }
+    void countDown()
+    {
+        if (m_latchPtr)
+            m_latchPtr->count_down();
+    }
+    void wait()
+    {
+        if (m_latchPtr)
+            m_latchPtr->wait();
+    }
 
 private:
     qint64 m_position = 0;
-    Utils::CountDownLatch m_latch;
+    std::unique_ptr<std::latch> m_latchPtr;
 };
 
 class FFMPEG_EXPORT SeekRelativeEvent : public Event

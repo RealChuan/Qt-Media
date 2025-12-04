@@ -1,6 +1,6 @@
 #include "equalizer.hpp"
 
-#include <utils/utils.h>
+#include <utils/utils.hpp>
 
 namespace MediaConfig {
 

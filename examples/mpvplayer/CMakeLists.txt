@@ -30,6 +30,7 @@ set(PROJECT_SOURCES
 
 qt_add_executable(MpvPlayer MANUAL_FINALIZATION ${PROJECT_SOURCES})
 target_compile_definitions(MpvPlayer PRIVATE "MPV_ON")
+target_include_directories(MpvPlayer PRIVATE ${CMAKE_SOURCE_DIR})
 target_link_libraries(
   MpvPlayer
   PRIVATE qmpv
@@ -41,6 +42,7 @@ target_link_libraries(
           Qt::Multimedia
           Qt::Network
           Qt::OpenGLWidgets)
+target_link_libraries(MpvPlayer PRIVATE tl::expected)
 if(CMAKE_HOST_WIN32)
   target_link_libraries(MpvPlayer PRIVATE C:\\3rd\\x64\\mpv\\libmpv.dll.a)
   file(COPY C:\\3rd\\x64\\mpv\\libmpv-2.dll
@@ -51,5 +53,3 @@ elseif(CMAKE_HOST_APPLE)
 elseif(CMAKE_HOST_LINUX)
   target_link_libraries(MpvPlayer PRIVATE mpv)
 endif()
-
-qt_finalize_executable(MpvPlayer)

@@ -6,7 +6,7 @@
 #include <ffmpeg/subtitle.h>
 #include <ffmpeg/videoframeconverter.hpp>
 #include <mediaconfig/equalizer.hpp>
-#include <utils/utils.h>
+#include <utils/utils.hpp>
 
 #include <QImage>
 

@@ -1,28 +1,30 @@
-#ifndef CRASHPAD_HPP
-#define CRASHPAD_HPP
+#pragma once
 
 #include "dump_global.hpp"
 
-#include <QObject>
+#include <memory>
+#include <string>
 
 namespace Dump {
 
-class DUMP_EXPORT CrashPad : public QObject
+class DUMP_EXPORT Crashpad
 {
-    Q_OBJECT
+    Q_DISABLE_COPY_MOVE(Crashpad)
 public:
-    explicit CrashPad(const QString &dumpPath,
-                      const QString &libexecPath,
-                      const QString &reportUrl,
-                      bool crashReportingEnabled,
-                      QObject *parent = nullptr);
-    ~CrashPad() override;
+    explicit Crashpad(const std::string &dumpPath,
+                      const std::string &libexecPath,
+                      const std::string &reportUrl,
+                      bool crashReportingEnabled);
+
+    ~Crashpad();
+
+    std::string getDumpPath() const;
+    std::string getReportUrl() const;
+    bool isReportingEnabled() const;
 
 private:
-    class CrashPadPrivate;
-    QScopedPointer<CrashPadPrivate> d_ptr;
+    class CrashpadPrivate;
+    std::unique_ptr<CrashpadPrivate> d_ptr;
 };
 
 } // namespace Dump
-
-#endif // CRASHPAD_HPP

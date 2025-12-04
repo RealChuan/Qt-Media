@@ -1,5 +1,4 @@
-#ifndef SINGLETON_HPP
-#define SINGLETON_HPP
+#pragma once
 
 #include <QObject>
 
@@ -28,7 +27,7 @@ auto Singleton<T>::getInstance() -> T *
 
 #define SINGLETON(Class) \
 private: \
-    Q_DISABLE_COPY_MOVE(Class); \
+    Q_DISABLE_COPY_MOVE(Class) \
     friend class Utils::Singleton<Class>; \
 \
 public: \
@@ -36,5 +35,3 @@ public: \
     { \
         return Utils::Singleton<Class>::getInstance(); \
     }
-
-#endif // SINGLETON_HPP

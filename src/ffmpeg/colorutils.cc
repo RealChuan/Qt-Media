@@ -2,7 +2,7 @@
 
 #include "colorutils.hpp"
 
-#include <utils/utils.h>
+#include <utils/utils.hpp>
 
 extern "C" {
 #include <libavutil/frame.h>

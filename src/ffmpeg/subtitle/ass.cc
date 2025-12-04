@@ -141,7 +141,9 @@ void Ass::addSubtitleEvent(const QByteArray &data, qint64 pts, qint64 duration)
     }
     int eventID = ass_alloc_event(d_ptr->acc_track);
     ASS_Event *event = &d_ptr->acc_track->events[eventID];
-    event->Text = strdup(data.constData());
+    event->Text = new char[data.size() + 1];
+    std::memcpy(event->Text, data.constData(), data.size());
+    event->Text[data.size()] = '\0';
     event->Start = pts / d_ptr->microToMillon;
     event->Duration = duration / d_ptr->microToMillon;
     event->Style = 0;

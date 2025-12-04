@@ -16,7 +16,7 @@
 #include <event/valueevent.hpp>
 #include <utils/concurrentqueue.hpp>
 #include <utils/speed.hpp>
-#include <utils/utils.h>
+#include <utils/utils.hpp>
 #include <videorender/videorender.hpp>
 
 #include <QImage>

@@ -108,43 +108,14 @@ set(PROJECT_SOURCES
 
 qt_add_resources(SOURCES videorender/shaders.qrc)
 
-add_custom_library(ffmpeg ${PROJECT_SOURCES} ${SOURCES})
+add_platform_library(ffmpeg ${PROJECT_SOURCES} ${SOURCES})
 target_link_libraries(ffmpeg PRIVATE mediaconfig utils Qt::Widgets
                                      Qt::Multimedia Qt::OpenGLWidgets)
-target_link_libraries(ffmpeg PRIVATE PkgConfig::ffmpeg PkgConfig::ass)
-if(CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
-  target_link_libraries(ffmpeg PRIVATE PkgConfig::fontconfig expat::expat)
-endif()
-target_link_libraries(
-  ffmpeg
-  PRIVATE harfbuzz
-          harfbuzz::harfbuzz
-          PkgConfig::fribidi
-          freetype
-          PNG::PNG
-          ZLIB::ZLIB
-          BZip2::BZip2
-          unofficial::brotli::brotlidec
-          unofficial::brotli::brotlienc)
+target_include_directories(ffmpeg PRIVATE ${FFMPEG_INCLUDE_DIRS})
+target_link_directories(ffmpeg PRIVATE ${FFMPEG_LIBRARY_DIRS})
+target_link_libraries(ffmpeg PRIVATE ${FFMPEG_LIBRARIES})
+target_link_libraries(ffmpeg PRIVATE PkgConfig::ass)
 
 if(CMAKE_HOST_WIN32)
   target_compile_definitions(ffmpeg PRIVATE "FFMPEG_LIBRARY")
-elseif(CMAKE_HOST_APPLE)
-  target_link_libraries(
-    ffmpeg
-    PRIVATE ${Foundation_LIBRARY}
-            ${CoreAudio_LIBRARY}
-            ${AVFoundation_LIBRARY}
-            ${CoreGraphics_LIBRARY}
-            ${OpenGL_LIBRARY}
-            ${CoreText_LIBRARY}
-            ${CoreImage_LIBRARY}
-            ${AppKit_LIBRARY}
-            ${Security_LIBRARY}
-            ${AudioToolBox_LIBRARY}
-            ${VideoToolBox_LIBRARY}
-            ${CoreFoundation_LIBRARY}
-            ${CoreMedia_LIBRARY}
-            ${CoreVideo_LIBRARY}
-            ${CoreServices_LIBRARY})
 endif()
