@@ -158,7 +158,6 @@ auto FormatContext::openFilePath(const QString &filepath, OpenMode mode) -> bool
             SET_ERROR_CODE(ret);
             return false;
         }
-        av_format_inject_global_side_data(d_ptr->formatCtx);
         d_ptr->isOpen = true;
     } break;
     case WriteOnly: {
