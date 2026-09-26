@@ -26,9 +26,7 @@ class FormatContext::FormatContextPrivate
 public:
     explicit FormatContextPrivate(FormatContext *q)
         : q_ptr(q)
-    {
-        avformat_network_init();
-    }
+    { avformat_network_init(); }
 
     ~FormatContextPrivate() = default;
 
@@ -94,9 +92,7 @@ FormatContext::FormatContext(QObject *parent)
 {}
 
 FormatContext::~FormatContext()
-{
-    close();
-}
+{ close(); }
 
 void FormatContext::copyChapterFrom(FormatContext *src)
 {
@@ -140,9 +136,7 @@ void FormatContext::copyChapterFrom(FormatContext *src)
 }
 
 auto FormatContext::isOpen() -> bool
-{
-    return d_ptr->isOpen;
-}
+{ return d_ptr->isOpen; }
 
 auto FormatContext::openFilePath(const QString &filepath, OpenMode mode) -> bool
 {
@@ -158,7 +152,6 @@ auto FormatContext::openFilePath(const QString &filepath, OpenMode mode) -> bool
             SET_ERROR_CODE(ret);
             return false;
         }
-        av_format_inject_global_side_data(d_ptr->formatCtx);
         d_ptr->isOpen = true;
     } break;
     case WriteOnly: {
@@ -257,34 +250,22 @@ auto FormatContext::findStream() -> bool
 }
 
 auto FormatContext::streams() const -> int
-{
-    return static_cast<int>(d_ptr->formatCtx->nb_streams);
-}
+{ return static_cast<int>(d_ptr->formatCtx->nb_streams); }
 
 auto FormatContext::audioTracks() const -> StreamInfos
-{
-    return d_ptr->audioTracks;
-}
+{ return d_ptr->audioTracks; }
 
 auto FormatContext::videoTracks() const -> StreamInfos
-{
-    return d_ptr->videoTracks;
-}
+{ return d_ptr->videoTracks; }
 
 auto FormatContext::subtitleTracks() const -> StreamInfos
-{
-    return d_ptr->subtitleTracks;
-}
+{ return d_ptr->subtitleTracks; }
 
 auto FormatContext::attachmentTracks() const -> StreamInfos
-{
-    return d_ptr->attachmentTracks;
-}
+{ return d_ptr->attachmentTracks; }
 
 auto FormatContext::findBestStreamIndex(AVMediaType type) const -> int
-{
-    return d_ptr->findBestStreamIndex(type);
-}
+{ return d_ptr->findBestStreamIndex(type); }
 
 void FormatContext::discardStreamExcluded(const QList<int> &indexs)
 {
@@ -408,8 +389,6 @@ auto FormatContext::avFormatContext() -> AVFormatContext *
 }
 
 auto FormatContext::duration() const -> qint64
-{
-    return d_ptr->isOpen ? d_ptr->formatCtx->duration : 0;
-}
+{ return d_ptr->isOpen ? d_ptr->formatCtx->duration : 0; }
 
 } // namespace Ffmpeg

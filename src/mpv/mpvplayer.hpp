@@ -1,5 +1,4 @@
-#ifndef MPVPLAYER_HPP
-#define MPVPLAYER_HPP
+#pragma once
 
 #include "mediainfo.hpp"
 #include "mpv_global.h"
@@ -108,6 +107,9 @@ public:
     void setConfigDir(const QString &configDir);
     [[nodiscard]] auto configDir() const -> QString;
 
+    void setHttpHeaderFields(const QStringList &text);
+    [[nodiscard]] auto httpHeaderFields() const -> QStringList;
+
     void pauseAsync();
     void pauseSync(bool state);
     auto isPaused() -> bool;
@@ -138,5 +140,3 @@ private:
 };
 
 } // namespace Mpv
-
-#endif // MPVPLAYER_HPP

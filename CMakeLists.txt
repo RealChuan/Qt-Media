@@ -40,6 +40,35 @@ find_package(PkgConfig REQUIRED)
 if(PkgConfig_FOUND)
   message(STATUS "found PkgConfig")
   set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH ON)
+
+  # 仅在 macOS 下处理 Homebrew 的 libunibreak
+  if(APPLE)
+    find_program(BREW_EXECUTABLE brew)
+    if(BREW_EXECUTABLE)
+      execute_process(
+        COMMAND ${BREW_EXECUTABLE} --prefix libunibreak
+        OUTPUT_VARIABLE LIBUNIBREAK_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+      )
+    endif()
+
+    # 如果 brew 没找到，回退到常见路径
+    if(NOT LIBUNIBREAK_PREFIX)
+      if(EXISTS "/opt/homebrew/opt/libunibreak")
+        set(LIBUNIBREAK_PREFIX "/opt/homebrew/opt/libunibreak")
+      elseif(EXISTS "/usr/local/opt/libunibreak")
+        set(LIBUNIBREAK_PREFIX "/usr/local/opt/libunibreak")
+      endif()
+    endif()
+
+    if(LIBUNIBREAK_PREFIX AND EXISTS "${LIBUNIBREAK_PREFIX}/lib/pkgconfig/libunibreak.pc")
+      set(ENV{PKG_CONFIG_PATH} "${LIBUNIBREAK_PREFIX}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+      message(STATUS "Added Homebrew libunibreak pkgconfig: ${LIBUNIBREAK_PREFIX}/lib/pkgconfig")
+    else()
+      message(WARNING "libunibreak.pc not found via Homebrew; pkg_check_modules(libass) may fail.")
+    endif()
+  endif()
 endif()
 
 pkg_check_modules(ass REQUIRED IMPORTED_TARGET libass)

@@ -169,9 +169,7 @@ public:
 MpvPlayer::MpvPlayer(QObject *parent)
     : QObject{parent}
     , d_ptr(new MpvPlayerPrivate(this))
-{
-    qInfo() << "mpv client api version: " << mpv_client_api_version();
-}
+{ qInfo() << "mpv client api version: " << mpv_client_api_version(); }
 
 MpvPlayer::~MpvPlayer() = default;
 
@@ -186,9 +184,7 @@ void MpvPlayer::openMedia(const QString &filePath)
 }
 
 void MpvPlayer::play()
-{
-    mpv::qt::set_property_async(d_ptr->mpv, "pause", false);
-}
+{ mpv::qt::set_property_async(d_ptr->mpv, "pause", false); }
 
 void MpvPlayer::stop()
 {
@@ -197,24 +193,16 @@ void MpvPlayer::stop()
 }
 
 auto MpvPlayer::filename() const -> QString
-{
-    return mpv::qt::get_property(d_ptr->mpv, "filename").toString();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "filename").toString(); }
 
 auto MpvPlayer::filepath() const -> QString
-{
-    return mpv::qt::get_property(d_ptr->mpv, "path").toString();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "path").toString(); }
 
 auto MpvPlayer::filesize() const -> double
-{
-    return mpv::qt::get_property(d_ptr->mpv, "file-size").toDouble();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "file-size").toDouble(); }
 
 auto MpvPlayer::duration() const -> double
-{
-    return mpv::qt::get_property(d_ptr->mpv, "duration").toDouble();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "duration").toDouble(); }
 
 auto MpvPlayer::position() const -> double
 {
@@ -223,29 +211,19 @@ auto MpvPlayer::position() const -> double
 }
 
 auto MpvPlayer::chapters() const -> Chapters
-{
-    return d_ptr->chapters;
-}
+{ return d_ptr->chapters; }
 
 auto MpvPlayer::videoTracks() const -> TraskInfos
-{
-    return d_ptr->videoTracks;
-}
+{ return d_ptr->videoTracks; }
 
 auto MpvPlayer::audioTracks() const -> TraskInfos
-{
-    return d_ptr->audioTracks;
-}
+{ return d_ptr->audioTracks; }
 
 auto MpvPlayer::subTracks() const -> TraskInfos
-{
-    return d_ptr->subTracks;
-}
+{ return d_ptr->subTracks; }
 
 void MpvPlayer::start(qint64 seconds)
-{
-    mpv::qt::set_property(d_ptr->mpv, "start", QString::number(seconds));
-}
+{ mpv::qt::set_property(d_ptr->mpv, "start", QString::number(seconds)); }
 
 void MpvPlayer::setVid(const QVariant &vid)
 {
@@ -254,9 +232,7 @@ void MpvPlayer::setVid(const QVariant &vid)
 }
 
 QVariant MpvPlayer::vid() const
-{
-    return mpv::qt::get_property(d_ptr->mpv, "vid");
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "vid"); }
 
 void MpvPlayer::setAid(const QVariant &aid)
 {
@@ -265,9 +241,7 @@ void MpvPlayer::setAid(const QVariant &aid)
 }
 
 QVariant MpvPlayer::aid() const
-{
-    return mpv::qt::get_property(d_ptr->mpv, "aid");
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "aid"); }
 
 void MpvPlayer::setSid(const QVariant &sid)
 {
@@ -276,9 +250,7 @@ void MpvPlayer::setSid(const QVariant &sid)
 }
 
 QVariant MpvPlayer::sid() const
-{
-    return mpv::qt::get_property(d_ptr->mpv, "sid");
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "sid"); }
 
 void MpvPlayer::addAudio(const QStringList &paths)
 {
@@ -295,24 +267,16 @@ void MpvPlayer::addSub(const QStringList &paths)
 }
 
 void MpvPlayer::setPrintToStd(bool print)
-{
-    mpv_set_option_string(d_ptr->mpv, "terminal", print ? "yes" : "no");
-}
+{ mpv_set_option_string(d_ptr->mpv, "terminal", print ? "yes" : "no"); }
 
 void MpvPlayer::setCache(bool cache)
-{
-    mpv::qt::set_property_async(d_ptr->mpv, "cahce", cache ? "auto" : "no");
-}
+{ mpv::qt::set_property_async(d_ptr->mpv, "cahce", cache ? "auto" : "no"); }
 
 void MpvPlayer::setCacheSeconds(int seconds)
-{
-    mpv::qt::set_property_async(d_ptr->mpv, "cache-secs", seconds);
-}
+{ mpv::qt::set_property_async(d_ptr->mpv, "cache-secs", seconds); }
 
 auto MpvPlayer::cacheSpeed() const -> double
-{
-    return mpv::qt::get_property(d_ptr->mpv, "cache-speed").toDouble();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "cache-speed").toDouble(); }
 
 void MpvPlayer::setCacheSpeed(double speed)
 {
@@ -359,9 +323,7 @@ void MpvPlayer::setHwdec(const QString &hwdec)
 }
 
 QString MpvPlayer::hwdec() const
-{
-    return mpv::qt::get_property(d_ptr->mpv, "hwdec").toString();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "hwdec").toString(); }
 
 QStringList MpvPlayer::gpuApis() const
 {
@@ -376,9 +338,7 @@ void MpvPlayer::setGpuApi(const QString &gpuApi)
 }
 
 QString MpvPlayer::gpuApi() const
-{
-    return mpv::qt::get_property(d_ptr->mpv, "gpu-api").toString();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "gpu-api").toString(); }
 
 void MpvPlayer::setVolume(int value)
 {
@@ -387,9 +347,7 @@ void MpvPlayer::setVolume(int value)
 }
 
 auto MpvPlayer::volume() const -> int
-{
-    return mpv::qt::get_property(d_ptr->mpv, "volume").toInt();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "volume").toInt(); }
 
 void MpvPlayer::seek(qint64 percent)
 {
@@ -410,9 +368,7 @@ void MpvPlayer::setSpeed(double speed)
 }
 
 auto MpvPlayer::speed() const -> double
-{
-    return mpv::qt::get_property(d_ptr->mpv, "speed").toDouble();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "speed").toDouble(); }
 
 void MpvPlayer::setSubtitleDelay(double delay)
 {
@@ -421,9 +377,7 @@ void MpvPlayer::setSubtitleDelay(double delay)
 }
 
 auto MpvPlayer::subtitleDelay() const -> double
-{
-    return mpv::qt::get_property(d_ptr->mpv, "sub-delay").toDouble();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "sub-delay").toDouble(); }
 
 void MpvPlayer::setBrightness(int value)
 {
@@ -433,9 +387,7 @@ void MpvPlayer::setBrightness(int value)
 }
 
 auto MpvPlayer::brightness() const -> int
-{
-    return mpv::qt::get_property(d_ptr->mpv, "brightness").toInt();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "brightness").toInt(); }
 
 void MpvPlayer::setContrast(int value)
 {
@@ -445,9 +397,7 @@ void MpvPlayer::setContrast(int value)
 }
 
 auto MpvPlayer::contrast() const -> int
-{
-    return mpv::qt::get_property(d_ptr->mpv, "contrast").toInt();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "contrast").toInt(); }
 
 void MpvPlayer::setSaturation(int value)
 {
@@ -457,9 +407,7 @@ void MpvPlayer::setSaturation(int value)
 }
 
 auto MpvPlayer::saturation() const -> int
-{
-    return mpv::qt::get_property(d_ptr->mpv, "saturation").toInt();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "saturation").toInt(); }
 
 void MpvPlayer::setGamma(int value)
 {
@@ -469,9 +417,7 @@ void MpvPlayer::setGamma(int value)
 }
 
 auto MpvPlayer::gamma() const -> int
-{
-    return mpv::qt::get_property(d_ptr->mpv, "gamma").toInt();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "gamma").toInt(); }
 
 void MpvPlayer::setHue(int value)
 {
@@ -481,9 +427,7 @@ void MpvPlayer::setHue(int value)
 }
 
 auto MpvPlayer::hue() const -> int
-{
-    return mpv::qt::get_property(d_ptr->mpv, "hue").toInt();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "hue").toInt(); }
 
 auto MpvPlayer::toneMappings() const -> QStringList
 {
@@ -509,9 +453,7 @@ void MpvPlayer::setToneMapping(const QString &toneMapping)
 }
 
 auto MpvPlayer::toneMapping() const -> QString
-{
-    return mpv::qt::get_property(d_ptr->mpv, "tone-mapping").toString();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "tone-mapping").toString(); }
 
 QStringList MpvPlayer::targetPrimaries() const
 {
@@ -538,9 +480,7 @@ void MpvPlayer::setTargetPrimaries(const QString &targetPrimaries)
 }
 
 QString MpvPlayer::targetPrimariesName() const
-{
-    return mpv::qt::get_property(d_ptr->mpv, "target-prim").toString();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "target-prim").toString(); }
 
 void MpvPlayer::setLogFile(const QString &logFile)
 {
@@ -549,9 +489,7 @@ void MpvPlayer::setLogFile(const QString &logFile)
 }
 
 QString MpvPlayer::logFile() const
-{
-    return mpv::qt::get_property(d_ptr->mpv, "log-file").toString();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "log-file").toString(); }
 
 void MpvPlayer::setConfigDir(const QString &configDir)
 {
@@ -560,9 +498,16 @@ void MpvPlayer::setConfigDir(const QString &configDir)
 }
 
 QString MpvPlayer::configDir() const
+{ return mpv::qt::get_property(d_ptr->mpv, "config-dir").toString(); }
+
+void MpvPlayer::setHttpHeaderFields(const QStringList &text)
 {
-    return mpv::qt::get_property(d_ptr->mpv, "config-dir").toString();
+    qInfo() << "http-header-fields: " << text;
+    mpv::qt::set_property_async(d_ptr->mpv, "http-header-fields", text);
 }
+
+auto MpvPlayer::httpHeaderFields() const -> QStringList
+{ return mpv::qt::get_property(d_ptr->mpv, "http-header-fields").toStringList(); }
 
 void MpvPlayer::pauseAsync()
 {
@@ -580,29 +525,19 @@ void MpvPlayer::pauseSync(bool state)
 }
 
 auto MpvPlayer::isPaused() -> bool
-{
-    return mpv::qt::get_property(d_ptr->mpv, "pause").toBool();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "pause").toBool(); }
 
 auto MpvPlayer::volumeMax() const -> int
-{
-    return mpv::qt::get_property(d_ptr->mpv, "volume-max").toInt();
-}
+{ return mpv::qt::get_property(d_ptr->mpv, "volume-max").toInt(); }
 
 void MpvPlayer::abortAllAsyncCommands()
-{
-    mpv::qt::command_abort_async(d_ptr->mpv);
-}
+{ mpv::qt::command_abort_async(d_ptr->mpv); }
 
 void MpvPlayer::quit()
-{
-    mpv::qt::set_property(d_ptr->mpv, "quit", true);
-}
+{ mpv::qt::set_property(d_ptr->mpv, "quit", true); }
 
 auto MpvPlayer::mpv_handler() -> mpv_handle *
-{
-    return d_ptr->mpv;
-}
+{ return d_ptr->mpv; }
 
 void MpvPlayer::onMpvEvents()
 {
